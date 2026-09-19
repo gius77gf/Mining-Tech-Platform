@@ -68,6 +68,20 @@
       diversa dichiarata per nome e con la ragione. E il setaccio sa fallire
       da solo su questo difetto: con `--controprova` le prove cadute passano
       da 21 a **22**, ed è la sua riga sul `.volata.json`.
+   7. G21 (17/09) · IL `.volata.json` DECLARAVA UNA MAGLIA CHE L'IMPORT NON
+      SCRIVEVA MAI. `const geom = v.geometria || {};` era dichiarata e non più
+      letta in tutto il file: l'unico uso di `INTERASSE` nello stesso handler
+      era in LETTURA (`LmImp = P.fori*INTERASSE`), mai in scrittura. Un file
+      che dichiara `spalla_m:4.5` importava fori disposti sulla maglia
+      PRECEDENTE — quella rimasta in memoria da prima, mai quella del file —
+      e il pannello "NUOVA VOLATA" continuava a mostrarla come se fosse
+      quella appena importata, senza nessun avviso: a cascata, Powder Factor
+      e curva di frammentazione calcolati su un burden/interasse che non era
+      quello del file. Stessa sorte per il diametro foro, scritto
+      dall'export in `default.diametro_mm` e mai letto dall'import. Corretto
+      con lo stesso `valoreCampo` già usato tre righe più sotto per
+      profondità e carica: il dato del file se c'è, quello che il progetto
+      aveva prima se non c'è.
 
    ⛔ I CASI SI COSTRUISCONO NEI DATI, mai nel file su disco: la volata e la
    legge di sito entrano da `localStorage` (`genesiVolate`, `genesiSito`), le
@@ -140,6 +154,28 @@ const DIFETTI = [
      controprova che non aggancia gira su un prodotto sano dicendo «distingue».
      Qui basta il numero, che è il soggetto della prova. */
   [`_ricPlur(D2.holes.length,'foro','fori')`, `_ricPlur(D2.holes.length+1,'foro','fori')`],
+  // 7 · il piano di carico senza l'id del foro (05/09): la colonna c'è, vuota
+  //     (dal 05/09 notte la riga la compone `pianoCsvGenesi` di shared/: qui si
+  //     toglie l'id dal RECORD che la pagina le passa)
+  [`idForo:h.id||'' }));`, `idForo:'' }));`],
+  // 8 · e il .volata.json che torna a chiamarli per posizione
+  [`id:f.id||('foro_'+(f.i+1)),`, `id:'foro_'+(f.i+1),`],
+  // 9 · «Apri» che butta via i fori salvati e rigenera la maglia (com'era fino al 05/09)
+  [`D2.holes=(_fd&&_fd.fori.length)?_fd.fori:[];`, `D2.holes=[];`],
+  // 10 · e «Salva» che non li scrive
+  [`holes:(D2.holes||[]).map(h=>({ id:h.id||null,`, `holes:[].map(h=>({ id:h.id||null,`],
+  // 11 · G21 (17/09): la geometria del .volata.json letta e mai scritta
+  [`SPALLA = valoreCampo(parseFloat(geom.spalla_m), SPALLA, 1.5, 8);`, ``],
+  [`INTERASSE = valoreCampo(parseFloat(geom.interasse_m), INTERASSE, 1.5, 8);`, ``],
+  [`P.diam = valoreCampo(parseFloat(def.diametro_mm), P.diam, 50, 160, true);`, ``],
+  // 12 · e il borraggio, la quarta metà di G21 mancata al primo giro (17/09,
+  //      secondo giro di deep-pass): usciva nel file da mesi, nessuno lo rileggeva
+  [`D2.stem = valoreCampo(parseFloat(geom.borraggio_m), D2.stem, 0.5, 6);`, ``],
+  // 13 · il .volata.json su multi-fila: "file:1" a prescindere dalle file vere
+  //      (18/09, secondo giro di deep-pass) — dedicata, prima esercitata solo
+  //      di riflesso dal difetto 4 (lo scatter dell'export)
+  [`geometria:{ spalla_m:SPALLA, interasse_m:INTERASSE, borraggio_m:D2.stem, file:Math.max(1, D2.file||1) },`,
+   `geometria:{ spalla_m:SPALLA, interasse_m:INTERASSE, borraggio_m:D2.stem, file:1 },`],
 ];
 
 const colpiti = new Set();
@@ -203,6 +239,9 @@ async function apri(sito, design) {
       data: "2026-07-12", sintesi: "12 fori", design: arg.design }]));
     if (arg.sito) localStorage.setItem("genesiSito", JSON.stringify(arg.sito));
   }, { design: design || BASE, sito });
+  /* senza rete vera in questo contenitore, l'import da gstatic morirebbe da
+     solo dopo ~13 s: lo si taglia subito, come in `genesi-locale.mjs`. */
+  await pg.route("https://www.gstatic.com/**", (r) => r.abort());
   await pg.goto(`http://127.0.0.1:${PORTA}/apps/genesi/genesi.html`, { waitUntil: "domcontentloaded" });
   await pg.waitForTimeout(2500);
   /* si intercetta il salvataggio del file: sia la forma `data:` (i CSV e
@@ -452,6 +491,12 @@ console.log("\n· il .volata.json, e il giro di andata e ritorno del ritardo");
 {
   const pg = await apri(SITO_TRE);
   const piano = await esce(pg, "btn-piano-csv", "piano di carico");
+  /* il .volata.json descrive la SIMULAZIONE: finché il progetto 2D non ci è
+     passato (il bottone «Simula»), i suoi fori sono quelli della dimostrazione
+     a una fila, battezzati foro_n — e per caso dodici come la maglia. Qui si
+     simula prima, così il file racconta il progetto e i due file si possono
+     confrontare foro per foro, id compreso */
+  await pg.click("#d2-cta").catch(() => {}); await pg.waitForTimeout(1500);
   const jsonTx = await esce(pg, "btnExport", "volata JSON");
   const j = JSON.parse(jsonTx || "{}");
   const rit = (j.volata && j.volata.fori || []).map((f) => f.ritardo);
@@ -464,6 +509,15 @@ console.log("\n· il .volata.json, e il giro di andata e ritorno del ritardo");
   dice(rit.every((v, i) => String(v) === String(+ritPiano[i])),
     "⛔ i ritardi del .volata.json sono quelli del piano di carico, foro per foro",
     JSON.stringify(rit) + "\n           piano: " + JSON.stringify(ritPiano));
+  /* l'id stabile del foro (05/09): tredicesima colonna del piano, e lo stesso
+     nome nel .volata.json — è la chiave che Campo rimanda nel consuntivo */
+  const testaPiano = (piano.split("\n")[0] || "").split(";");
+  const idPiano = piano.split("\n").slice(1).filter(Boolean).map((r) => r.split(";")[12]);
+  const idJson = (j.volata && j.volata.fori || []).map((f) => f.id);
+  dice(testaPiano[12] === "id_foro" && idPiano.length === 12 && idPiano.every((x) => /^f\d+-\d+$/.test(x)) && new Set(idPiano).size === 12,
+    "⛔ ogni foro del piano porta un id_foro suo (fila-colonna), tutti diversi", JSON.stringify(idPiano));
+  dice(idJson.length === 12 && [...idJson].sort().join() === [...idPiano].sort().join(),
+    "⛔ e il .volata.json chiama i fori con gli stessi id del piano", JSON.stringify(idJson));
   dice(rit.every((v) => Number.isInteger(v * 10) && Math.abs(v % passo) < 0.05),
     `⛔ e sono multipli del passo dichiarato due righe sopra (${passo} ms), non lo scatter sorteggiato`,
     JSON.stringify(rit.slice(0, 5)));
@@ -481,6 +535,83 @@ console.log("\n· il .volata.json, e il giro di andata e ritorno del ritardo");
   numeriConfrontati += 1;
   dice(String(rit2) === String(passo),
     `⛔ riletto da Genesi stessa, il ritardo torna ${passo} ms — non il ripiego a 25`, rit2);
+  dice(pg.__err.length === 0, "la pagina non solleva errori", pg.__err[0]);
+  await pg.close();
+}
+
+// ── 4bis · G21: LA GEOMETRIA DEL FILE, LETTA E MAI SCRITTA ───────────────
+console.log("\n· il .volata.json, e il giro di andata e ritorno della geometria (spalla/interasse/borraggio)");
+{
+  /* progetto con una maglia E un borraggio ben diversi dal default
+     (3,0×3,5, stem 2,2), così un ripiego sul valore precedente non potrebbe
+     mai passare per coincidenza. Il borraggio (17/09, secondo giro di
+     deep-pass): `geometria.borraggio_m` usciva nel file da mesi e nessun
+     punto lo rileggeva — round-trip perso in silenzio su un parametro che
+     decide il confinamento del colletto (SDOB). */
+  const pg = await apri(SITO_TRE, { ...BASE, B: 6, S: 7, stem: 4.5 });
+  await pg.click("#d2-cta").catch(() => {}); await pg.waitForTimeout(1500);
+  const jsonTx = await esce(pg, "btnExport", "volata JSON (geometria)");
+  const j = JSON.parse(jsonTx || "{}");
+  numeriConfrontati += 3;
+  dice(j.volata && j.volata.geometria && +j.volata.geometria.spalla_m === 6 && +j.volata.geometria.interasse_m === 7 && +j.volata.geometria.borraggio_m === 4.5,
+    "⛔ il file esportato dichiara la maglia E il borraggio veri (6×7, 4,5 m), non il default",
+    j.volata && j.volata.geometria);
+  const f = join(TMP, "geometria.volata.json");
+  writeFileSync(f, jsonTx);
+  await pg.close();
+
+  /* pagina FRESCA, col progetto di default (3,0×3,5, stem 2,2): se l'import
+     ripiegasse sul valore precedente invece di leggere il file, qui
+     resterebbe 3,0×3,5 e 2,2 */
+  const pg2 = await apri(SITO_TRE);
+  await pg2.evaluate(() => { const x = [...document.querySelectorAll("#bottomnav button")].find((y) => y.dataset.scr === "sim"); if (x) x.click(); });
+  await pg2.waitForTimeout(1200);
+  const prima = await pg2.evaluate(() => document.getElementById("infochip")?.textContent || "");
+  const stemPrima = await pg2.evaluate(() => window.__genesi.D2.stem);
+  dice(/3,0×3,5/.test(prima), "prima dell'import il pannello è ancora sul default (3,0×3,5)", prima);
+  dice(stemPrima === 2.2, "e il borraggio (D2.stem) è ancora sul default (2,2 m)", stemPrima);
+  await pg2.setInputFiles("#fileIn", f);
+  await pg2.waitForTimeout(1200);
+  const dopo = await pg2.evaluate(() => document.getElementById("infochip")?.textContent || "");
+  const stemDopo = await pg2.evaluate(() => window.__genesi.D2.stem);
+  dice(/6,0×7,0/.test(dopo), "⛔ riletto da Genesi stessa, il pannello mostra la maglia DEL FILE (6,0×7,0) — non quella rimasta in memoria", dopo);
+  dice(!/3,0×3,5/.test(dopo), "e non è più il default che c'era prima dell'import", dopo);
+  dice(stemDopo === 4.5,
+    "⛔ e D2.stem è il valore DEL FILE (4,5 m), non il default rimasto in memoria", stemDopo);
+  // e la spia visibile in pagina lo conferma: aprendo la scheda "design" il
+  // campo Borraggio si aggiorna da D2 (`syncDesignInputs`, chiamata a ogni
+  // cambio di schermata) — qui verifichiamo che porti il valore giusto,
+  // non solo che la variabile in memoria sia quella giusta
+  await pg2.evaluate(() => { const x = [...document.querySelectorAll("#bottomnav button")].find((y) => y.dataset.scr === "design"); if (x) x.click(); });
+  await pg2.waitForTimeout(600);
+  const stemCampo = await pg2.evaluate(() => document.getElementById("dStem")?.value || "");
+  dice(parseFloat(String(stemCampo).replace(",", ".")) === 4.5,
+    "⛔ e il campo Borraggio, aperta la scheda di progettazione, mostra 4,5 (non il default rimasto in memoria)", stemCampo);
+  dice(pg2.__err.length === 0, "la pagina non solleva errori", pg2.__err[0]);
+  await pg2.close();
+}
+
+// ── 4ter · IL .volata.json SU UN PROGETTO MULTI-FILA: LA FILA, NON PIÙ "file:1" ─
+console.log("\n· il .volata.json su un progetto a più file (18/09, secondo giro di deep-pass)");
+{
+  /* ⛔ prima di questa unità l'export scriveva sempre `geometria.file:1` e
+     nessun foro portava la sua fila (`SIM.fori[].zoff`, calcolato apposta dal
+     progetto 2D per disegnare le file in profondità, era ignorato): un
+     progetto a 3 file usciva come 12 fori allineati su un'unica riga verso il
+     "gestionale Deepwork" esterno. */
+  const pg = await apri(SITO_TRE, { ...BASE, file: 3, perRow: 4 });
+  await pg.click("#d2-cta").catch(() => {}); await pg.waitForTimeout(1500);
+  const jsonTx = await esce(pg, "btnExport", "volata JSON (multi-fila)");
+  const j = JSON.parse(jsonTx || "{}");
+  numeriConfrontati += 2;
+  dice(j.volata && j.volata.geometria && +j.volata.geometria.file === 3,
+    "⛔ il file esportato dichiara le TRE file del progetto, non «1» a prescindere",
+    j.volata && j.volata.geometria);
+  const file = ((j.volata && j.volata.fori) || []).map((f) => f.fila);
+  const distinte = new Set(file);
+  dice(file.length === 12 && distinte.size === 3 && [...distinte].sort().join() === "1,2,3",
+    "⛔ ogni foro porta la SUA fila (tre file distinte, 1/2/3), non tutti sulla stessa riga",
+    JSON.stringify(file));
   dice(pg.__err.length === 0, "la pagina non solleva errori", pg.__err[0]);
   await pg.close();
 }
@@ -509,6 +640,41 @@ console.log("\n· il PPV composito: tutte le cifre nella convenzione italiana");
      file di scambio che rientra da `_sigParse` e da qualunque altro programma */
   dice(/^tempo_ms;ampiezza\n0\.00;/.test(csv), "   e il file dell'onda, che è di scambio, li scrive col punto",
     csv.slice(0, 60));
+  dice(pg.__err.length === 0, "la pagina non solleva errori", pg.__err[0]);
+  await pg.close();
+}
+
+// ── 6 · I FORI SALVATI COL PROGETTO: UN FORO TOLTO NON RICOMPARE ─────────
+console.log("\n· i fori salvati col progetto: salva → riapri, stessi id e ritardo a mano");
+{
+  /* il design salvato porta TRE fori — f1-2 era stato tolto prima di salvare,
+     f1-3 ha un ritardo messo a mano, m1 è stato aggiunto sulla tela. Fino al
+     05/09 «Apri» rigenerava la maglia dai parametri: dodici fori, f1-2
+     ricomparso, il 99 ms sparito, m1 sparito. */
+  const design = { ...BASE, holes: [{ id: "f1-1", mx: 0, my: 3 }, { id: "f1-3", mx: 7, my: 3, tMano: 99 }, { id: "m1", mx: 3.5, my: 6 }] };
+  const pg = await apri(null, design);
+  const piano = await esce(pg, "btn-piano-csv", "piano di carico (fori salvati)");
+  const righe = piano.split("\n").slice(1).filter(Boolean).map((r) => r.split(";"));
+  const ids = righe.map((r) => r[12]);
+  numeriConfrontati += righe.length;
+  dice(righe.length === 3 && [...ids].sort().join() === "f1-1,f1-3,m1",
+    "⛔ il progetto riaperto ha i TRE fori salvati coi loro id: f1-2, tolto prima di salvare, non ricompare", ids);
+  const r13 = righe.find((r) => r[12] === "f1-3");
+  dice(!!r13 && String(+r13[6]) === "99", "⛔ e il ritardo messo a mano (99 ms) sopravvive alla riapertura", r13 && r13[6]);
+  /* il verso del salvataggio: «Salva» in Home scrive i fori nel design */
+  await pg.evaluate(() => { const s = document.getElementById("hgSalva"); if (s) s.click(); });
+  await pg.waitForTimeout(600);
+  await pg.fill("#modal-campo", "Volata con fori", { timeout: 3000 }).catch(() => {});
+  await pg.click("#modal-foot .mbtn.primary", { timeout: 3000 }).catch(() => {});
+  await pg.waitForTimeout(700);
+  const salvati = await pg.evaluate(() => {
+    const a = JSON.parse(localStorage.getItem("genesiVolate") || "[]");
+    const v = a.find((x) => x.nome === "Volata con fori");
+    return v && v.design ? v.design.holes : null;
+  });
+  dice(Array.isArray(salvati) && salvati.length === 3 && salvati.map((h) => h.id).sort().join() === "f1-1,f1-3,m1"
+       && (salvati.find((h) => h.id === "f1-3") || {}).tMano === 99,
+    "⛔ «Salva» scrive i fori nel design — id, posizione, ritardo a mano — così la volata riaperta è quella salvata", JSON.stringify(salvati));
   dice(pg.__err.length === 0, "la pagina non solleva errori", pg.__err[0]);
   await pg.close();
 }

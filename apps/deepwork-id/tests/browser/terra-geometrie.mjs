@@ -146,6 +146,14 @@ const DIFETTI = [
   ["apps/terra/terra-data.js",
     "nessun turno ha registrato una produzione`);",
     "i turni non hanno dichiarato niente`);"],
+  /* 6 · IL FRONTE CHE NESSUNO HA RILEVATO TORNA A ZERO (04/09). Il motore
+     rimette la voce senza numero fra le misure, a 0: la barra si disegna con
+     la stanghetta minima, la tabella scrive «0 m³» e «0,0%», e sul disegno si
+     legge «da lì non è uscito niente» — la forma esatta del difetto chiuso
+     quel giorno. */
+  ["shared/dw-grafici.js",
+    "else if (v.valore === null || v.valore === undefined) mancanti.push(v);",
+    "else if (v.valore === null || v.valore === undefined) misurati.push({ etichetta: v.etichetta, valore: 0, stato: v.stato });"],
 ];
 const difettiDi = (percorso) => DIFETTI.filter((d) => (d.length === 3 ? d[0] : PAGINA) === percorso)
   .map((d) => (d.length === 3 ? [d[1], d[2]] : d));
@@ -371,9 +379,16 @@ const vicino = (a, c, t) => a != null && c != null && Math.abs(a - c) <= t;
    misurare Terra. */
 const MINIMO_MOTORE = 2.4;   // px: le 2 unità del motore, con lo scarto della scala
 function confrontaBarre(x, etichetta) {
-  const q = x.tab.map((r) => pctIt(r[r.length - 1]));
+  /* dal 04/09 la tabella può avere righe SENZA barra: la voce che nessuno ha
+     misurato scrive «non misurato» al posto del numero e «—» come quota, e non
+     si disegna. Il confronto pixel/valore riguarda solo le righe con un numero;
+     quante sono le altre si dice, perché una riga tolta in silenzio è il modo
+     in cui un banco smette di guardare. */
+  const conNumero = x.tab.filter((r) => numIt(r[1]) != null);
+  const nonMisurate = x.tab.length - conNumero.length;
+  const q = conNumero.map((r) => pctIt(r[r.length - 1]));
   const mis = x.dim.map((d) => (x.oriz ? d[0] : d[1]));
-  if (q.length !== mis.length || !q.length) { dice(false, `${etichetta}: la tabella accessibile ha una riga per barra`, `${q.length} righe, ${mis.length} barre`); return; }
+  if (q.length !== mis.length || !q.length) { dice(false, `${etichetta}: la tabella accessibile ha una riga per barra`, `${q.length} righe con un numero (${nonMisurate} senza), ${mis.length} barre`); return; }
   CONTO.barre += mis.length;
   let iMax = 0;
   q.forEach((v, i) => { if ((v || 0) > (q[iMax] || 0)) iMax = i; });
@@ -394,7 +409,7 @@ function confrontaBarre(x, etichetta) {
   dice(fatti > 0 && peggio.scarto <= tolleranza(peggio.atteso),
     `${etichetta}: i pixel stanno fra loro come i valori`
     + ` — ${mis.length} barre ${x.oriz ? "orizzontali" : "verticali"}, ${fatti} confrontate con la più grande,`
-    + ` ${saltati} sotto il minimo del motore`,
+    + ` ${saltati} sotto il minimo del motore` + (nonMisurate ? `, ${nonMisurate} righe «non misurato» senza barra` : ""),
     peggio && `la peggiore: quota ${peggio.quota}% della più grande (${mis[iMax]} px)`
       + ` → attesi ${peggio.atteso.toFixed(2)} px, disegnati ${peggio.px} px`);
 }
@@ -574,6 +589,49 @@ for (const sez of ["nav-ril", "nav-fro", "nav-den"]) {
     const maxPx = Math.max(...lunghezze);
     dice(maxPx > 40, `${sez} · «${x.host}»: il valore 200 volte più grande è DISEGNATO grande, non schiacciato al minimo`,
       `la più ${x.oriz ? "lunga" : "alta"} misura ${maxPx} px (${lunghezze.length} barre ${x.oriz ? "orizzontali" : "verticali"})`);
+  }
+  await pg.close();
+}
+
+// ── SCENA 2-bis · il fronte che nessuno ha rilevato ───────────────────────
+/* Nella dimostrazione Fronte Sud non ha nessun rilievo elaborato. Fino al
+   04/09 arrivava al motore come 0 m³ e si disegnava con la stanghetta minima,
+   accanto ai fronti misurati: una misura che nessuno ha fatto. Adesso arriva
+   `null`, resta in elenco, e al posto del numero c'è la parola. */
+console.log("\n· il fronte che nessuno ha rilevato: in elenco, senza barra, con la parola al posto del numero");
+FIXTURE = SCENE.base;
+{
+  const pg = await apri("nav-fro");
+  const f = await pg.evaluate(() => {
+    const el = document.getElementById("fro-volumi");
+    const svg = el && el.querySelector("svg");
+    if (!svg) return null;
+    const sb = svg.getBoundingClientRect();
+    const manca = [...svg.querySelectorAll(".dwg-vallab.dwg-manca")].map((t) => {
+      const r = t.getBoundingClientRect();
+      return { testo: t.textContent, dentro: r.left >= sb.left - 0.5 && r.right <= sb.right + 0.5 && r.top >= sb.top - 0.5 && r.bottom <= sb.bottom + 0.5 };
+    });
+    const righe = [...el.querySelectorAll(".dwg-tab tbody tr")].map((tr) => [...tr.children].map((c) => c.textContent.trim()));
+    const cat = [...svg.querySelectorAll(".dwg-catlab")].map((t) => t.textContent);
+    return { barre: svg.querySelectorAll(".dwg-barra").length, manca, righe, cat, aria: svg.getAttribute("aria-label") || "" };
+  });
+  dice(!!f, "nav-fro: il grafico dei fronti c'è");
+  if (f) {
+    const senza = f.righe.filter((r) => r[1] === "non misurato");
+    dice(senza.length === 1 && senza[0][2] === "—",
+      "⛔ la tabella accessibile ha UNA riga «non misurato», con la quota «—» e non «0,0%»",
+      JSON.stringify(f.righe));
+    dice(f.barre === f.righe.length - senza.length,
+      "e le barre disegnate sono le righe con un numero: la voce senza misura NON ha una stanghetta",
+      `${f.barre} barre, ${f.righe.length} righe di cui ${senza.length} senza numero`);
+    dice(f.manca.length === 1 && f.manca[0].testo === "non misurato" && f.manca[0].dentro,
+      "e sul disegno, al posto del numero, c'è scritto «non misurato», dentro il riquadro",
+      JSON.stringify(f.manca));
+    dice(f.cat.length === f.righe.length && /Fronte Sud/.test(f.cat.join("|")),
+      "e il fronte resta in elenco con il suo nome: non è sparito", f.cat.join(" · "));
+    dice(/Una voce non è misurata/.test(f.aria), "e il titolo accessibile lo dichiara", f.aria);
+    dice(!f.righe.some((r) => /^0(,0)? m³$|^0$/.test(r[1]) && r[0] === "Fronte Sud"),
+      "⛔ e nessuna riga della tabella dice «0 m³» per il fronte mai rilevato", JSON.stringify(f.righe));
   }
   await pg.close();
 }

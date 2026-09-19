@@ -530,10 +530,28 @@ test("Genesi: il conto dei selettori condivisi che cadono sul suo markup è quel
   ok(m, "non trovo la riga del contagio rimisurato nel documento");
   ok(+m[1] === CADONO.length,
     `il documento dice ${m && m[1]}, la misura ne trova ${CADONO.length} (${CADONO.join(", ")})`);
-  /* e la metà che conta: nessuno FUORI dalla famiglia modale/toast */
-  const fuori = CADONO.filter((x) => !/modal|mbtn|toast|dw-vuoto/.test(x));
+  /* e la metà che conta: nessuno FUORI dalla famiglia modale/toast.
+     ⚠️ `.fl` è della famiglia per USO, non per nome: è l'etichetta di campo
+     delle modali del core, entrata nel foglio condiviso il 10/09 (fino ad
+     allora vestita solo dentro `.modal-body`, e Conti e Scudo la perdevano
+     fuori). In Genesi compare in un posto solo, la modale del nome — e questo
+     NON si dà per scontato: si pretende qui sotto che ogni riga di Genesi con
+     `class="fl"` stia in una stringa di modale, se no l'eccezione nasconderebbe
+     proprio il caso che questa metà esiste per prendere.
+     ⏱️ 12/09 (unità 126): la modale dell'obiettivo di pezzatura ha guadagnato
+     una SECONDA `<label class="fl">`, ma il suo campo è un `<input>` senza
+     classe — come quello della modale del nome — perché `classi-orfane.mjs`
+     ha preso al volo un primo tentativo con `class="dw-input"`: quella classe
+     non la dipinge nessun foglio LOCALE di Genesi (il condiviso che la
+     definisce non è caricato) e nessuno script la cerca, quindi non faceva
+     niente — era pura zavorra. Lo stile arriva già dal selettore generico
+     `.modal-body input`, che Genesi ha da sempre. */
+  const fuori = CADONO.filter((x) => !/modal|mbtn|toast|dw-vuoto/.test(x) && x !== ".fl");
   ok(fuori.length === 0,
     `${fuori.length} selettori fuori dalla famiglia modale/toast cadrebbero su Genesi: ${fuori.join(", ")}`);
+  const righeFl = genesi.split("\n").filter((r) => r.includes('class="fl"'));
+  ok(righeFl.length > 0 && righeFl.every((r) => /modal-/.test(r)),
+    `in Genesi ${righeFl.filter((r) => !/modal-/.test(r)).length} righe con class="fl" stanno FUORI da una modale: l'eccezione su .fl non regge più`);
 });
 
 test("docs/LA_STRUTTURA_DEL_CORE_SCRITTA_SEI_VOLTE.md: il conto delle variabili è quello vero", () => {
@@ -550,8 +568,19 @@ test("docs/LA_STRUTTURA_DEL_CORE_SCRITTA_SEI_VOLTE.md: il conto delle variabili 
    Genesi HA GIÀ. Non è la famiglia `.modal-*` il problema — quella la si
    vuole — sono `.kpi`, `.badge`, `.note`, che sono già vestiti. */
 test("docs/LA_STRUTTURA_DEL_CORE_SCRITTA_SEI_VOLTE.md: il conto del contagio è quello vero", () => {
+  /* ⛔ IL MARKUP DI GENESI NON VIVE PIÙ SOLO IN `genesi.html`. Dal 12/09
+     (unità 124) `esplCardHtml`/`innCardHtml` — le schede che finiscono per
+     `innerHTML` — sono salite in `genesi-data.js`, e ci portano dietro le
+     classi che disegnano (`es-card`, `es-nome`, `ok`, `no`…): sono markup che
+     Genesi PRODUCE ancora, esattamente come prima, solo che il testo che le
+     dichiara si è spostato. Un conto che leggesse solo `genesi.html`
+     risponderebbe "meno contagio" nel giorno in cui il trasloco è successo,
+     senza che una sola classe sia sparita dalla pagina resa: si legge anche
+     il modulo, per la stessa ragione per cui un elenco di moduli condivisi si
+     deriva e non si scrive a mano. */
+  const genesiDati = readFileSync(join(RADICE, "apps", "genesi", "genesi-data.js"), "utf8");
   const classiInPagina = new Set();
-  for (const m of genesi.matchAll(/class="([^"]+)"/g))
+  for (const m of (genesi + genesiDati).matchAll(/class="([^"]+)"/g))
     for (const c of m[1].split(/\s+/)) if (c) classiInPagina.add(c);
   /* ⛔ LA STESSA ESTRAZIONE ERA SCRITTA DUE VOLTE, E LA SECONDA ERA PIÙ DEBOLE.
      Qui sopra c'è `SELETTORI_FOGLIO`, costruito su `FOGLIO_PULITO` — cioè coi
@@ -893,10 +922,18 @@ test("la controprova dell'emulatore: un totale coerente coi SUOI addendi ma fals
    ⚠️ E l'elenco dei moduli è **derivato dall'uscita del censimento**, non
    scritto qui: un elenco a mano non può accorgersi di un modulo che non sa
    esistere — è il difetto che l'07/08 è costato `chiediDati`, sei chiamate a
-   una funzione mai definita, perché `UI_CONDIVISA` era scritto a mano. */
+   una funzione mai definita, perché `UI_CONDIVISA` era scritto a mano.
+   ⛔ E IL 15/09 UN MODULO SALITO DI COPERTURA HA FATTO SPARIRE SÉ STESSO DAL
+   CONTO: `copertura-funzioni.mjs` appende «(il fondo era N: alzalo)» a ogni
+   riga che supera il proprio minimo storico — dw-shell.js l'ha fatto passando
+   da 61/61 a 62/62 — e l'ancora di fine riga (`\s*$`) di questa regex non
+   ammetteva nessun testo dopo `N/N`: quella riga smetteva di combaciare,
+   `perModulo.length` scendeva da 5 a 4, e il controllo si dichiarava cieco
+   proprio mentre la copertura migliorava. La cura non tocca il fondo: tollera
+   qualunque coda dopo lo slash, sulla stessa riga. */
 let nominatiDoc = 0;
 const mCondivisi = /(\d+) funzioni condivise coperte su (\d+) guardate, in (\d+) moduli/.exec(String(cop.stdout || ""));
-const perModulo = [...String(cop.stdout || "").matchAll(/^\s*✓\s+([\w.-]+\.js)\s+(\d+)\/(\d+)\s*$/gm)]
+const perModulo = [...String(cop.stdout || "").matchAll(/^\s*✓\s+([\w.-]+\.js)\s+(\d+)\/(\d+)(?:[ \t].*)?$/gm)]
   .map((m) => ({ file: m[1], coperte: +m[2], guardate: +m[3] }));
 test("docs/DEVELOPMENT.md: la scomposizione del codice condiviso è quella vera, modulo per modulo", () => {
   ok(mCondivisi, "il censimento non ha stampato la riga dei moduli condivisi");

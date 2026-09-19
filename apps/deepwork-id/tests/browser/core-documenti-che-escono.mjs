@@ -199,8 +199,8 @@ const DIFETTI = [
   // 1 · il Report tecnico che chiede i numeri al rapportino invece che a `misureRapportino`
   [`      return[dataO(r.data),c?c.nome:'\u2014',u?u.nome+' '+u.cognome:'\u2014',
         ms.misurato?ms.fori:'non misurato',
-        ms.metri===null?'\u2014':ms.metri.toFixed(1),
-        ms.calcolabile?ms.mc.toFixed(1):'\u2014'];}),`,
+        ms.metri===null?'\u2014':perLettura(ms.metri,1,true),
+        ms.calcolabile?perLettura(ms.mc,1,true):'\u2014'];}),`,
    `      return[dataO(r.data),c?c.nome:'\u2014',u?u.nome+' '+u.cognome:'\u2014',r.fori||0,(r.metri||0).toFixed(1),(r.mc||0).toFixed(1)];}),`],
   // 2 · la riga dei totali e la dichiarazione di che cosa e' rimasto fuori
   [`    foot:rp.length?[[{content:'TOTALI',colSpan:3,styles:{halign:'right',fontStyle:'bold'}},`,
@@ -222,19 +222,24 @@ const DIFETTI = [
    "  const inRange=dt=>dt&&(!da||dt>=da)&&(!a||dt<=a);"],
   /* 8 · lo schema di volata che dichiara come completo un carico a metà, e
         stampa «0m» dove i mc dicono già «-» */
+  /* ⛔ RIPUNTATA IL 04/09: i tre numeroni passano da `perLettura` («787,5 mc»
+     e non «787.5mc»), quindi la forma sana e' cambiata e questa riga con lei —
+     se no l'iniezione non trova piu' il suo pezzo e la controprova muore in
+     silenzio (`iniezioni-fresche.mjs` lo prende). Il difetto rimesso e' lo
+     stesso di sempre: i totali grezzi della volata al posto delle misure. */
   [`  const kpi=[['FORI',String(mv.fori)],
-             ['METRI',mv.metri===null?'-':mv.metri+'m'],
-             [mv.parziale?'KG · PARZIALE':'KG',mv.kgNoto?mv.kg+'kg':'-'],
-             ['MC',mv.mcNoto?mv.mc+'mc':'-']];`,
+             ['METRI',mv.metri===null?'-':perLettura(mv.metri,1,true)+' m'],
+             [mv.parziale?'KG · PARZIALE':'KG',mv.kgNoto?perLettura(mv.kg,1,true)+' kg':'-'],
+             ['MC',mv.mcNoto?perLettura(mv.mc,1,true)+' mc':'-']];`,
    `  const kpi=[['FORI',String(v.tot_fori)],['METRI',v.tot_metri+'m'],['KG',v.tot_kg>0?v.tot_kg+'kg':'-'],['MC',v.tot_mc>0?v.tot_mc+'mc':'-']];`],
   // 9 · e la riserva scritta sotto i riquadri, che spiega il trattino
   ["    if(ris.length){\n      d.setTextColor(150,90,0);",
    "    if(false&&ris.length){\n      d.setTextColor(150,90,0);"],
   // 10 · i totali di pagina 3 dello stesso foglio
   [`      const tt=[['Fori',String(mv.fori)],
-                ['Metri',mv.metri===null?'-':mv.metri+' m'],
-                ['Carica',mv.kgNoto?(mv.parziale?'almeno ':'')+mv.kg+' kg':'-'],
-                ['Mc',mv.mcNoto?mv.mc+' mc':'-']];`,
+                ['Metri',mv.metri===null?'-':perLettura(mv.metri,1,true)+' m'],
+                ['Carica',mv.kgNoto?(mv.parziale?'almeno ':'')+perLettura(mv.kg,1,true)+' kg':'-'],
+                ['Mc',mv.mcNoto?perLettura(mv.mc,1,true)+' mc':'-']];`,
    `      const tt=[['Fori',String(v.tot_fori)],['Metri',v.tot_metri+' m'],['Carica',v.tot_kg>0?v.tot_kg+' kg':'-'],['Mc',v.tot_mc>0?v.tot_mc+' mc':'-']];`],
   // 11 · le due celle della maglia scritte «0» nel foglio che la dichiara mancante
   ["          'Diametro (mm)':cellaNum(r.diametro),\n          'Maglia':r.maglia||'—',\n          'Burden (m)':cellaNum(r.maglia_B),\n          'Spaziatura (m)':cellaNum(r.maglia_S),",
@@ -260,8 +265,13 @@ const DIFETTI = [
      e il banco «non distingueva» senza che il numero delle prove si muovesse.
      Il difetto rimesso è lo stesso di prima — i totali della VOLATA al posto
      dei metri MISURATI — solo scritto com'è scritto oggi. */
-  ["    <span class=\"ec-stat\"><b>${mv.metri===null?'—':mv.metri}</b><span class=\"u\">m</span></span>\n    ${mv.kgNoto?`<span class=\"ec-stat\"><b>${mv.parziale?'≥':''}${mv.kg}</b><span class=\"u\">kg</span></span>`:''}\n    <span class=\"ec-stat\"><b>${mv.mcNoto?mv.mc:'—'}</b><span class=\"u\">mc</span></span>",
+  ["    <span class=\"ec-stat\"><b>${mv.metri===null?'—':perLettura(mv.metri,1,true)}</b><span class=\"u\">m</span></span>\n    ${mv.kgNoto?`<span class=\"ec-stat\"><b>${mv.parziale?'≥':''}${perLettura(mv.kg,1,true)}</b><span class=\"u\">kg</span></span>`:''}\n    <span class=\"ec-stat\"><b>${mv.mcNoto?perLettura(mv.mc,1,true):'—'}</b><span class=\"u\">mc</span></span>",
    "    <span class=\"ec-stat\"><b>${v.tot_metri}</b><span class=\"u\">m</span></span>\n    ${v.tot_kg>0?`<span class=\"ec-stat\"><b>${v.tot_kg}</b><span class=\"u\">kg</span></span>`:''}\n    <span class=\"ec-stat\"><b>${v.tot_mc}</b><span class=\"u\">mc</span></span>"],
+  // 17 · la maglia e le coordinate del foglio tornano col punto (04/09)
+  ["    ['Spalla (fronte-foro)', mgPdf.borraggio===null?'non scritta':perLettura(mgPdf.borraggio,2)+' m'],\n    ['Interasse (foro-foro)', mgPdf.spaziatura===null?'non scritto':perLettura(mgPdf.spaziatura,2)+' m'],",
+   "    ['Spalla (fronte-foro)', mgPdf.borraggio===null?'non scritta':mgPdf.borraggio+' m'],\n    ['Interasse (foro-foro)', mgPdf.spaziatura===null?'non scritto':mgPdf.spaziatura+' m'],"],
+  ["return[f.num,fila,perLettura(f.x||0,2,true),perLettura(f.y||0,2,true),f.prof||'-',",
+   "return[f.num,fila,(f.x||0).toFixed(2),(f.y||0).toFixed(2),f.prof||'-',"],
   // 16 · la colonna PROGETTO della riconciliazione a «0,0» invece che «non quotato»
   ["      ['Metri', cif(progMetri,'non quotato').replace('.',','), cif(realMetri).replace('.',','), seg(dM)],\n      ['Mc abbattuti', cif(progMc,'non quotato').replace('.',','), cif(realMc).replace('.',','), seg(dC)]",
    "      ['Metri', (progMetri||0).toFixed(1).replace('.',','), cif(realMetri).replace('.',','), seg(dM)],\n      ['Mc abbattuti', (progMc||0).toFixed(1).replace('.',','), cif(realMc).replace('.',','), seg(dC)]"],
@@ -537,11 +547,13 @@ dice(!!r21 && /non misurato/.test(r21[3]), "e lo dice, invece di tacere", r21 &&
 // il turno del 23/07: nove fori veri, maglia da confermare
 const r23 = tabRp.body.find((r) => /23\/07/.test(r[0]));
 dice(!!r23 && r23[3] === "9" && /^81/.test(r23[4]), "il turno misurato senza maglia tiene fori e metri, che sono misurati", r23 && r23.join(" | "));
-dice(!!r23 && !/^0\.0$/.test(r23[5]), "⛔ ma i metri cubi NON sono «0.0»: la maglia non c'è, il volume non si calcola", r23 && r23.join(" | "));
+dice(!!r23 && !/^0[.,]0$/.test(r23[5]), "⛔ ma i metri cubi NON sono «0,0»: la maglia non c'è, il volume non si calcola", r23 && r23.join(" | "));
 
 // il turno sano resta un numero
 const r14 = tabRp.body.find((r) => /14\/07/.test(r[0]));
-dice(!!r14 && r14[3] === "14" && /1190\.7/.test(r14[5]), "il turno misurato per bene continua a dire il suo volume", r14 && r14.join(" | "));
+dice(!!r14 && r14[3] === "14" && /^1\.190,7$/.test(r14[5]), "il turno misurato per bene continua a dire il suo volume — «1.190,7», con le migliaia e la virgola, non «1190.7»", r14 && r14.join(" | "));
+dice(tabRp.body.every((r) => !/^\d+\.\d$/.test(String(r[4])) && !/^\d+\.\d$/.test(String(r[5]))) && !/^\d+\.\d$/.test(String((tabRp.foot?.[0] || [])[2])),
+  "⛔ e nessuna cella di metri o mc del Report tecnico è scritta col punto: il foglio ha la grafia dell'app, in tabella e nel piede", piatto(tabRp));
 
 /* ── I TOTALI ──────────────────────────────────────────────────────────────
    ⛔ E I NUMERI ATTESI NON SI SCRIVONO A MANO. Fino al 07/08 qui c'era
@@ -559,7 +571,11 @@ dice(!!r14 && r14[3] === "14" && /1190\.7/.test(r14[5]), "il turno misurato per 
    2. il piede è d'accordo con il riquadro della dashboard che ospita il
       bottone, che è la stessa domanda con cui questo banco è nato. */
 const piede = JSON.stringify(tabRp.foot || []);
-const num = (s) => { const v = parseFloat(String(s).replace(/\s/g, "")); return Number.isFinite(v) ? v : null; };
+/* dal 04/09 il Report tecnico scrive all'italiana («1.190,7», «81,0»), come il
+   resto dei fogli: il numero si legge togliendo il punto delle migliaia e
+   leggendo la virgola come decimale. Sul riquadro dello schermo, che scrive
+   «3466» senza migliaia, la stessa lettura dà lo stesso numero. */
+const num = (s) => { const v = parseFloat(String(s).replace(/\s/g, "").replace(/\./g, "").replace(",", ".")); return Number.isFinite(v) ? v : null; };
 const sommaCol = (i) => tabRp.body.reduce((s, r) => s + (num(r[i]) ?? 0), 0);
 const pf = (tabRp.foot && tabRp.foot[0]) || [];
 /* il piede ha quattro celle: l'etichetta (che vale per tre colonne) e i tre numeri */
@@ -681,7 +697,42 @@ dice(/incompleta|non attendibile|22/.test(t3 + g3),
    mentire è il modo in cui viene dichiarato: si guarda il numero **e** si
    guarda che il foglio sia d'accordo con la propria tabella. */
 const volateProvate = [], ripieghi = [];
-const strisce = {};
+const strisce = {}, numeriStriscia = {};
+/* il numero come lo scrive `perLettura` («1.323,0») riletto come numero: il
+   punto è delle migliaia, la virgola è decimale. Serve SOLO a confrontare, non
+   a scrivere niente. */
+const numIt = (s) => {
+  const m = String(s).match(/^\s*(\d[\d.]*(?:,\d+)?)/);   // il numero in testa: «126,0 m» → 126
+  return m ? Number(m[1].replace(/\./g, "").replace(",", ".")) : NaN;
+};
+/* il foglio scrive «<numero> <unità>» con la virgola e lo spazio, e SUBITO DOPO
+   l'etichetta del riquadro («METRI», «KG», «KG · PARZIALE», «MC»): si prende il
+   numero che precede la sua etichetta, o null se non c'è.
+   ⛔ Fino al 04/09 si prendeva la PRIMA occorrenza con quell'unità nel foglio
+   intero: reggeva finché la maglia era scritta col punto («3.5 m» non
+   combaciava con la virgola). Il giorno in cui anche la maglia è passata a
+   perLettura, «3,5 m» dell'interasse è venuto prima di «126,0 m» dei metri e
+   il righello ha accusato il foglio di dire 3,5. È il controllo che non guarda
+   dove crede: il numero va letto dal suo posto, non a tappeto. */
+const numeroFoglio = (testo, unita) => {
+  const m = testo.match(new RegExp("(\\d[\\d.]*,\\d+) " + unita + " · (?:METRI|KG · PARZIALE|KG|MC)(?![A-Za-z])"));
+  return m ? m[1] : null;
+};
+/* I TRE RIQUADRI DI PAGINA 1, letti per POSIZIONE: il core disegna prima il
+   valore e poi l'etichetta («METRI», «KG» o «KG · PARZIALE», «MC»), quindi il
+   valore di un riquadro è il testo che precede la sua etichetta. Non si cerca
+   il numero a tappeto nel foglio — là c'è anche l'etichetta del disegno
+   («FRONTE L=28m»), che non è un numerone e non è oggetto di questa prova. */
+const riquadri = (pdf) => {
+  const t = (pdf && pdf.testi) || [], out = {};
+  t.forEach((x, i) => {
+    if (x === "METRI") out.m = t[i - 1];
+    else if (x === "KG" || x === "KG · PARZIALE") out.kg = t[i - 1];
+    else if (x === "MC") out.mc = t[i - 1];
+  });
+  return out;
+};
+const VESTITO = /^\d[\d.]*,\d (m|kg|mc)$/;   // «126,0 m», «1.323,0 mc»
 async function pdfVolata(id) {
   await pg.evaluate((i) => window.apriEditorCava(i), id);
   await pg.waitForTimeout(500);
@@ -692,6 +743,22 @@ async function pdfVolata(id) {
      su una volata non ancora quotata — e la stessa riga era scritta DUE volte
      nel core, a millesettecento righe di distanza. */
   strisce[id] = await pg.evaluate(() => (document.getElementById("ec-stats")?.textContent || "").replace(/\s+/g, " ").trim());
+  /* ⛔ E SI LEGGE ANCHE PER SELETTORE, numero per numero (04/09): ogni
+     `.ec-stat` che porta un'unità (`<b>126</b><span class="u">m</span>`) dà
+     una coppia {unità → numero}. Serve al confronto col foglio, che da oggi
+     scrive «126,0 m» col vestito di `perLettura`: il numero deve essere QUELLO
+     dello schermo, letto lì, non un 126 scritto a mano in questo file. */
+  numeriStriscia[id] = await pg.evaluate(() => {
+    const out = {};
+    for (const st of document.querySelectorAll("#ec-stats .ec-stat")) {
+      const u = st.querySelector(".u"), b = st.querySelector("b");
+      if (!u || !b) continue;
+      /* dal 04/09 la striscia scrive «1.323,0»: si legge all'italiana */
+      const grezzo = (b.textContent || "").replace(/[≥\s]/g, "");
+      out[u.textContent.trim()] = grezzo === "—" ? null : Number(grezzo.replace(/\./g, "").replace(",", "."));
+    }
+    return out;
+  });
   const prima = await pg.evaluate(() => (window.__pdf?.salvati || []).length);
   /* il bottone vero della barra dell'editor, non la funzione */
   let premuto = true;
@@ -743,18 +810,47 @@ const tabFori2 = (pv2 && pv2.tabelle[0]) ? pv2.tabelle[0].body : [];
 dice(!!pv2, `il bottone «PDF» dell'editor produce un documento (${pv2 ? pv2.nome : "nessuno"})`, pv2 && pv2.nome);
 /* i due numeri si prendono dai due posti e si confrontano, invece di scriverne uno */
 const kgSchermo = (schermoVol2.match(/([\d.,]+)\s*kg/i) || [])[1];
-const kgFoglio = (t_v2.match(/([\d.,]+)kg/) || [])[1];
-dice(!!kgSchermo && kgSchermo === kgFoglio,
+/* ⛔ DAL 04/09 IL FOGLIO SCRIVE «56,0 kg», NON «56kg»: la virgola e lo spazio
+   sono quelli di `perLettura`, cioè dello schermo (`volMc`, `focKg`). La scheda
+   a schermo scrive i chili del progetto ancora come numero grezzo («56 kg»),
+   quindi il confronto è sul NUMERO — letto in due posti e mai scritto qui —
+   e la forma del foglio si pretende a parte. */
+const kgFoglio = numeroFoglio(t_v2, "kg");
+dice(!!kgSchermo && kgFoglio !== null && numIt(kgSchermo) === numIt(kgFoglio),
   `⛔ il riquadro KG del foglio porta lo stesso numero della scheda a schermo (schermo ${kgSchermo}, foglio ${kgFoglio})`,
+  JSON.stringify({ schermoVol2, t_v2: t_v2.slice(0, 300) }));
+const rq2 = riquadri(pv2);
+dice(VESTITO.test(rq2.kg || "") && numIt(rq2.kg) === numIt(kgSchermo || "x"),
+  `⛔ e il riquadro li scrive come li legge lo schermo, con la virgola e lo spazio prima dell'unità («${rq2.kg}», non «56kg»)`, JSON.stringify(rq2));
+/* i mc: lo schermo (`volMc`, la riga dell'elenco) e il foglio passano TUTT'E DUE
+   da `perLettura`, quindi qui la stringa dev'essere IDENTICA, non solo il numero */
+const mcSchermo = (schermoVol2.match(/([\d.,]+)\s*mc/i) || [])[1];
+const mcFoglio = numeroFoglio(t_v2, "mc");
+dice(!!mcSchermo && mcFoglio !== null && mcSchermo === mcFoglio,
+  `⛔ i mc del foglio sono scritti ESATTAMENTE come nell'elenco a schermo (schermo «${mcSchermo} mc», foglio «${mcFoglio} mc»)`,
   JSON.stringify({ schermoVol2, t_v2: t_v2.slice(0, 300) }));
 dice(/PARZIALE/.test(t_v2) && /non portano i chili/.test(t_v2),
   "⛔ e dichiara che il carico è a metà, invece di far passare il totale per definitivo", t_v2);
-dice(/almeno 56 kg/.test(t_v2), "e i totali di pagina 3 dicono «almeno», la stessa parola del foglio del fochino", t_v2);
+dice(kgFoglio !== null && new RegExp("almeno " + kgFoglio.replace(/\./g, "\\.") + " kg").test(t_v2),
+  "e i totali di pagina 3 dicono «almeno», la stessa parola del foglio del fochino, con lo stesso numero di pagina 1", t_v2);
 /* ⛔ LA PROVA DERIVATA: il foglio dev'essere d'accordo con la propria tabella.
    Non c'è nessun numero scritto a mano qui dentro — se domani la dimostrazione
    caricasse un foro in più, questa riga continuerebbe a dire il vero. */
 const senzaCarica = tabFori2.filter((r) => r[6] === "-").length;
 const dichiarati = Number((t_v2.match(/(\d+)\s+fori su (\d+) non portano/) || [])[1]);
+/* ⛔ LA MAGLIA E LE COORDINATE COL PUNTO (04/09): il foglio scriveva «Spalla
+   (fronte-foro) 3.2 m» e le X/Y dei fori con `toFixed(2)` — «12.50» — mentre
+   due righe sopra scriveva «56,0 kg». Ora tutto il foglio ha la stessa grafia,
+   e la striscia sopra il bottone dice «Sp3,2×I3,8» come il foglio. */
+const magliaFoglio2 = (t_v2.match(/Spalla \(fronte-foro\) · ([^·]+) · Interasse \(foro-foro\) · ([^·]+) ·/) || []).slice(1, 3).map((x) => x.trim());
+dice(magliaFoglio2[0] === "3,2 m" && magliaFoglio2[1] === "3,8 m",
+  "⛔ la spalla e l'interasse del foglio si scrivono con la virgola («3,2 m», «3,8 m»), non col punto", JSON.stringify(magliaFoglio2));
+const coordPunto = tabFori2.filter((r) => /^\d+\.\d\d$/.test(String(r[2])) || /^\d+\.\d\d$/.test(String(r[3]))).length;
+const coordVirgola = tabFori2.filter((r) => /^\d[\d.]*,\d\d$/.test(String(r[2])) && /^\d[\d.]*,\d\d$/.test(String(r[3]))).length;
+dice(tabFori2.length > 0 && coordPunto === 0 && coordVirgola === tabFori2.length,
+  `e le coordinate dei fori a due decimali con la virgola su tutte le righe (${coordVirgola} su ${tabFori2.length}, ${coordPunto} col punto)`, JSON.stringify(tabFori2.slice(0, 2)));
+dice(/Sp3,2×I3,8/.test((strisce.vol_2 || "").replace(/\s/g, "")),
+  `e la striscia sopra il bottone scrive la maglia come il foglio («Sp3,2×I3,8», non «Sp3.2×I3.8»)`, strisce.vol_2);
 dice(tabFori2.length > 0 && senzaCarica === dichiarati,
   `⛔ i fori che il foglio dichiara senza chili sono quelli che la sua tabella mostra senza chili (${dichiarati} dichiarati, ${senzaCarica} nella tabella su ${tabFori2.length} righe)`,
   JSON.stringify({ dichiarati, senzaCarica, righe: tabFori2.length }));
@@ -777,8 +873,17 @@ dice(!!pvN && pvN.testi.some((x, i) => x === "Metri:" && pvN.testi[i + 1] === "-
    passare le tre righe qui sopra sarebbe spegnere ogni valore. */
 const pv1 = await pdfVolata("vol_1");
 const t_v1 = (pv1 ? pv1.testi : []).join(" · ");
-dice(/112kg/.test(t_v1) && /1323mc/.test(t_v1) && !/PARZIALE/.test(t_v1) && !/non portano i chili/.test(t_v1),
-  "la volata caricata per intero continua a dire i suoi numeri, senza riserve", t_v1);
+/* ⛔ NIENTE «112kg» E «1323mc» SCRITTI QUI: i tre numeri si leggono dalla
+   striscia sopra il bottone (per selettore) e il foglio deve dire gli STESSI,
+   nel vestito di `perLettura` — «126,0 m», «112,0 kg», «1.323,0 mc». */
+const ns1 = numeriStriscia.vol_1 || {};
+const foglio1 = { m: numeroFoglio(t_v1, "m"), kg: numeroFoglio(t_v1, "kg"), mc: numeroFoglio(t_v1, "mc") };
+const tornano1 = ["m", "kg", "mc"].filter((u) => Number.isFinite(ns1[u]) && foglio1[u] !== null && numIt(foglio1[u]) === ns1[u]);
+dice(tornano1.length === 3 && !/PARZIALE/.test(t_v1) && !/non portano i chili/.test(t_v1),
+  `la volata caricata per intero continua a dire i suoi numeri, senza riserve — e sono quelli della striscia (schermo ${JSON.stringify(ns1)}, foglio ${JSON.stringify(foglio1)})`, t_v1);
+const rq1 = riquadri(pv1);
+dice(["m", "kg", "mc"].every((u) => VESTITO.test(rq1[u] || "") && numIt(rq1[u]) === ns1[u]),
+  `⛔ e i tre riquadri li scrivono con la virgola e lo spazio prima dell'unità, mai «787.5mc» (${JSON.stringify(rq1)})`, JSON.stringify({ rq1, ns1 }));
 /* ── LO SCHERMO CHE OSPITA IL BOTTONE, CONFRONTATO COL FOGLIO ──
    Le due domande sono le stesse per tutt'e quattro le volate, e la risposta si
    ricava dai due testi: nessun numero scritto a mano qui dentro. */
@@ -786,10 +891,15 @@ dice(!/\b0m\b/.test(strisce.vz9 || "") && /—m/.test(strisce.vz9 || ""),
   `⛔ la striscia sopra il bottone NON dice «0m» sulla volata non quotata ("${strisce.vz9}")`, strisce.vz9);
 dice(!/\b0mc\b/.test(strisce.vz9 || "") && /—mc/.test(strisce.vz9 || ""),
   "e nemmeno «0mc»: lo schermo e il foglio danno la stessa risposta", strisce.vz9);
-dice(/≥56kg/.test(strisce.vol_2 || ""),
+dice(/≥56,0kg/.test(strisce.vol_2 || ""),
   `⛔ e sulla volata caricata a metà la striscia dichiara che il totale è un minimo ("${strisce.vol_2}")`, strisce.vol_2);
-dice(/126m/.test(strisce.vol_1 || "") && /112kg/.test(strisce.vol_1 || "") && /1323mc/.test(strisce.vol_1 || "") && !/≥/.test(strisce.vol_1 || ""),
-  "⚠️ e sulla volata sana continua a dire i suoi numeri, senza riserve", strisce.vol_1);
+/* ⛔ DAL 04/09 LA STRISCIA VESTE I NUMERI COME IL FOGLIO: «126,0m · 112,0kg ·
+   1.323,0mc», non «126m · 112kg · 1323mc». Prima il foglio scriveva «1.323,0 mc»
+   e lo schermo sopra il bottone «1323mc»: stesso numero, due grafie. */
+dice(/126,0m/.test(strisce.vol_1 || "") && /112,0kg/.test(strisce.vol_1 || "") && /1\.323,0mc/.test(strisce.vol_1 || "") && !/≥/.test(strisce.vol_1 || ""),
+  "⚠️ e sulla volata sana continua a dire i suoi numeri, senza riserve — nel vestito di perLettura", strisce.vol_1);
+dice(!/\b1323mc\b|\b1240\.3mc\b|\b787\.5mc\b/.test([strisce.vol_1, strisce.vol_2, strisce.vol_3].join(" ")),
+  "⛔ e nessuna striscia scrive più i metri cubi col punto e senza migliaia", [strisce.vol_1, strisce.vol_2, strisce.vol_3].join(" | "));
 dice(volateProvate.length === 4 && ripieghi.length === 0,
   `⚠️ schemi di volata premuti col bottone vero: ${volateProvate.length} (${volateProvate.join(", ")})`,
   "il bottone non si è potuto premere su: " + ripieghi.join(", "));

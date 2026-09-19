@@ -20,6 +20,149 @@ così un commerciale può farle vedere senza configurare nulla.
 
 ---
 
+## ⚠️ Aggiornamento del 4 settembre — tutte le app guardate in profondità, in quattro righe
+
+**Diciannove difetti veri, corretti, in due giorni di passate.** Ogni app e il
+core sono stati aperti schermata per schermata a 390 e 320 px nei temi, ogni
+bottone che produce un file è stato premuto e il file aperto, la dimostrazione
+svuotata pezzo per pezzo. Le cose più grosse: la home di Genesi che **non
+scorreva sul telefono da cinque settimane**; una norma sconosciuta che veniva
+sostituita con «DIN residenziale» e usciva nei file con un limite e un
+verdetto; il Quadro di Campo e di Sentinella che dicevano «tutto tranquillo»
+su una giornata o una cava in cui non era stato registrato niente; un appalto
+senza sito che in Scudo diventava «a posto»; un importo tagliato («€ 12.750»
+per «€ 12.750,00») nell'ordine di lavoro di Flotta; il rapporto di Terra con la
+pastiglia sopra il titolo. E i dati di riferimento tuoi in un file di Genesi
+pubblicato sul sito: tolti, con un controllo che legge anche i JSON.
+
+**Quello che resta è tuo**: tre decisioni nuove (22-24) in
+`docs/DECISIONI_WEEKEND.md`, che con le altre fanno undici.
+
+**La giornata ha avuto quattro interruzioni per limite di crediti**: ogni
+volta si sono persi i cantieri appena aperti e il giro completo del browser;
+il giro FILTRATO per famiglia (89 passate, un'ora e un quarto) è arrivato in
+fondo ed è la forma che regge.
+
+## ⚠️ Aggiornamento del 3 settembre — il terzo lato del triangolo, in cinque righe
+
+**Le scorte a piazzale si misurano, non si stimano più.** Terra ha una schermata
+nuova, «Inventario dei cumuli»: la fotografia del piazzale a una data (per ogni
+cumulo il materiale e i metri cubi; un cumulo che nessuno ha misurato resta
+«non misurato», non zero). Conti la legge e chiude il conto che ogni cava fa a
+fine mese — cavato − venduto − variazione delle scorte — in tonnellate, con la
+densità giusta per ciascuno (in banco per il fronte, del listino per i cumuli).
+Se lo scarto non torna, Conti dice il verso: materiale sparito (sfrido,
+ripristino, uscite non pesate) o materiale in più (manca un rilievo, o una
+densità è sbagliata). Il verbale di riconciliazione registra anche questo terzo
+lato, o scrive perché restava stimato.
+
+**Il rapportino del fochino ha l'esito dello sparo.** Colpi esplosi contati e
+colpi mancati con la nota di dove sono e chi bonifica: se non è scritto niente
+l'app dice «non contato», mai «0 mancati». Il pericolo si vede nell'elenco,
+nella scheda, nel PDF e nella cronologia della cava. E i chili di esplosivo
+sono anche per tipo, come li vuole il registro di carico e scarico.
+
+**Un difetto piccolo ma della famiglia peggiore**, trovato leggendo il core: la
+freccia della calotta di una galleria scritta a **zero** (cielo piatto) veniva
+letta come «mai scritta» e i fori di contorno nascevano su un arco di un metro
+che tu avevi tolto. Corretto, con la prova sul sorgente.
+
+**Sei documenti di ricerca esistevano due volte** con lo stesso nome a
+maiuscole diverse: su un computer Windows o Mac il repository non si sarebbe
+scaricato intero. Uniti, e un controllo impedisce che ricapiti.
+
+**Due ricerche nuove, con il delta**: il rapporto di volata (le due mancanze
+vere sono quelle chiuse sopra) e i ruoli in cava — oggi chi entra in
+un'organizzazione vede tutte le app, e le figure di legge (direttore
+responsabile, sorvegliante, RSPP, medico) sono nomine in Scudo, non permessi:
+è la decisione Q1, tua, preparata e non presa. Nella notte la sessione ha
+toccato il limite dei crediti e si è ripresa alle 05:40.
+
+## ⚠️ Aggiornamento del 2 settembre — la giornata dei ponti
+
+*Il blocco del 30 luglio qui sotto resta vero. Questo dice che cosa è cambiato
+il 2 settembre, in un giorno solo, con la fase nuova che hai aperto il 26/08
+(«i dettagli di ogni app»).*
+
+**Le app si parlano di più.** La mappa dell'ecosistema (`docs/MAPPA_ECOSISTEMA.md`)
+contava 6 ponti di dati su 56 possibili; a sera sono **10**. Quattro sono nuovi:
+- **Conti ↔ Flotta, nei due versi**: lo stesso euro di gasolio o di officina non
+  si conta più due volte senza saperlo. In Conti la schermata Costi mostra
+  voce per voce quanto c'è anche in Flotta; in Flotta ogni spesa uguale alla
+  cifra porta il contrassegno «anche in Conti». Se l'altra app non risponde
+  lo dice per nome, e **non** scrive zero.
+- **Terra e Flotta → Scudo**: la schermata Scadenze di Scudo apre con «Tutta
+  la cava»: le scadenze della concessione, dei mezzi e delle persone con la
+  stessa regola, in un muro solo. È quello che i software del mestiere
+  chiamano scadenzario unico.
+
+**La fattura elettronica esce da Conti.** Il bottone «XML per lo SdI» sulla
+fattura produce il file per il Sistema di Interscambio. Onestà: Conti lo
+prepara; l'invio e la conservazione si fanno gratis dal portale dell'Agenzia
+o col commercialista, e il tracciato va passato dal controllo formale del
+portale prima del primo invio vero. Se manca un dato (CAP, regime fiscale…)
+il file **non** esce e la finestra dice che cosa manca e dove scriverlo.
+
+**Sette passate in profondità, sette app** (Conti, Scudo, Flotta, Campo,
+Sentinella, Terra, il core): ogni banco lanciato, ogni schermata guardata,
+ogni file che esce aperto. Difetti veri trovati e chiusi: in Conti una pesata
+senza tara «vendeva il camion»; in Scudo la copertura formazione diceva
+«tutte regolari» sopra una verifica scaduta; in Flotta la tessera del
+carburante scriveva «€ 0,00» per un mese senza rifornimenti registrati; in
+Terra il foglio per l'ente chiamava «complessiva» un'incertezza stimata su un
+rilievo su quattro. Campo, Sentinella e il core: puliti.
+
+**Genesi fuori dal browser**: misurato prima di costruire
+(`docs/GENESI_FUORI_DAL_BROWSER.md`): nove chiavi, quattro ponti di file già
+vivi, l'offline come vincolo vero; piano in otto unità. Aspetta la tua
+decisione 5b (la coda offline).
+
+**Aspetta te**: la PR #345 su GitHub raccoglie tutto questo ed è verde; unire
+a main è una tua scelta. I nomi e i temi delle app restano sospesi come hai
+chiesto.
+
+---
+
+### La sera del 2 settembre, in sei righe
+
+**Genesi è uscita dal browser.** Fino a stamattina i suoi dati (volate salvate,
+confronti A/B, riconciliazioni, legge di sito, lavorazioni del drone) vivevano
+solo nella memoria del browser di un computer: nessun'altra app poteva
+leggerli, e cambiando computer sparivano. Da stasera Genesi ha la stessa
+«porta» delle altre app: da sola sul dispositivo lavora come prima (nessuno
+perde niente), con un'organizzazione scrive nelle sue collezioni, e senza rete
+torna da sola al browser — misurato staccando la rete. C'è il bottone «Porta
+nell'organizzazione» (una volta sola, non cancella niente), e Terra legge già
+le lavorazioni del drone da lì: è il **primo ponte di dati verso Genesi**. La
+mappa è a **12 ponti su 56**; nessuna app è più senza scambio di dati. Del
+piano in otto unità resta solo la coda offline, che è la tua decisione 5b.
+
+**Il triangolo della produzione si legge in un'unità sola.** Sotto «Cavato
+contro venduto» Conti mostra ora anche «Prodotto contro venduto» (quello che i
+turni di Campo dichiarano, in tonnellate, contro la pesa), e il cavato di Terra
+anche in tonnellate con la densità in banco che Terra dichiara sull'atto — con
+scritto quando è un valore tipico da verificare. E il **verbale di
+riconciliazione**: il divario del periodo si conserva con la causa che gli hai
+trovato e una nota; se i dati cambiano dopo, Conti lo dice accanto invece di
+sovrascrivere.
+
+**Flotta dice quando un mezzo beve più del suo solito**: gli ultimi trenta
+giorni contro la sua storia, con la forbice e «da guardare» sopra una
+tolleranza dichiarata come scelta nostra (nessuna norma la fissa).
+
+**Sei ricerche, sei delta dal meccanismo** (Conti, Flotta, Scudo, Sentinella,
+Campo, Terra): quasi tutto quello che i concorrenti fanno c'era già, con il
+nome del mestiere; le poche mancanze vere sono chiuse (il verbale, il consumo
+contro la storia, la densità che era già in casa) o sospese a te — sono le
+decisioni **19, 20 e 21** in `docs/DECISIONI_WEEKEND.md`: la volata sparata
+come documento emesso, le notifiche fuori dall'app (costano), quattro numeri
+di legge che non scrivo senza il testo.
+
+**Tutte e sei le app rimisurate in profondità** dopo le modifiche, nessun
+difetto nuovo; un banco «intermittente» rimisurato a macchina ferma tre volte,
+verde. Un giro completo del browser è partito a sera sulla copia di quello che
+è committato: si legge domattina.
+
 ## ⚠️ Aggiornamento del 30 luglio — leggi prima questo
 
 *Il resto del documento è del **23 luglio** e le schede app per app sono ancora
@@ -67,15 +210,16 @@ Il racconto è in `docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md`.
   e per i soldi, valida in tutte le app — con i controlli automatici che
   impediscono a un'app di riscriversene una propria.
 
-**Quanto è controllato, oggi** *(ricontato il 18/08 lanciando le suite, non a
-memoria)*: **2.877** prove automatiche che girano senza rete — **2396** sulle
-funzioni delle app, **328** sulle regole di stile, 75 sugli aiuti condivisi, 32
-sulla nuvola di punti, **19** sull'ordine con cui due trigger riscrivono i
+**Quanto è controllato, oggi** *(ricontato il 15/09, dopo aver aggiunto a
+`run-kpi.mjs` le due prove sull'associazione ambigua del sismogramma nel
+core, poi le due sull'appello di `riposoDiTurno`/`orariDiTurno`, poi quella su «saldata»/«parziale» in `statoFattura`, poi le tre sul limite a tre scritture di `convergiClaims`, poi quella su `kpiFrom` di Scudo con un `oggi` fisso, poi quella sul fronte conteso fra due lotti di Terra, poi quella sul criterio unico di `tagliandiInScadenza` in Flotta, poi quella sulla lettura per valore di `fogliaVolata` in Sentinella, poi quella sulle note di credito di `applicaIncassi` in Conti, poi quella sulla numerazione DDT senza salti dichiarata ma non imposta, poi quella sul margine fra esaurimento e scadenza in `vitaCava` di Terra, poi quella sulla sospensione temporanea in `abilitazioneLavoratore` di Scudo, poi quella sull'aggregazione per ricettore in `reclamiPerRicettore` di Sentinella, poi quella sul costo medio per intervento in `costoControStoria` di Flotta, poi quella sullo scarto del mese in `varianzaMensilePiano` di Terra, poi quella sulle voci "trend" di `prioritaOperative` in Flotta, poi quella sugli avvisi di `avvisiChiusuraTurno` in Campo, poi quella sul ritmo corto contro il lungo in `tendenzaRitmo` di Terra, poi quella sull'escalation per livello in `testoSollecito` di Conti, poi quella sull'elenco dei crediti oltre 90 giorni in `fattureOltre90` di Conti, poi quella sugli infortuni della persona in `cartellaLavoratore` di Scudo, poi quella sulla visita medica di rientro dopo un'assenza oltre 60 giorni in `visitaRientroNecessaria`/`cartellaLavoratore`/`riepilogoInfortuni` di Scudo, poi quella sul terzo e quarto gradino di gravità (permanente/mortale) e sui giorni convenzionali UNI 7249 in `GRAVITA_INFORTUNIO`/`infortunioGrave`/`giornateConvenzionali` di Scudo, poi quella sulla lettura dell'etichetta di gravità dal vocabolario in `#inf-list` invece del campo grezzo, poi quella sul bottone «Scadenze» al posto di «Adempimenti» nella barra in basso di Sentinella, poi quella su `etaMezzo` di Flotta (messa in servizio prima, possesso come ripiego, mai un'età negativa), poi quella sul costo orario col possesso portato nella pagella di Flotta senza toccare il verdetto, poi quella su `avvisiChiusuraTurno` di Campo che vede anche i fermi già documentati ma ancora aperti, poi quella su `testoPromemoriaAzione` di Scudo per il responsabile di un'azione correttiva, poi quella su `lavoriNonConclusi` di Campo che porta causale e minuti nella consegna, poi quella su `attesaRecupero` di Terra, il gemello di `attesaCollaudo` per la transizione esaurito→recupero, poi quella sulla causale della nota nel registro vendite di Conti, poi quella su `scartiInfortuniCsv`/`scartiMonitoraggiCsv` — gli ultimi due lettori CSV rimasti «muti» dal delta della riverifica su ASSENZA, con `frasePersi` che ora nomina anche le loro righe scartate, poi quella su `sezionePeggiore` di Terra — la prima fetta delle sezioni trasversali per fronte, additiva e collegata subito al posto di `conformitaGeometria`, poi quella su `righeCsvNumerate` (dal delta della riverifica sul documento invecchiato PAROLE) — il numero di riga fisico nel file, migrata a un secondo lotto (Scudo, Sentinella), un terzo (Campo, Flotta) e un quarto (Conti: tre lettori standard), poi estesa per accettare anche un predicato oltre a una parola chiave e migrato con lei `scudo.scartiLavoratoriCsv` — restano cinque forme non standard basate su celle già parsate, poi quella su `genesi.burdenPerForo` — il pannello «Burden per foro» sulla scheda Progetto 2D, dal secondo giro di ricerca su Genesi, verificato anche nel browser, poi la regola 33 di `run-stile.mjs` (dal delta su PAROLE, proposta 3 metà b) — mai «non rilevato», che nei rapporti di prova vuol dire il contrario di «non misurato», poi quella su `flotta.scartiTelemetriaCsv` — l'ultima forma non standard con intestazione per NOME di colonna, migrata a riga fisica con un predicato che si chiede «sono la prima riga vista?» invece di riconoscere la parola chiave, poi quella su `conti.concentrazionePortafoglio` (dal delta della ricerca continua, decimo giro) — la quota del cliente più esposto sul credito aperto totale, verificata anche nel browser, poi quella su `flotta.frequenzaFermiControStoria` (dal delta della ricerca continua, undicesimo giro) — il ritmo dei fermi contro la storia del mezzo, terza sorella di consumo/costo, collegata a `prioritaOperative`, poi quella su `leggiCsv().nRighe` (dal delta della riverifica su PAROLE) — il numero di riga fisico anche per i lettori con un a capo dentro le virgolette, che chiude la migrazione dei 21 lettori CSV, poi quella su `scudo.barriereRicorrenti`/`BARRIERE_MANCATE` (dal delta della ricerca continua, undicesimo giro — ICAM) — che cosa avrebbe dovuto fermare l'evento, non che cosa l'ha causato, verificata anche nel browser, poi quella su `conti.scontoCassaMaturato` (dal delta della ricerca continua, decimo giro) — un pagamento più basso dell'aperto che coincide con lo sconto cassa concordato non è più un acconto, poi quella su `flotta.componentiDelMezzo`/`vitaComponenti` (dal delta della ricerca continua, undicesimo giro — prima fetta) — pneumatici, cingoli e denti benna guadagnano un punto di partenza sulle ore del mezzo, verificata anche nel browser dopo un primo collegamento sbagliato, lanciando le suite, non a memoria, poi quella su `conti.statoRecupero` (dal delta della ricerca continua, decimo giro) — lo storico dei solleciti DAVVERO inviati, "mai comunicato" dichiarato come stato a sé e non un livello zero, verificato anche nel browser dopo aver corretto il collegamento del bottone alla fattura giusta, poi quella su `conti.statoPianoRientro` (dal delta della ricerca continua, decimo giro) — un piano di rientro a rate: le rate sono una cascata, tre esiti dichiarati (rispettato/in ritardo/decaduto), prima fetta a sola lettura, verificata anche nel browser, poi quella su `scudo.notificheScadenzeNonLette` (dal delta della ricerca continua, dodicesimo giro) — un contatore di scadenze urgenti persistente finché la pagina non si visita, verificato anche nel browser dopo aver trovato un difetto CSS reale (`.badge` batte `[hidden]` a parità di specificità), poi quella su `scudo.rischio-chimico`/«Scheda dati di sicurezza (SDS)» (dal delta della ricerca continua, dodicesimo giro) — il gemello mancante di `rumore-vibraz`, prima fetta nel ciclo di vita generico dei documenti, poi quella su `scudo.attrezzaturaDiScadenza`/`descriviLegameAttrezzatura` (dal delta della ricerca continua, tema segnalato tre volte — luglio, 09/08, 16/09) — il fascicolo macchina collegato alla verifica periodica, «non collegata» distinta da «collegamento rotto», verificato anche nel browser, poi quella su `terra.varianzaLottoAnno`/`volumePianificatoLottoAnno` (dal delta della ricerca continua sul sequenziamento multi-anno, verificato indipendentemente col codice vero prima di scrivere) — il confronto pianificato-vs-reale PER LOTTO PER ANNO, che l'aggregato `varianzaMensilePiano` non può dare, verificato anche nel browser, poi quella su `terra.sequenzaLotto` (stesso giro di ricerca) — `lotto.ordine` finalmente usato in un controllo, non solo mostrato: badge "fuori sequenza" quando un lotto è aperto prima che il precedente raggiunga la soglia dichiarata, non bloccante, verificato anche nel browser, poi quella su `sentinella.superamentiUltimiGiorni` (dal delta della ricerca continua, nono giro — escalation sui superamenti ripetuti, verificato indipendentemente prima di scrivere) — un pattern di superamenti ripetuti sullo stesso ricettore, sommati su tutti i suoi punti in una finestra mobile, con la soglia come parametro (nessuna fonte del mondo ne dà una universale); il caso non è nella dimostrazione reale (zero superamenti aperti oggi), verificato iniettando un punto apposta nel browser, poi quella su `terra.aperturaFuoriProgramma` (quinto dei sei delta del giro di ricerca sul sequenziamento multi-anno, parente di `sequenzaLotto`) — anticipo o ritardo di un lotto rispetto al mese previsto dal progetto, non rispetto a un altro lotto; il Lotto 4 della dimostrazione è stato aperto con 183 giorni di ritardo, verificato anche nel browser, poi quella su `terra.banchiDaSempre`/`serieAnni` (ultimo delta dello stesso giro) — il valore anno per anno di ogni banco nella sezione «Lo stesso banco, da sempre», non solo il totale «almeno» che diceva CHE manca una misura senza dire DOVE; niente `statoProgettuale` né `volumePianificato` per banco (non esiste un'entità "banco" col proprio ciclo di vita: decisione architetturale non presa qui), verificato anche nel browser, poi quella sul ponte Campo→Sentinella (sovrapposizione 3g della mappa ecosistema) — `meteoDelGiorno` traduce i turni meteo di Campo in `{pioggia, ventoForte}` per giudicare le misure di rumore fuori condizioni (DM 16/03/1998): pioggia solo se tutti i turni del giorno sono d'accordo, vento forte resta un sospetto mai un verdetto, un dato misurato in loco vince sempre su uno dedotto da Campo, non testabile end-to-end in demo per lo stesso motivo di `ponteScudo`, poi quella su `scudo.scadenzaDenunciaInail` (D.P.R. 1124/1965, art. 53, testo verificato via WebSearch) — due termini diversi (2 giorni dal certificato medico, 24 ore dall'evento se mortale), il termine mortale dichiarato come MASSIMO perché Scudo registra solo il giorno, non l'ora; una prognosi ancora aperta non è "non dovuta", è "non si sa ancora" (decisione 17 applicata a un obbligo legale), verificato anche nel browser, poi una revisione di qualità sulla stessa unità: `csvRegistroInfortuni`/`fogliaCartella` non portavano la nota della denuncia INAIL che lo schermo già mostrava — la settima colonna del CSV ora compone un elenco di avvisi invece di sceglierne uno solo, e `csvRegistroInfortuni` guadagna un `oggi` iniettabile, poi un buco di cablaggio trovato in Campo: `rapportoGiornata` — il rapporto di fine turno STAMPATO E FIRMATO — non riceveva mai `volateSentinella` dalla pagina e diceva sempre "Sentinella non raggiungibile" anche col ponte P6 che leggeva dati veri, mentre il documento gemello `testoConsegnaTurno` lo riceveva già; il controllo di cablaggio esistente guardava solo l'inizio della chiamata e non l'aveva mai visto, corretto e rinforzato per nominare il parametro esplicitamente, poi P2 (prima fetta) di ASSENZA: sei costanti `STATO_CELLA_*` in `shared/dw-ponti.js` per dire perché una cella di un CSV è vuota o vale zero per convenzione, un solo scrittore migrato (`csvRicambi` di Flotta, che le aveva già scritte a mano), poi il secondo scrittore (`csvRilievi` di Terra, dove il binario misurato/mai-misurato è l'unico possibile perché il modello non distingue nessuna ragione più fine, ottava colonna, prima fetta), poi il terzo scrittore (`csvIncassi` di Conti, scelto invece di `csvPesate` perché più semplice, stesso binario su `importo`, quinta colonna), poi il quarto scrittore (`csvPesate` di Conti — la prima volta con un terzo codice, `illeggibile` per un ticket con un solo peso dei due, diverso da `mai-misurato`, ventunesima colonna), poi il quinto scrittore (`csvRicettori` di Sentinella — la prima volta che la riga non sparisce mai senza il valore misurato, undicesima colonna), poi il sesto scrittore (`csvListino` di Conti — `prezzo` è il campo per cui D1 misurava una riga persa, sesta colonna, sei scrittori su undici), poi il settimo scrittore (`csvTarature` di Sentinella — la data collassata a monte da `dataIso` non porta un terzo codice come `csvPesate`, quindi binario su `dataISOEsiste(scadenza)`, settima colonna), poi l'OTTAVO scrittore e una correzione (`csvClienti` di Conti — non aveva mai la collisione di nome che gli era stata attribuita per tre unità di fila insieme a `csvGare`: nessuna colonna `stato`, nessun `cliente.stato` altrove nel modulo, verificato con `grep` separato; `fido` è il campo che D1 misurava assente, tredicesima colonna; restano irraggiungibili solo `csvGare`/`csvSquadre`/`csvAzioni`, ognuno verificato singolarmente), poi una passata di profondità su Terra (binario 2, lettura diretta del sorgente): `tolleranzaPct` del rilevatore era wired solo a metà — provato a livello di modulo ma non passato dal gestore di import CSV a `db.aggiungi`, un rilievo re-importato perdeva la tolleranza dichiarata in silenzio (stessa famiglia del bug di `rapportoGiornata` di Campo, stesso giorno), corretto normalizzando a `null` (Firestore lancia su `undefined`), nuovo test di wiring con controprova, poi una correzione in Conti (censimento a doppio punto di chiamata, terzo difetto trovato con lo stesso metodo nello stesso giorno): `csvClienti`/`parseClientiCsv` non portavano `listinoId` — un cliente col listino personalizzato, ri-caricato dalla copia di sicurezza, tornava silenziosamente al listino base — quattordicesima colonna, scrittore e lettore insieme, nuovo test con controprova, poi una correzione in Sentinella (censimento a doppio punto di chiamata, quarto difetto vero nello stesso giorno): `db.aggiungi("adempimenti",...)` sull'import CSV non passava `periodoMesi`/`giorniConsegna` già letti da `parseAdempimentiCsv` — un adempimento re-importato perdeva il periodo dichiarato e il bottone "Prepara il report" si rifiutava di partire, nuovo test con controprova, poi una correzione in Scudo (censimento a doppio punto di chiamata, quinto difetto vero nello stesso giorno, di forma diversa: il lettore `parseInfortuniCsv` non leggeva affatto le tre colonne della denuncia INAIL, non una singola chiamata che le scartava): un registro infortuni esportato e ri-caricato perdeva `dataCertificato`/`denunciaData`/`denunciaNumero` — ottava/nona/decima colonna in coda, scrittore e lettore insieme, nuovo test con controprova)), poi una correzione in Terra (deep-pass) su `sequenzaLotto`: l'articolo scritto a mano («il 80%») invece di `articoloNumero`, e in Flotta (ricerca continua sul mestiere) su `PIANI_TAGLIANDO`, che non dichiarava la fonte dei suoi passi a ore — generici di settore, non il libretto del mezzo, poi tre correzioni in Flotta (secondo giro di deep-pass): i CSV col punto inglese invece della virgola italiana, il libretto senza il costo orario completo, l'età del mezzo mai mostrata a schermo — solo nel CSV, poi quella su `terra.varianzaLottoAnno` (terzo giro di deep-pass) — un rilievo a calendario impossibile ribaltava il verdetto pianificato-vs-reale del lotto, la stessa famiglia già corretta in `proiezioneAnnua`/`kpiFrom`, poi quella su `sentinella.misuraFuoriCondizioni` (quarto giro di deep-pass) — due delle quattro chiamate restavano senza il ponte meteo con Campo, poi quella sul rapporto di fine turno di Campo (terzo giro di deep-pass) — near-miss e giudizio di idoneità medica assenti dal documento stampato e firmato, mentre il Quadro schermo e il documento gemello li mostravano già, poi quella su `conti.registroVendite` (quarto giro di deep-pass) — una fattura corretta con la matita mescolava imponibile/imposta calcolati dalle righe vecchie col totale registrato nuovo, poi quella su `terra.anniConVolumi` (quinto giro di deep-pass) — ultima copia della guardia calendario debole, poi quella su `scudo.abilitazioneLavoratore`/`pillReq`/`csvRegistroInfortuni` (quarto giro di deep-pass) — il ramo "senza data" mancante, e categoria/gravità potenziale/anonimato del near-miss perse su export→import, poi quella su `conti.kpiFrom`/`agingIncassi`/`fattureOltre90`/`esposizioneClienti` (quinto giro di deep-pass) — una fattura scartata dallo SdI trattata come credito vero, poi quella su `flotta.vitaComponenti`/`prioritaOperative` (dal delta della ricerca continua, tredicesimo giro) — la soglia di vita dei componenti a scaglioni, dichiarata e non una costante di prodotto, poi quella su `campo.rapportoGiornata`/`testoConsegnaTurno` (quinto giro di deep-pass) — l'idoneità nei documenti nominava solo chi è NON idoneo, non chi ha un documento HSE scaduto o in scadenza, più un secondo difetto trovato scrivendo il test: `idoneitaDiTurno` non riceveva la data del rapporto, poi due difetti dal deep-pass su dw-shell.js — `_combacia` riconosceva una sottosequenza con buchi come «l'inizio» di una tabella, e `parseCsvLine` perdeva lo spazio bianco protetto dalla guardia anti-formula, poi quella su `flotta.csvLibretto` (quarto giro di deep-pass) — il libretto esportato non portava la sezione «Componenti a vita propria» mostrata a schermo e in stampa, poi quella sul ponte `idoneitaDiTurno` (shared/dw-ponti.js) — mancava un contatore per l'ottavo stato, «senza data», propagato a cinque punti di Campo (mappa colore riga, didascalia, Quadro, riepilogo Personale, i due documenti stampati), poi quella su `scudo.cartellaLavoratore` (quinto giro di deep-pass) — un DPI previsto dalla mansione e mai consegnato non entrava nel fascicolo per l'ispettore, solo nel Quadro (`allarmiDpi`), poi quella sul core (deep-pass mirato) — `esitoSparo`: la guardia di coerenza era asimmetrica, bloccava «mancati > fori caricati» ma non il caso gemello «esplosi > fori caricati» senza mancati scritto, poi quella su `conti.incassoAtteso`/`incassoPerMese` e sulla copia debole del Quadro/delle Fatture (sesto giro di deep-pass) — una fattura scartata dallo SdI restava cassa in arrivo e credito sollecitabile, stessa guardia del quinto giro estesa a due funzioni e a una copia della pagina mai aggiornata, poi tre difetti dal deep-pass su dw-shell.js — `_combacia` riconosceva una sottosequenza CON BUCHI come «l'inizio» di una tabella, `parseCsvLine` perdeva lo spazio bianco protetto dalla guardia anti-formula, e `leggiCsv` trimmava anche i campi quotati apposta per conservare gli spazi di contorno, poi quella su `campo.testoConsegnaTurno` (dal deep-pass QA su Campo) — il semaforo delle azioni correttive HSE accanto a una voce non a posto mancava nella consegna testuale, mentre `rapportoGiornata` lo mostrava già, poi quella su `sentinella.dataIt` (dal deep-pass QA su Sentinella) — una copia debole locale leggeva la forma della stringa invece del calendario vero, scrivendo nei documenti che escono una data inesistente come vera, poi quella su `genesi.pointcloud parseXYZ` (dal deep-pass QA su Genesi) — un file XYZ misto disallineava i colori dalle posizioni, scalandoli sui punti sbagliati, poi quella sul ponte Genesi→Terra (dal deep-pass QA su Terra) — un volume in unità arbitrarie della nuvola passava per metri cubi veri perché la pulizia del testo toglieva anche l'unità, poi tre in Flotta (dal deep-pass QA sull'app) — l'ordinamento del magazzino ricambi, csvBudget col punto inglese, propostaScorte che diceva «soglia oggi 0» per una soglia mai impostata, poi quella su `scudo.calendarioScadenze` (quarto giro di deep-pass) — il titolo dell'evento .ics ricalcolato a mano invece di riusare `etichettaScadenza`, due obblighi con lo stesso tipo uscivano indistinguibili nel calendario del telefono, poi quella su `conti.prioritaIncasso`/`agingIncassi`/`incassoPerMese`/`kpiFrom` (settimo giro di deep-pass) — una fattura stornata per intero da nota di credito, mai incassata, restava scaduta e urgente su un residuo di zero euro, stessa guardia di `apertoDi` già propagata a `fattureOltre90`/`esposizioneClienti`/`testoSollecito`, poi quella su `campo.CLASSE_HSE` (dal deep-pass QA sull'app) — mancava la chiave «senza-scadenze», e un operatore collegato a Scudo senza nessun documento risultava verde «st-ok» come chi è davvero in regola, poi quella su shared/dw-app-ui.js e le superfici che lo usano (dal deep-pass QA su quel file) — il toast del core senza role="status" aria-live="polite" su core/Genesi/admin, e Genesi senza CSS per il toast di errore, poi quella su `terra.renderValore` (dal deep-pass QA sull'app) — usava `rilievoUsabile` invece di `rilievoUsabileConData`: un rilievo a calendario impossibile gonfiava il valore del materiale estratto di oltre 13 volte, mentre la Denuncia, due click più in là nella stessa pagina, restava corretta, poi quella su `conti.margineMese` (settimo giro di deep-pass) — una fattura scartata dallo SdI gonfiava il margine mensile per competenza, stessa guardia già propagata a kpiFrom/agingIncassi/fattureOltre90/esposizioneClienti/incassoAtteso/incassoPerMese, poi quella su `campo.vociChecklist` (dal deep-pass QA su Campo) — il ricontrollo dei fronti dopo il maltempo spariva dal conteggio, dallo schermo e dai documenti di fine turno se il meteo veniva corretto dopo la risposta, poi tre nel quinto giro di deep-pass QA in parallelo (Scudo/Terra/Flotta) — `scudo.prognosiAperta`: un mortale restava "a prognosi aperta" per sempre; `terra.conformitaProgetto`: il quarto asse di conformità "confine" non aveva un aggregato; `flotta`: il contatore sostituito o azzerato aveva quattro regole diverse fra "Registra ore" e "Modifica mezzo", poi tre nel sesto giro di deep-pass QA in parallelo (Sentinella/Genesi/Conti) — sentinella.superamentiAperti scriveva un valore fabbricato (0) su un superamento vero invece del valore che ha causato il superamento; genesi.muckShape/il pannello Decking stimavano un baricentro del cumulo in miliardi di miliardi di metri con l'interasse illeggibile, e "0 kg" fabbricato accanto a "— kg" con la carica illeggibile; conti: il sollecito (lista Fatture e "Segna come inviato") non passava dalla guardia sulle fatture come non emesse, e quattro grafici a barre arrotondavano il valore prima del motore condiviso)*, poi quella su `genesi.pointcloud parseXYZ`/`dxfInTratti` (quarto giro di deep-pass QA su Genesi) — la virgola presa per separatore di campo anche quando la riga aveva già spazi (decimale italiano spaccato in due) e LWPOLYLINE non riconosciuta (falso «nessun tratto leggibile» su un file con la geometria vera), poi quella su `sentinella.allerteTaratura`/badge (quinto giro di deep-pass QA su Sentinella) — una lettura presa in un buco fra due certificati di taratura restava invisibile finché il calendario di oggi era regolare*, poi quella su `campo.csvAttivita`/`checklistUltimePerTurno` (quattordicesimo giro di deep-pass QA su Campo) — il file delle attività non portava mai squadra/operatore, e i due documenti stampati potevano elencare due volte la stessa checklist quando lo schermo ne mostrava una sola*, poi quella su `scudo.fascicoloIspezione` (quindicesimo giro di deep-pass QA su Scudo) — il fascicolo per l'ispettore taceva completamente sulle azioni correttive scadute o in scadenza, mentre lo stesso dato produce il KPI rosso in cima al Quadro*, poi quella su `genesi.puntoSnapEstremo`/`estremiDisegno` (dal delta verificato di docs/RICERCA_GENESI_CAD.md) — lo snap a oggetti sulla pianta, l'unico dei quattro assi del CAD chiesti il 13/09 rimasto scoperto*, poi quella sulla selezione multipla dei fori (G49, Maiusc+clic per aggiungere/togliere, eliminazione batch), poi quella su rifletti la selezione (G50, mirror attorno al centroide, nessun pivot da chiedere), poi quella sull'input relativo/polare per le coordinate esatte (G51, `@dx;dy`/`@distanza<angolo` sopra l'input assoluto di G47a, separatore `;` invece di `,` per non collidere con la virgola decimale italiana), poi quella su `genesi._riconRiassuntoCampo`/`csvRiconciliazione` (G52, dal delta verificato di docs/RICERCA_CONTINUA_GENESI.md) — l'esito della detonazione (colonna opzionale «esito», `sparato`/`misfire`): un foro caricato e MAI sparato aveva lo stesso scostamento vicino a zero di uno sparato regolarmente, e nessun numero della schermata lo segnalava, poi quella sul semaforo di sintesi letto prima di esportare (G53, dallo stesso delta) — un piano con indicatori gravemente fuori fascia si esportava in silenzio, identico a uno sano; un modale di conferma è stato scritto, provato e scartato lo stesso giorno (costo Medio, non Piccolo — rompeva 24 prove su 91 in sei banchi), sostituito da un avviso passivo in coda alla stessa frase di successo, poi quella sul limite dello stack di annulla (G54, docs/RICERCA_GENESI_CAD.md sezione 8: «presunto sì, ma il limite non è misurato») — il limite (40, G33) c'era già nel codice e non era mai stato messo alla prova; il banco lo esercita con 45 modifiche vere e verifica che le voci più vecchie escano per prime (FIFO), poi quella sul misfire nel report stampato (G55, dal delta verificato di docs/RICERCA_CONTINUA_GENESI.md, terzo giro) — il "Report volata" ha sei sezioni tutte pre-sparo; un misfire già noto (G52) al momento di ristampare il documento per l'archivio non veniva mai detto*, poi quella sulla guida di allineamento in Y sul trascinamento di un foro (G56, dal delta di una ricerca in background su snap magnetico/tracking dinamico — G48 agganciava a un estremo esistente solo nel ramo "tratto", trascinare un foro non aveva nessun aiuto visivo; PURA anteprima, non tocca lo snap effettivo), poi quella sull'annulla premuto a metà di un trascinamento (G56b, dal deep-pass QA in background sulle nove unità appena costruite — `d2ApplySnap` non azzerava `d2drag`/`d2dragPt` dopo aver rimpiazzato `D2.holes`: un trascinamento sopravviveva silenziosamente al proprio annullamento)*, poi quella su `genesi.reliefSuMaglia` (G56c, trovato con una verifica diretta sugli export CSV/DXF/XML — non da un agente — dopo aver tolto un foro dalla maglia con drag+Canc: `relief=null` nascondeva sia il vero primo foro della zona sia un vicino già sparato ma oltre la distanza di adiacenza, dietro lo stesso messaggio tranquillo «primo della sua zona»)*, poi quella su `genesi.innescoSuMaglia` (G56d, stessa causa di G56c su un vicino di funzione — `innFrom=-1` diceva sia «primo della volata» sia «nessun raccordo raggiunge questo foro», e la «Rete di innesco» del Validatore contava il secondo caso come se non esistesse)*: **3.712** prove automatiche che girano senza rete — **3214** sulle
+funzioni delle app, **330** sulle regole di stile, 83 sugli aiuti condivisi, 36
+sulla nuvola di punti, **22** sull'ordine con cui due o più trigger riscrivono i
 claims, 9 sul manifesto, 8 sulla demo, 7 sulle rivendicazioni del
-primo avvio, 3 sulle superfici che stampano e su chi le preme — più **123** che
-girano con l'emulatore Firestore (**75** sulle
-**regole di sicurezza**, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e
-**200 esecuzioni** che aprono davvero le pagine in un browser.
+primo avvio, 3 sulle superfici che stampano e su chi le preme — più **144** che
+girano con l'emulatore Firestore (**93** sulle
+**regole di sicurezza**, 19 sull'SDK, 24 sulle funzioni, 8 sul primo avvio) e
+**451 esecuzioni** che aprono davvero le pagine in un browser *(ricontato il 19/09, dopo l'annulla premuto a metà di un trascinamento, G56b)*.
 ⚠️ *Il primo avvio è tornato da 10 a **8** l'08/08, e non è un passo indietro:
 le due prove aggiunte quel giorno chiedevano lo* stato finale *delle
 rivendicazioni, che dove le Cloud Functions girano è di* `rebuildClaims` *e non
@@ -88,7 +232,8 @@ contenitore non parte perché chiede la rete e la politica la nega. Il numero
 era 58 e non 68 perché nessuno l'aveva più lanciato in casa: la suite delle
 regole si lancia con* `firebase emulators:exec --only firestore --project
 demo-deepwork "cd tests && node run.mjs"`.
-*(⚠️ Il **2.877** conta nove suite: il giro completo ne esegue **3.282**, e da
+*(⚠️ Il **3.711** conta nove suite (ricontato il 19/09: dal sesto giro 3172→3177, dal settimo (Terra/Campo) 3177→3178, dall'ottavo (Deepwork ID/Terra) 3178→3180, dal dodicesimo (Sentinella) 3180→3181, dal quattordicesimo (Campo) 3181→3183, dal quindicesimo (Scudo) 3183→3184, dal sedicesimo (Genesi, G48) 3184→3190, dallo stesso giro (Genesi, G49) 3190→3193, dallo stesso giro (Genesi, G50) 3193→3197, dallo stesso giro (Genesi, G51, input relativo/polare) 3197→3204, dallo stesso giro (Genesi, G52, esito della detonazione) 3204→3206, dallo stesso giro (Genesi, G53, semaforo di sintesi prima di esportare) 3206→3207, dallo stesso giro (Genesi, G54, limite dello stack di annulla) 3207→3208, dallo stesso giro (Genesi, G55, misfire nel report stampato) 3208→3209, dallo stesso giro (Genesi, G56, guida di allineamento sul trascinamento di un foro) 3209→3210, dallo stesso giro (Genesi, G56b, l'annulla premuto a metà di un trascinamento) 3210→3211, dallo stesso giro (Genesi, G56c, `relief=null` distingue il primo della zona da un vicino fuori dalla distanza di adiacenza — trovato con una verifica diretta sugli export, non da un agente) 3211→3213, dallo stesso giro (Genesi, G56d, stessa causa su `innescoSuMaglia` — un foro senza nessun raccordo che lo raggiunga spariva dalla rete di innesco come se fosse il primo della volata) 3213→3214): il giro completo ne esegue **4266** (ricontato il 19/09 dopo G56d, sulla copia pronta per il commit — il numero è passato per 4263/4212/4265 nella stessa giornata: i primi due comandi che cadevano (`numeri-nei-documenti.mjs`, `date-checkpoint.mjs`) non venivano contati finché cadevano, poi corretti — non lo si insegue a mano, lo stampa `giro-node.mjs` ogni volta che gira).
+⚠️ **E L'«OSCILLA» SCRITTO QUI ERA UN FALSO ALLARME, RISOLTO LO STESSO GIORNO.** Il 4046→4091→4092 misurato nel pomeriggio non era instabilità: era il confronto fra un numero scritto nei documenti da un commit PRECEDENTE e una misura fresca presa dopo che il codice era già cambiato nel frattempo — la stessa causa del «non c'è» scaduto, applicata a un totale invece che a un verdetto. Tre lanci consecutivi sullo STESSO commit invariato hanno dato 4092 tutte e tre le volte. Il numero cambia SOLO quando cambia il codice che conta (una prova aggiunta o tolta), non da un lancio all'altro a parità di commit — e da
 oggi quel numero **lo stampa il giro** — `node apps/deepwork-id/tests/giro-node.mjs`,
 riga «Asserzioni eseguite dal giro». Le altre suite contano **file** invece che
 casi — crescono da sole quando nasce un file — e fra i comandi ci sono le
@@ -100,12 +245,19 @@ l'08/08 e questa unità ha aggiunto un caso»), e diceva **2.728** dove il vero 
 ricopiato — ed è la stessa ragione per cui la riga qui sopra era rimasta ferma a
 2.251 e 2.474 mentre il titolo era già aggiornato: il controllo sorveglia il
 **totale**, non la prosa che lo spiega.
-⚠️ E il giro lo stampa **col suo denominatore**: 22 comandi su 34 hanno una riga
-da sommare, e gli altri **12 sono nominati** — non vuol dire che non abbiano
+⚠️ E il giro lo stampa **col suo denominatore**: 27 comandi su 40 hanno una riga
+da sommare (misura del 15/09, dopo aver corretto un difetto in `numeri-nei-documenti.mjs`
+che lo teneva fuori: la sua riga di verdetto non veniva letta quando falliva),
+e gli altri **13 sono nominati** — non vuol dire che non abbiano
 provato niente, vuol dire che quel conto non li vede.)*
-E **760 funzioni pure su 760** delle sei app sono chiamate per nome dalle prove:
+E **1053 funzioni pure su 1053** delle sei app sono chiamate per nome dalle prove
+*(ricontato il 18/09 con `copertura-funzioni.mjs`, dopo le unità della giornata)*:
 tutte al 100%. Vuol dire che non ne resta nessuna che nessuno ha ancora
 guardato — non che siano provate *bene*, che è un'altra domanda.
+✅ *E quella rinuncia era falsa, come misurato il 13/08 e rimisurato il 05/09 in
+questo contenitore: l'emulatore delle funzioni parte — mancava* `npm ci` *nella
+cartella* `functions`*, non la rete. In un solo* `emulators:exec --only
+firestore,auth,functions`*: 81 + 19 + 8 + 21, tutti verdi.*
 
 ⛔ **Delle sei app**, appunto: **Genesi non ha un modulo dati** e le sue 192
 funzioni stanno dentro la pagina, dove `node` non arriva. Il 100% è vero per

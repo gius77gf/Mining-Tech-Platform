@@ -379,3 +379,2010 @@ conto per forza, ed è lì che va cercata la sua dichiarazione — non nel prosp
 *(Verificato al commit `9bae83a`. La proposta originale resta scritta sopra, non
 cancellata: serve a ricordare che la parte vera e la parte dedotta viaggiavano
 nella stessa riga.)*
+
+
+---
+
+<!-- UNITO IL 03/09. Le sezioni da qui in giù vivevano in docs/RICERCA_CONTINUA_terra.md
+     (stesso nome, in minuscolo), nato il 14/08 da un agente di ricerca che non ha
+     trovato questo file perché lo cercava con il nome sbagliato. Due file con lo
+     stesso nome a maiuscole diverse non convivono su Windows e macOS: il repository
+     non si sarebbe nemmeno potuto clonare intero. Il contenuto è quello, testuale;
+     i riferimenti nei checkpoint del 02/09 puntano al nome vecchio. -->
+
+# Ricerche continue — Terra
+
+## Ricerca del 2026-09-02 — il rilievo e la dichiarazione dei quantitativi: il mondo
+
+### Fatti dal mondo
+
+1. **Rilievo fotogrammetrico con drone**: il rapporto professionale contiene GSD (Ground Sampling Distance, la dimensione reale di un pixel sul terreno), punti di controllo a terra (GCP) per precisione centimetrica o sub-centimetrica, errore RMS (accettabile quando inferiore a 1-2 volte il GSD), modello 3D, ortofoto e dati per calcolo volumetrico con errori inferiori all'1% [seconda mano: geocorsi.it; ispezionicondrone.it].
+
+2. **Laser scanner terrestre e LiDAR da drone**: precision millimetrica per scanner professionali (Faro, Riegl); LiDAR da drone consegue 2-5 cm di accuratezza assoluta in condizioni corrette. Utilizzati per DTM, curve di livello, calcoli volumetrici in tempi brevi [seconda mano: microgeo.it; ingenio-web.it; dronezero.net].
+
+3. **Densità in banco**: calcare solido 2200-2600 kg/m³, calcare frantumato ~2240 kg/m³ (variabile per spazi vuoti); terra ~1800 kg/m³ per conversione volume-tonnellate [seconda mano: omnicalculator.com; contabilità di cantiere].
+
+4. **Dichiarazione annuale statistica mineraria**: i titolari di autorizzazione comunicano annualmente volumi estratti (m³ o tonnellate) alle Regioni. Rilevazione nazionale ISTAT realizzata annualmente su "Pressione antropica e rischi naturali". Deadline in genere aprile dell'anno successivo [seconda mano: regione.piemonte.it; istat.it].
+
+5. **Canone di escavazione**: calcolato su volume di materiale estratto, varia per litotipo e Regione. Piemonte: aggiornamento 2026 con L.R. 16/2025 (agosto 6, 2025), adeguamento ISTAT ogni due anni [seconda mano: regione.piemonte.it].
+
+6. **Distribuzione geografica cave**: Lombardia 484 siti, Piemonte 434, Veneto 372, Toscana 369 (anno 2017). Lombardi produce oltre 23 milioni t, Piemonte 10,6 Mt, Veneto 9,4 Mt di sabbia e ghiaia [seconda mano: istat.it, 2019].
+
+### Software e formati del rapporto professionale
+
+| Software | Formato rapporto | Dati contenuti | Fonte |
+|----------|-----------------|-----------------|-------|
+| Pix4D | PDF, GeoTIFF, LAS, DXF | Ortofoto, nuvola di punti, DSM, volume | [seconda mano: coptrz.com; dronedesk.io] |
+| DroneDeploy | PDF, GeoTIFF, LAS | Mappa 2D/3D, ortomosaico, rilievo volumetrico | [seconda mano: dslrpros.com; skyebrowse.com] |
+| Agisoft Metashape | PDF, OBJ, LAS, DXF | Modello 3D, ortomosaico, nuvola di punti | [seconda mano: coptrz.com; wezom.com] |
+| Propeller | PDF, DXF, LandXML | Volume, profili di scavo/riporto, rilievo | [seconda mano: dronedesk.io] |
+| Carlson Suite | DXF, LandXML, ASCII | DTM, profili volumetrici, curve di livello | [seconda mano: carlsonsoft.com indicato in topgeometri.it] |
+| Geocat (italiano) | DXF, WinCAD | Rilievo topografico, integrazione Carlson | [seconda mano: topgeometri.it] |
+
+### Canone di escavazione per Regione
+
+| Regione | Base calcolo | Aliquota indicativa | Fonte |
+|---------|-------------|-------------------|--------|
+| Piemonte | Volume m³ estratto per litotipo | Aggiornata 2026 (L.R. 16/2025), dettagli su foglio calcolo "Servizio Esercenti" | [seconda mano: regione.piemonte.it] |
+| Nazionale (quadro) | m³ estratti da rilievo o tonnellate vendute | <50 €/m³ in alcune Regioni (simbolico), aliquote crescenti per tipo minerale | [seconda mano: quarryandconstructionweb.it] |
+| Lombardia, Veneto, Toscana | Non specificato in risultati | Gestiti dai singoli enti regionali; dati ISTAT disponibili per volumi ma non tariffe pubbliche | [seconda mano: istat.it; indicatoriambientali.isprambiente.it] |
+
+### Domande per chi ha il codice in mano
+
+1. Chi converte il volume in banco (m³ misurati dal rilievo drone/laser) alle tonnellate da dichiarare alle Regioni, e con quale densità (2200-2600 per calcare)?
+2. Come Terra concilia il volume in banco del rilievo con il peso venduto alla pesa (che è il dato fiscale della vendita)?
+3. Il rilievo professionale è conservato per controlli da parte dell'ente estrattivo, e se sì con quale formato standardizzato (PDF, DXF, LandXML, nuvola LAS)?
+4. Come si passa da periodicità del rilievo (mensile? trimestrale? annuale?) alle dichiarazioni regionali (scadenza aprile dell'anno dopo)?
+5. Se il canone si calcola su m³ estratto, chi legge quella misura dal rilievo drone e la consegna all'amministratore per il pagamento?
+
+---
+
+## Ricerca del 2026-09-02 — il rilievo periodico con il drone e la dichiarazione all'ente (metà sul mondo)
+
+### Che cosa esiste già da noi
+
+Non verificato da questa ricerca: il delta lo fa chi ha il codice.
+
+### I parametri del volo e l'accuratezza attesa
+
+**GSD (Ground Sample Distance)**: GSD tipico per rilievi professionali in cava 1–2,5 cm/px (risultati: Wingtra, Propeller, JOUAV). Il calcolo dipende da altezza di volo, risoluzione sensore e lunghezza focale: GSD = (altezza volo × larghezza sensore) / (lunghezza focale × larghezza immagine) [seconda mano: wingtra.com; enterprise-insights.dji.com].
+
+**Altezza di volo**: varia da 30 a 120 m per rilievi in cava, dipendente da GSD desiderato e da conformazione del terreno (differenze di quota riducono il GSD locale) [seconda mano: propelleraero.com; dslrpros.com].
+
+**Ground Control Points (GCP)**: 5–8 GCP distribuiti ai vertici e al centro dell'area, oppure fino a uno solo se usato PPK; best practice: 2–4 checkpoint indipendenti per verifica [seconda mano: propelleraero.com; unmannedtechshop.co.uk; skyebrowse.com].
+
+**RTK/PPK**: RTK (Real-Time Kinematic) offre 1–2 cm di accuratezza in tempo reale via base station; PPK (Post-Processed Kinematic) applica le correzioni dopo il volo, accuratezza identica, più robusto a interruzioni di collegamento [seconda mano: dronedeploy.com; geonadir.com; propelleraero.com].
+
+**Sovrapposizione foto**: tipicamente 60–80% sovrapposto longitudinale e 30–40% laterale per rilievo fotogrammetrico solido [seconda mano: pix4d.com; agisoft.com].
+
+**Accuratezza attesa**: orizzontale 1–3 cm, verticale 2–3 cm con GCP; senza GCP ma con PPK, 2–5 cm orizzontale e 5–10 cm verticale. RICS Band D/E: ±10–25 mm su dettagli, ±2–4% su volumi [seconda mano: propelleraero.com; angellsurveys.com].
+
+### Come si confrontano due rilievi e le cause d'errore
+
+**Differenza DEM (DEM of Difference)**: confronto tra superficie rilevata a due tempi diversi tramite sottrazione punto per punto; il risultato è una mappa di altimetrie differenziali [seconda mano: sciencedirect.com; arxiv.org].
+
+**Superficie di riferimento**: scelta di un piano di riferimento stabile (base della cava, banco naturale) su cui agganciare i rilievi successivi; errori se il riferimento si muove o subisce assestamenti [seconda mano: provincia.pc.it; geoteasrl.it].
+
+**Vegetazione e zone d'acqua**: cause di errore; la vegetazione nasconde il suolo e produce scarti fino a 50 cm; le zone d'acqua causano perdita di dati (riflessi, assorbimento ottico). Mitigation: use NDVI-based masking, LiDAR penetrante (quando disponibile), rilievi in stagioni a minor vegetazione [seconda mano: nature.com; arxiv.org; ncbi.nlm.nih.gov].
+
+### Frequenza dei rilievi e rapporto all'ente
+
+**Periodicità**: mensile, trimestrale o annuale dipende da velocità di escavazione e obbligo contrattuale; per cave in attività, controllo almeno trimestrale [seconda mano: provincia.pc.it; acqualodigiana.it].
+
+**Stato Avanzamento Lavori (SAL)**: redatto periodicamente (mensile o per milestone), contiene quantità estratte (m³ o t), descrizione e costi; firmato da direttore lavori [seconda mano: pedago.it; ingenio-web.it; studiopetrillo.com].
+
+**Dichiarazione all'ente**: deadline tipicamente aprile dell'anno successivo per dichiarazione annuale statistica; Piemonte: comunicazione via portale "Servizio Esercenti Minerari"; in Campania, pagamento contributi entro 31/3 o 30/9 dell'anno seguente [seconda mano: regione.piemonte.it].
+
+### Software e forma del calcolo volumetrico
+
+| Prodotto | Calcolo volume | Input | Output |
+|----------|---|---|---|
+| Pix4D | DEM + superficie riferimento = prism volume | Ortofoto, nuvola punti | m³, GeoTIFF, DXF |
+| Agisoft Metashape | Point cloud → superficie → diferenza | Immagini drone → DSM/DTM | m³, LAS, OBJ, DXF |
+| DJI Terra | LiDAR o fotogrammetria → DEM | Volo DJI + RTK/PPK | Ortomosaico, DEM, DXF |
+| Propeller | Volume app su DSM | Immagini, GCP/RTK | m³, PDF, DXF |
+| Trimble Stratus | Point cloud → superficie | Dati Propeller | m³, profili cut/fill, DXF |
+| Carlson Suite | Point cloud + DTM → volume | LAS, DXF, nuvola | m³, LandXML, profili |
+
+[seconda mano: propelleraero.com; dronedeploy.com; researchgate.net; carlsonps.com; anvil.so]
+
+### Domande per il delta (il confronto con la nostra app)
+
+1. Chi decide la tolleranza ammissibile per un rilievo periodico (es. ±3% o ±5 m³ su un volume calcolato)?
+2. Come Terra distingue fra errore legittimo di misura (variabilità dello strumento, vegetazione residua) e variazione reale del volume?
+3. Il rilievo periodico è conservato in un formato che permette il confronto automatico di due date diverse (LAS, DEM in griglia)?
+4. La nostra app accetta il confine della cava come superficie di riferimento per il calcolo differenziale, o richiede un datum esterno?
+5. Come Terra gestiSce la conversione automatica fra m³ in banco (dal DEM) e tonnellate dichiarabili (con quale densità per litotipo)?
+
+### Fonti (tutte [seconda mano])
+
+- wingtra.com/surveying-gis/ground-sample-distance/
+- enterprise-insights.dji.com/blog/ground-sample-distance
+- propelleraero.com/ (blog e volume calculation articles)
+- dronedeploy.com/blog/what-is-the-difference-between-rtk-ppk-and-gcp-and-why-does-it-matter
+- geonadir.com/rtk-explained/
+- unmannedtechshop.co.uk/blogs/knowledge-base/ground-control-points-guide-drone-mapping
+- skyebrowse.com/news/posts/ground-control-points-guide
+- angellsurveys.com/insights/drone-mining-quarry-survey-volumetrics-guide/
+- nature.com (DEM accuracy, water extraction)
+- arxiv.org (DEM differencing in mining)
+- ncbi.nlm.nih.gov (vegetation monitoring in mines)
+- provincia.pc.it/Allegati/Livelli/Allegato%207_Rilievi%20topografici...
+- acqualodigiana.it/wp/wp-content/uploads/2020/03/GARA-2020-01-RILIEVI...
+- pedago.it/blog/stato-avanzamento-lavori.htm
+- ingenio-web.it/articoli/stato-avanzamento-lavori...
+- studiopetrillo.com/relazione-conto-finale.html
+- regione.piemonte.it/web/temi/sviluppo/attivita-estrattive/statistica-mineraria-annuale
+- researchgate.net (Agisoft/Pix4D/DJI Terra comparison)
+- carlsonps.com/products/carlson-photocapture
+- anvil.so/post/pix4d-vs-agisoft-photogrammetry-software-comparison
+
+
+### Il delta, fatto da chi ha il codice in mano (02/09, contro `8d0fb886`)
+
+Le cinque domande, risposte aprendo `apps/terra/terra-data.js`.
+
+1. **Chi decide la tolleranza di un rilievo** → la decide il METODO scritto sul
+   rilievo, non una percentuale a mano: `classeAccuratezza(rilievo)` legge il
+   metodo (RTK/PPK/GCP, con le negazioni «senza GCP» riconosciute) e il GSD
+   (`grep -ci GSD apps/terra/terra-data.js` → 23, `GCP` → 14, `RTK` → 11), `bandaVolume(volumeM3,
+   tolleranzaPct)` scrive la forbice, e un rilievo senza metodo ha tolleranza
+   **ignota**, non zero: `incertezzaScavo` somma le tolleranze note e DICHIARA
+   chi copre e chi no (misurato il 03/08 sul verbale per l'ente: 388 m³ «di
+   incertezza» erano il 2 % di UN rilievo su quattro). La «± 3 %» della
+   ricerca (RICS, di seconda mano) non entra: la classe la dà il metodo.
+2. **Errore di misura contro variazione vera** → non si distingue con un
+   numero: si distingue con la BANDA. Due rilievi consecutivi hanno ciascuno la
+   propria banda, e il confronto cavato/venduto e il verbale scrivono il ± accanto
+   al volume; sotto la banda una differenza non è una variazione. Vegetazione e
+   acqua (`grep -ci vegetaz apps/terra/terra-data.js` → 0, `acqua` → 0) NON sono campi: sono cause
+   che un rilievo dovrebbe scrivere nella nota del metodo. ⏱️ Candidato debole:
+   un campo «zone escluse dal calcolo» sul rilievo; da chiedere in cava se
+   qualcuno lo compilerebbe.
+3. **Il formato del rilievo** → Terra conserva il VOLUME e i metadati (data,
+   metodo, GSD, quota base, provenienza), non il DEM (`grep -ciE 'DEM' apps/terra/terra-data.js` → 7,
+   tutti in testi/commenti). Il confronto automatico fra due date è sui volumi
+   dichiarati (`rilievoPrecedente`, `serieAnnuale`), non fra superfici: il DEM
+   vive nel software del drone e nel visore nuvola di Genesi (la nuvola stessa
+   non entra in Firestore, §4a del piano Genesi — un LAS pesa quanto tutta
+   l'organizzazione). È una scelta scritta, non una mancanza da colmare.
+4. **La superficie di riferimento** → non è una domanda di Terra: il volume
+   arriva già calcolato (dal drone, dal visore o a mano); Terra registra la
+   quota di fondo dell'atto (`quotaFondoM`) e la quota base del ritaglio del
+   visore (`quotaBase`, che quando la nuvola non è georeferenziata è `null` e
+   il foglio lo dice — 13/08). Il datum resta nel software di calcolo.
+5. **m³ in banco → tonnellate** → esiste da oggi in shared: `densitaDellaCava`
+   (atto → laboratorio → valore tipico da verificare) e `cavatoInTonnellate`,
+   che Conti usa nel Report; la densità è UNA per cava, dichiarata sull'atto,
+   non «per litotipo» in un listino — chiederla due volte darebbe due risposte
+   per la stessa cava (il commento di `densitaDelMateriale`).
+
+**Il rapporto all'ente**: `riepilogoAnnuale(rilievi, anno, autorizzazione)`
+(somma prudente delle bande, cumulato e residuo del titolo) e il foglio
+stampato con la dichiarazione di incompletezza. I NOMI degli adempimenti per
+regione e le scadenze (aprile, 31/3 e 30/9…) che la ricerca riporta sono di
+seconda mano e NON vanno in nessuna schermata: è la decisione 21 di
+`docs/DECISIONI_WEEKEND.md`, allargata alla dichiarazione annuale.
+
+Riassunto: **quattro su cinque esistono (1, 2, 4, 5), il 3 è una scelta
+dichiarata**; nessun numero della ricerca entra nel prodotto.
+
+## Ricerca del 2026-09-04 (sera) — la garanzia finanziaria e la chiusura del lotto: il mondo
+
+*Metà sul mondo, fatta con `WebSearch` (sei ricerche); `WebFetch`/`curl` non
+leggono il testo primario, quindi ogni contenuto qui sotto è **[seconda
+mano: risultato di ricerca]** e nessun numero o termine di legge entra in
+una schermata. Tema non ancora toccato in questo documento: le tornate
+precedenti coprivano il rilievo, la dichiarazione annuale e il drone.*
+
+**Che cosa succede fuori, quando un lotto di cava finisce.**
+
+1. **La garanzia è dimensionata sul recupero, non sullo scavo.** In Piemonte
+   la Regione pubblica «linee guida per gli interventi di recupero ambientale
+   dei siti di cava e relativi importi economici unitari, da utilizzare per il
+   calcolo delle fideiussioni» (DGR 17-8699 del 05/04/2019, aggiornamento
+   della DGR 2010), con «indirizzi in merito alla durata e alle modifiche
+   delle garanzie fideiussorie (riduzioni, svincolo totale e parziale)». Cioè
+   l'importo nasce da **superficie da recuperare × costo unitario per tipo di
+   intervento**, e la Regione tiene il listino. [seconda mano:
+   regione.piemonte.it, legislazionetecnica.it]
+2. **Lo svincolo è per lotti, e lo decide un verbale.** Quando il recupero è
+   fatto «per fasi (lotti), il Comune svincola solo la parte di garanzia
+   corrispondente alle opere completate e certificate»; la richiesta va
+   accompagnata da «una relazione che descrive le opere eseguite con
+   riferimento al progetto e alle prescrizioni, e una planimetria aggiornata
+   con le aree recuperate». In Lombardia (l.r. 14/1998) lo svincolo è disposto
+   dal Comune «entro 90 giorni dalla richiesta, previa verifica del compimento
+   delle opere di ricomposizione previste dal progetto». [seconda mano:
+   risultati su bura.regione.abruzzo.it, bosettiegatti.eu, regione.lombardia.it]
+3. **La fine dei lavori si comunica, e si certifica.** In Veneto (l.r.
+   13/2018) il titolare «comunica alla Regione la fine dei lavori entro trenta
+   giorni, allegando l'attestazione di regolare esecuzione»; poi un
+   **sopralluogo** con titolare, direttore dei lavori, funzionario regionale e
+   rappresentante del Comune, con verbale firmato da tutti; e sulla base del
+   verbale la Giunta «svincola la garanzia» oppure convoca il titolare.
+   [seconda mano: bur.regione.veneto.it, regione.veneto.it/ripristino-e-garanzie]
+4. **La garanzia sopravvive alla cava.** «Una cava cessata è quella non più
+   oggetto di estrazione, comprese le esaurite e quelle recuperate per le quali
+   è certificato il completamento del recupero»: finché il verbale non c'è, la
+   cava non è cessata e la polizza va tenuta in vita. Il recupero ambientale è
+   «un vincolo spesso disatteso» (giurisprudenza citata da rgaonline.it).
+   [seconda mano]
+5. **Il rapporto col Codice degli appalti non c'entra.** Le ricerche sullo
+   «svincolo progressivo» portano quasi solo alle garanzie definitive degli
+   appalti pubblici (svincolo automatico fino al 75% con gli stati di
+   avanzamento): è un altro istituto, e va tenuto fuori da Terra per non
+   confondere chi legge. [seconda mano: diritto.it, lavoripubblici.it]
+
+Fonti (tutte lette come risultati di ricerca, non come testo primario):
+https://www.regione.piemonte.it/web/temi/sviluppo/attivita-estrattive/delibera-della-giunta-regionale-n-17-8699-5-aprile-2019 ·
+https://legislazionetecnica.it/node/1519701 ·
+https://www.bosettiegatti.eu/info/norme/lombardia/1998_014.html ·
+https://bur.regione.veneto.it/BurvServices/pubblica/DettaglioLegge.aspx?id=366192 ·
+https://www.regione.veneto.it/web/energia/ripristino-e-garanzie ·
+https://rgaonline.it/giurisprudenza/il-recupero-ambientale-delle-cave-un-vincolo-spesso-disatteso/ ·
+https://bura.regione.abruzzo.it/sites/bura.regione.abruzzo.it/files/bollettini/2025-07-22/bollettino-speciale-numero-182-del-25-07-2025.pdf
+
+### Il delta, fatto da chi ha il codice in mano (verificato contro il codice al commit `4df4a12a`)
+
+Cercato per **meccanismo**, aprendo le funzioni, non per parola.
+
+- **Chi sa in che stato è un lotto, collaudo compreso?** `STATI_LOTTO` =
+  previsto → aperto → esaurito → in-recupero → **recuperato → collaudato**
+  (`terra-data.js`, blocco «IL PIANO DI COLTIVAZIONE A LOTTI»); la pagina
+  mette il badge «senza collaudo» su un recuperato senza `collaudatoIl`
+  (`grep -n "senza collaudo" apps/terra/index.html` → 1, la riga del lotto) e
+  il modulo spiega «Collaudato non è recuperato: il secondo lo dice l'azienda,
+  il primo lo dice l'ente col suo verbale». **Il punto 4 del mondo c'è.**
+- **Chi sa che la garanzia va tenuta viva fino allo svincolo?**
+  `TIPI_SCADENZA_TERRA` ha «Fideiussione — validità o rinnovo» con la nota
+  «va tenuta in vita fino allo svincolo, che di norma arriva solo dopo il
+  collaudo finale» e «Collaudo finale / fine lavori — passaggio necessario per
+  chiudere il cantiere e liberare la garanzia»; la dimostrazione ha la polizza
+  con rinnovo annuale (`t2`). **La scadenza c'è; il legame con i lotti no**
+  (vedi sotto).
+- **Chi sa quanto vale la garanzia e quanta ne libera un lotto collaudato?**
+  Nessuno: `grep -c "importo\|euro" apps/terra/terra-data.js` → 8, **tutte**
+  sulla tariffa del canone («l'euro lo fa Conti»); `grep -n "svincol"` → 3,
+  tutte in note di testo. Il mondo (punti 1-2) dice che l'importo nasce dalla
+  superficie da recuperare e si svincola **per lotto**. ⚠️ Gli importi unitari
+  sono un listino regionale di seconda mano e **non entrano**; quello che può
+  entrare è la **dichiarazione**: sul lotto «quota di garanzia» scritta
+  dall'utente dalla propria polizza, e in Piano «garanzia ancora vincolata su
+  lotti non collaudati / liberabile dopo il collaudo di …», con «non
+  dichiarata» dove manca. Costo medio; misura: due lotti con quota, uno
+  collaudato, il Piano dice la somma dei non collaudati e dichiara il terzo.
+- **Chi sa che il collaudo è stato CHIESTO?** Nessuno: `grep -c
+  "collaudoChiestoIl" apps/terra/terra-data.js apps/terra/index.html` → 0 e
+  0; `lo2` lo dice in una **nota libera** («Collaudo chiesto all'ente: fino al
+  verbale il lotto non è chiuso»), che nessun conto legge. Il mondo (punto 3)
+  distingue tre momenti — fine lavori comunicata, sopralluogo, verbale — e
+  Terra ne ha solo il primo (`recuperoFinitoIl`) e l'ultimo (`collaudatoIl`).
+  Candidato a costo basso: `collaudoChiestoIl` sul lotto, e nella riga del
+  lotto «recuperato il … · collaudo chiesto il …» oppure «**recuperato da N
+  giorni, collaudo non ancora chiesto**» — N è misurato in casa, non un
+  termine di legge. Misura: un lotto recuperato senza richiesta dice i giorni;
+  con la richiesta dice la data; il collaudato non dice niente.
+- **Chi compone la relazione e la planimetria per chiedere lo svincolo?**
+  Nessuno, in questa forma: `grep -n "^export function .*[Ll]otti"` →
+  `detrazioneRecupero`, `divarioRecupero`, `rilieviFuoriDaiLotti`,
+  `conformitaProgetto` — conti, non documenti. Il verbale del rilievo esiste
+  (`_numRegistrato`, «Come è stato ottenuto il numero»), la dichiarazione
+  annuale esiste, ma «relazione di fine lavori del lotto» (superficie, volume
+  di progetto e misurato, date, rilievi che lo coprono, detrazione per
+  recupero) no. Candidato a costo medio; misura: il foglio esce con gli stessi
+  numeri della riga del lotto e dichiara «—» dove non è stato misurato. La
+  planimetria resta fuori: Terra non disegna aree.
+- **Il punto 5** (appalti pubblici) non produce nessun delta: è da tenere
+  fuori, e va detto qui perché una ricerca futura non lo porti dentro.
+
+Riassunto: **due punti su cinque esistono (collaudo come stato, garanzia come
+scadenza)**, tre sono candidati **dichiarativi** — nessun importo e nessun
+termine di legge entra nel prodotto. In ordine di costo: `collaudoChiestoIl`
+(basso), quota di garanzia per lotto (medio), relazione di fine lavori (medio).
+
+*Aggiornamento del 05/09 (riga scritta a posteriori, perché chi ha chiuso le
+tre unità non aveva aggiornato questa): tutti e tre ✅ la notte stessa —
+`collaudoChiestoIl` come data del lotto con «recuperato da N giorni, collaudo
+non ancora chiesto» (`attesaCollaudo`, commit `6118fced`); la quota di
+garanzia per lotto scritta dall'utente e sommata sui non collaudati
+(`garanziaVincolata`, commit `80dc105c`); la relazione di fine lavori del lotto
+(`relazioneLotto`, commit `a6122576`) con «che cosa manca» scritto. Prova:
+`grep -c "collaudoChiestoIl" apps/terra/terra-data.js` → 5;
+`grep -n "^export function \(attesaCollaudo\|garanziaVincolata\|relazioneLotto\)" apps/terra/terra-data.js`
+→ 3 righe.*
+
+## Ricerca del 2026-09-11 — lo scavo confrontato con il progetto: che cosa controlla l'ente, che cosa vendono i software (metà sul mondo)
+
+*Strumento: `WebSearch` (funziona); `WebFetch` è bloccato, quindi **nessuna
+fonte è stata letta per intero**: ogni fatto viene da un risultato di ricerca
+ed è marcato `[seconda mano]`. Nessun numero di legge è entrato in una
+schermata; le regole restano regionali e le imposta l'utente.*
+
+### Fatti dal mondo [tutti di seconda mano]
+
+- **Chi controlla che lo scavo stia dentro il progetto, in Italia.** Le pagine
+  di Province e Regioni (Lecco, Vicenza, Novara, Piemonte, Città metropolitana
+  di Milano): la vigilanza **amministrativa** sul rispetto del progetto
+  approvato spetta al **Comune**; la **polizia mineraria** (Provincia/Regione)
+  fa i sopralluoghi in cava, accerta le infrazioni, notifica le sanzioni, e
+  vigila su esplosivi, attrezzature e sicurezza dei lavoratori. L'autorizzazione
+  è il progetto esecutivo approvato «in conformità al piano d'area». [seconda
+  mano]
+- **Che cosa è un piano di coltivazione, e a che scala.** Dalle linee guida
+  regionali (Valle d'Aosta) e dai progetti depositati (Sardegna, Toano, Vazzano):
+  la coltivazione avviene **per fasi/lotti** con durata fissata nel decreto, con
+  un **cronoprogramma per anno** (preparazione, opere, estrazione, recupero),
+  **planimetrie e sezioni in scala 1:500** che mostrano le fasi, e — nei
+  pluriennali — un **volume commerciabile annuo per lotto** (un esempio citato:
+  ~50.000 m³/anno). Il recupero è progressivo e i lotti si chiudono in un
+  ordine dichiarato. [seconda mano]
+- **Che cosa vendono i software per il «progetto contro il rilevato».**
+  Propeller: si importa il **disegno del pit** (KML/DXF) e lo si sovrappone
+  all'ultimo rilievo per controllare **altezze dei banchi, angoli di faccia e
+  avanzamento** rispetto alla specifica, e per dire quanto materiale manca al
+  disegno; il confronto fra la superficie attuale e quella di progetto è la
+  misura dell'avanzamento. Le guide dei rilevatori (Angell, AAI, HireDronePilot)
+  aggiungono la ragione geotecnica: **banchi troppo stretti, scarpate troppo
+  ripide, creste scavate oltre il limite** non sono solo un problema di
+  conformità, sono un rischio di instabilità «che cresce piano e cede di
+  colpo». [seconda mano, siti dei produttori e dei fornitori]
+- **Quindi gli assi del confronto, fuori, sono quattro**: la **quota di
+  fondo** (verticale), il **perimetro/limite di scavo** (orizzontale), la
+  **geometria dei banchi** (altezza, larghezza, angolo di scarpata) e il
+  **volume per lotto e per anno** contro il cronoprogramma. [deduzione dalle
+  tre righe sopra]
+
+### Fonti (risultati di ricerca, nessuna letta per intero)
+
+- Città metropolitana di Milano, *Polizia mineraria* —
+  https://www.cittametropolitana.mi.it/ambiente/guida_autorizzazioni_ambientali/imprese_enti/attivita_estrattiva/Polizia-mineraria
+- Regione Piemonte, *Polizia mineraria* —
+  https://www.regione.piemonte.it/web/temi/sviluppo/attivita-estrattive/polizia-mineraria
+- Provincia di Novara, *Attività estrattive — vigilanza e polizia mineraria* —
+  https://www.provincia.novara.it/Ambiente/DifesaSuolo/AttivitaEstrattive/vigilanza.php
+- Provincia di Lecco, *Suolo, cave e bonifiche* —
+  https://www.provincia.lecco.it/elemento-amministrazione/ufficio-suolo-e-cave/
+- Regione Valle d'Aosta, *Linee guida sulla documentazione da presentare* —
+  https://www.regione.vda.it/allegato.aspx?pk=44927
+- Regione Valle d'Aosta, *Piano di coltivazione di cava* (progetto VIA) —
+  https://www.regione.vda.it/territorio/allegati/progetti_via_1259_27_D.PCC%20Piano%20di%20Coltivazione%20di%20Cava.pdf
+- Comune di Toano, *Piano di coltivazione e progetto di sistemazione* —
+  https://www.comune.toano.re.it/wp-content/uploads/R2.1_PSC_Fora-di-Cavola_Progetto.pdf
+- Propeller, *Quarry surveying software* —
+  https://www.propelleraero.com/aggregatess/
+- Propeller, *How to use drone survey data on your quarry* —
+  https://www.propelleraero.com/blog/how-to-use-drone-survey-data-on-your-quarry/
+- Angell Surveys, *Drone mining & quarry survey guide* —
+  https://angellsurveys.com/insights/drone-mining-quarry-survey-volumetrics-guide/
+
+### Domande per il delta (sul MECCANISMO — nessuna risposta qui)
+
+1. Chi confronta lo scavo con la **quota di fondo** del progetto, e per
+   quale unità (fronte, lotto, atto)?
+2. Chi confronta il **volume** scavato con quello previsto dal lotto e
+   dall'anno?
+3. Chi sa se un lotto è stato scavato **prima di essere aperto** dal
+   cronoprogramma?
+4. Chi confronta la **geometria del banco** (altezza, angolo di scarpata) con
+   il progetto?
+5. Chi confronta il **perimetro** dello scavo con il limite autorizzato?
+
+### Il delta, fatto da chi ha il codice in mano (11/09, verificato contro il commit `3778e399`)
+
+Cercato per **meccanismo**, aprendo le funzioni, non per parola.
+
+- **Domande 1, 2 e 3 — CI SONO, in una funzione sola**, e la riga «Pit
+  progression monitoring» di `CONCORRENTI_TERRA` era **scaduta**: diceva
+  «nessuna delle due confronta lo scavo con una geometria di progetto», ed è
+  la seconda forma d'invecchiamento (vera quando scritta, poi colmata).
+  `conformitaProgetto(fronti, lotti, rilievi, autorizzazione)` (`terra-data.js`)
+  giudica **tre assi**: più giù del fondo autorizzato (`conformitaQuota` →
+  `fondoAutorizzato`, che prende la quota di fondo dal lotto o, se manca,
+  dall'atto, e la dichiara «non misurabile» senza inventare uno zero;
+  `statoConformitaQuota` → oltre / al-limite / dentro / non-misurabile, senza
+  soglie di guardia inventate), più di quanto il lotto prevede
+  (`avanzamentoLotto`), e in un lotto che il progetto non ha ancora aperto; e
+  restituisce sempre il conto dei non misurabili sui tre assi. La pagina la
+  chiama sul Titolo (`grep -c 'conformitaProgetto(' apps/terra/index.html` →
+  **1**), e la dimostrazione ha una quota di fondo sul lotto (335) e una
+  sull'atto (300): `grep -c 'quotaFondoM:' apps/terra/terra-data.js` → **2**
+  nei dati. Il volume per anno contro il cronoprogramma è la denuncia annuale
+  (`riepilogoAnnuale`). **Riga di `CONCORRENTI_TERRA` corretta oggi.**
+- **Domanda 4 — MANCA, ed è del mestiere.** I fronti hanno `quota` e `banco`
+  ma nessuna geometria: `grep -ciE 'pendenza|scarpat|altezza (del )?banco|angolo'
+  apps/terra/terra-data.js apps/terra/index.html` → **7 e 2**, e le
+  occorrenze sono **tutte testi** («Verifica stabilità scarpata» nel
+  dettaglio di un fronte, «rimodellamento delle scarpate» nella nota di un
+  lotto): nessun campo, nessun confronto. È l'asse che Propeller vende
+  («altezze dei banchi, angoli di faccia contro la specifica») e quello che
+  le guide legano alla stabilità. **Delta concreto, candidato**: sul lotto
+  (o sull'atto) `altezzaBancoMaxM` e `pendenzaMaxGradi` **dichiarati
+  dall'utente** dal progetto (niente valori nostri: sono materia regionale e
+  di progetto), sul fronte `altezzaBancoM` e `pendenzaGradi` misurati dal
+  rilievo, e un verdetto nella stessa forma di `statoConformitaQuota` —
+  dentro / al-limite / oltre / non-misurabile — con il conto dei non
+  misurabili. Genesi conosce già l'altezza del banco della volata (`H`):
+  un ponte, non un rifacimento. In roadmap come voce aperta — ✅ **e fatta lo
+  stesso giorno** (`geometriaAmmessa`, `conformitaGeometria`, quarto asse di
+  `conformitaProgetto`): la riga resta per il metodo, non come lavoro da fare.
+- **Domanda 5 — ASSENTE, e chiede una decisione.** `grep -ciE 'fascia di
+  rispetto|perimetr'` → **0 e 0** in tutt'e due i file. Confrontare il
+  perimetro dello scavo con il limite autorizzato vuol dire avere una
+  geometria (un poligono dell'area autorizzata e il contorno del rilievo),
+  cioè entrare nel dominio dei DEM e delle ortofoto che Terra oggi riceve
+  come **numeri** (il volume del rilievo), non come superfici. Non è un
+  campo in più: è una decisione di prodotto (Terra legge file geometrici?).
+  Dichiarato, non aperto.
+
+## Ricerca del 2026-09-11 — secondo giro: che cosa consegna il topografo col rilievo annuale, e che cosa firma il direttore responsabile (il mondo)
+
+⚠️ **Seconda mano, marcata**: fatta con `WebSearch` (che risponde), non con
+`WebFetch` (che non legge il testo primario). Nessun numero di norma entra in
+una schermata; le regole restano regionali e le imposta l'utente. Quelli qui
+sotto servono a decidere il delta.
+
+### Come va, fuori
+
+- **Che cosa deve contenere il rilievo di un'area di cava**, da un capitolato
+  provinciale (Piacenza, «Rilevamento topografico e batimetrico delle aree di
+  cava»): **capisaldi fissi** individuati o materializzati attorno all'area;
+  orografia, idrografia, strade, fabbricati, **limiti e riferimenti
+  catastali**, alberi isolati o in filare, sempre rilevati e riportati.
+  *[risultati di ricerca: provincia.pc.it]*
+- **Che cosa chiede l'ente per lo stato di avanzamento**: sezioni
+  longitudinali e trasversali in scala non inferiore a **1:1000** con lo
+  **stato originario, lo stato attuale e lo stato finale**, e il **calcolo dei
+  volumi estratti e residui** (Regolamento regionale Calabria 8/2023, di
+  attuazione della L.R. 40/2009); rilievo planoaltimetrico dello stato
+  attuale con sezioni (Umbria); rilievo entro sei mesi dall'approvazione del
+  piano, in scala 1:1000/1:500, **georeferenziato** (Gauss-Boaga) e consegnato
+  in **dwg/dxf** (Piano cave Varese). *[risultati di ricerca:
+  olympus.uniurb.it, regione.umbria.it, cartografia.provincia.va.it]*
+- **La statistica annuale**: chi ha un'autorizzazione di cava trasmette ogni
+  anno i **dati statistici** (produzione, e — nel regolamento siciliano di
+  polizia mineraria — il **numero medio degli operai**, che il sindaco riporta
+  all'ufficio minerario entro il primo trimestre) attraverso un servizio
+  telematico regionale (Piemonte, L.R. 23/2016, «Servizio Esercenti
+  Minerari»; Lombardia, catasto cave e miniere CATCM, manuale gennaio 2026).
+  *[risultati di ricerca: regione.piemonte.it, edizionieuropee.it,
+  caveminiere.servizirl.it]*
+- **Chi firma**: la figura della polizia mineraria è il **direttore
+  responsabile** (D.P.R. 128/1959, art. 20: la denuncia di esercizio porta il
+  suo nome e quello dei sorveglianti per turno, ogni cambio si denuncia
+  entro otto giorni; deve essere ingegnere o perito minerario). «Direttore
+  dei lavori» è la parola del cantiere edile, non della cava.
+  *[risultati di ricerca: legislazionetecnica.it, edizionieuropee.it,
+  puntosicuro.it]*
+- **Che cosa consegna il topografo dopo un volo**: una **relazione tecnica del
+  rilievo** (esiste come elaborato depositato: Volterra) con **sistema di
+  riferimento** (acquisizione, riferimento ed elaborazione devono essere
+  coerenti), **numero e precisione dei punti di controllo a terra (GCP)** —
+  l'accuratezza assoluta del rilievo non può superare quella dei GCP, che
+  vanno misurati meglio del GSD — sovrapposizioni (75–85 % frontale, 60–70 %
+  laterale), strumento, data, operatore e i **residui (RMSE)**
+  dell'elaborazione. *[risultati di ricerca: cloud.ldpgis.it/volterra,
+  ispezionicondrone.it, 3dmetrica.it, professionedrone.com]*
+- **Lo standard di accuratezza**: ASPRS «Positional Accuracy Standards for
+  Digital Geospatial Data», edizione 2 versione 2 (2024): l'**RMSE è l'unica
+  misura** riconosciuta; le soglie sono indipendenti da GSD, scala e
+  intervallo di curva; addenda per lidar, fotogrammetria, **UAS** e obliqua.
+  *[risultati di ricerca: asprs.org, support.geocue.com, lidarmag.com]*
+- **Quanto sbaglia un volume da drone**, secondo chi vende il servizio:
+  **2–5 %** con RTK/PPK e buona pianificazione, **1–3 %** con lidar; per i
+  rapporti «difendibili in un audit» (royalty, fatturazione) **4–6 GCP**
+  misurati con GNSS; un caso citato: ±2,6 % contro stazione totale. Il rilievo
+  **annuale** serve a verificare i volumi estratti contro quelli autorizzati;
+  le nuvole «congelano» lo stato del sito e si confrontano anno su anno
+  (CloudCompare, open source); un DTM per i volumi non è un DTM per il
+  progetto o per il drenaggio. *[risultati di ricerca: propelleraero.com,
+  dronedeploy.com, dragonflyaerialsolutions.net, miningsurveys.com,
+  3dmetrica.it, dronezero.net]*
+
+### Fonti (risultati di ricerca, non lette per intero)
+
+provincia.pc.it (Allegato 7, rilievi topografici aree di cava) ·
+olympus.uniurb.it (Reg. reg. Calabria 8/2023) · regione.umbria.it (rilievo
+planoaltimetrico stato attuale, sezioni) · cartografia.provincia.va.it (Piano
+cave Varese, normativa tecnica) · regione.piemonte.it (statistica mineraria
+annuale) · edizionieuropee.it (D.P.R. 128/1959 art. 20; D.P.Reg. Sicilia
+7/1958) · legislazionetecnica.it (art. 20) · caveminiere.servizirl.it (CATCM
+2.2.1) · cloud.ldpgis.it/volterra (relazione tecnica del rilievo a mezzo
+drone) · ispezionicondrone.it · 3dmetrica.it (rilievo annuale di cava;
+precisione con drone) · professionedrone.com · dronezero.net · asprs.org ·
+support.geocue.com · lidarmag.com · propelleraero.com · dronedeploy.com ·
+dragonflyaerialsolutions.net · miningsurveys.com.
+
+### Domande per il delta (sul MECCANISMO, non sul nome)
+
+1. Chi compone il verbale di un rilievo, e che cosa ci scrive: data, fronte,
+   metodo, GSD, classe, banda, chi l'ha eseguito, l'atto, il confronto col
+   precedente?
+2. Il rilievo sa da dove viene la sua incertezza — sistema di riferimento,
+   punti di controllo, RMSE — o la tolleranza è quella **tipica** di una
+   classe?
+3. Chi firma i fogli che escono, e con che nome?
+4. Chi calcola i volumi estratti e residui e lo stato originario?
+5. Chi tratta planimetrie, piano quotato, sezioni, dxf?
+6. Chi risponde alla statistica annuale (produzione e addetti medi)?
+7. Chi ricorda che il rilievo è annuale?
+
+### Il delta, fatto da chi ha il codice in mano (11/09, verificato contro il commit `e5e2ea6a`)
+
+- **Domanda 1 — C'È.** `grep -cE '^export function
+  (verbaleRilievo|classeAccuratezza|bandaVolume|confrontoRilievi|rilievoPrecedente)'
+  apps/terra/terra-data.js` → 5. Il verbale scrive data, fronte e quota,
+  scavo o cumulo, tipo di elaborato, metodo, GSD, classe con tolleranza,
+  volume con banda, «eseguito da», i quattro dati dell'atto e il rilievo di
+  partenza; ogni cosa che manca finisce in `nonMisurati`. Niente da
+  aggiungere.
+- **Domanda 2 — MANCA, ed è il delta piccolo.** Il rilievo ha sette campi
+  (`grep -oE 'id="new-ril-[a-z]+"' apps/terra/index.html | sort -u` → data,
+  fronte, gsd, metodo, prov, rilevatore, vol) e la tolleranza è quella della
+  classe: `grep -n 'tolleranzaPct: [0-9]' apps/terra/terra-data.js` → 2 e 8,
+  mentre `grep -cE 'r\.tolleranza|rilievo\.tolleranza'` → 0. Sistema di
+  riferimento, capisaldi e RMSE: `grep -ciE 'epsg|gauss|etrf|sistema di
+  riferimento|capisald|rmse|punti di controllo|ground control'` → modulo 2,
+  pagina 0 — e le due righe del modulo sono la stessa frase del foglio, «le
+  tolleranze sono valori tipici del metodo di rilievo e vanno confermate con i
+  punti di controllo del rilevatore»: Terra **sa** di non averli e lo dichiara.
+  Il mondo dice che il numero vero sta nella relazione del topografo (RMSE,
+  GCP), ed è **quello** che il verbale dovrebbe portare quando c'è: un campo
+  facoltativo con la tolleranza dichiarata dal rilevatore, la banda calcolata
+  su quella, e il foglio che scrive «dichiarata dal rilevatore» invece di
+  «tipica del metodo». Senza il campo, resta la classe. **Mancanza
+  confermata, aperta** — un campo, una riga nel verbale, una prova.
+  ✅ **FATTO lo stesso giorno, unità 93**: `tolleranzaPct` nel rilievo,
+  `classeAccuratezza` con `fonte` e `tolleranzaTipica`, il verbale e la riga
+  che dicono di chi è il numero. Prova: `grep -c '"rilevatore" : "classe"'
+  apps/terra/terra-data.js` → 1 (la sola riga che decide). Il CSV dei rilievi
+  non lo porta ancora: dichiarato in roadmap.
+  ✅ E il CSV lo porta dall'unità 104: `grep -c 'provenienza;tolleranzaPct'
+  apps/terra/terra-data.js` → 1.
+  ⚠️ Che cosa NON entra: il sistema di riferimento e la nuvola. Terra riceve
+  numeri, non superfici (vedi la domanda 5).
+- **Domanda 3 — C'È, con la parola sbagliata.** I tre fogli di Terra hanno le
+  righe di firma (verbale: «Il rilevatore / Il direttore dei lavori»;
+  relazione di lotto e riepilogo annuale: «Il titolare / Il direttore dei
+  lavori»). `grep -oiE 'direttore (responsabile|dei lavori)'
+  apps/terra/index.html | sort | uniq -c` → 3 «direttore dei lavori», 0
+  «direttore responsabile». La figura del D.P.R. 128 è il **direttore
+  responsabile**, e così lo chiamano già Scudo (`NOMINE_RUOLI`, etichetta
+  «Direttore responsabile»; le firme del fascicolo) e Sentinella (la relazione
+  per l'ARPA: «Il direttore responsabile»). Tre app, due nomi per la stessa
+  persona: **mancanza confermata, aperta** — tre righe, parole del mestiere.
+  ✅ **FATTO lo stesso giorno, unità 93**: `grep -oiE 'direttore
+  (responsabile|dei lavori)' apps/terra/index.html | sort | uniq -c` → 3
+  «direttore responsabile», 0 «dei lavori»; una prova in `run-kpi` pretende
+  la stessa parola nelle tre app.
+- **Domanda 4 — C'È.** `grep -cE '^export function
+  (riepilogoAnnuale|prospettoDenuncia|riservaResidua|estrattoComplessivo|vitaCava)'`
+  → 5; lo stato originario è `estrattoPregressoM3` nell'autorizzazione
+  (`grep -c` → 4). Niente da aggiungere.
+- **Domanda 5 — DICHIARATO, non riaperto.** Planimetrie, piano quotato,
+  sezioni, dxf: `grep -ciE 'piano quotato|stato di fatto|sezion[ei]
+  topograf|\.dxf|\.dwg|planimetr'` → modulo 2, pagina 9, e sono la scadenza
+  «Rilievo periodico dei lavori (planimetrie aggiornate)», i commenti «la
+  planimetria resta fuori: Terra non disegna aree» e le classi `.dwg-*` dei
+  grafici. È la domanda 5 della ricerca precedente (fascia di rispetto,
+  perimetro): Terra legge volumi, non superfici, e se debba leggere file
+  geometrici è una decisione di prodotto. Resta dichiarata.
+- **Domanda 6 — DICHIARATO, chiede una decisione.** La produzione annuale
+  c'è (`prospettoDenuncia`, «dichiarazione annuale dei quantitativi estratti»).
+  Il **numero medio di addetti** non lo calcola nessuno: `grep -ciE 'addetti
+  medi|media (degli|dei) addetti|numero medio'` → scudo 0, campo 0, terra 0.
+  I dati ci sono in due app (i lavoratori di Scudo, le presenze di Campo); il
+  modulo è regionale e il posto in cui comporlo (Terra, che parla all'ente,
+  o Scudo, che sa chi lavora) è una scelta di prodotto. Dichiarato, non
+  aperto.
+- **Domanda 7 — C'È.** `grep -c 'chiave: "rilievo"' apps/terra/terra-data.js`
+  → 1: il preset di scadenza del rilievo periodico esiste, con l'etichetta
+  che nomina le planimetrie.
+
+**Riassunto** — 2 mancanze **confermate e aperte**, tutt'e due piccole (la
+tolleranza dichiarata dal rilevatore nel verbale; «direttore responsabile»
+al posto di «direttore dei lavori» nelle tre firme), 2 **dichiarate** che
+chiedono una decisione (le geometrie; la statistica degli addetti), 3 **già a
+posto** (il verbale, i volumi estratti e residui, la cadenza annuale).
+
+## Ricerca del 2026-09-11 — terzo giro: quando lo scavo esce dal progetto serve una variante — e quale (il mondo)
+
+*Terzo giro su Terra. Strumento: `WebSearch` (sette ricerche); `WebFetch`
+risponde `EGRESS_BLOCKED`: **nessuna fonte è stata letta per intero**, tutto
+di seconda mano dai riassunti dei risultati. Segue la metà sul delta, fatta
+da chi ha il codice in mano.*
+
+### Come va, fuori [tutto di seconda mano]
+
+- **La variante è materia REGIONALE, e le regioni non la definiscono allo
+  stesso modo.** Il punto comune è la distinzione fra variante
+  **sostanziale** (nuova autorizzazione, con il suo iter) e **non
+  sostanziale** (procedura semplificata, la durata del titolo non cambia).
+  Che cosa cade di qua o di là lo decide ogni legge regionale:
+  · **Toscana, L.R. 35/2015 art. 23 c. 1** (dai riassunti): è sostanziale la
+    variante con **difformità volumetriche oltre il 4,5 % dei volumi
+    autorizzati** (se almeno 1.000 m³, con un tetto di 9.500 m³), quella
+    che cambia la **configurazione finale** del sito, quella che introduce
+    l'**esplosivo**, e quella che fa crescere la **garanzia finanziaria**.
+    Fuori da questi casi l'autorizzazione si modifica con l'art. 19 della
+    L. 241/1990, mantenendo la durata iniziale;
+  · **Piemonte, L.R. 23/2016**: il «10 %» che circola è sull'**estensione
+    territoriale** dei poli e dei bacini estrattivi del piano regionale (a
+    parità di volumi autorizzabili), cioè un'altra grandezza — non è una
+    soglia sullo scavato;
+  · **Veneto, L.R. 13/2018**: i criteri per riconoscere le modifiche non
+    sostanziali al progetto di coltivazione li fissa la **Giunta**, e la
+    modifica non sostanziale si autorizza (o nega) sentito il Comune;
+  · **Lombardia, L.R. 20/2021**: «modifiche non sostanziali» sono quelle che
+    l'autorità competente giudica di effetto irrilevante sull'ambiente, con
+    le modalità operative rimandate alla Giunta;
+  · in più regioni le modifiche **urgenti per la sicurezza** non contano come
+    variante sostanziale; le varianti fuori da vincoli paesaggistici e
+    ambientali sono spesso «non sostanziali» anche ai fini della VIA.
+- **Che cosa guarda l'ente**: la vigilanza sulle cave è soprattutto la
+  **congruenza fra lo scavo e il progetto autorizzato** (Trentino, relazione
+  di controllo sulle cave; Varese, «controllo dell'attività estrattiva» con
+  computo metrico dei volumi): il rilievo topografico annuale dello **stato
+  di avanzamento** si confronta con il progetto **alla stessa scala e con le
+  stesse sezioni**, i capisaldi restano fissi, i volumi si computano e si
+  firmano; in alcuni comuni il rilievo si fa **in presenza del tecnico
+  comunale** o con perizia giurata.
+- **Il mestiere**: prima di chiedere una variante il direttore
+  responsabile vuole sapere **quanto** è la difformità (in m³ e in %) e su
+  **quale asse** (volume, quota, perimetro, sequenza dei lotti), perché è
+  quel numero — contro la soglia della sua regione — che decide se è un
+  aggiornamento con una lettera o una nuova autorizzazione con VIA.
+
+### Fonti (risultati di ricerca, nessuna letta per intero)
+
+- Toscana: raccoltanormativa.consiglio.regione.toscana.it (L.R. 35/2015, pdf);
+  olympus.uniurb.it (id 29286); regione.toscana.it, decreto 6776 del
+  01/04/2026 all. B «istanza di nuova autorizzazione o variante sostanziale»;
+  edizionieuropee.it § 4.3.19; arpat.toscana.it; quarryandconstructionweb.it.
+- Piemonte: regione.piemonte.it (L.R. 23/2016, BU46S1); olympus.uniurb.it (id
+  17012); legislazionetecnica.it; arianna.consiglioregionale.piemonte.it.
+- Veneto: bur.regione.veneto.it (L.R. 13/2018, id 366192; PRAC variante NTA,
+  all. B); amministrativistiveneti.it «Prime riflessioni sulla L.R. 13/2018».
+- Lombardia: normelombardia.consiglio.regione.lombardia.it (L.R. 20/2021);
+  legislazionetecnica.it; portale.assimpredilance.it; ancebrescia.it.
+- Emilia-Romagna: demetra.regione.emilia-romagna.it (L.R. 17/1991);
+  ambientediritto.it (TAR Parma 256/2011). Sicilia: ars.sicilia.it (L.R.
+  6/2024 e nota di lettura 2023). Abruzzo: consiglio.regione.abruzzo.it.
+- Vigilanza e rilievi: consiglio.provincia.tn.it «Controllo sullo stato di
+  attuazione… cave»; cartografia.provincia.va.it «Rilievi topografici delle
+  cave e controllo dell'attività estrattiva — computo metrico volumi» e
+  «Normativa tecnica»; comune.modena.it (relazione tecnica di un progetto
+  di coltivazione); atti.comune.parma.it (schema di convenzione);
+  3dfotogram.com; exeo.it «L'autorizzazione amministrativa alla coltivazione
+  di una cava»; legislazionetecnica.it (domanda di autorizzazione,
+  disposizioni attuative).
+
+### Domande per il delta (sul MECCANISMO, non sul nome)
+
+1. **Chi dice all'utente «qui serve una variante»**, e su quali assi (volume,
+   quota, geometria, sequenza dei lotti)?
+2. **Chi sa se la variante sarebbe sostanziale o no** — cioè chi confronta la
+   difformità con la soglia della regione?
+3. **Chi calcola la difformità** in m³ e in % rispetto all'autorizzato?
+4. **Dove vive una variante** una volta chiesta (una pratica con il suo
+   stato?) e che cosa cambia nei conti quando viene approvata?
+
+### Il delta, fatto da chi ha il codice in mano (11/09, verificato contro il commit `727e8b47`)
+
+- **Domanda 1 — C'È SUL VOLUME E SULLA QUOTA, tace sugli altri due assi.**
+  La pagina nomina la variante in **4 punti** (`grep -c 'chiedi una
+  variante|rinnovo o variante|senza una variante' apps/terra/index.html` →
+  4): la proiezione di fine anno in rosso («rallenta o chiedi una
+  variante»), il volume autorizzato esaurito («fermati o chiedi una
+  variante»), la soglia di guardia («prepara rinnovo o variante»), e il
+  fronte arrivato al fondo («da lì non si scende più senza una variante»). I
+  verdetti «oltre» della **geometria del banco** e del **lotto non ancora
+  aperto** dicono che cosa non va ma non dicono la parola: piccolo delta,
+  una frase per asse, nella stessa voce della domanda 2.
+- **Domanda 2 — MANCA, E NON PUÒ ESSERE UN NUMERO NOSTRO.** `grep -ciE
+  'sostanzial' apps/terra/terra-data.js apps/terra/index.html` → **0 e 0**.
+  La soglia che separa la variante sostanziale (nuova autorizzazione) da
+  quella non sostanziale (procedura semplificata) è **regionale** — in
+  Toscana un 4,5 % sui volumi autorizzati [seconda mano], in Piemonte un
+  10 % che però misura l'estensione dei poli, in Veneto e Lombardia un
+  criterio della Giunta — quindi Terra **non la sa** e non deve inventarla.
+  Quello che può fare è la stessa cosa che fa con la soglia di guardia
+  (`sogliaGuardiaPct`, impostata dall'utente): un campo sull'atto,
+  `difformitaSostanzialePct`, **dichiarato dall'utente dal proprio
+  regolamento**, vuoto di default; quando c'è, la difformità misurata si
+  confronta con lui e la pagina dice «sopra la soglia che hai dichiarato:
+  la variante sarebbe sostanziale» o «sotto: non sostanziale, procedura
+  semplificata — verifica col tuo regolamento»; quando manca, non dice
+  niente e il suggerimento del campo spiega che dipende dalla regione,
+  **senza scrivere il 4,5 %** (un numero di legge di seconda mano non entra
+  in una schermata). **Mancanza confermata, aperta, piccola.**
+  ✅ **FATTO l'11/09 (unità 112)**: `difformitaSostanzialePct` sull'atto,
+  `difformitaVolumetrica` + `giudizioVariante` nel modulo, la riga nella
+  scheda del Titolo, e la parola «variante» sulla sequenza e sul banco.
+- **Domanda 3 — C'È.** La difformità in percentuale la calcolano già
+  `proiezioneAnno` (`pctPiano` contro `pianificatoAnnuoM3`, con «presto»
+  quando l'anno è appena cominciato) e `avanzamentoLotto(lotto, misuratoM3)`
+  (percentuale del lotto, `null` senza rilievi); il cumulato contro il
+  concesso (`riserveM3`) sta nel foglio per l'ente. Un «oltre del X %» è
+  `pct − 100`: il numero esiste, gli manca solo la soglia con cui confrontarsi.
+- **Domanda 4 — C'È COME PRATICA, e i conti non si toccano da soli — ed è
+  giusto.** La collezione `piano` ha lo stato `vigente | in-esame`, e la
+  dimostrazione porta «Variante fronte Sud» in esame. Quando una variante
+  viene approvata i numeri nuovi (quota di fondo, volumi, scadenza) **li
+  scrive l'utente sull'atto**, perché vengono dal titolo nuovo: nessun
+  automatismo, dichiarato.
+
+**Riassunto** — 1 mancanza **confermata e aperta** (la soglia della variante
+sostanziale dichiarata dall'utente, più la parola «variante» sui due assi che
+la tacciono), 2 a posto (chi dice «variante» sul volume e sulla quota; chi
+calcola la difformità), 1 dichiarata (il piano in esame non tocca i conti).
+
+---
+
+## 15/09 — quinto giro di ricerca mirata: riconciliazione piano-vs-reale e margine autorizzazione
+
+*Nota di processo: prodotta da un agente in background (mandato "prima il
+mondo, poi la nostra app", fonti Datamine/K-MINE/FleetRabbit), riverificata
+di persona sul codice vero prima di entrare qui. Il file è finito, per
+errore di prompt, sotto il nome sbagliato (`docs/RICERCA_CONTINUA_terra.md`,
+minuscolo — lo stesso incidente "sei documenti doppi" già chiuso il 05/09):
+il contenuto vero è stato unito qui e il duplicato cancellato.*
+
+**Lacuna 1 — CONFERMATA, con una sfumatura.** `proiezioneAnnua()`
+(`terra-data.js:655`) dà già `pctPiano`, cioè quanto il ritmo ANNUALE si
+discosta dal piano annuo — non è vero che manchi ogni "scarto piano-vs-
+reale", come diceva la prima stesura della ricerca. Manca però la
+granularità MENSILE che la ricerca chiedeva davvero: nessuna funzione
+confronta "volume pianificato del mese" con "volume reale del mese" per
+dire "avanti/indietro di N m³ questo mese". Verificato:
+`grep -i "varianza\|variance\|scarto.*piano" apps/terra/terra-data.js` →
+zero. Costo indicativo: una funzione che divide il piano annuo per 12 e
+confronta col mese corrente di `volumiPerMese()`.
+
+**Lacuna 2 — CONFERMATA, i dati grezzi ci sono già.** `vitaCava()`
+(`terra-data.js:1074`) calcola sia `anniResidui` (anni al ritmo medio) sia,
+internamente, `giorniTra(dataScadenza, oggi)` — e li confronta per dare
+`scadePrimaIlTitolo` (booleano). Ma il **margine** fra i due (quanti giorni
+o mesi separano l'esaurimento dalla scadenza) non è calcolato né restituito:
+solo "chi arriva prima", non "di quanto". `annoEsaurimento` è un ANNO, non
+una data — troppo grezzo per un margine in giorni. Non è un dato mancante
+dal modulo (gli ingredienti — `anniResidui`, `dataScadenza` — sono già nel
+valore di ritorno): è un calcolo in più, non una ricerca nuova.
+
+**Lacuna 3 — CONFERMATA.** `ritmoMedioAnnuo()` (`terra-data.js:1041`)
+calcola UN SOLO ritmo, sulla finestra dichiarata dall'utente (`anniRitmo`,
+default 3 anni) — nessun confronto fra una finestra corta (es. ultimi 90
+giorni) e quella lunga per rilevare un'accelerazione o un rallentamento.
+Verificato: `grep -n "ultimi.*giorni\|trend\|accelera\|decelera" apps/terra/terra-data.js`
+→ zero. Una cava che negli ultimi tre mesi ha quasi raddoppiato il ritmo
+non riceve nessun avviso finché non si vede nel cumulato dell'anno.
+
+**Riassunto** — 3 lacune **confermate**, tutte e tre nella stessa famiglia
+(la riconciliazione ha i FONDAMENTALI — vita cava, proiezione annuale,
+confronto con la scadenza del titolo — ma non le metriche comparative a
+grana più fine: mese contro mese, giorni di margine, finestra corta contro
+lunga). Nessuna è un dato nuovo da raccogliere: sono tutti calcoli
+aggiuntivi sopra dati che Terra ha già in mano.
+
+⏱️ **LA LACUNA 2 ERA GIÀ CHIUSA IL GIORNO STESSO — è la stessa famiglia del
+«non c'è» scaduto, dentro la stessa sessione.** L'agente ha scritto questa
+riga il 15/09 leggendo `vitaCava()` senza `margineGiorni`; un cantiere di
+codice, nello stesso ciclo e nello stesso giorno (unità precedente,
+`014f20b7`), l'aveva già aggiunto — la ricerca gira in background mentre
+altri cantieri avanzano, e i due non si parlano finché non si confronta il
+documento col codice PRIMA di scrivere. `grep -n "margineGiorni"
+apps/terra/terra-data.js` → 3 occorrenze (dichiarazione, calcolo, valore di
+ritorno). Nessuna azione da fare qui: la riga resta per il metodo, non come
+lavoro aperto.
+✅ **FATTO il 15/09 (unità di questo blocco)**: la lacuna 1,
+`varianzaMensilePiano(rilievi, pianificatoAnnuoM3, oggi)` — il mese
+corrente contro il piano annuo diviso 12 (dichiarato come media, non un
+piano mensile vero: Terra non ne ha uno), con la stessa disciplina
+dell'assenza-non-favorevole: un mese senza nessun rilievo di scavo elaborato
+non è un mese a zero, è "non ancora misurato", e la funzione lo dichiara
+invece di calcolare uno scarto finto. Riusa `volumiPerMese` (stessa regola
+di aggregazione, non riscritta). Wired nella schermata del piano estrattivo
+(`pia-mese`), accanto alla proiezione di fine anno.
+✅ **FATTO lo stesso giorno**: la lacuna 3, `tendenzaRitmo(rilievi, oggi,
+anni, finestraGiorni=90)` — confronta il ritmo degli ultimi 90 giorni
+(default) con quello di `ritmoMedioAnnuo`. Non riscrive il calcolo: il
+corpo comune (filtro solo-scavo, volume, durata, annualizzazione) è stato
+estratto in un helper privato `ritmoNellaFinestra`, e sia `ritmoMedioAnnuo`
+sia `tendenzaRitmo` lo chiamano — la stessa regola di `shared/` applicata
+dentro un modulo solo, per non avere due copie della stessa formula che
+divergono in silenzio. Soglia dichiarata `TOLLERANZA_RITMO_PCT = 20` (più
+larga di quella del carburante di Flotta: il ritmo di una cava oscilla di
+più — weekend, manutenzioni, cambio fronte — di un consumo di gasolio).
+Wired nel riquadro "Vita della cava", solo quando accelera o rallenta in
+modo misurabile (silenzio quando la finestra corta non ha abbastanza
+storico: non si forza un "non lo so" su una nota secondaria).
+**Il quinto giro di ricerca su Terra è ora chiuso su tutte e tre le sue
+lacune.**
+
+---
+
+## 15/09 — sesto giro di ricerca mirata: conformità geometrica del fronte e sezioni trasversali
+
+### Come il mondo lo fa
+
+**Conformità geometrica**: il monitoraggio della geometria dei fronti di scavo va oltre il semplice controllo volumetrico. Nel settore estrattivo, la conformità geometrica si verifica tramite sezioni trasversali misurate a intervalli regolari lungo l'asse del fronte — **ogni 5-10 m nella fase esecutiva** [fonte: Provincia di Varese, documento normativa tecnica per cave; ANAS S.p.A., standard per rilievi di gallerie]. 
+
+Le sezioni trasversali registrano:
+- **Quota di fondo** — verifica se il banco è stato scavato fino alla profondità autorizzata (under-break: scavo insufficiente; over-break: scavo oltre il previsto)
+- **Pendenza della scarpata** — verifica se l'inclinazione rimane entro i massimi stabiliti
+- **Altezza del banco** — verifica la distanza fra fondo e cresta del fronte
+- **Andamento lineare** — progressione della cresta (arretramento del crest) lungo l'asse
+
+**Strumenti**: software specializzato (es. Strayos Highwall Compliance) crea modelli 3D della cava, genera profili di sezioni trasversali da rilievi fotogrammetrici, e **confronta automaticamente il profilo reale con quello del progetto**, producendo mappe di calore che identificano:
+- **Crest loss** — perdita di spalla superiore (scavo troppo profondo ai margini)
+- **Toe flare** — allargamento laterale del piede del fronte (over-break ai lati)
+- **Over-break localizzato** — scavo oltre la quota di fondo in zone specifiche
+- **Under-break localizzato** — scavo incompleto in sezioni isolate
+
+[fonte: blog.strayos.com "Highwall Compliance"; topodrone.com "Quarry Surveying"; MDPI "Qualitative Assessment of Point Cloud from SLAM-Based MLS for Quarry Digital Twin Creation"]
+
+### Che cosa fa Terra oggi
+
+`conformitaGeometria(fronte, lotto, autorizzazione)` [terra-data.js:3759] confronta **due assi**:
+1. **Altezza del banco**: `fronte.altezzaBancoM` vs `amm.altezza.valore` (massimo dichiarato)
+2. **Pendenza**: `fronte.pendenzaGradi` vs `amm.pendenza.valore` (massimo dichiarato)
+
+Ogni asse produce:
+- `misurabile: true/false` — se il confronto è stato fatto
+- `stato: "oltre" | "al-limite" | "dentro" | "non-misurabile"` — esito della conformità
+- `margine` — differenza fra misurato e massimo (gradi/metri)
+
+Visualizzazione sulla schermata [index.html:2315-2328]: "altezza 3.8 m su 5 m · pendenza 70° su 75° · massimi del lotto" — verdetto colorato "banco dentro il progetto" o "fuori progetto".
+
+Dati misurati sono caricati come:
+- `altezzaBancoM` — altezza totale del banco misurata
+- `pendenzaGradi` — inclinazione misurata
+- `fronteId` — identificativo del fronte
+- Nessun dato per sezioni trasversali, profili, o variabilità geometrica lungo l'asse
+
+### Il delta
+
+| Aspetto | Nel mondo | In Terra | Costo |
+|---------|-----------|----------|-------|
+| **Sezioni trasversali** | Multiple (ogni 5-10 m), profili misurati a intervalli | Una sola misurazione per fronte (punto singolo) | Aggiungere storage e funzioni per profili multipli |
+| **Over-break localizzato** | Rilevato e mappato in sezioni specifiche | Non monitorato (solo altezza totale) | Aggiungere confronto quota di fondo per sezione |
+| **Variabilità geometrica** | Identificazione di crest loss, toe flare per zona | Non rilevata (media unica per fronte) | Funzioni di interpolazione e confronto per sezioni |
+| **Reportistica** | Mappe di calore, visualizzazione spaziale, profili | Testo "altezza X su Y" · "pendenza X su Y" | UI di visualizzazione profili + export dati sezioni |
+| **Automazione conformità** | Sistema identifica over/under-break per ogni sezione | Utente scrive manualmente altezza e pendenza misurate | Interfaccia per acquisire profilo trasversale da rilievo |
+
+### Proposta per il delta
+
+Le tre lacune costituiscono una famiglia (il "dettaglio geometrico" della conformità):
+
+1. **Piccola**: aggiungere un campo `quotaFondoM` al fronte per monitorare over-break/under-break — non solo l'altezza totale del banco (altezza = quota cresta - quota fondo). La formula esiste già (`conformitaProgetto` legge `quotaScavoAutorizzata`), manca il confronto nel modulo. `grep -n "quotaFondo\|quotaScavo" apps/terra/terra-data.js` → funzione `conformitaQuota` (riga 3586) controlla la quota di fondo rispetto a quella autorizzata, quindi il confronto esiste già ma vive **separato** da `conformitaGeometria` (che controlla altezza e pendenza). Unificazione: `conformitaGeometria` dovrebbe includere also `quotaFondoM` o un campo merged. **Mancanza confermata**: il fronte non dichiara la quota di fondo separatamente, il modulo la deduce dall'altezza, il confronto esiste per la quota ma non è esposto nella geometria del fronte.
+
+   ⛔ **SMENTITA (15/09, riverifica di persona prima di scrivere qualunque
+   cosa in roadmap): «vive separato» è falso, e la "mancanza confermata"
+   non c'è.** `conformitaQuota` e `conformitaGeometria` non sono separate:
+   `conformitaProgetto` (`terra-data.js:3626`) le chiama ENTRAMBE per ogni
+   fronte e le combina nello stesso oggetto riga — `{...conformitaQuota(f,
+   lo, autorizzazione), geometria: conformitaGeometria(f, lo,
+   autorizzazione)}` (riga 3640-3641) — cioè esattamente l'unificazione
+   che la ricerca proponeva di costruire. E la pagina la usa così:
+   `apps/terra/index.html:2298` sceglie il PEGGIORE fra `r.stato` (quota) e
+   `(r.geometria||{}).stato` (altezza/pendenza) con `peggioreConf(...)` per
+   decidere il colore della riga — un fronte fuori quota E dentro
+   geometria, o viceversa, mostra comunque il colore allarmante. La
+   ricerca ha guardato `conformitaGeometria` da sola e ha concluso che il
+   confronto sulla quota le mancasse, senza risalire a chi la chiama
+   (`conformitaProgetto`) e a come il risultato arriva alla pagina — la
+   stessa famiglia di errore di "cercare il nome invece del meccanismo",
+   applicata a una funzione che esiste ma **un livello più in su** di dove
+   si è guardato. Nessuna azione: la funzione che questa proposta voleva
+   costruire c'è già.
+
+2. **Media**: aggiungere supporto per **sezioni trasversali multiple** — la pagina consente oggi un `fronteId` per rilievo ma non più sezioni di uno stesso fronte. Una struttura come `sezioniM3: [{distanzaM: 0, altezzaBancoM: 5.2, pendenzaGradi: 72, quotaFondoM: 345}, {distanzaM: 10, altezzaBancoM: 5.1, pendenzaGradi: 71, quotaFondoM: 344.5}, ...]` permetterebbe di rilevare variabilità. **Mancanza confermata**: nessun campo per sezioni trasversali. Il rilievo di una cava professionale le produce sempre (drone + DEM genera ortofoto + DEM ad alta risoluzione da cui si estraggono sezioni), ma Terra le scarta — tiene solo volumetria aggregata.
+
+3. **Grande**: non è propriamente una "mancanza" di Terra bensì una scelta di **ambito di responsabilità**. Le mappe di calore e l'identificazione automatica di over-break/toe flare/crest loss richiederebbero un modello 3D della cava e funzioni di confronto geometrico che escono dal dominio di Terra (volume estratto, stato della cava, vita della concessione). La visione corretta è che Terra **acquisisce i dati** (sezioni trasversali, profili) e **un modulo di conformità geometrica** (oggi esterno, domani possibile integrazione) li analizza. Finché il modulo non esiste, l'acquisizione rimane un dettaglio opzionale.
+
+### Riassunto
+
+**Una lacuna confermata, una smentita, una fuori scope** (riverificato il 15/09):
+1. ⛔ **SMENTITA** — «quota di fondo non unificata con la geometria»: `conformitaProgetto` le combina già entrambe per ogni fronte, e la pagina sceglie il peggiore dei due stati (`terra-data.js:3626-3641`, `index.html:2298`). Vedi la correzione qui sopra. Nessuna azione.
+2. **Confermata** — Nessun supporto per sezioni trasversali multiple: il rilievo professionale le genera sempre (5-10 m di passo), Terra tiene solo un punto per fronte. Media, strutturalmente fattibile (aggiungere un array di sezioni), non ancora riverificata riga per riga sul codice di persona prima di scriverla in roadmap.
+3. **Fuori scope, dichiarato dalla ricerca stessa** — mappe di calore/rilevazione automatica di crest loss/toe flare: richiedono un modello 3D di confronto geometrico che esula dal dominio di Terra (che acquisisce dati, non li analizza geometricamente). Non un cantiere.
+
+**Fonti citate**:
+- [Provincia di Varese, Piano Cave, Normativa tecnica](https://cartografia.provincia.va.it/downloads/Pianocave/pianocave_adottato/relazioni/Normativa_tecnica.pdf)
+- [ANAS S.p.A., standard per rilievi in sotterraneo](https://va.mite.gov.it/File/Documento/9333)
+- [Strayos, Highwall Compliance](https://blog.strayos.com/product-spotlight-highwall-compliance/)
+- [TopoDrone, Quarry Surveying](https://topodrone.com/services/quarry-surveying/)
+- [MDPI, Point Cloud SLAM per Digital Twin](https://www.mdpi.com/2076-3417/15/22/12326)
+
+## 15/09 — scomposizione della lacuna 2 (sezioni trasversali), prima di scrivere codice
+
+*(stessa disciplina già usata su Genesi G7: farlo a metà è la trappola,
+si scompone prima — verificato leggendo il codice di persona, non sulla
+parola della ricerca)*
+
+**Che cosa c'è oggi, misurato riga per riga.** Un fronte (`fronti/{id}`)
+porta tre grandezze SCALARI, un valore solo ciascuna: `quota`,
+`altezzaBancoM`, `pendenzaGradi` — scritte da un form a riga singola
+(`#fro-quota`/`#fro-altezza`/`#fro-pendenza`, `index.html:4433-4542`) e
+lette da `conformitaQuota`/`conformitaGeometria` (`terra-data.js:3586`,
+`3759`) per il verdetto di conformità. Non c'è NESSUN posto, né nei dati
+né nella pagina, che tenga più di un punto per fronte: aggiungere
+sezioni trasversali non è "estendere un campo", è un modello nuovo.
+
+**Perché non si scrive oggi.** Tre pezzi, e sono di taglia diversa:
+1. **Il modello dati**: un array `sezioni: [{distanzaM, quotaM,
+   altezzaBancoM, pendenzaGradi}, …]` sul fronte, **opzionale e
+   additivo** — i tre scalari esistenti restano (retrocompatibilità: un
+   fronte già in produzione non ne ha bisogno finché nessuno lo chiede),
+   e diventano il caso "una sezione sola, senza distanza".
+2. **Il calcolo**: una funzione pura che, DATO un fronte con sezioni,
+   trova la peggiore (stesso principio di `conformitaGeometria`: il
+   verdetto è quello del margine più stretto, non una media che
+   nasconde un punto fuori soglia) — e che con zero sezioni ricade sugli
+   scalari di oggi, così `conformitaQuota`/`conformitaGeometria` non
+   cambiano contratto per chi le chiama già.
+3. **Il form**: un sotto-modulo che aggiunge/toglie righe di sezione
+   dentro la scheda del fronte — oggi è un form a riga singola, questo è
+   un pattern che Terra non ha ancora da nessuna parte (il pattern più
+   vicino è l'elenco cumuli di un inventario, ma è un record separato,
+   non righe dentro un altro form).
+
+**La prima fetta onestamente piccola**: (1) da sola — il campo
+`sezioni` opzionale, popolabile solo per import (non ancora dal form a
+mano), e una funzione pura `sezionePeggiore(fronte)` che la scheda di
+conformità userebbe se presente. Zero rischio sulla sicurezza (nessuna
+soglia cambiata), zero rischio sul form esistente (non si tocca).
+**Non fatto in questo blocco**: la fetta 1 da sola non dà ancora nessun
+valore visibile a chi lavora in cava (un campo che nessuna schermata
+scrive), quindi non vale la pena costruirla isolata dal pezzo 3 — è
+dichiarata come prossimo passo atomico scomposto, non lavoro immaginato.
+
+---
+
+## 15/09 — settimo giro di ricerca mirata: ripristino ambientale progressivo e garanzia finanziaria
+
+*Domanda del mandato: molte concessioni impongono un ripristino per fasi
+(non tutto alla fine) con una fideiussione proporzionale all'area non
+ancora ripristinata — Terra lo traccia, o solo l'estrazione? Strumento:
+`WebSearch` (due ricerche); nessuna fonte letta per intero — tutto di
+seconda mano dai riassunti dei risultati. Il codice è stato letto di
+persona, riga per riga, prima di scrivere qualunque verdetto — è la
+lezione pagata più volte in questo file su "niente entra sulla parola
+dell'agente".*
+
+### Come va, fuori [tutto di seconda mano, WebSearch]
+
+- **Il ripristino per fasi è la norma, non l'eccezione, e la garanzia lo
+  segue.** Negli USA (SMCRA/OSMRE, 30 CFR 800 [eCFR]) l'importo della
+  fideiussione si dimensiona sul costo di ripristino dell'area
+  **disturbata e non ancora recuperata**, e cresce **prima** che si apra
+  una nuova porzione di cava ("prior to disturbing new acreage, the
+  permittee must post additional bond"): non è una garanzia unica fissata
+  all'inizio, è una garanzia che segue l'area aperta meno quella chiusa.
+  In Australia Occidentale il tasso minimo si calcola sulla superficie
+  disturbata.
+- **In Italia lo svincolo è esplicitamente PARZIALE E PER LOTTO.** Dai
+  riassunti dei risultati (nessuna fonte letta per intero): "le garanzie
+  possono essere svincolate parzialmente, con cadenza almeno annuale, per
+  l'importo dei lavori di recupero completati. Al termine del recupero
+  ambientale di ogni singolo lotto, l'operatore può chiedere lo svincolo
+  parziale della garanzia finanziaria"; "in caso di progetti suddivisi in
+  lotti di coltivazione, la garanzia finanziaria può essere svincolata per
+  singolo lotto secondo le modalità e i criteri richiesti
+  dall'Amministrazione"; lo svincolo lo ordina la Provincia/l'ente **dopo
+  aver verificato** che le opere di recupero previste dall'autorizzazione
+  sono state completate, anche con riduzione proporzionale ai lavori
+  parziali verificati.
+- **L'IMPORTO unitario della garanzia è materia di listino regionale**, non
+  un calcolo che un software fa da solo: fra i risultati compare un
+  documento di aggiornamento delle "Linee Guida per gli interventi di
+  recupero ambientale di siti di cava e **relativi importi economici
+  unitari**, da utilizzare per il calcolo delle fideiussioni" (regione non
+  identificabile con certezza dal solo riassunto — probabile Lombardia,
+  citato art. 7 L.R. 22/11/1978 n. 69, di seconda mano) — cioè la stessa
+  distinzione che Terra fa già nel proprio commento di codice fra "quanta
+  garanzia è vincolata" (misurabile) e "quanto VALE" (listino regionale,
+  fuori).
+
+### Cosa fa Terra oggi [verificato nel codice, riga per riga]
+
+**Il ripristino per fasi non solo è tracciato: è il modello dati portante
+del piano lotti.** Sei stati, non due (`STATI_LOTTO`,
+`apps/terra/terra-data.js:3062`): `previsto → aperto → esaurito →
+in-recupero → recuperato → collaudato`, ognuno con la propria data
+(`apertoIl`, `esauritoIl`, `recuperoIniziatoIl`, `recuperoFinitoIl`,
+`collaudoChiestoIl`, `collaudatoIl`). Il commento di modulo (righe
+3042-3048) dichiara esplicitamente la premessa di dominio: «Il recupero
+contestuale non è una buona pratica: è la condizione con cui
+l'autorizzazione è stata data, e quasi sempre è assistita da una garanzia
+finanziaria che si svincola per stralci, lotto per lotto» — e la stessa
+frase, «recupero ambientale contestuale alla coltivazione, lotto per
+lotto», è già nelle prescrizioni dell'atto demo
+(`grep -n 'contestuale alla coltivazione' apps/terra/terra-data.js` → riga
+186).
+
+Funzioni pure verificate, con firma e scopo:
+- `divarioRecupero(lotti)` (`terra-data.js:3080`) — la superficie (e il
+  volume) aperti-ma-non-ancora-chiusi: `apertiMq - chiusiMq`. Distingue
+  "non misurabile" (nessun lotto registrato) da "0 perché tutto
+  recuperato" e conta a parte i lotti che non dichiarano superficie/volume
+  (altrimenti il divario si legge più piccolo del vero, mai più grande —
+  principio dell'assenza non favorevole applicato due volte, una per i m²
+  e una, corretta dopo un difetto misurato il 07/08, per i m³).
+- `garanziaVincolata(lotti)` (`terra-data.js:3169`) — somma la quota di
+  garanzia (`garanziaEuro`, scritta dall'utente lotto per lotto dalla
+  propria polizza) in tre corpi: `vincolata` (lotti non collaudati),
+  `liberabile` (recuperati, in attesa del verbale), `liberata`
+  (collaudati). Dichiara esplicitamente, nel commento (riga 3159), che
+  **Terra non calcola l'importo**: "gli importi unitari sono listini
+  regionali, di seconda mano, e restano fuori" — la stessa distinzione
+  confermata ora dal mondo (i listini regionali di importi economici
+  unitari citati sopra).
+- `attesaCollaudo(lotto, oggi)` (`terra-data.js:3132`) — quanti giorni un
+  lotto **recuperato** aspetta la richiesta di collaudo, o da quando è
+  stata chiesta; dichiara esplicitamente di non giudicare un ritardo
+  (righe 3127-3128): "i termini di legge sono regionali e di seconda mano
+  e NON entrano: qui si dice da quanto si aspetta, non se si è in
+  ritardo" — la stessa cautela che questo file raccomanda per ogni
+  soglia di seconda mano.
+- `relazioneLotto(lotto, rilievi, fronti, oggi)` (`terra-data.js:3208`) —
+  compone il foglio "relazione di fine lavori" da presentare per chiedere
+  collaudo e svincolo, con tutte le date del ciclo di vita, il volume
+  rimesso in cava per il recupero e la quota di garanzia del lotto; i dati
+  mancanti finiscono in `nonMisurati` invece di sparire (stessa
+  disciplina del verbale di rilievo).
+- Deduzione volumetrica: righe 1381-1396 (`DECISIONE 18`) — se la
+  concessione lo ammette, il volume rimesso in cava per il recupero
+  (`volumeRecuperoM3`, sul lotto) si detrae dalla base dell'onere di
+  escavazione, contato nell'anno in cui il recupero **finisce** (unica
+  data verificabile), con la scelta esplicitamente dichiarata "spenta di
+  default" per il costo asimmetrico dell'errore.
+- Il modulo scadenze porta già una voce dedicata `chiave: "fideiussione"`
+  (`terra-data.js:2163`, «Fideiussione — validità o rinnovo della
+  polizza») e un caso demo con rinnovo annuale
+  (`terra-data.js:237`) — il rinnovo della polizza nel suo complesso è
+  già nello scadenzario generico, separato dalla quota per lotto.
+
+UI (`index.html`): il badge di stato lotto (righe 2347-2367) colora
+`esaurito` e `in-recupero` come "warn"; il cartellone del divario
+(`cardDivario`/`rigaGaranzia`, righe 2369-2382) mostra "Garanzia ancora
+vincolata: € X su N lotti non collaudati · liberabile dopo il collaudo di
+…"; il form del lotto (righe 953-955) ha i campi `lot-garanzia` e
+`lot-vol-rec` con il tooltip esplicito «Terra non la calcola: la scrivi tu
+dalla polizza»; lo stato lotto pieno con etichette descrittive (riga 3551)
+include «In recupero — i lavori di ripristino sono in corso».
+
+**Verifica comandi:**
+`grep -c 'contestuale alla coltivazione' apps/terra/terra-data.js` → 1.
+`grep -n 'export function divarioRecupero\|export function
+garanziaVincolata\|export function attesaCollaudo\|export function
+relazioneLotto' apps/terra/terra-data.js` → 4 righe (3080, 3169, 3132,
+3208). `grep -c 'garanziaEuro' apps/terra/terra-data.js` → 8.
+
+### Il delta — un solo punto piccolo, stessa famiglia di uno già costruito
+
+**Confermato — manca il gemello di `attesaCollaudo` per la transizione
+precedente.** `attesaCollaudo` misura da quanto un lotto **recuperato**
+aspetta il collaudo. Non esiste l'equivalente per la transizione
+**precedente**, quella che la prescrizione «contestuale alla
+coltivazione» riguarda più da vicino: da quanto un lotto è **esaurito**
+(scavo finito, `esauritoIl` valorizzato) senza che il recupero sia
+**iniziato** (`recuperoIniziatoIl` ancora vuoto). Verificato:
+`grep -niE 'attesaRecupero|attesa.*esaurit|esaurit.*attesa'
+apps/terra/terra-data.js apps/terra/index.html` → **nessuna riga** (uscita
+vuota). `recuperoIniziatoIl` è scritto e letto in altri sei punti
+(dichiarazione del modello, dati demo, form, `relazioneLotto`, etichetta
+di stato) ma **mai confrontato con la data odierna**: `grep -n
+'recuperoIniziatoIl' apps/terra/terra-data.js apps/terra/index.html` → 12
+righe, nessuna con un calcolo di giorni.
+
+- **Schermata**: la scheda del piano lotti, dove oggi il badge «Esaurito»
+  (warn, arancione) e la riga «scavo finito il …» sono l'unica cosa che si
+  vede — un lotto esaurito da tre giorni e uno esaurito da tre anni senza
+  che il recupero sia mai iniziato **hanno lo stesso badge**.
+- **Che cosa non va**: nessun numero dice da quanto tempo lo scavo è
+  finito senza che il recupero sia partito — cioè manca proprio la misura
+  che rende visibile una violazione della "contestualità" che l'atto
+  stesso prescrive («recupero ambientale contestuale alla coltivazione,
+  lotto per lotto»). `divarioRecupero` dà il numero aggregato (m² e m³
+  aperti meno chiusi) ma non ha una dimensione temporale per lotto, e
+  `attesaCollaudo` copre solo la fase successiva.
+- **Come si vede**: apri un lotto demo con `stato: "aperto"` e
+  `esauritoIl` valorizzato manualmente a una data vecchia (nessuno dei sei
+  lotti demo attuali è "esaurito" senza recupero iniziato — verificato,
+  righe 79-119 del modulo dati) e osserva che nessuna scritta racconta
+  l'attesa, a differenza di un lotto "recuperato" che aspetta il collaudo.
+- **Quanto costa**: piccolo, stesso pattern già scritto e collaudato — una
+  funzione pura `attesaRecupero(lotto, oggi)` che rispecchia
+  `attesaCollaudo` (pertinente solo su stato `esaurito`, `daQuanto` già
+  scritto lì vicino, stessa dichiarazione esplicita di non giudicare un
+  ritardo perché i termini sono regionali e di seconda mano), più una
+  riga in `index.html` accanto al badge «Esaurito», sul modello di
+  `rigaGaranzia`/`attesaCollaudo` già cablati.
+- **Come si misura**: `node apps/deepwork-id/tests/run-kpi.mjs` con un
+  caso `attesaRecupero({stato:"esaurito", esauritoIl:"…"}, oggi)` che
+  pretenda `pertinente:true` e un conteggio di giorni corretto (stessa
+  forma delle prove già scritte per `attesaCollaudo`); nessun banco
+  browser necessario, è una funzione pura.
+
+**Tutto il resto della domanda del mandato è già coperto, e in profondità
+maggiore di quanto la domanda stessa presupponesse**: il ripristino per
+fasi non è "assente", è il modello a sei stati che governa l'intero piano
+lotti; la garanzia proporzionale all'area non ripristinata non è
+"assente", è `divarioRecupero` (l'area) più `garanziaVincolata` (la quota
+finanziaria dichiarata dall'utente per lotto, sommata secondo lo stesso
+stato); l'importo unitario della fideiussione **manca di proposito**, per
+una decisione già scritta nel codice e ora confermata dal mondo (è
+materia di listino regionale, di seconda mano). Non ci sono altre
+mancanze da proporre su questa domanda.
+
+**Riassunto** — 1 delta piccolo confermato (il gemello temporale di
+`attesaCollaudo` per la transizione esaurito→recupero iniziato), il resto
+della domanda del mandato **già costruito** (verificato leggendo il
+codice riga per riga, non sulla parola della ricerca) e 1 scelta di
+design **dichiarata e confermata giusta dal mondo** (nessun calcolo
+dell'importo unitario della garanzia).
+
+**Fonti** (WebSearch, di seconda mano, nessuna letta per intero):
+- [U.S. GAO — Coal Mine Reclamation: Federal and State Agencies Face
+  Challenges in Managing Billions in Financial Assurances](https://www.gao.gov/products/gao-18-305)
+- [eCFR — 30 CFR Part 800, Bond and Insurance Requirements for Surface
+  Coal Mining](https://www.ecfr.gov/current/title-30/chapter-VII/subchapter-J/part-800)
+- [Office of Surface Mining Reclamation and Enforcement — Reclamation
+  Bonds](https://www.osmre.gov/resources/reclamation-bonds)
+- [BLM — Bonding, Energy and Minerals](https://www.blm.gov/programs/energy-and-minerals/mining-and-minerals/bonding)
+- [Government of South Australia — Financial assurance, Energy &
+  Mining](https://www.energymining.sa.gov.au/industry/minerals-and-mining/mining/operational-information/financial-assurance)
+- [legislazionetecnica.it — Aggiornamento Linee Guida recupero ambientale
+  siti di cava e importi economici unitari per il calcolo delle
+  fideiussioni](https://legislazionetecnica.it/node/1519701)
+- [regioni.it — Nuova disciplina generale in materia di attività
+  estrattive](https://www.regioni.it/upload/DDLatt.estrattive.pdf)
+- [edizionieuropee.it — L.R. 5 luglio 2019 n. 22, § IV.2.6](https://www.edizionieuropee.it/LAW/HTML/213/pu4_02_006.html)
+- [fantigrossi.it — Il recupero ambientale delle cave: un vincolo spesso
+  disatteso](https://fantigrossi.it/il-recupero-ambientale-delle-cave-un-vincolo-spesso-disatteso/)
+
+---
+
+## 16/09/2026 — Ricerca: Sequenziamento multi-anno e confronto pianificato-vs-reale nelle cave
+
+**Domanda:** Come il software di pianificazione mineraria (piccolo-medio, italiano) struttura i piani pluriennali di estrazione sequenziale per banco/fronte, e come traccia i volumi pianificati contro i volumi reali estratti anno per anno?
+
+### Il mondo — Come funziona il sequenziamento nelle cave
+
+#### Struttura gerarchica della pianificazione
+
+Il ciclo di pianificazione mineraria si articola in tre orizzonti temporali integrati:
+- **Strategico (pluriennale, 5-10 anni):** Definisce il limite finale dello scavo (pit shell), la vita complessiva della cava, i vincoli economici e ambientali. Obiettivo: massimizzare il valore totale estratto rispetto ai costi.
+- **Tattico (medio termine, 6-24 mesi):** Traduce il piano strategico in sequenze di estrazione pratiche per ogni banco/settore, assegnando equipaggiamento, definendo accessi, controllando tassi di estrazione mensili/trimestrali.
+- **Operativo (corto termine, settimane-giorni):** Comandi giornalieri di lavoro (quale banco oggi, quanti scavatori, sequenza di perforazione).
+
+Fonte: [Dassault Systèmes GEOVIA MineSched — Bridging Strategic Plans and Operational Mine Schedules](https://blog.3ds.com/brands/geovia/bridging-the-gap-between-strategic-plans-and-operational-mine-schedules/)
+
+#### Piano sequenziale per banco
+
+Il concetto di "banco" (bench, in italiano anche "terrazzamento") è strutturale:
+- Un banco è uno strato orizzontale di altezza controllata (tipicamente 10-15 m in cave di aggregati).
+- La sequenza di estrazione definisce **l'ordine** in cui i banchi sono aperti (deve rispettare limiti di pendenza dei fianchi, accessi, stabilità).
+- Il piano dichiara per ogni banco: (1) qual è il volume previsto; (2) in quale anno/trimestre deve essere estratto; (3) quale è il vincolo (dipendenze da banchi precedenti).
+
+Il software di pianificazione risolve il problema di ottimizzazione: trovare la sequenza di estrazione che rispetta vincoli geometrici e di sicurezza, massimizzando il valore economico. La soluzione produce un **master schedule** dettagliato banco per banco, anno per anno.
+
+Fonte: [K-MINE — Multi-Interval Mine Planning: Long-term, Medium-term, Short-term Integration](https://k-mine.com/technical-articles/multi-interval-mine-planning-in-k-mine/)
+
+#### Confronto pianificato-vs-reale: metodologia
+
+Il confronto si fa su tre livelli di granularità:
+
+**1. Annuale (Reconciliation):** Fine anno si confrontano:
+   - Volumi **pianificati per quell'anno** (per banco, per settore, complessivi)
+   - Volumi **realmente estratti** (da rilievi, pesate, o registri equipaggiamento)
+   - Varianza = (Reale − Pianificato) / Pianificato × 100%
+
+La varianza annuale rivela se la cava è in ritardo di estrazione (varianza negativa → accumulo di giaciture previste non ancora aperte) o in anticipo (varianza positiva → rischio di esaurimento prematuro).
+
+**2. Trimestrale/Mensile (Operational Tracking):** Durante l'anno il direttore monitora se il ritmo di estrazione del mese/trimestre è coerente con il target di quell'anno. Il software genera **rate-of-extraction reports** per equipaggiamento, per zona, confrontando la produzione osservata contro quella prevista.
+
+**3. Per banco (Detail Level):** Quale banco sta slittando? Se il piano dice "Banco 5 aperto a marzo, chiuso a novembre", ma il rilievo mostra che a novembre è estratto il 60%, il sistema dichiara il rischio: "Banco 5 in ritardo di 40%".
+
+Fonte: [Umbrex — Mineral Inventory Reconciliation and Variance Analysis](https://umbrex.com/resources/industry-analyses/how-to-analyze-a-metals-mining-company/mineral-inventory-reconciliation-and-variance-analysis/)
+
+#### Report di conformità al piano
+
+Il report annuale che va all'ente (o alla direzione) contiene:
+- Tabella: per ogni banco/lotto, Volume Pianificato vs Volume Estratto vs Varianza %
+- Grafico trend: accumulo cumulativo pianificato vs reale negli ultimi 3-5 anni
+- Analisi delle cause: ritardi dovuti a (a) condizioni geologiche inaspettate, (b) equipaggiamento fermo, (c) modifiche alle priorità, (d) limiti ambientali/amministrativi
+- Proiezione: sulla base del ritmo attuale e degli anni rimanenti di concessione, quando si esaurirà il giacimento pianificato?
+
+Fonte: [RPM MinePlanner — Production Scheduling and Performance Tracking](https://rpmglobal.com/product/mineplanner/); [Maptek Evolution — Life-of-Mine, Medium-term, Short-term Scheduling](https://maptek.com/en/products/evolution/)
+
+### Delta: Che cosa manca a Terra
+
+#### Meccanica: Come dovrebbe funzionare (il mondo)
+
+1. **Piano sequenziale per banco/lotto:** Un "piano vigente" contiene una lista di lotti con:
+   - `ordine`: sequenza di estrazione prevista (1° aperto, 2° aperto dopo il 1°, etc.)
+   - `volumePianificatoAnno[anno]`: {anno: 2026, volumeM3: 50000, anno: 2027, volumeM3: 40000} — volumi target per ogni anno
+   - `quartoInizioMese`, `quartoFineMese`: finestra temporale quando il lotto deve essere aperto/chiuso
+
+2. **Confronto annuale per lotto:** Per ogni lotto si calcola:
+   - Volume pianificato per quell'anno (da `volumePianificatoAnno[2026]`)
+   - Volume realmente estratto (somma rilievi di scavo su fronti di quel lotto, anno 2026)
+   - Varianza % = (Reale − Pianificato) / Pianificato
+   - Stato: "in anticipo", "in pari", "in ritardo" (con soglia, es. ±10%)
+
+3. **Monitoraggio sequenza:** Se il piano dice "apri Lotto 2 solo dopo aver estratto il 90% di Lotto 1", il sistema avvisa se Lotto 2 viene aperto prematuramente.
+
+4. **Report annuale per banco:** Uno prospetto che elenca per ogni banco, ogni anno (storia):
+   - Stato: Previsto, Aperto, Esurito, Recupero, Recuperato
+   - Volume pianificato
+   - Volume estratto (misurato)
+   - Varianza %
+   - Note su ritardi
+
+#### Stato in Terra: Che cosa esiste
+
+**Funzioni di calcolo che esistono:**
+- `avanzamentoLotto(lotto, misuratoM3)` → confronta `lotto.volumeM3` (previsto) contro `misuratoM3` (misurato complessivo su tutta la vita) e restituisce `pct`. **Ma:** non è temporale (non sa di anni), è solo il progresso complessivo "abbiamo estratto il 45% del lotto" senza dire se in tempo.
+- `banchiDaSempre(rilievi, fronti, autorizzazione, oggi)` → aggrega rilievi per banco su tutta la serie storica (dal primo anno con dati al più recente), traccia quali anni sono misurati e quali "ciechi" (no rilievi). **Ma:** non confronta contro un piano sequenziale, solo raccoglie i dati storici osservati.
+- `proiezioneAnnua(rilievi, pianificatoAnnuoM3, oggi)` → confronta volume estratto fino ad oggi **nell'anno corrente** contro il piano annuale (singolo numero, diviso 12 per il mese medio). Restituisce `pctPiano`, cioè "siamo al 78% del piano annuo". **Ma:** non è per banco, è aggregato; non distingue fra lotti; se uno slitterà di 2 anni non lo vede.
+- `varianzaMensilePiano(rilievi, pianificatoAnnuoM3, oggi)` → scarto fra il mese corrente e la media mensile del piano annuo. **But:** nessun piano mensile (il piano ha solo un `pianificatoAnnuoM3`), la varianza è contro una divisione naïve (piano/12), nessun peso stagionale.
+
+**Campi nei dati che potrebbero supportare il piano ma non sono usati:**
+- `lotto.ordine` (riga terra-data.js:34, demo riga 82) — contiene la sequenza prevista (1, 2, 3…), ma **non è usato da nessuna funzione** di confronto o validazione. È una sola visualizzazione: riga 3255 lo mostra nel verbale ("Lotto 1 · 1° del progetto").
+- `piano.pianificatoAnnuoM3` — è un numero singolo, non una serie temporale. Non dice "2026: 125k, 2027: 120k", dice solo "per questo piano, 125k/anno".
+- `lotto.volumeM3` — è il volume previsto del lotto, complessivo. Non è "per anno" ma "totale lotto".
+
+**Quello che manca (i delta concreti):**
+
+| Tema | Che cosa manca | Effetto | Come si vede oggi in Terra | Come dovrebbe essere |
+|---|---|---|---|---|
+| **Piano temporale** | Volumi pianificati **per anno per lotto** | Senza questo, non si può dire "Lotto 2 dovrebbe essere finito entro fine 2026 con 50k m³; ne abbiamo estratti 30k, siamo indietro di 20k". | Il form piano ha un campo `pianificatoAnnuoM3` (numero singolo), il form lotto ha `volumeM3` (totale previsto). Niente collega i due per anno. | Creare un array `volumiAnnuali: [{anno: 2026, volumeM3: 50000}, {anno: 2027, volumeM3: 40000}]` sul lotto o sul piano, e una funzione `volumePianificatoLottoAnno(lotto, anno)`. |
+| **Validazione sequenza** | Nessun controllo che Lotto N+1 non sia aperto prima che Lotto N raggiunga una soglia di completamento (es. 80%). | Un lotto può essere estratto fuori ordine senza avviso. Se il piano dice "Nord prima di Sud" ma si scava Sud per primo per comodità, non viene segnalato. | Nel form lotto non c'è un badge che dice "questo lotto dipende dal lotto X al 80%"; premendo il bottone "apri" non ci chiede di verificare la sequenza. | Aggiungere `dipendeDa: {lottoId, percentuale: 80}` nel lotto e una validazione `puòEssereApertoOra(lotto, tuttiLotti)` che verifica. |
+| **Varianza per lotto per anno** | `varianzaMensilePiano` è aggregata su tutto l'anno e su tutti i lotti. Nessuna funzione dice "Lotto 2, anno 2026: pianificato 50k, estratto 45k, varianza −10%". | Il direttore non sa se il ritardo è su Lotto 1 (aperto a tempo) o Lotto 3 (tardi di tre mesi). | La pagina del titolo mostra `proiezioneAnnua` in grande (80% del piano). Non c'è una tabella "per lotto" con colonne Piano / Reale / Varianza. | Funzione `varianzaLottoAnno(lotto, rilievi, annoTargetM3, anno)` che restituisce `{pianificato, reale, varianzaPct, stato: "in pari" | "in ritardo" | "in anticipo"}`. Disegnarla in una tabella in page-tit. |
+| **Report per banco anni passati** | `banchiDaSempre` aggrega tutta la storia, ma nessun anno-per-anno dettagliato per ogni banco con stato progetto. | Non si vede "Banco A: 2024 esurito al 100%, 2025 recupero iniziato a settembre, non finito". Niente distingue fra "il banco è terminato" e "quest'anno il banco è terminato". | La pagina piano (page-tit) mostra KPI globali. Non c'è una vista tipo "Tavola della cava per banco" con righe = banco, colonne = anno, celle = stato + % completamento. | Estendere `banchiDaSempre` output per includere per ogni banco e per ogni anno (dal `dal` al `al`): `{anno, statoProgettuale, volumePianificato, volumeReale, varianzaPct, motivoSe}`. Una pagina tabellare. |
+| **Allerta deviazione sequenza** | Nessun avviso se il piano dice "apri Lotto 3 nel 2027" ma il lotto viene aperto nel 2025. | Un lotto viene aperto con 2 anni di anticipo e il direttore se ne accorge solo leggendo il verbale di rilievo, non dalle pagine di Terra. | Nel form lotto c'è `apertoIl` (data), ma nessuna regola di validazione su `apertoIl` vs piano previsto. Niente è rosso se è anticipato. | Aggiungere al lotto `aperturaPrevista: "2027-Q1"` (anno-trimestre) e una guardia in terra-data.js `lottoApertoFuoriProgramma(lotto, pianoProgramma)` → `{fuoriProgramma: true, anticipoDiGiorni: 543, motivo: "…"}`. Mostrare con badge rosso. |
+
+#### Grep per verificare i delta dichiarati
+
+```bash
+# 1. Verificare che lotto.ordine NON è usato in controlli di sequenza
+$ grep -n "ordine" apps/terra/terra-data.js
+34:   lotti/{id}:   { nome, ordine (la sequenza prevista dal progetto),
+82-117: (demo data, lotto.ordine = 1-6)
+3255: mostra in verbale ("Lotto 1 · 1° del progetto")
+# Risultato: ZERO usi per controllo sequenza. È solo display.
+
+# 2. Verificare che varianzaMensilePiano non è per-lotto
+$ grep -A 30 "export function varianzaMensilePiano" apps/terra/terra-data.js | head -40
+903: export function varianzaMensilePiano(rilievi, pianificatoAnnuoM3, oggi = new Date())
+904-916: calcola varianza su TUTTI i rilievi dell'anno/mese, nessun filtro per lotto.
+# Risultato: conferma — è aggregato.
+
+# 3. Verificare che volumePianificatoAnno [] non esiste nei lotti
+$ grep -n "volumiAnnuali\|volumePianificato\[" apps/terra/terra-data.js
+15-16: (comment dice "piano/{id}: pianificatoAnnuoM3")
+148: piano id "p1" ha "pianificatoAnnuoM3: 125000" (numero singolo)
+# Risultato: ZERO array temporali nei lotti o nel piano.
+
+# 4. Verificare che avanzamentoLotto è complessivo, non per-anno
+$ grep -A 15 "export function avanzamentoLotto" apps/terra/terra-data.js
+3434-3444: riceve (lotto, misuratoM3), dove misuratoM3 è la SOMMA su tutta la vita.
+# Risultato: conferma — nessun parametro anno.
+
+# 5. Verificare che banchiDaSempre non filtra per lotto
+$ grep -A 5 "export function banchiDaSempre" apps/terra/terra-data.js | head -10
+2021: export function banchiDaSempre(rilievi, fronti, autorizzazione, oggi = new Date())
+2034-2035: ciclo su anni, per ogni anno chiama riepilogoAnnuale e ripartizioneBanchi.
+# Cerca: "if (lotto" inside funzione → zero risultati. Non filtra per lotto.
+$ grep -n "lotto" apps/terra/terra-data.js | grep "banchiDaSempre" -A 20
+# Risultato: banchiDaSempre non menziona lotti. Sono due strutture indipendenti.
+
+# 6. Verificare che il piano ha solo un numero, non una serie
+$ grep -B 5 -A 5 '"pianificatoAnnuoM3"' apps/terra/terra-data.js | head -20
+15-16: (comment: "piano/{id}: … pianificatoAnnuoM3?")
+147: "pianificatoAnnuoM3: 125000" (numero)
+655-681: proiezioneAnnua riceve parametro "pianificatoAnnuoM3" (numero singolo)
+2510: ref = piano.find(p => p.pianificatoAnnuoM3 > 0) — solo per trovarne uno col piano, non per accedere a una serie.
+# Risultato: conferma — `pianificatoAnnuoM3` è un numero, non un array.
+```
+
+**Conclusione:** I sei delta sono confermati e verificati. La struttura di base per tracciare **lotti per banco per anno** non esiste in Terra, solo i dati grezzi (rilievi, fronti) e calcoli aggregati (totale cava, totale anno). Per una pianificazione sequenziale multi-anno al livello di dettaglio che il mondo riguarda (e che le cave italiane devono rispettare nelle autorizzazioni), **mancano il piano temporale e il confronto gerarchico (anno → lotto → banco)**.
+
+**✅ 16/09 — il primo delta (Piano temporale + confronto annuale per lotto) è stato implementato**, riverificato indipendentemente riga per riga prima di scrivere codice: commit `0c6f5820`. `lotto.volumiAnnuali` (campo opzionale, additivo) + `volumePianificatoLottoAnno`/`varianzaLottoAnno` in `terra-data.js`, wired nella riga del lotto in pagina Titolo, verificato anche nel browser (`terra-piano-lotto-anno.mjs`). Prima fetta: un solo lotto della dimostrazione dichiara il piano.
+
+**✅ 16/09 — il terzo delta (Monitoraggio sequenza) è stato implementato**, commit `e18dc938`: `lotto.dipendeDa: {lottoId, percentuale}` (campo opzionale, additivo) + `sequenzaLotto` in `terra-data.js`, non bloccante (Terra non ha un bottone "apri" distinto dal form generico), badge "fuori sequenza" nella riga, verificato anche nel browser (`terra-sequenza-lotto.mjs`). Restano aperti tre delta (allerta apertura fuori programma — parente stretto di `sequenzaLotto`, forse assorbibile nella stessa area — e report per banco×anno con stato progettuale) — vedi checkpoint `20260916-082030_terra-sequenza-lotto.md`.
+
+**✅ 16/09 — il quinto delta (Allerta deviazione sequenza / apertura fuori programma) è stato implementato**, commit `8cf82ff7`: `lotto.aperturaPrevista` (`YYYY-MM`, campo opzionale, additivo) + `aperturaFuoriProgramma(lotto)` in `terra-data.js`, confronto in giorni (non solo "prima/dopo" ma verso `anticipo|ritardo|in pari`) contro `lotto.apertoIl`. Solo frase nel `perche` della card, deliberatamente senza badge (a differenza di `sequenzaLotto`): lo scarto è storico, non un blocco da segnalare con forza. Demo: Lotto 4, `aperturaPrevista: "2023-11"` contro `apertoIl: "2024-05-02"` → 183 giorni di ritardo (verificato dalla funzione, non a mano: un conto a mano dava 184, sbagliato per il bisestile 2024). Verificato anche nel browser (`terra-apertura-programma.mjs`). Resta aperto un solo delta (report per banco×anno con stato progettuale storico) — vedi checkpoint `20260916-094443_terra-apertura-programma.md`.
+
+**✅ 16/09 — il sesto e ultimo delta (Report per banco anni passati) è stato implementato, IN PARTE E DI PROPOSITO**, commit `4b67df7c`: `banchiDaSempre` espone `serieAnni: [{anno, scavo, misurabile}]` per ogni banco — il valore anno per anno che il modulo calcolava già dentro il proprio ciclo di somma e buttava via, non un secondo conto. Mostrato nella sezione "Lo stesso banco, da sempre" solo con più di un anno in finestra. **Restano deliberatamente FUORI `statoProgettuale` e `volumePianificato` per banco** (le altre due colonne che la tabella del delta chiedeva): non esiste nel modello un'entità "banco" con un proprio ciclo di vita — è un'etichetta letta dai fronti — e introdurla è la decisione architetturale che il delta stesso segnalava di prendere a parte, non di scriverla di sfuggita in un'unità che doveva solo esporre un dato già calcolato. Verificato anche nel browser (`terra-banchi-serie-anni.mjs`). **Con questo si chiudono tutti e sei i delta del tredicesimo giro di ricerca continua su Terra** — vedi checkpoint `20260916-102046_terra-banchi-serie-anni.md`.
+
+### Fonti (Part A — Ricerca il mondo)
+
+- [Dassault Systèmes GEOVIA MineSched — Bridging the Gap Between Strategic Plans and Operational Mine Schedules](https://blog.3ds.com/brands/geovia/bridging-the-gap-between-strategic-plans-and-operational-mine-schedules/)
+- [K-MINE — Multi-Interval Mine Planning in K-MINE](https://k-mine.com/technical-articles/multi-interval-mine-planning-in-k-mine/)
+- [K-MINE — Open Pit Design Software](https://k-mine.com/mining-software/open-pit-design/)
+- [RPM MinePlanner — Production Scheduling and Performance Tracking](https://rpmglobal.com/product/mineplanner/)
+- [Maptek Evolution — Life-of-Mine Scheduling Suite](https://maptek.com/en/products/evolution/)
+- [Umbrex — Mineral Inventory Reconciliation and Variance Analysis](https://umbrex.com/resources/industry-analyses/how-to-analyze-a-metals-mining-company/mineral-inventory-reconciliation-and-variance-analysis/)
+- [ScienceDirect — Bench aggregation and mining cut clustering for open-pit planning optimization](https://www.sciencedirect.com/science/article/abs/pii/S0952197624004925)
+- [Italian Mining Regulation — MINLEX Country Report (2019)](https://rmis.jrc.ec.europa.eu/uploads/legislation/MINLEX_CountryReport_IT.pdf)
+- [Italian Regional Guidance — Linee Guida Recupero Ambientale Siti di Cava](https://legislazionetecnica.it/node/1519701)
+
+---
+
+## 16/09 — passata di profondità (binario 2, lettura diretta del sorgente, nessun agente di ricerca)
+
+⛔ **Trovato: il ponte `tolleranzaPct` era wired solo a metà — la stessa
+famiglia del bug di `rapportoGiornata` in Campo, nello stesso giorno.**
+
+Il commento sopra `csvRilievi` (11/09) dice: *«la settima colonna: la
+tolleranza dichiarata dal rilevatore, se c'è — senza, un rilievo esportato
+e reimportato tornava alla tolleranza tipica»*. Vero solo per lo
+scrittore/lettore CSV (`csvRilievi`/`parseRilieviCsv`, provati e verdi da
+sempre). Il punto che davvero scrive nel database — il gestore
+`$("ril-file").onchange` in `apps/terra/index.html`, che prende le righe
+già parsate da `parseRilieviCsv` (che HA `r.tolleranzaPct` quando valido)
+e chiama `db.aggiungi("rilievi", {...})` — non passava `tolleranzaPct` fra
+le chiavi. Confronto affiancato coi due punti che scrivono un rilievo vero:
+
+```
+$ grep -n 'db.aggiungi("rilievi"' apps/terra/index.html
+```
+la registrazione manuale (riga ~4680) aveva `tolleranzaPct: toll`;
+l'import da CSV (riga ~4852, prima della correzione) no.
+
+**Effetto:** un rilievo drone re-importato da un CSV esportato da Terra
+stessa perdeva la tolleranza dichiarata dal topografo (RMSE dalla
+relazione di rilievo) senza nessun errore — `classeAccuratezza` ricadeva
+sulla tolleranza tipica della classe (`fonte: "classe"` invece di
+`"rilevatore"`), cambiando silenziosamente la banda `± m³` mostrata nei
+KPI, in `bandaVolume`, nella riga "Volume misurato" del verbale di
+rilievo e nell'incertezza aggregata di `incertezzaScavo`.
+
+**Trovato col metodo del censimento a doppio punto di chiamata**
+(CLAUDE.md, lo stesso che ha trovato il bug di Campo lo stesso giorno):
+si cerca una funzione (qui, direttamente una scrittura `db.aggiungi`)
+chiamata da più punti della pagina con un oggetto letterale, e si
+confrontano gli insiemi di chiavi passate. Nessun test di `run-kpi.mjs`
+guardava questo punto: i test esistenti su `tolleranzaPct` provano solo
+`csvRilievi`/`parseRilieviCsv`/`classeAccuratezza` a livello di modulo,
+mai la pagina.
+
+**Corretto** (commit da verificare nel prossimo checkpoint): aggiunta
+`tolleranzaPct: r.tolleranzaPct ?? null` alla chiamata di import — normalizzato
+a `null` e non lasciato `undefined`, perché `db.aggiungi` scrive con
+`addDoc` di Firestore, che **lancia** su un campo `undefined` (misurato
+leggendo `terraData()` in `terra-data.js:2718`, non assunto). Un `null`
+esplicito è anche la stessa convenzione già usata dalla registrazione
+manuale (`rt.ok ? rt.valore : null`).
+
+**Test aggiunto**: `run-kpi.mjs`, "⛔ Terra · il ponte tolleranzaPct è
+wired ANCHE sull'import CSV" — verifica ENTRAMBI i punti di scrittura
+sulla pagina vera, con controprova (rimessa l'omissione, il test cade).
+
+⚠️ **Nota di metodo per chi rilegge questa riga**: la ricerca sulle 13
+tornate precedenti di Terra (sopra, tutte "il mondo poi il delta") non
+avrebbe mai trovato questo difetto — non è una funzionalità mancante
+rispetto ai competitor, è un bug di wiring interno visibile solo leggendo
+il sorgente riga per riga. Le due strade (ricerca sul mondo, lettura
+diretta del codice) trovano famiglie di problemi diverse e vanno tenute
+entrambe.
+
+---
+
+## 17/09/2026 — ottavo giro di ricerca mirata: il monitoraggio della falda e delle acque, distinto dal monitoraggio ambientale di Sentinella
+
+**Domanda:** che cosa chiede davvero l'autorizzazione a una cava sul
+controllo delle acque (sotterranee e superficiali) attorno allo scavo, e
+Terra — che già tiene la quota di fondo autorizzata e la confronta con
+quella raggiunta dai fronti — ha un modo per sapere se quel fondo sta
+ancora rispettando il vincolo per cui esiste davvero: il franco rispetto
+al livello della falda?
+
+*Angolo scelto perché nessuno dei sette giri precedenti (denuncia
+annuale, rilievo col drone, garanzia finanziaria, scavo vs
+progetto/variante, sequenziamento multi-anno, ripristino ambientale
+progressivo, conformità geometrica) lo tocca, e perché non è la stessa
+cosa di Sentinella: quell'app copre rumore, polveri e vibrazioni — mai
+la falda o le acque superficiali. Verificato prima di scrivere, non
+assunto:*
+
+```
+$ grep -ciE "falda|piezometr" apps/terra/terra-data.js apps/terra/index.html apps/sentinella/sentinella-data.js apps/sentinella/index.html
+apps/terra/terra-data.js:0
+apps/terra/index.html:0
+apps/sentinella/sentinella-data.js:0
+apps/sentinella/index.html:0
+$ grep -ciE "acque sotterranee|acque superficiali" apps/terra/terra-data.js apps/terra/index.html
+apps/terra/terra-data.js:0
+apps/terra/index.html:0
+```
+Zero su tutte e quattro le superfici, in tutt'e due gli ecosistemi.
+Controllo di collisione (il termine corto "acqua" dentro parole comuni,
+la prima delle cinque cause note del "non c'è" falso): `grep -niE
+"\bacqua\b" apps/terra/terra-data.js apps/terra/index.html` dà **due**
+righe, tutt'e due il nome del colore dell'app ("verde-acqua (178°)") —
+non pertinenti, quindi lo zero sopra non è un artefatto del righello.
+
+### Il mondo — come si controllano le acque attorno a una cava, in Italia [tutto di seconda mano, WebSearch]
+
+1. **Rete piezometrica a monte e a valle idrogeologico.** Il piano di
+   cava è accompagnato da una relazione idrogeologica che individua e
+   caratterizza i punti della rete di monitoraggio (piezometri, pozzi,
+   sorgenti, e i laghi di cava dove la falda affiora), aggiornata
+   progressivamente man mano che si acquisisce conoscenza del sito
+   [seconda mano: relazione idrogeologica del piano cave, Provincia di
+   Varese — cartografia.provincia.va.it; criteri ISPRA 157/2017 citati da
+   ARPA FVG — arpa.fvg.it].
+2. **Doppia periodicità della misura.** Il livello piezometrico (quanto è
+   alta la falda) si legge con cadenza **mensile** e — in almeno un caso
+   di seconda mano trovato (Lombardia) — si trasmette all'ente tramite
+   una piattaforma dedicata (INLinea); la qualità chimica dell'acqua si
+   campiona con cadenza più larga, **almeno 3 volte l'anno**, in
+   corrispondenza delle principali oscillazioni stagionali della falda
+   [seconda mano: risultati di ricerca aggregati, cittametropolitana.mi.it
+   e fonti collegate].
+3. **Il vincolo che conta per lo scavo: il franco sopra il livello
+   massimo storico della falda, non un numero fisso deciso una volta.**
+   Il fondo dello scavo deve restare a una distanza minima dal **livello
+   più alto della falda registrato negli ultimi anni** (non dal livello
+   del giorno del progetto): in Veneto la distanza minima citata è **2
+   metri**, in Lombardia **1 metro**, fissata dai Piani Provinciali Cave
+   [seconda mano: risultati di ricerca aggregati sul controllo
+   dell'acquifero nelle attività estrattive, cittametropolitana.mi.it].
+   Cioè il franco è un rapporto fra **due misure che si aggiornano nel
+   tempo** — il fondo raggiunto e il massimo storico della falda — non
+   fra il fondo e un numero scritto una volta in autorizzazione.
+4. **Sanzioni per chi non trasmette.** La mancata comunicazione (o la
+   mancata realizzazione) del monitoraggio è una non conformità
+   dell'autorizzazione, con sanzioni amministrative indicate **da 1.000 a
+   4.000 €**, oltre alla possibile sospensione dell'attività estrattiva
+   [seconda mano: risultati di ricerca aggregati sul controllo
+   dell'acquifero, stessa fonte del punto 2].
+5. **Non trovato in questo giro** (onestamente dichiarato, non dedotto):
+   un numero unico e affidabile per la distanza minima nelle altre
+   Regioni (una ricerca dedicata su "quota di sicurezza falda" ha dato
+   solo risultati generici di sicurezza sul lavoro negli scavi edili, non
+   pertinenti a questo tema — scartati, non riportati come se fossero la
+   risposta).
+
+### Che cosa fa Terra oggi [verificato riga per riga in `apps/terra/terra-data.js` e `apps/terra/index.html`]
+
+- Terra **ha già**, dal giro sullo scavo-vs-progetto, `quotaFondoM`
+  (sull'autorizzazione e sul lotto: "quota di fondo scavo del progetto,
+  m s.l.m."), e la funzione `fondoAutorizzato(lotto, autorizzazione)` che
+  decide quale dei due vince, con `origine` dichiarata. `conformitaQuota`
+  confronta la quota di un fronte con quel fondo e `statoConformitaQuota`
+  risponde una delle quattro: `oltre` / `al-limite` / `dentro` /
+  `non-misurabile`. Disegnato in **page-tit, sezione "Conformità al
+  progetto"** (`apps/terra/index.html:895`), con la mappa `CQ` a quattro
+  colori (danger/warn/ok/tag) — verificato: `grep -n
+  "Conformità al progetto" apps/terra/index.html` → riga 895.
+- **Ma quel fondo (`quotaFondoM`) è un numero di PROGETTO**, scritto
+  una volta nell'atto autorizzativo. Il commento del modulo lo dice da
+  solo: *"la quota la scrive l'utente copiandola dal SUO atto. Terra
+  mette in fila i numeri, non decide che cosa è lecito"* (riga 3710).
+  Non è, e non vuole essere, il livello reale e attuale della falda: è
+  il limite che il progetto ha fissato **assumendo** che la falda resti
+  dove era quando il progetto è stato disegnato.
+- `TIPI_SCADENZA_TERRA` (riga 2196) ha **sette** chiavi:
+  `autorizzazione`, `fideiussione`, `screening-via`, `collaudo`,
+  `rilievo`, `denuncia`, `altro` — verificato: `grep -n "chiave:"
+  apps/terra/terra-data.js` righe 2197-2209, nessuna delle sette
+  contiene "falda", "piezometr" o "acqu". Ognuna delle prime sei ha una
+  `nota` che spiega perché quell'adempimento conta (es. la fideiussione:
+  *"va tenuta in vita fino allo svincolo"*); la campagna di monitoraggio
+  delle acque, se qualcuno la registra oggi, deve usare `altro`, che ha
+  `nota: ""` — nessuna guida.
+- Nessun campo, in nessun modulo dati e in nessun form della pagina,
+  registra una lettura di livello di falda o l'esito di un campionamento
+  chimico: non esiste l'entità (verificato dai grep in cima a questa
+  sezione, ripetuti anche su `index.html`).
+
+### Il delta
+
+Il meccanismo che il mondo chiede — *confrontare il fondo raggiunto con
+il massimo storico della falda, misurato periodicamente* — in Terra non
+è assente per distrazione: è assente perché **manca uno dei due termini
+del confronto**. Il primo termine (`quotaFondoM`, il fondo di progetto o
+quello raggiunto dal fronte) c'è già, verificato e disegnato. Il secondo
+termine — il livello di falda misurato, e il suo massimo storico — non
+esiste in nessuna forma. Quindi `conformitaQuota` oggi risponde una
+domanda diversa da quella del mondo: non "il fondo rispetta ancora il
+franco sopra la falda di OGGI?", ma "il fondo rispetta il numero scritto
+in progetto anni fa?" — che può restare "dentro" anche in un anno in cui
+la falda è salita, perché nessun dato di falda entra nel conto.
+
+Non gonfiato: **questo non è un difetto di `conformitaQuota`**, che fa
+esattamente quello che il suo commento promette (confrontare contro il
+progetto, senza inventare soglie). È un pezzo mancante *accanto* a una
+funzione che già esiste e regge bene il pezzo che ha.
+
+### Proposte verificate
+
+**1. Registrare le letture piezometriche e avvisare quando il franco sopra la falda si restringe**
+- **schermata:** page-tit, sezione "Conformità al progetto" (dove oggi
+  vive `CQ`/`conformitaQuota`) — nuova riga o nuova card accanto a quella
+  esistente, non sostitutiva.
+- **che cosa non va:** la card "dentro" di oggi dice solo che il fondo
+  rispetta il progetto; non può dire se il progetto stesso è ancora
+  valido, perché non sa quanto è alta la falda ora né quanto è salita in
+  passato. Un anno di falda eccezionalmente alta passa "dentro" senza
+  nessun segnale.
+- **come si vede:** nessun campo "livello falda" o "piezometro" in
+  nessun form (`grep -ciE "livelloFalda|piezometroId" apps/terra/terra-data.js
+  apps/terra/index.html` → 0 e 0, rilanciato ora); niente da leggere,
+  niente da confrontare.
+- **quanto costa:** medio. Nuova entità opzionale e additiva
+  `letturaFalda: {piezometroId, data, livelloM, fonte}` in
+  `terra-data.js` (stessa forma delle altre letture di Terra: `data`,
+  `fonte` dichiarata, nessuna soglia di legge cablata); una funzione
+  pura `francoFalda(fondoM, letturePiezometro)` che trova il massimo
+  storico e restituisce `{margineM, stato, misurabile}` sullo stesso
+  vocabolario a quattro di `statoConformitaQuota` (`oltre` diventa "la
+  falda ha superato il fondo", non un giudizio di legge — Terra non
+  decide il franco minimo, lo dichiara chi ha il numero della propria
+  Regione, esattamente come fa oggi per `quotaFondoM`).
+- **come si misura:** due piezometri di dimostrazione con letture su tre
+  anni, uno dei quali sale sopra il fondo autorizzato in un solo anno →
+  la card passa da "dentro" a "oltre"/"al-limite" solo quell'anno, e
+  torna "dentro" l'anno dopo (prova che il confronto è dinamico, non un
+  interruttore); senza nessuna lettura per un piezometro → "non
+  misurabile" (mai "a posto": è la regola del fondatore, "l'assenza di
+  un dato non è un dato favorevole", già applicata da `fondoAutorizzato`
+  sullo stesso fronte del codice).
+
+**2. Un tipo di scadenza dedicato per le campagne di monitoraggio delle acque**
+- **schermata:** page-den (le scadenze/adempimenti, dove vive
+  `TIPI_SCADENZA_TERRA` e il suo preset).
+- **che cosa non va:** chi deve tracciare "livello falda da trasmettere
+  ogni mese" o "campionamento chimico 3 volte l'anno" oggi apre
+  `TIPI_SCADENZA_TERRA` e trova solo `altro`, senza nessuna delle note
+  che guidano le altre sei voci.
+- **come si vede:** `grep -n "chiave:" apps/terra/terra-data.js` (righe
+  2197-2209) → sette voci, nessuna con "falda"/"piezometr"/"acqu";
+  `presetScadenzaTerra("acque")` oggi restituisce `null` (provato:
+  `node -e "import('./apps/terra/terra-data.js').then(m=>console.log(m.presetScadenzaTerra('acque')))"`
+  → `null`, perché la chiave non esiste nell'array).
+- **quanto costa:** basso. Una voce nell'array esistente:
+  `{ chiave: "acque", etichetta: "Monitoraggio acque — piezometri e campionamenti", nota: "Livello di falda e qualità dell'acqua: la periodicità e la soglia le dice l'atto, non un valore fisso — variano da atto ad atto." }`.
+  Additiva, non tocca nessuna delle sei esistenti.
+- **come si misura:** dopo la modifica, `presetScadenzaTerra("acque")`
+  non è più `null` e restituisce `{ ..., daVerificare: true }` come le
+  altre sei; una scadenza di dimostrazione con quella chiave compare
+  nell'elenco con l'etichetta corretta, non con il nome grezzo della
+  chiave (che è il segno, nella regola 18 di `run-stile.mjs`, di una
+  mappa più corta della sua funzione).
+
+### Che cosa NON entra (dichiarato, non taciuto)
+
+I numeri di legge di questo giro — "2 metri" (Veneto), "1 metro"
+(Lombardia), "da 1.000 a 4.000 €" di sanzione, "almeno 3 volte l'anno" —
+sono tutti **di seconda mano** (risultati di ricerca aggregati, non testo
+primario letto per intero: `WebFetch` risponde `EGRESS_BLOCKED` in questo
+ambiente) e **non vanno scritti in nessuna schermata**, seguendo la
+stessa decisione già presa per la dichiarazione annuale e il canone
+(sezione del 02/09 più sopra, decisione 21 di `docs/DECISIONI_WEEKEND.md`,
+allargata). Quello che entra nel prodotto è solo la **struttura del
+confronto** (fondo vs. massimo storico di falda, misurato e dichiarato),
+non la soglia: la soglia la scrive chi ha in mano il proprio atto,
+Regione per Regione — esattamente come Terra già fa oggi per
+`quotaFondoM` stesso.
+
+### Fonti (tutte [seconda mano], nessuna letta come testo primario)
+
+- [Città Metropolitana di Milano — Controllo dell'acquifero nelle attività estrattive](https://www.cittametropolitana.mi.it/ambiente/guida_autorizzazioni_ambientali/imprese_enti/attivita_estrattiva/gestione_att_estrattiva/controllo_acquifero.html)
+- [Città Metropolitana di Milano — Adempimenti attività estrattiva](https://www.cittametropolitana.mi.it/ambiente/guida_autorizzazioni_ambientali/imprese_enti/attivita_estrattiva/Adempimenti.html)
+- [ARPA Piemonte — Monitoraggio acque sotterranee](https://www.arpa.piemonte.it/scheda-informativa/monitoraggio-acque-sotterranee)
+- [ARPA Piemonte — Rete piezometrica](https://www.arpa.piemonte.it/scheda-informativa/rete-piezometrica)
+- [ARPA FVG — Criteri per la definizione del monitoraggio dei corpi idrici sotterranei](https://www.arpa.fvg.it/temi/temi/acqua/ultimi-pubblicati/criteri-per-la-definizione-del-monitoraggio-dei-corpi-idrici-sotterranei/)
+- [Relazione Idrogeologica del Piano Cave — Provincia di Varese](https://cartografia.provincia.va.it//downloads/Pianocave/pianocave_adottato/relazioni/Relazione_Idrogeologica.pdf)
+- [montorioveronese.it — Attività di cava, disposizioni regionali per il monitoraggio idrochimico-idrodinamico delle acque di falda](https://www.montorioveronese.it/2022/03/25/attivita-di-cava-la-regione-detta-disposizioni-per-monitoraggio-idrochimico-idrodinamico-delle-acque-di-falda/)
+
+### Domande aperte per un giro futuro (non risposte qui)
+
+1. Il "lago di cava" (falda che affiora nello scavo, citato dal mondo)
+   è un caso che Terra incontra? Nessun fronte della dimostrazione lo
+   dichiara: da verificare parlando con chi lavora in cava, non da
+   dedurre.
+2. La piattaforma di trasmissione citata per la Lombardia (INLinea) è
+   un caso isolato o esiste in altre Regioni con altro nome? Non
+   verificato in questo giro: se il pattern si confermasse in tre
+   Regioni, cambierebbe il costo di un'eventuale esportazione dedicata.
+
+### ✅ CHIUSURA PARZIALE (17/09, stesso giorno) — riverificato, poi implementato
+
+Riverificato con grep indipendente prima di decidere (`quotaFondoM`,
+`fondoAutorizzato`, `conformitaQuota` in `apps/terra/terra-data.js`,
+`presetScadenzaTerra("acque")` → `null`): tutto confermato come scritto
+sopra. **Proposta 2 implementata** (basso costo, additiva): la voce
+`{ chiave: "acque", ... }` è entrata in `TIPI_SCADENZA_TERRA`
+(`apps/terra/terra-data.js`), con test in `run-kpi.mjs` ("dal delta
+della ricerca continua su Terra: il monitoraggio acque ha una voce
+sua"). `presetScadenzaTerra("acque")` non è più `null`.
+**Proposta 1** (`letturaFalda` + `francoFalda`, costo "medio") **resta
+aperta**: merita un'unità propria con la sua dimostrazione a due
+piezometri su tre anni, non un'aggiunta di corsa in coda a questa.
+
+---
+
+## 18/09/2026 — nono giro di ricerca mirata: la conformità geometrica ha un asse ORIZZONTALE che manca — la distanza dello scavo dal confine del titolo
+
+**Dichiarazione preliminare (vincolo 1 — che cosa esiste già, letto prima di proporre).**
+Riletti i giri 6°, 7° e 8° (righe 1204-2007 di questo stesso file) e il
+checkpoint più recente pertinente a Terra
+(`vault/checkpoints/20260918-004735_terra-crash-e-copie-deboli.md`): la
+famiglia `conformitaQuota`/`conformitaGeometria`/`conformitaProgetto`
+(`apps/terra/terra-data.js:3798,3838,3971`, verificato di nuovo qui sotto)
+copre oggi tre assi — **quota di fondo** (profondità), **altezza banco +
+pendenza scarpata** (la forma della sezione verticale), **sequenza dei
+lotti** — più il controllo `frontiAmbigui` (un fronte condiviso per errore
+fra due lotti). Il settimo giro ha aggiunto il ripristino per fasi e la
+garanzia; l'ottavo ha aperto (e lasciato in parte aperto, `letturaFalda`)
+l'asse della falda. **Nessuno dei nove giri finora ha toccato l'asse
+ORIZZONTALE**: quanto lo scavo sta lontano dal **confine** del titolo/della
+proprietà, misurato in pianta, non in quota. È un asse diverso da tutti
+quelli già coperti — la quota dice "quanto sei andato in profondità", la
+geometria del banco dice "che forma ha la sezione", la distanza dal
+confine dice "quanto sei arretrato rispetto al bordo del poligono
+autorizzato" — e nessuna delle funzioni esistenti risponde a questa terza
+domanda, verificato con `grep` qui sotto prima di scrivere qualunque "non
+c'è".
+
+### Il mondo — come si controlla, fuori [tutto di seconda mano, `WebSearch`; `WebFetch` risponde `EGRESS_BLOCKED`, nessuna fonte primaria letta per intero]
+
+1. **Il vincolo legale nazionale (non solo regionale, a differenza della
+   soglia di variante sostanziale del terzo giro).** Il Regolamento di
+   polizia mineraria (R.D. 15 luglio 1958 n. 128, spesso citato nei
+   riassunti come "n. 7" per il decreto di modifica) fissa una distanza
+   minima fra il **ciglio dello scavo** e il **perimetro della proprietà
+   disponibile**: **10 metri** in generale, **5 metri** per le cave di
+   pietre ornamentali; se l'altezza complessiva dello scavo è inferiore a
+   10 m, la distanza minima deve essere pari alla profondità dello scavo
+   stesso, comunque non inferiore a **4 metri**. I piani regionali, i
+   vincoli ambientali/paesaggistici e i regolamenti locali possono
+   **aumentare** questa distanza, mai ridurla [seconda mano: risultati di
+   ricerca aggregati che citano il Regolamento di polizia mineraria;
+   fonte primaria non letta].
+2. **Il software di settore lo tratta come un livello geospaziale
+   separato, non come un numero nel foglio dei KPI.** Propeller (Aggregates/
+   Quarry Surveying) ha una funzione dichiarata di "disturbance boundary
+   tracking": sovrappone il perimetro autorizzato (permit boundary) all'
+   ultimo rilievo per verificare che l'estrazione resti dentro i limiti
+   approvati, con un registro visivo verificabile nel tempo — cioè
+   confronta un **poligono** (il confine) con un **poligono** (l'estensione
+   reale dello scavo derivata dal DEM), non un numero scalare con un
+   altro numero scalare [seconda mano: propelleraero.com]. Nel settore
+   minerario in generale (non cave italiane) esiste anche il pattern
+   opposto — droni per la sorveglianza perimetrale che segnalano
+   intrusioni non autorizzate DA FUORI verso l'area di cantiere — che è
+   il problema speculare (chi entra) e non quello che riguarda Terra (chi
+   esce dal proprio confine scavando) [seconda mano: risultati aggregati
+   su sorveglianza perimetrale con droni].
+3. **Non trovato in questo giro**: un secondo numero regionale che
+   confermi o smentisca il 10 m nazionale per una singola Regione
+   specifica (il tempo di ricerca è stato speso a distinguere "confine di
+   proprietà" da "confine di cava/lotto", che nei riassunti si confondono
+   spesso) — dichiarato come limite della ricerca, non colmato per non
+   inventare un secondo numero.
+
+### La nostra app — che cosa fa Terra oggi [verificato riga per riga]
+
+```
+$ grep -niE "confine|perimetro|poligono|boundary" apps/terra/terra-data.js apps/terra/index.html
+(nessuna riga)
+$ grep -niE "\blat\b|\blon\b|\bgps\b|coordinat" apps/terra/terra-data.js apps/terra/index.html
+apps/terra/terra-data.js:2933: (un commento su un offset di quota, non di posizione — non pertinente)
+$ grep -n "fronti/{id}:" -A5 apps/terra/terra-data.js
+6:  fronti/{id}:  { nome, banco, quota, dettaglio,
+7-                  avanzamento (0-100), stato: attivo|sospeso,
+8-                  altezzaBancoM?, pendenzaGradi? (la geometria del banco
+9-                  misurata dal rilievo, 11/09: si confronta con il massimo
+10-                 che il progetto dichiara sul lotto o sull'atto) }
+$ grep -n "export function conformita" apps/terra/terra-data.js
+3798:export function conformitaQuota(fronte, lotto, autorizzazione) {
+3838:export function conformitaProgetto(fronti, lotti, rilievi, autorizzazione) {
+3971:export function conformitaGeometria(fronte, lotto, autorizzazione) {
+```
+
+Un fronte non ha **nessun** dato di posizione: né coordinate, né una
+distanza dichiarata dal confine, né un riferimento a un poligono. La
+famiglia `conformita*` — che già decide il PEGGIORE fra quota e geometria
+per colorare la riga (`peggioreConf`, citato dal sesto giro,
+`index.html:2298`) — non ha un terzo ingrediente da includere in quel
+confronto, perché quell'ingrediente non esiste in nessun punto del
+modello dati. `superficieMq` (sui lotti e sull'atto, `terra-data.js:82-180`)
+è uno **scalare** — l'area totale — non una geometria: non dice quanto
+lontano il bordo scavato sta dal bordo autorizzato, allo stesso modo in
+cui, prima del sesto giro, `quotaFondoM` non diceva quanto un fronte fosse
+sotto/sopra il fondo di progetto finché qualcuno non ha scritto il
+confronto. `areaCoperta` (riepilogo rilievo, `terra-data.js:2927`) è
+l'area **coperta dal rilievo stesso** (quanto terreno il drone ha
+fotografato), un concetto diverso e già esistente per un altro scopo
+(dichiarare quanto del sito è stato visto, non dove sta il bordo dello
+scavo).
+
+**Questo non è un difetto delle funzioni `conformita*` esistenti** — fanno
+esattamente quello che promettono sugli assi che coprono, ed è la stessa
+distinzione già scritta per la falda nell'ottavo giro: manca uno dei due
+termini del confronto (qui, la distanza misurata dal confine), non la
+funzione che lo userebbe.
+
+### Il delta
+
+| Schermata | Che cosa non va | Come si vede | Quanto costa | Come si misura |
+|---|---|---|---|---|
+| **Fronti / Conformità al progetto** (`index.html:895`, dove oggi vive la card `CQ`/`conformitaQuota` a fianco di `conformitaGeometria`) | Nessun asse orizzontale: un fronte può avanzare fino a ridosso del confine di proprietà senza che Terra lo sappia, perché il fronte non porta nessuna distanza dal confine e nessuna coordinata | `grep -niE "confine\|perimetro\|poligono\|boundary" apps/terra/terra-data.js apps/terra/index.html` → nessuna riga (comando rilanciato sopra, uscita vuota su entrambi i file); il fronte ha `quota, altezzaBancoM, pendenzaGradi` ma nessun campo di posizione | Medio — non serve un poligono GIS completo (fuori scope, come le mappe di calore del sesto giro): basta un campo scalare additivo `distanzaConfineM` sul fronte (misurata dal rilevatore/dal topografo, come già si fa per `altezzaBancoM`), un campo `distanzaMinimaM` sul lotto o sull'atto (dichiarato dall'utente dal proprio regolamento — **non** un 10 m cablato, per la stessa ragione per cui `difformitaSostanzialePct` del terzo giro resta vuoto di default: il numero di legge è di seconda mano e varia se il piano regionale lo alza), e una funzione pura `conformitaConfine(fronte, lotto, autorizzazione)` sul modello esatto di `conformitaQuota` (quattro stati: `oltre\|al-limite\|dentro\|non-misurabile`, `misurabile:false` quando manca la distanza dichiarata — mai "dentro" di default, è la stessa regola del fondatore "l'assenza di un dato non è un dato favorevole" già applicata dagli altri due assi) | `node apps/deepwork-id/tests/run-kpi.mjs` con un caso `conformitaConfine({distanzaConfineM: 3}, {distanzaMinimaM: 10}, {})` → atteso `{stato:"oltre", margine:-7, misurabile:true}`, un caso senza `distanzaConfineM` dichiarato → atteso `{misurabile:false}` (mai un verdetto tranquillo su un dato mancante); wired in `conformitaProgetto` accanto a `geometria` (stesso `peggioreConf` che già sceglie il colore peggiore fra quota e geometria, esteso a tre) e un banco browser che apra un fronte demo con `distanzaConfineM` sotto soglia e verifichi che compaia un terzo avviso distinto da "fuori quota"/"fuori geometria" |
+| **Scheda Titolo/atto** (`page-tit`, dove vive il form dell'autorizzazione) | Il regolamento nazionale (di seconda mano, non verificato come testo primario) lega la distanza minima all'**altezza dello scavo** quando questa è sotto i 10 m (`distanza = altezza, mai < 4 m`), quindi la soglia stessa può dipendere da un dato che Terra già misura (`altezzaBancoM`) — ma oggi non c'è nessun posto per dichiarare NÉ il tipo di soglia (fissa vs. legata all'altezza) NÉ il suo valore | `grep -ciE "distanzaMinima\|distanzaConfine" apps/terra/terra-data.js apps/terra/index.html` → 0 e 0 | Piccolo, una volta fatto il campo sopra: un secondo campo enum opzionale `regolaDistanzaConfine: "fissa"\|"legata-altezza"` sull'atto, che decide se `distanzaMinimaM` è un numero fisso o si ricalcola da `max(altezzaBancoM, 4)` per quel fronte — dichiarato dall'utente, mai dedotto da un numero di legge scritto a schermo | Un test che confronti i due modi: con `regolaDistanzaConfine:"legata-altezza"` e `altezzaBancoM:6`, la soglia effettiva usata da `conformitaConfine` deve essere `6`, non un valore fisso ignorato |
+
+### Che cosa NON entra (dichiarato, non taciuto)
+
+I numeri "10 m", "5 m per le pietre ornamentali", "4 m minimo" sono **di
+seconda mano** (risultati di ricerca aggregati su un regolamento del 1958,
+nessun testo primario letto — `WebFetch` bloccato in questo ambiente) e
+**non vanno scritti in nessuna schermata come valore precompilato o
+suggerito con l'aria di essere autorevole**: stessa decisione già presa
+per la denuncia annuale, il canone e la falda (sezioni precedenti di
+questo file). Quello che entrerebbe nel prodotto è solo il **meccanismo
+del confronto** (distanza misurata vs. soglia dichiarata dall'utente),
+non la soglia stessa.
+
+### Onestà sulla distanza dai leader di settore
+
+Propeller e i concorrenti citati nei giri precedenti (Datamine, K-MINE,
+Strayos) risolvono questo confronto **geometricamente**, su un poligono
+3D derivato dal DEM confrontato con un poligono di progetto importato da
+CAD/GIS, con mappe di calore automatiche — hanno dati reali, team di
+geomatica e hardware LiDAR/fotogrammetrico dietro. La proposta qui sopra
+è deliberatamente più piccola e **scalare** (una distanza dichiarata dal
+rilevatore per ogni fronte, non un poligono), sullo stesso principio già
+usato con successo per `quotaFondoM`/`conformitaQuota`: non è parità con
+quei prodotti, è un passo nella stessa direzione con lo stesso costo
+contenuto delle altre estensioni additive di questo file. Se in futuro
+Terra acquisisse coordinate reali dei fronti (proposta già scritta e mai
+implementata nel primissimo giro, 01/08 — vedi sopra "Unità decimale di
+coordinate GPS nei fronti"), il confronto scalare qui proposto diventerebbe
+il caso degenere di un confronto poligonale vero, non lavoro da buttare.
+
+### Fonti (tutte [seconda mano], nessuna letta come testo primario)
+
+- Regolamento di polizia mineraria — distanza minima scavo/confine di
+  proprietà (10 m generale, 5 m pietre ornamentali, minimo 4 m se legata
+  all'altezza): risultati di ricerca aggregati, fonte primaria del R.D.
+  non letta in questo ambiente ([WebSearch]: query "fascia di rispetto
+  cava confine proprietà distanza minima scavo normativa regionale").
+- [Propeller — Quarry Surveying Software for Drone Fleets](https://www.propelleraero.com/aggregatess/) — "disturbance boundary tracking" (permit boundary overlay).
+- [Propeller — Mine Surveying Software for Drone Fleets](https://www.propelleraero.com/industry/mining/)
+- Risultati aggregati su sorveglianza perimetrale con droni nel settore minerario/estrattivo ([WebSearch]: query "drone survey quarry mine boundary encroachment compliance permit perimeter monitoring software") — pattern speculare (intrusione dall'esterno), non pertinente al delta proposto ma dichiarato per completezza.
+
+### Riassunto
+
+**Un delta confermato con grep, mai proposto nei nove giri precedenti**:
+manca l'asse orizzontale (distanza dallo scavo al confine del titolo)
+nella famiglia `conformita*`, che oggi copre solo quota, geometria del
+banco e sequenza. Proposta a costo Medio (campo scalare + funzione pura
+sul modello già collaudato di `conformitaQuota`), Piccola l'estensione per
+la regola "distanza legata all'altezza" del regolamento nazionale.
+Nessun numero di legge entra a schermo: solo il meccanismo del confronto,
+con la soglia dichiarata dall'utente — stessa disciplina di ogni altro
+giro di questo file.
+
+---
+
+## 19/09/2026 — decimo giro di ricerca mirata: come i software leader VALIDANO l'incertezza (GCP contro checkpoint indipendente), non solo come la dichiarano
+
+**Dichiarazione preliminare (vincolo 1 — che cosa esiste già, letto prima di proporre).**
+Letti per intero `docs/RICERCA_CONTINUA_TERRA.md` (tutte le sezioni sopra,
+incluso `vault/RICERCA_ACCURATEZZA_RILIEVI.md` del 21/07 che questo giro
+approfondisce) e i checkpoint più recenti pertinenti a Terra
+(`20260918-*`, `20260919-000512_settimo-giro-ko-stantio-terra-sequenza.md`,
+`20260919-011237_ottavo-giro-qa-deepworkid-terra-ricerca-sentinella.md`,
+oltre a `20260911-122205_terra-tolleranza-rilevatore.md` e
+`20260916-195600_terra-tolleranzapct-wiring-fix.md`). Terra **ha già**,
+verificato di nuovo con `grep` più sotto:
+- `classeAccuratezza(rilievo)` (`terra-data.js:768`): da `metodo` (testo
+  libero: "RTK", "RTK+GCP", "senza GCP"…) e `gsd`, decide `survey-grade`
+  (±2% tipico) o `indicativo` (±8% tipico), con la negazione riconosciuta
+  per segmento (la correzione del 14/08 su "senza GCP" letto come "con GCP");
+- `tolleranzaPct` dichiarato dal rilevatore (aggiunto l'11/09, checkpoint
+  `20260911-122205`): un numero che, se scritto sul rilievo, **batte** la
+  tolleranza tipica della classe, con `fonte: "rilevatore"` tracciata e
+  mostrata accanto al valore tipico (mai sostituita in silenzio);
+- `bandaVolume(volumeM3, tolleranzaPct)` (`terra-data.js:814`): trasforma
+  la % in un `± m³` onesto, con la guardia "assente ≠ misurato zero";
+- `incertezzaScavo` (citata al 02/09): somma le bande dei rilievi
+  dichiarando la copertura (quanti rilievi hanno una tolleranza nota);
+- il verbale (`verbaleRilievo`, `terra-data.js:3416`) stampa "Metodo di
+  rilievo" (riga 3462, testo grezzo) e "Classe di accuratezza" (righe
+  3466-3470, con la fonte tolleranza dichiarata);
+- il commento del codice **nomina già** il concetto che manca e lo
+  dichiara esplicitamente come da fare altrove: "le %tolleranza sono
+  TIPICHE (**da confermare coi checkpoint** [del rilevatore])"
+  (`terra-data.js:725`, ripetuto nel tooltip del badge,
+  `index.html:1366`: "Accuratezza tipica del metodo — da confermare coi
+  checkpoint del rilevatore").
+
+Questo NON è quindi un "non c'è" sul concetto di checkpoint — Terra lo cita
+da mesi come promemoria — ma sulla sua **implementazione**: non esiste
+nessun posto dove quella conferma venga effettivamente registrata. È
+esattamente la distinzione che questo file chiede di fare prima di
+proporre: il nome del mondo (`checkpoint`) compare già nel commento, quindi
+un `grep` superficiale su quella parola avrebbe risposto "già previsto" —
+falso quanto un "non c'è" cieco nella direzione opposta. La domanda giusta
+è sul MECCANISMO: **Terra distingue un punto usato per COSTRUIRE il
+modello da uno usato per VERIFICARLO?**
+
+### Il mondo — GCP e checkpoint sono due ruoli diversi, non due sinonimi [`WebSearch`; `WebFetch` risponde `EGRESS_BLOCKED` su domini generici, quindi nessuna fonte è stata letta per intero: tutto qui sotto è **[seconda mano]**]
+
+1. **Un GCP (Ground Control Point) usato per georeferenziare il modello
+   non può, per costruzione, misurare l'accuratezza del modello**: il
+   software lo forza a combaciare, quindi il suo residuo è (quasi) zero
+   per definizione. L'accuratezza reale si misura con **punti indipendenti**,
+   mai usati nella elaborazione, il cui scarto rispetto al modello finito
+   è il dato vero. Propeller lo scrive in modo esplicito: i punti usati
+   come **checkpoint** (a differenza di quando servono da GCP) "non
+   incidono sull'accuratezza del rilievo" — sono letti dal ricevitore GPS
+   proprio e confrontati col punto corrispondente ricavato dal drone, e il
+   confronto si fa nella piattaforma come "spot check" [seconda mano:
+   propelleraero.com/blog/how-propeller-calculates-expected-accuracy/].
+   Propeller pubblica per ogni rilievo un **rapporto di elaborazione** con
+   il dettaglio dello scarto GCP/checkpoint e un'accuratezza attesa finale
+   che combina la coerenza del modello di elevazione con l'RMSE dei GCP
+   (esempio citato: 5+ cm di incoerenza del modello più un RMSE dei GCP
+   entro 5 cm danno un'accuratezza finale dichiarata di 5-10 cm) [seconda
+   mano: stessa fonte].
+2. **Lo standard di settore (USA, usato come riferimento anche fuori
+   contesto governativo) formalizza la stessa distinzione con un nome e un
+   numero minimo.** La NSSDA (National Standard for Spatial Data Accuracy,
+   richiamata dagli ASPRS Positional Accuracy Standards for Digital
+   Geospatial Data) calcola la RMSEz **solo sui punti di controllo
+   indipendenti** (mai su quelli usati per costruire il modello), e
+   dichiara l'accuratezza verticale al **95% di confidenza** come
+   `RMSEz × 1,9600` (valido quando l'errore segue una distribuzione
+   normale, tipico in terreno aperto con un numero adeguato di
+   checkpoint). L'edizione più recente (edizione 2) ha aggiornato la
+   nomenclatura (RMSEz → RMSEv) e non richiede più il fattore 95% come
+   unica misura, ma la sostanza — un errore misurato SOLO sui punti
+   indipendenti, mai su quelli di costruzione — resta. Il numero minimo di
+   checkpoint per una valutazione di accuratezza di prodotto è **20-30**
+   (alzato da 20 a 30 nell'edizione più recente), fino a un massimo di
+   **120** per i progetti grandi [seconda mano: risultati aggregati che
+   citano ASPRS/NSSDA — florida.asprs.org, aagsmo.org, gpsworld.com,
+   lidarmag.com; nessun PDF letto per intero].
+3. **Trimble Business Center e il lessico LiDAR usano la stessa
+   distinzione con nomi propri**: i punti si classificano come "Photo
+   Identifiable Ground Control Points (GCP)" oppure come punti di
+   validazione — "Non-Vegetated (Ground) Validation Points (NVA)" e
+   "Vegetated (Ground) Validation Points (VVA)" — cioè checkpoint
+   indipendenti distinti per copertura vegetale, perché l'errore in
+   presenza di vegetazione è sistematicamente diverso (collegato alla
+   causa già scritta nel giro del 02/09 di questo file: "la vegetazione
+   nasconde il suolo e produce scarti fino a 50 cm") [seconda mano:
+   risultati aggregati su documentazione TBC/LiDAR, nessun PDF letto per
+   intero].
+4. **Il numero di GCP raccomandato per costruire un buon modello è già
+   nella ricerca di questo file dal 02/09** (5-8, distribuiti ai vertici e
+   al centro, "2-4 checkpoint indipendenti per verifica"): quello che
+   quella tornata non aveva ancora tirato fuori è che GCP e checkpoint
+   **non sono la stessa cosa contata due volte**, sono due ruoli distinti
+   con effetti opposti sulla cifra di accuratezza — uno la costruisce,
+   l'altro la misura.
+
+### La nostra app — verificato di nuovo, con due formulazioni per ogni "non c'è"
+
+```
+$ grep -niE "checkpoint|punt[oi] di controllo|rmse|indipendent" apps/terra/terra-data.js apps/terra/index.html
+apps/terra/terra-data.js:725:// testabile. Le %tolleranza sono TIPICHE (da confermare coi checkpoint).
+apps/terra/terra-data.js:774:     controllo, RMSE): quando l'ha scritto nel rilievo (`tolleranzaPct`, in
+apps/terra/terra-data.js:1917:    + (nScavo > 0 ? " Le tolleranze sono valori tipici del metodo di rilievo e vanno confermate con i punti di controllo del rilevatore." : "")
+apps/terra/terra-data.js:3545:      : " Le tolleranze sono valori tipici del metodo di rilievo e vanno confermate con i punti di controllo del rilevatore.")
+apps/terra/terra-data.js:4116:   checkpoint 20260915-162437 prima di scrivere codice). Oggi un fronte porta
+apps/terra/index.html:848:  <input ... id="new-ril-toll" ... title="La tolleranza sul volume scritta dal rilevatore nella sua relazione (dai residui sui punti di controllo). Facoltativa: senza, vale quella tipica del metodo.">
+apps/terra/index.html:1366:      ${ca.cls ? `...: "Accuratezza tipica del metodo — da confermare coi checkpoint del rilevatore"}...
+```
+(uscita completa, 7 righe; riletta per intero prima di scriverla qui — la
+riga 4116 è un riferimento a un file di **checkpoint di lavoro** del
+repository, non al concetto topografico: falso positivo dichiarato, non
+contato. Le altre sei sono la stessa idea ripetuta in quattro punti: il
+commento del modulo, due frasi quasi identiche nel riepilogo annuale e nel
+verbale, e — la più importante, e che la prima stesura di questo giro
+aveva mancato per un `grep` letto a metà — il **tooltip del campo
+`new-ril-toll` nel form del rilievo** dice esplicitamente "dai residui sui
+punti di controllo": l'interfaccia stessa suggerisce a chi compila da dove
+dovrebbe venire quel numero, ma il campo che segue è un singolo valore
+percentuale libero, senza un posto per scrivere QUANTI punti di controllo
+e QUALE scarto hanno dato quella percentuale. Il concetto giusto è quindi
+nominato in **quattro** punti della UI/codice, non uno solo — e proprio
+per questo la sua assenza come dato strutturato è più netta, non più
+debole: l'intenzione c'è scritta ovunque, l'implementazione in nessun posto.)
+
+```
+$ grep -niE "numGcp|numeroGcp|nGcp|puntiControllo|nCheckpoint|gcpCount|rmsez|rmsev" apps/terra/terra-data.js apps/terra/index.html
+(nessuna riga)
+```
+
+```
+$ grep -n 'value="[^"]*GCP' apps/terra/index.html
+apps/terra/index.html:841:          <option value="RTK+GCP">RTK+GCP</option>
+apps/terra/index.html:842:          <option value="GCP">GCP</option>
+apps/terra/index.html:843:          <option value="senza GCP">senza GCP</option>
+```
+(il form del rilievo offre "GCP" come UNA delle tre voci di un menù a
+tendina per il campo `metodo` — un sì/no testuale sulla tecnica, mai un
+numero da compilare per "quanti GCP" o "quanti checkpoint"; la demo,
+`terra-data.js:150`, usa la stessa stringa libera `"RTK+GCP"`)
+
+**Conclusione verificata**: Terra **nomina** il concetto di checkpoint
+indipendente (nel commento del codice e nel tooltip del badge, da mesi) ma
+**non lo implementa** — non esiste un campo per il numero di GCP usati a
+costruire il modello, non uno per il numero di checkpoint indipendenti
+usati a validarlo, non un valore numerico di scarto (RMSE/RMSEz). Tutto
+quello che il rilievo registra sul "come è stato ottenuto il numero" è una
+stringa libera (`metodo`) che un lettore automatico classifica in due
+sole classi via corrispondenza di parole, più un singolo numero opzionale
+(`tolleranzaPct`) che sostituisce la tolleranza tipica **senza dire da
+dove viene** (potrebbe essere calcolato da un vero RMSE su checkpoint
+indipendenti, o essere una stima a occhio di chi ha volato — il campo non
+lo distingue, e il verbale non lo chiede).
+
+### Il delta
+
+| Schermata | Che cosa non va | Come si vede | Quanto costa | Come si misura |
+|---|---|---|---|---|
+| **Form del rilievo / verbale (`verbaleRilievo`, riga "Metodo di rilievo" `terra-data.js:3462`, riga "Classe di accuratezza" `3466-3470`)** | Un rilievo con **un solo GCP usato per georeferenziare** (che per costruzione ha residuo quasi zero e non prova NULLA sull'accuratezza) e uno con **cinque checkpoint indipendenti scartati di 3 cm** ricevono la stessa classe `survey-grade` se `metodo` contiene la parola "GCP" in entrambi i casi: `classeAccuratezza` legge solo se la TECNICA è nominata, non quanti punti indipendenti l'hanno verificata | Aprire un rilievo demo (`r1`, `metodo: "RTK+GCP"`) e uno ipotetico con lo stesso testo ma senza nessun checkpoint indipendente: il verbale stampa la stessa riga "Classe di accuratezza: Survey-grade" per entrambi, perché la funzione non ha un campo da cui leggere la differenza | Medio | Aggiungere al rilievo due campi opzionali dichiarati dal rilevatore — `nCheckpointIndipendenti` (intero, punti NON usati per costruire il modello) e `scartoCheckpointM` (lo scarto verticale misurato su quei punti, in metri) — e una regola pura nello stile di `classeAccuratezza`: se `nCheckpointIndipendenti` è dichiarato e `>= 3` (soglia bassa e dichiarata come tale, non i 20-30 di ASPRS che sono per un prodotto cartografico intero, non per un singolo rilievo di cava — la differenza di scala va scritta nel commento), la classe passa da "dichiarata dal metodo" a "**verificata su checkpoint indipendenti**", con `fonte: "checkpoint"` (terza fonte accanto a "classe" e "rilevatore" già esistenti) e la tolleranza calcolata da `scartoCheckpointM / volumeM3` invece che assunta. Con 0 o nessun checkpoint dichiarato, resta `misurabile` ma nella fascia più debole — **mai promossa a "verificata" di default**, stessa regola del fondatore già applicata a `tolleranzaPct` |
+| **Verbale del rilievo (colonna "Come è stato ottenuto il numero")** | Il verbale distingue oggi solo "tolleranza dichiarata dal rilevatore" da "tolleranza tipica del metodo" (`terra-data.js:3468-3470`), ma non dice **se** quella tolleranza dichiarata viene da uno scarto misurato su punti indipendenti o da una stima a sentimento — le due cose hanno oggi la stessa etichetta "dal rilevatore" | `grep -n "fonte === \"rilevatore\"" apps/terra/terra-data.js` → 2 righe (3468, 3532), nessuna delle due chiede la provenienza del numero | Piccolo, una volta fatto il campo sopra | Con `nCheckpointIndipendenti` dichiarato, il verbale scrive "tolleranza **verificata su N checkpoint indipendenti**, scarto ± X cm" invece di "tolleranza dichiarata dal rilevatore"; senza, resta la frase di oggi. Test: due rilievi con lo stesso `tolleranzaPct` ma uno con `nCheckpointIndipendenti:5` e uno senza devono produrre due frasi diverse nel verbale, non la stessa |
+
+### Che cosa NON entra (dichiarato, non taciuto)
+
+Le soglie NSSDA (20-30 checkpoint minimi, fattore 1,9600, RMSEz) sono
+pensate per la validazione di un **prodotto cartografico** (un'intera
+mappa/DEM validata una volta), non per il singolo rilievo periodico di una
+cava — usarle identiche darebbe una soglia proibitiva per un rilievo
+mensile. Non entrano come numeri a schermo: resta il **meccanismo**
+(distinguere "punto che costruisce" da "punto che verifica", e trattare lo
+scarto misurato come più forte di una tolleranza dedotta dal solo nome del
+metodo), con la soglia minima di checkpoint decisa in casa e dichiarata
+bassa apposta, sulla falsariga di come `difformitaSostanzialePct` (terzo
+giro, 11/09) e `distanzaMinimaM` (nono giro, 18/09) restano vuoti di
+default invece di ospitare un numero di legge preso di seconda mano.
+
+### Onestà sulla distanza dai leader di settore
+
+Propeller, DroneDeploy e Trimble hanno pipeline di elaborazione vere: i
+checkpoint vengono confrontati **automaticamente** col modello (nessun
+umano scrive uno scarto a mano), il rapporto è generato dal software che
+ha processato le foto, e la soglia (20-30 checkpoint) nasce da uno
+standard nazionale pensato per prodotti cartografici interi. La proposta
+qui sopra è deliberatamente più piccola: due campi **dichiarati** dal
+rilevatore (non calcolati da Terra, che non riceve né foto né DEM — scelta
+architetturale già presa e confermata il 02/09), sullo stesso principio
+già usato con successo per `tolleranzaPct` l'11/09. Non è parità con
+quei prodotti: è la differenza fra "il nome del concetto è scritto in un
+commento" e "il concetto ha un campo".
+
+### Fonti (tutte [seconda mano], nessuna letta come testo primario — `WebFetch` bloccato in questo ambiente)
+
+- [How Propeller calculates expected accuracy](https://www.propelleraero.com/blog/how-propeller-calculates-expected-accuracy/) — distinzione GCP/checkpoint, rapporto di elaborazione, accuratezza attesa combinata.
+- [How Propeller Works Alongside Survey Managers to Ensure Drone Data Accuracy](https://www.propelleraero.com/blog/how-propeller-works-alongside-survey-managers-to-ensure-drone-data-accuracy/)
+- Risultati aggregati su ASPRS Positional Accuracy Standards / NSSDA (RMSEz, RMSEv/RMSEh nell'edizione 2, fattore 1,9600 al 95% di confidenza, minimo checkpoint 20→30, massimo 120): florida.asprs.org, aagsmo.org, my.asprs.org, gpsworld.com, lidarmag.com, yellowscan.com — nessun PDF letto per intero, solo risultati di ricerca aggregati.
+- Risultati aggregati su Trimble Business Center e classificazione dei punti di controllo/validazione (GCP, NVA, VVA): community.trimble.com, geospatial.trimble.com — nessuna pagina letta per intero.
+- `vault/RICERCA_ACCURATEZZA_RILIEVI.md` (21/07/2026, di questo stesso repository) — prima menzione dei "checkpoint indipendenti" come raccomandazione, senza ancora la distinzione di ruolo GCP/checkpoint che questo giro aggiunge.
+
+### Sintesi
+
+**Il concetto non è nuovo per Terra** (il commento del codice lo nomina da
+prima dell'11/09), ma **la sua implementazione manca**: la classe di
+accuratezza e la tolleranza si basano oggi sul NOME del metodo dichiarato
+(una parola in una frase) e su un numero opzionale senza provenienza
+tracciata, mai su un conteggio di punti indipendenti e uno scarto misurato
+— che è esattamente il modo in cui il mondo distingue "un modello
+costruito con dei GCP" da "un modello VERIFICATO con dei checkpoint
+indipendenti". Il delta è a costo Medio (due campi + una terza fonte nella
+classe di accuratezza, sullo stesso schema già collaudato tre volte
+quest'anno per `tolleranzaPct`, `quotaFondoM`/`conformitaQuota` e
+`distanzaConfineM`), e non introduce nessun numero di legge o soglia di
+seconda mano a schermo — solo il meccanismo del confronto, con la soglia
+minima di checkpoint dichiarata bassa e scritta come scelta di casa, non
+come standard internazionale travestito.

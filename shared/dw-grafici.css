@@ -169,6 +169,12 @@ body.dw.light-mode, body.dw.outdoor-mode {
 .dwg-catlab {
   fill: var(--dwg-lab); font-family: 'Barlow', sans-serif; font-size: 11px;
 }
+/* la voce senza misura: al posto del numero una parola, in corsivo e col colore
+   delle etichette, così non si confonde con un valore e non sembra un errore */
+.dwg-vallab.dwg-manca {
+  fill: var(--dwg-lab); font-family: 'Barlow', sans-serif; font-size: 10.5px;
+  font-weight: 600; font-style: italic; letter-spacing: 0;
+}
 
 /* ─────────────── linea e area ─────────────── */
 .dwg-linea {
@@ -286,6 +292,7 @@ body.dw.light-mode, body.dw.outdoor-mode {
 .dwg-tip-seg.stato-ok { border-top-color: var(--dwg-ok); }
 .dwg-tip-seg.stato-warn { border-top-color: var(--dwg-wr); }
 .dwg-tip-seg.stato-danger { border-top-color: var(--dwg-dg); }
+.dwg-tip-seg.manca { border-top-color: var(--dwg-lab); border-top-style: dotted; opacity: .7; }
 /* il valore comanda, il nome della serie segue */
 .dwg-tip-v {
   font-family: 'Barlow Condensed', sans-serif; font-size: 15.5px; font-weight: 800;
@@ -316,8 +323,12 @@ body.dw.light-mode, body.dw.outdoor-mode {
 /* ─────────────── tabella dei dati (il tooltip aiuta, non fa da cancello) ─────────────── */
 .dwg-tab { margin-top: 9px; }
 .dwg-tab > summary {
+  /* ⛔ 19/09, dal deep-pass UX su Sentinella: 30px fisso restava sotto i
+     44px minimi anche fuori dal tema del sole (60px lì), su un componente
+     CONDIVISO montato da ogni grafico con la tabella dati di ogni app —
+     var(--tap), come già .chg e .nav, così il sole lo alza da solo. */
   list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
-  min-height: 30px; padding: 4px 10px; border: 1px solid var(--border2);
+  min-height: var(--tap); min-width: var(--tap); padding: 4px 10px; border: 1px solid var(--border2);
   border-radius: var(--r-sm); background: var(--card);
   font-family: 'Barlow Condensed', sans-serif; font-size: 10.5px; font-weight: 700;
   letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted2);

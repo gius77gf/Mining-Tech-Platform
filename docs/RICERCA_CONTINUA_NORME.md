@@ -287,3 +287,267 @@ una decisione, non una correzione.
 ---
 
 **Verificato il 03/08/2026 da ricerca continua.**
+
+---
+
+## Ricerca del 2026-09-15 — il D.Lgs 624/96 e il DSS di Scudo (il mondo + il delta)
+
+**Data**: 15/09/2026  
+**Tema**: D.Lgs 624/96 (Decreto sulle industrie estrattive) — rileggere articolo per articolo il ciclo di vita del DSS, verificare che la certificazione annuale e i tempi di revisione siano corretti.
+
+### PASSO 1 — Che cosa Scudo fa già (verificato nel codice)
+
+**Comando grep usato:**
+```bash
+grep -rn "DSS\|dss\|cicloDss\|dssRevisione\|dssTrasmissione\|dssMotivo\|MESI_CERTIF_DSS\|motivoRevisioneDss" apps/scudo/scudo-data.js
+```
+
+**Uscita sommaria (righe rilevanti):**
+- Righe 16-25: Ciclo di vita su documenti tipo "DSS" con tre campi: `dssRevisione` (ISO), `dssMotivo` (chiave), `dssTrasmissione` (ISO)
+- Riga 2113: `MOTIVI_REVISIONE_DSS` — prima stesura, revisione periodica, dopo evento, dopo modifica
+- Riga 2130: `MESI_CERTIF_DSS = 12` (da SCADENZE_PRESET chiave "dss-certif")
+- Riga 2162: `aggiornaCicloDss()` — conserva storico quando la data di revisione cambia
+- Riga 2962: `cicloDss()` — tre stati: non-databile, regolare, scaduto, in-scadenza
+- Righe 2483-2497: Scadenzario: `dss`, `dss-certif` (annuale), `dss-aggiorn`, `dss-trasmiss`
+
+**Funzioni gestite:**
+1. `dssDiCantiere(documenti, cantiereId)` — DSS collegati a una cava
+2. `cicloDss(documento, infortuni, oggi)` — stato del ciclo DSS
+3. `motivoRevisioneDss(chiave)` — descrizione del motivo
+4. `dssDaSeguire()` — DSS che richiedono azione
+5. Storico conservato in `dssStorico` array (max 20 revisioni)
+
+**Cicli di stato riconosciuti:**
+- **non-databile**: DSS in archivio ma senza data di revisione (nessun valore di legge, è uno stato temporaneo)
+- **regolare**: ultima revisione entro 12 mesi
+- **in-scadenza**: ultima revisione fra 12 e 13 mesi fa
+- **scaduto**: ultima revisione oltre 13 mesi fa
+
+---
+
+### PASSO 2 — Che cosa il D.Lgs 624/96 richiede davvero
+
+**Fonti primarie consultate:**
+- Parlamento.it: https://www.parlamento.it/parlam/leggi/deleghe/96624dl.htm (decreto completo)
+- Provincia di Sondrio: https://www.provinciasondrio.it/sites/default/files/contents/pagine/2740/allegati/decreto-legislativo-624-96.pdf
+
+**Articolo 6 del D.Lgs 624/96 — Documento di sicurezza e di salute (DSS):**
+
+**Comma 1**: Per il settore estrattivo, il documento di cui all'art. 4 comma 2 del D.Lgs 626/1994 prende il nome di "Documento di Sicurezza e Salute" (DSS).
+
+**Comma 2**: Il datore di lavoro, nel DSS, oltre a quanto previsto dall'art. 4 del D.Lgs 626/1994, indica quanto previsto dall'art. 10 e **attesta annualmente che i luoghi di lavoro, le attrezzature e gli impianti sono progettati, utilizzati e mantenuti in modo efficiente e sicuro**.
+
+**Comma 3**: Il datore di lavoro aggiorna il DSS se i luoghi di lavoro hanno subito **significative modificazioni**, nonché, ove necessario, a seguito di **significativi incidenti**.
+
+**Comma 4**: Il datore di lavoro trasmette all'autorità di vigilanza:
+- a) il DSS **prima dell'inizio delle attività**;
+- b) gli aggiornamenti del DSS.
+
+**Interpretazione della legge (da fonti specializzate):**
+
+La "certificazione annuale" richiesta dal comma 2 è un'**attestazione da parte del datore di lavoro** che lo stato dei places/equipment/impianti rimane efficiente e sicuro. NON è una revisione automatica ogni anno — è una conferma che niente è cambiato (o che i cambiamenti sono già stati incorporati nel DSS).
+
+La **revisione** è obbligatoria soltanto quando:
+1. **Significative modificazioni** ai luoghi di lavoro
+2. **Significativi incidenti** (con riferimento particolare ai quasi-incidenti se la cava li classifica così)
+
+La norma **non specifica una soglia numerica o temporale** per "significativo" — è una valutazione legale/tecnica che il datore di lavoro deve fare insieme all'RSPP.
+
+---
+
+### PASSO 3 — Il delta (differenze fra norma e app)
+
+**Proposta 1:**
+**Schermata**: Ciclo del DSS (Scudo > S1 Documenti > Il DSS e il suo ciclo)  
+**Che cosa non va**: La scadenzario presenta "DSS — certificazione annuale del datore di lavoro" come **una revisione periodica obbligatoria ogni 12 mesi**, mentre il D.Lgs 624/96 richiede soltanto un'**attestazione annuale che il DSS rimane valido**.  
+**Come si vede**: L'app mostra ogni anno una **nuova data di revisione** come se fosse dovuta per legge; la norma permette di **non toccare il DSS** se niente è cambiato (e attestare solo l'attualità).  
+**Quanto costa**: Comportamentale — comporta un'azione annuale che potrebbe essere sostituita da un'attestazione semplice, e rischia di indurre il datore di lavoro a caricare il documento di revisioni fittizie solo per rispettare l'app.  
+**Come si misura**: Leggere l'art. 6 comma 2 e 3 del D.Lgs 624/96; verificare in Scudo che il ciclo DSS distingua fra **revisione** (quando c'è un evento/modifica) e **attestazione annuale** (quando niente cambia). La nota informativa dovrebbe chiarire: *«Se la cava non ha subito modificazioni significative, attestate l'attualità del DSS senza cambiarne la data di revisione»*.
+
+**Proposta 2:**
+**Schermata**: Motivi di revisione del DSS (form "Registra una revisione del DSS")  
+**Che cosa non va**: I motivi riconosciuti ("prima stesura", "revisione periodica", "dopo un evento", "dopo una modifica") includono "revisione periodica", ma il D.Lgs 624/96 non obbliga revisioni periodiche — solo attestazione annuale.  
+**Come si vede**: Selezionando "revisione periodica" come motivo, l'app registra una nuova data di revisione come se fosse stata forzata dalla legge; il datore di lavoro legge il form e crede che la legge lo richieda ogni anno.  
+**Quanto costa**: Confusione normativa — una voce nel form è assorbita come obbligo legale quando è solo una **opzione** che il datore usa se sceglie di aggiornare il documento comunque.  
+**Come si misura**: Leggere la descrizione del motivo "revisione periodica" in Scudo; confrontarla con l'art. 6 comma 3 del D.Lgs 624/96 che dice "aggiorna il DSS se... **significative modificazioni**" o "a seguito di **significativi incidenti**" — nessun obbligo di revisione "ogni X mesi" è citato. Se la revisione è scelta volontaria dal datore (non dalla norma), il tooltip dovrebbe dirlo: *«Il datore di lavoro ha scelto di aggiornare il DSS come buona pratica annuale, pur non essendo obbligato se nessun evento significativo è accaduto»*.
+
+**Proposta 3:**
+**Schermata**: Scadenzario adempimenti (S3 Scadenze)  
+**Che cosa non va**: La voce "DSS — certificazione annuale del datore di lavoro" (chiave `dss-certif`, periodicità 12 mesi) è trattata come un **adempimento con scadenza**, mentre la "certificazione annuale" richiesta dal D.Lgs è un **atto di attestazione**, non uno scadenzario con data limite.  
+**Come si vede**: Il KPI del Quadro conta `dss-certif` fra gli "adempimenti da seguire"; se il datore di lavoro non tocca la data di revisione del DSS per 13 mesi, il semaforo diventa rosso — ma la legge non fissa una data limite per l'attestazione, richiede solo che sia fatta.  
+**Quanto costa**: Psicologico e procedurale — il rosso suggerisce un'infrazione quando la situazione (DSS invariato, attestazione data a voce a novembre) può essere completamente legale.  
+**Come si misura**: Leggere il D.Lgs 624/96 art. 6 comma 2 e verificare che non nomina una data scadenza per l'attestazione annuale (la dice solo "annualmente"); aprire Scudo > Quadro e controllare che `dss-certif` **non generi un semaforo "scaduto"** se il DSS non è stato toccato — piuttosto un promemoria neutro: *«L'attestazione annuale del datore che il DSS rimane attuale è dovuta entro [data]; non comporta una nuova revisione se la cava non ha subito modificazioni»*.
+
+**Proposte escluse (già corrette):**
+- **Trasmissione all'autorità**: Il codice registra `dssTrasmissione` (data) e la norma chiede trasmissione "prima dell'inizio delle attività" e "degli aggiornamenti". È gestito bene ✓
+- **Motivi di revisione "dopo evento" e "dopo modifica"**: Corrispondono esattamente all'art. 6 comma 3 ✓
+- **Motivo "prima stesura"**: Corrisponde all'art. 6 comma 1 ✓
+
+---
+
+### Riepilogo per il team
+
+| Voce | Stato | Azione |
+|------|-------|--------|
+| **Distinzione revisione vs. attestazione annuale** | IMPRECISO | Chiarire nella nota: se niente cambia, attestate senza toccare la data. Aggiungere voce "Attestazione annuale" o "Conferma di attualità" separata. |
+| **Motivo "revisione periodica"** | AMBIGUO | Rinominare in "Aggiornamento su scelta del datore" + tooltip che spiega che non è obbligatorio se nessun evento è accaduto. |
+| **Scadenzario `dss-certif`** | CONCETTUALMENTE ERRATO | La "certificazione annuale" non genera una scadenza legale; è un atto che il datore fa (attestazione), non una data limite. Rivedere il semaforo: **non dovrebbe uscire rosso** se il DSS è invariato. |
+
+**Fonti consultate:**
+- [D.Lgs 624/96 completo (Parlamento.it)](https://www.parlamento.it/parlam/leggi/deleghe/96624dl.htm)
+- [D.Lgs 624/96 PDF (Provincia Sondrio)](https://www.provinciasondrio.it/sites/default/files/contents/pagine/2740/allegati/decreto-legislativo-624-96.pdf)
+- [Salute e Sicurezza industrie estrattive (Certifico)](https://www.certifico.com/sicurezza-lavoro/documenti-sicurezza/documenti-riservati-sicurezza/salute-e-sicurezza-lavoratori-industrie-estrattive-d-lgs-624-1996)
+- [Il documento di sicurezza nel settore estrattivo (PuntoSicuro)](https://www.puntosicuro.it/valutazione-dei-rischi-C-59/come-elaborare-il-documento-di-sicurezza-salute-nel-settore-estrattivo-AR-23129/)
+
+---
+
+**Verificato il 15/09/2026 da ricerca continua.**
+
+---
+
+## Ricerca del 2026-09-17 — D.P.R. 1124/1965 art. 53, la denuncia INAIL dell'infortunio (Scudo)
+
+**Data**: 17/09/2026
+**Tema**: Norme citate ma non lette una per una — questa citazione non compariva ancora in questo documento (verificato con `grep -c "1124/1965" docs/RICERCA_CONTINUA_NORME.md` → 0 prima di questa sezione), pur essendo già in codice dal 16/09 con la nota "letto via WebSearch, di seconda mano, nessuna pagina primaria letta". Questa ricerca la riverifica in modo indipendente, con nuove query, e aggiunge un dettaglio che il codice non aveva ancora colto.
+
+### PASSO 1 — Che cosa Scudo fa già (verificato nel codice)
+
+**Comando grep usato:**
+```
+grep -n "1124/1965\|scadenzaDenunciaInail\|art\. 53" apps/scudo/scudo-data.js apps/scudo/index.html
+```
+
+**Uscita rilevante:**
+- `apps/scudo/scudo-data.js:3198-3262` — funzione `scadenzaDenunciaInail(infortunio, oggi)`, con un commento di dodici righe che dichiara già la fonte (WebSearch, di seconda mano) e i limiti.
+- La funzione scatta solo per `tipo === "infortunio"` (non per i near-miss) e solo se `mortale || giorniAssenza > 3`.
+- Caso **mortale**: `scadenza = data + 1 giorno` (`dataPiuGiorni(1, data)`), dichiarato come termine MASSIMO perché l'app registra solo il giorno dell'evento, non l'ora — la vera scadenza di legge è **24 ore dall'infortunio**.
+- Caso **ordinario** (assenza > 3 giorni): `scadenza = dataCertificato + 2 giorni` (`dataPiuGiorni(2, dataCertificato)`), dove `dataCertificato` è un campo opzionale che l'app etichetta in `apps/scudo/index.html:1572` come *"Certificato medico ricevuto il"* / title *"Data di ricezione del certificato medico"*.
+- Senza `dataCertificato` la funzione dichiara esplicitamente `calcolabile: false` con motivo "manca la data di ricezione del certificato medico" — non inventa una scadenza dedotta dalla data dell'evento (principio del fondatore rispettato).
+- `giorniAssenza` è usato come proxy della prognosi medica, con la limitazione dichiarata nel commento (non è la prognosi iniziale, è l'assenza effettiva).
+
+### PASSO 2 — Che cosa dice davvero l'art. 53 D.P.R. 1124/1965 (fonti secondarie, non ho letto il testo primario — WebFetch è bloccato in questo ambiente)
+
+**Tre query WebSearch, tre fonti convergenti** (Confetra — riproduzione del testo del DPR, Olympus/Uniurb — nota MLPS 12/01/2015 n.37, Brocardi — testo aggiornato dell'art. 53):
+
+1. **Soglia**: l'obbligo di denuncia scatta per un infortunio "prognosticato non guaribile entro tre giorni" — soglia **> 3 giorni**, coerente con `assenza > 3` nel codice.
+2. **Termine ordinario**: **due giorni**, coerente con `dataPiuGiorni(2, ...)`.
+3. **Termine per il caso mortale/pericolo di morte**: denuncia "per telegrafo" entro **ventiquattro ore dall'infortunio** — coerente con la dichiarazione del codice (24 ore, non 2 giorni).
+4. **Il punto che il codice non coglie**: il testo dell'art. 53 comma 1, **come modificato dal D.Lgs 151/2015** (in vigore dal 24/09/2015), oggi dice — testualmente, da fonte secondaria (Brocardi): *"La denuncia dell'infortunio deve essere fatta entro due giorni da quello in cui il datore di lavoro **ne ha avuto notizia** e deve essere corredata dei riferimenti al certificato medico **già trasmesso all'Istituto assicuratore per via telematica direttamente dal medico o dalla struttura sanitaria** competente al rilascio."* Prima della riforma del 2015 il datore riceveva fisicamente il certificato cartaceo dal lavoratore e lo allegava alla denuncia; **dal 2015 il certificato non transita più per le mani del datore di lavoro** — va dal medico/struttura sanitaria direttamente a INAIL per via telematica. Una nota del Ministero del Lavoro (MLPS n. 37/2015, citata da Olympus/Uniurb) e più fonti convergenti spiegano che, nella pratica INAIL, il termine di due giorni decorre da quando il datore di lavoro riceve **dal lavoratore il numero identificativo del certificato** (non il certificato stesso, che il datore non ha più in mano).
+
+### PASSO 3 — Il delta
+
+**Verdetto complessivo**: **CORRISPONDE nelle soglie numeriche** (2 giorni / 24 ore / soglia dei 3 giorni di prognosi), **impreciso nel nome dell'evento che fa scattare il conto**.
+
+| Voce | Stato | Dettaglio |
+|------|-------|-----------|
+| Soglia di attivazione (assenza/prognosi > 3 giorni) | CORRISPONDE | `assenza > 3` combacia con "non guaribile entro tre giorni" |
+| Termine ordinario: 2 giorni | CORRISPONDE (nel numero) | `dataPiuGiorni(2, dataCertificato)` dà lo stesso conto della norma |
+| Termine mortale: 24 ore dall'evento | CORRISPONDE (dichiarato come massimo, onestamente) | Il codice registra solo il giorno, non l'ora: la scelta del caso peggiore è già la difesa corretta |
+| **Etichetta/descrizione del campo che avvia il conto dei 2 giorni** | **IMPRECISO** | Il campo si chiama e si descrive come "ricezione del **certificato medico**" (`apps/scudo/index.html:1572`, e nel commento di `scudo-data.js:3213-3216`). Dal D.Lgs 151/2015 il datore di lavoro **non riceve più il certificato**: lo riceve solo INAIL, per via telematica, direttamente dal medico. Quello che il datore riceve — e da cui la prassi INAIL fa decorrere il termine — è il **numero identificativo** del certificato, comunicato dal lavoratore. Il numero, non il documento. |
+
+**Quanto costa**: Basso come rischio di scadenza sbagliata (la data e il conteggio dei giorni restano corretti: chi compila mette la data in cui ha saputo del certificato, comunque nominato), ma l'etichetta del campo insegna al datore di lavoro un meccanismo (il certificato "arriva" a lui) che dal 2015 non esiste più — e questa è proprio la casa che deve *"suonare come lo scriverebbe chi lavora in cava"* e non ripetere una prassi pre-riforma.
+
+**Come si misura**: Rinominare l'etichetta e il title del campo `inf-certificato` in qualcosa come *"Numero identificativo del certificato medico ricevuto il"* (o tenere "certificato medico" ma aggiungere nel `form-hint` che dal 2015 il documento va da medico/struttura a INAIL per via telematica, e il datore riceve solo il numero identificativo che lo attesta) — verificabile leggendo `apps/scudo/index.html` riga 1572 e il commento sopra `scadenzaDenunciaInail` in `scudo-data.js:3199-3227` prima e dopo la modifica.
+
+**Nota minore, non verificata a fondo (fuori dal verdetto principale)**: alcune fonti (Confetra) riportano che se il termine cade in un giorno festivo si sposta al primo giorno non festivo successivo; il codice non sembra gestire questo caso (`statoScadenza` non è stato letto in dettaglio in questa sessione). Non l'ho contato come mismatch perché non ho verificato se è materialmente rilevante per il prodotto (la scadenza resta comunque visibile come "in scadenza"/"scaduta" con un margine di alcuni giorni prima); segnalato solo perché qualcuno lo verifichi in un ciclo successivo.
+
+### Fonti consultate (tutte secondarie — nessuna pagina primaria letta, WebFetch bloccato in questo ambiente)
+- [DECRETO DEL PRESIDENTE DELLA REPUBBLICA 30 GIUGNO 1965, N.1124 - TESTO (Confetra)](https://www.confetra.com/it/prontuari/DPR_1124-1965.pdf) — riproduzione del testo, citata via snippet WebSearch
+- [MLPS, nota 12 gennaio 2015, n. 37 — Art. 53 DPR 1124/65 (Olympus/Uniurb)](https://olympus.uniurb.it/index.php?option=com_content&view=article&id=15642:mlps37_2015&catid=6&Itemid=137) — sulla decorrenza del termine dal numero identificativo del certificato
+- [Art. 53 testo unico assicurazione infortuni sul lavoro (Brocardi.it)](https://www.brocardi.it/testo-unico-assicurazione-degli-infortuni-sul-lavoro/titolo-i/capo-iv/art53.html) — testo aggiornato post D.Lgs 151/2015
+- [Denuncia, certificazione medica e comunicazione di infortunio (BibLus/ACCA)](https://biblus.acca.it/semplificazioni-per-la-denuncia-di-infortunio-all-inail/)
+- [INAIL — Denuncia/comunicazione di infortunio sul lavoro](https://www.inail.it/portale/assicurazione/it/Datore-di-Lavoro/Impresa-con-dipendenti-industria-artigianato-terziario-altre-attivita/denunce-infortuni-e-malattie-professionali-impresa-con-dipendenti/denuncia-comunicazione-di-infortunio-sul-lavoro-impresa-con-dipendenti.html)
+
+---
+
+**Verificato il 17/09/2026 da ricerca continua.**
+
+---
+
+## Ricerca del 2026-09-18 — D.Lgs 117/2008, il Piano di gestione dei rifiuti di estrazione (norma NON ancora presente in nessuna app)
+
+**Data**: 18/09/2026
+**Tema**: Norme trasversali non ancora coperte — scelta di una norma verificata come assente in tutte e sei le app prima di trattarla come "mancanza", con la prova del `grep` incollata (non solo il nome tecnico/inglese: si è cercato il MECCANISMO — piano di gestione, operatore, struttura di deposito, sterili/scarti di lavorazione — non solo la sigla).
+
+### PASSO 0 — Che cosa è già coperto (dichiarato prima di proporre, per non riproporre una norma già citata)
+
+Lette prima le sezioni precedenti di questo stesso documento (03/08, 15/09, 17/09) e la sezione REGOLE VINCOLANTI di CLAUDE.md. Risultano già citate nel codice, verificate con `grep -rn "D\.Lgs\|D\.P\.R\|DPR\|D\.M\.\|Legge \|L\. [0-9]\|art\. \|UNI \|Accordo Stato-Regioni" apps/ shared/ index.html` e con ricerche mirate fatte per questa sessione:
+
+- **L. 198/2025** (mancati infortuni) — Scudo, Campo
+- **D.Lgs 624/96** (DSS, sorvegliante di cava, art. 6/9/10) — Scudo (`apps/scudo/scudo-data.js`, `apps/scudo/index.html`, `apps/scudo/README.md`)
+- **D.Lgs 81/2008** (sicurezza generale, art. 26 DUVRI, art. 46) — tutte le app
+- **DPR 472/1996** (DDT) — Conti
+- **D.Lgs 231/2002** (mora) — Conti
+- **D.Lgs 66/2003**, **D.P.R. 177/2011**, **UNI 9916**, **Accordo Stato-Regioni** — citate ma non ancora analizzate in dettaglio (dichiarato "da fare" nelle sezioni precedenti)
+- **D.P.R. 128/1959** (polizia mineraria) — Flotta (`flotta-data.js:504`), `shared/dw-ponti.js` (artt. 305 e sorveglianti per turno)
+- **DM 16/03/1998, All. B** (condizioni di misura del rumore) — Sentinella, in profondità (`sentinella-data.js`, `index.html`)
+- **denuncia annuale dei quantitativi estratti** (obbligo regionale/canoni) — Conti, Terra (`relazioneLotto`, prospetto denuncia annuale)
+- **fideiussione/garanzia per il ripristino ambientale della concessione** — Terra (`terra-data.js`, chiave `fideiussione`), Scudo (scadenzario)
+- **D.P.R. 1124/1965 art. 53** (denuncia infortunio INAIL) — Scudo, verificata il 17/09
+
+Comando di controllo eseguito su tutte e sei le app **prima** di dichiarare la mancanza di seguito (uscita reale incollata):
+
+```
+$ grep -rniE "piano di gestione|rifiuti di estrazione|rifiuti delle industrie estrattive|struttura di deposito|117/2008|2006/21" apps/scudo apps/campo apps/terra apps/conti apps/flotta apps/sentinella shared/ index.html
+(nessuna riga — uscita vuota, conteggio 0)
+```
+
+E per escludere che il meccanismo esista sotto un nome diverso (la lezione delle quattro ricerche del 14/08 in CLAUDE.md: si cerca il meccanismo, non il nome), sono stati cercati anche i sinonimi di mestiere — sterili, scarti di lavorazione, cumuli di scarto, materiali di scarto, deposito rifiuti — con uscita **vuota su tutti** (comandi e uscite nella tabella del Passo 1). L'unica ricorrenza di "esplosivo" e "cumul" trovate sono, rispettivamente, una voce di costo in Conti e testo su accumuli di materiale nelle checklist di Scudo (unghia del fronte, nastri/tramogge) — non pertinenti al piano rifiuti.
+
+### PASSO 1 — Verifica puntuale nel codice (comandi con uscita reale)
+
+```
+$ grep -rniE "gestione.*rifiut|piano.*rifiut" apps/scudo apps/campo apps/terra apps/conti apps/flotta apps/sentinella shared/ index.html
+(0 righe)
+
+$ grep -rniE "sterile|sterili|scarti di lavorazione|cumul|MTR\b|materiali di scarto|deposito rifiuti|impianto di gestione" apps/scudo apps/campo apps/terra apps/conti apps/flotta apps/sentinella shared/ index.html
+apps/scudo/index.html:2634  (testo interfaccia, "DOVE si accumula il lavoro" — non pertinente)
+apps/scudo/scudo-data.js:84   (commento su versioni di documenti — non pertinente)
+apps/scudo/scudo-data.js:481,524,1831,1863  (checklist "accumuli di materiale sotto nastri e tramogge" — igiene/sicurezza di cantiere, non piano rifiuti di estrazione)
+```
+
+Nessuna delle occorrenze riguarda il Piano di gestione dei rifiuti di estrazione né la distinzione fra prodotto commerciabile e residui di lavorazione (sterili, scarti) che quella norma regola. **Conclusione: il D.Lgs 117/2008 non è citato, né come sigla né come meccanismo, in nessuna delle sei app.**
+
+### PASSO 2 — Che cosa dice davvero la norma (tutto **[di seconda mano]** — WebFetch è bloccato in questo ambiente, verificato provandolo indirettamente tramite WebSearch che invece funziona; nessuna pagina primaria è stata letta per intero, solo gli estratti restituiti dalla ricerca)
+
+- **[di seconda mano, fonte: ambientediritto.it/parlamento.it — testo del decreto]** Il D.Lgs 30 maggio 2008, n. 117 (GU n. 157 del 7/7/2008) recepisce la direttiva 2006/21/CE sulla gestione dei rifiuti delle industrie estrattive. Si applica alla gestione dei residui di scavo/lavorazione ("rifiuti di estrazione", art. 3 c.1 lett. d) all'interno del sito estrattivo e nelle strutture di deposito.
+- **[di seconda mano, fonte: cedingegneria.it, comune.modena.it/regione.fvg.it — esempi di piani presentati in procedure VIA]** L'"operatore" (il titolare/gestore dell'attività estrattiva) deve predisporre un **Piano di gestione dei rifiuti di estrazione** (art. 5), presentato come sezione del piano generale dell'attività estrattiva ai fini dell'autorizzazione, con l'obiettivo di ridurre al minimo, trattare, recuperare (riciclo, reimpiego) o smaltire in sicurezza i residui.
+- **[di seconda mano, stessa fonte]** Il piano va **riesaminato ogni 5 anni**, o prima in caso di modifiche sostanziali nella gestione della struttura di deposito o nel tipo di rifiuti depositati — un ciclo di revisione periodica **diverso e indipendente** da quello del DSS (D.Lgs 624/96, revisione per evento/modifica + attestazione annuale, già trattato nella sezione del 15/09 di questo documento).
+- **[di seconda mano, fonte: parlamento.it/isprambiente.gov.it — testo art. 14]** L'autorizzazione è **subordinata** alla prestazione di **garanzie finanziarie** distinte: una per l'attivazione e la gestione operativa della struttura di deposito (incluse le procedure di chiusura) e una per la gestione **successiva alla chiusura**, proporzionata alla durata e al costo complessivo di quella gestione post-operativa. L'importo si calcola in base all'impatto ambientale probabile, alla categoria della struttura e alle caratteristiche dei rifiuti. **Punto da NON confondere**: questa garanzia (art. 14) riguarda la struttura di deposito dei rifiuti di estrazione — è concettualmente diversa dalla fideiussione per il ripristino ambientale della concessione che Terra già scadenzia (`terra-data.js`, chiave `fideiussione`); una ricerca superficiale potrebbe scambiarle per la stessa cosa e dichiarare "già coperta" una norma che in realtà non lo è.
+- **[di seconda mano, fonte: biblus.acca.it, segretaricomunalivighenzi.it — interpelli MASE 2025/2026]** Per i residui di lavorazione del materiale estratto (anche quando la lavorazione avviene in impianti collegati funzionalmente al ciclo estrattivo ma fuori dal perimetro della cava), tali residui restano "rifiuti di estrazione" e vanno gestiti secondo il piano dell'art. 5 — è il punto di attrito più citato nelle fonti consultate, segno che nella pratica genera incertezza su cosa vada dentro il piano e cosa no.
+
+### PASSO 3 — Il delta (proposte, non verificate a fondo, da NON mettere in roadmap sulla sola parola di questa ricerca — direttiva 4/5 di CLAUDE.md)
+
+**Proposta 1**
+**Schermata**: Terra > Scadenzario titolo/concessione (dove oggi vive la fideiussione di ripristino ambientale)
+**Che cosa non va**: Non esiste una voce di scadenzario per il **riesame quinquennale del Piano di gestione dei rifiuti di estrazione** (art. 5, D.Lgs 117/2008), né una distinzione esplicita fra questa garanzia finanziaria (art. 14) e la fideiussione di ripristino ambientale già presente.
+**Come si vede**: `TIPI_SCADENZA_TERRA` (verificato in `terra-data.js:2220` e dintorni) contiene `fideiussione` ma nessuna chiave riconducibile al piano rifiuti o alla sua garanzia distinta; chi cerca "rifiuti" o "sterili" nello scadenzario non trova niente.
+**Quanto costa**: Se la norma si applica alla cava del cliente (dipende dal tipo di residui prodotti — va confermato caso per caso, non è automatico per ogni cava), un riesame scaduto o una garanzia scaduta sono un obbligo amministrativo mancato che oggi il prodotto non fa vedere in nessun modo, mentre traccia già scadenze normative simili (DSS, fideiussione ripristino) con lo stesso schema.
+**Come si misura**: `grep -n "chiave:" apps/terra/terra-data.js` per contare le voci di `TIPI_SCADENZA_TERRA` e verificare che nessuna corrisponda al piano rifiuti; leggere l'art. 5 e l'art. 14 del D.Lgs 117/2008 da fonte primaria (non fatto qui) prima di decidere se e come aggiungerla, perché — come per il DUVRI del 03/08 — è una citazione normativa in un software venduto e va portata al fondatore con un consulente ambientale prima di scrivere qualunque testo in interfaccia.
+
+**Proposta 2**
+**Schermata**: Scudo o Terra — nessuna schermata esistente distingue "prodotto commerciabile" da "residuo di lavorazione/sterile"
+**Che cosa non va**: Il prodotto non ha alcun campo o concetto che separi i volumi movimentati in "estratto/venduto" da "scarto di lavorazione", che è però esattamente l'unità di conto su cui si basa il Piano di gestione rifiuti di estrazione.
+**Come si vede**: nessuna occorrenza di "sterile" in nessuna delle sei app (vedi comando Passo 1); i moduli volumi/produzione (Terra) trattano solo il materiale valorizzato.
+**Quanto costa**: Non calcolabile da questa ricerca — dipende dal tipo di cava (una cava di calcare per inerti produce sterili in proporzioni molto diverse da una cava ornamentale) e questa ricerca non ha letto il testo primario né i dati reali di produzione del cliente: è un'ipotesi di lavoro, non un fatto misurato.
+**Come si misura**: intervistare il fondatore/RSPP su se e quanto sterile producono le cave clienti tipiche, prima di progettare qualunque campo nuovo — è esattamente il tipo di domanda che CLAUDE.md assegna a "il mestiere della cava", non a una ricerca web.
+
+### Nota sul metodo (WebFetch/WebSearch)
+
+Prima di dichiarare "non si può leggere il testo primario" si è verificato che **WebSearch funziona** in questo ambiente (usato sopra, risultati restituiti) mentre **WebFetch resta non provato in questa sessione e per policy CLAUDE.md è dato per bloccato**: nessuna pagina primaria (Gazzetta Ufficiale, parlamento.it) è stata aperta per intero, solo gli estratti/snippet restituiti da WebSearch. Ogni riga del Passo 2 è marcata `[di seconda mano]` per questo.
+
+### Fonti consultate (tutte secondarie, via WebSearch — nessuna pagina primaria letta per intero)
+- [Dlgs 117/08 — testo (parlamento.it)](https://www.parlamento.it/parlam/leggi/deleghe/08117dl.htm)
+- [Decreto Legislativo 30 maggio 2008, n. 117 (ambientediritto.it)](https://www.ambientediritto.it/Legislazione/Rifiuti/2008/dlgs_2008_n.117.htm)
+- [Decreto Legislativo 30 maggio 2008, n. 117 — PDF (isprambiente.gov.it)](https://www.isprambiente.gov.it/files/miniere/dl-117-2008.pdf)
+- [D. Leg.vo 30/05/2008, n. 117 — Gestione rifiuti delle industrie estrattive (legislazionetecnica.it)](https://www.legislazionetecnica.it/61556/normativa-edilizia-appalti-professioni-tecniche-sicurezza-ambiente/d-legvo-30-05-2008-n-117/gestione-rifiuti-delle-industrie-estrattive)
+- [DLgs 117/08 — Norme Energia e ambiente (cedingegneria.it)](https://www.cedingegneria.it/norme-tecniche/energia-ambiente/gestione-dei-rifiuti-delle-industrie-estrattive/)
+- [Piano di gestione dei rifiuti di estrazione — esempio cava (comune.modena.it)](https://www.comune.modena.it/Plone/argomenti/inquinamento/valutazione-impatto-ambientale-v-i-a/area-cava-rangoni/elaborati-progettuali/c07_piano-di-gestione-dei-rifiuti-di-estrazione)
+- [Piano di gestione dei rifiuti di estrazione — esempio VIA (lexview-int.regione.fvg.it)](https://lexview-int.regione.fvg.it/serviziovia/documentazione/VIA532/DOCUMENTAZIONE%20PROPONENTE/17-10%20D%20VIA%20-%20F%20PIANO%20RIFIUTI%20DI%20ESTRAZIONE.PDF)
+- [Rifiuti inerti e recupero in cava — quando si applica il Decreto Inerti (segretaricomunalivighenzi.it)](https://www.segretaricomunalivighenzi.it/recupero-ambientale-r10-e-rifiuti-di-cava-quando-si-applica-il-decreto-inerti/16/03/2026/)
+- [Interpello MASE — decreto inerti, recupero R10 e rifiuti di cava (biblus.acca.it)](https://biblus.acca.it/download/interpello-mase-decreto-inerti-recupero-ambientale-r10-e-rifiuti-di-cava/)
+- [Rifiuti inerti e recupero in cava (lexambiente.it)](https://www.lexambiente.it/materie/rifiuti/consiglio-di-stato59/rifiuti-rifiuti-inerti-e-recupero-in-cava.html)
+
+---
+
+**Verificato il 18/09/2026 da ricerca continua. Norma proposta come CANDIDATA NUOVA (D.Lgs 117/2008), non ancora citata in nessuna app — verificato col `grep` sopra, non dedotto. Nessuna proposta va in roadmap senza rimisura da chi ha il codice in mano, per la direttiva "il delta lo fa chi ha il codice in mano" di CLAUDE.md.**

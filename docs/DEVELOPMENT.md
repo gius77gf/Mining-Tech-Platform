@@ -46,14 +46,37 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**2.877 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 25/08: 2396 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
+**3.712 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 19/09, ventesimo giro: 3214 + 330 + 83 + 36 + 9 + 8 + 7 + 3 + 22), dopo aver corretto in Genesi (G56d, `innescoSuMaglia` — stessa causa di G56c, un posto più pericoloso: `innFrom=-1` diceva sia «è il primo della volata» sia «un vicino ha già sparato ma nessun raccordo lo raggiunge» — un foro senza carica innescata spariva dal conteggio della rete di innesco senza nessun avviso; trovato con la stessa verifica diretta, gap più grande, dopo G56c) e, prima di questo, dopo aver corretto in Genesi (G56c, `reliefSuMaglia` — un `relief=null` nascondeva due cause diverse dietro lo stesso messaggio tranquillo: il vero primo foro della zona e un vicino che ha già sparato ma è oltre la distanza di adiacenza per un foro mancante nella maglia; trovato con una verifica diretta — non da un agente — sugli export CSV/DXF/XML di Genesi dopo aver tolto un foro con drag+Canc) e, prima di questo, dopo aver corretto in Genesi (G56b, l'annulla premuto a metà di un trascinamento — trovato da un deep-pass QA in background sulle nove unità appena costruite) e, prima di questo, dopo aver aggiunto in Genesi (G56, la guida di allineamento in Y sul trascinamento di un foro, dalla ricerca in background su snap magnetico/tracking dinamico) e, prima di questo, dopo aver corretto in Scudo (fascicoloIspezione, azioni correttive scadute mai dichiarate) e, prima di questo, in Campo (csvAttivita/checklistUltimePerTurno) e in Sentinella/Genesi/Conti (sesto giro di deep-pass, tre agenti in parallelo) `superamentiAperti`/`kpiFrom`, `muckShape`/il pannello Decking, e la guardia sul sollecito di una fattura "come non emessa" — poi, prima di questo, dopo aver corretto in Scudo/Terra/Flotta (quinto giro di deep-pass, tre agenti in parallelo) `prognosiAperta`/`riepilogoInfortuni` (un mortale restava "a prognosi aperta" per sempre), l'aggregato mancante del quarto asse di conformità "confine", e le quattro regole diverse sul contatore sostituito o azzerato di un mezzo — poi, dopo aver corretto in Campo `vociChecklist`/`statoChecklist`: il ricontrollo dei fronti dopo il maltempo spariva dal conteggio, dallo schermo e dai documenti di fine turno se il meteo veniva corretto dopo la risposta — poi, prima di questo, dopo aver corretto in Conti (margineMese, settimo giro di deep-pass) — una fattura scartata dallo SdI gonfiava il margine mensile per competenza, stessa guardia già propagata a sei altre funzioni — poi, prima di questo, dopo aver corretto in shared/dw-app-ui.js e nelle superfici che lo usano (dal deep-pass QA su quel file) — il toast del core senza role="status" aria-live="polite" su core/Genesi/admin, e Genesi senza CSS per il toast di errore — poi, prima di questo, dopo aver corretto in Campo (dal deep-pass QA sull'app) CLASSE_HSE — mancava la chiave «senza-scadenze», e la card di un operatore collegato a Scudo senza nessun documento registrato usciva verde «st-ok», indistinguibile da «regolare» — poi, prima di questo, dopo aver corretto in Conti (dal deep-pass QA sull'app) quattro funzioni — prioritaIncasso, agingIncassi, incassoPerMese, kpiFrom — che non escludevano una fattura stornata per intero da nota di credito dal conteggio urgenza/rischio, a differenza di fattureOltre90/esposizioneClienti/testoSollecito che già lo facevano — poi, prima di questo, dopo aver corretto in Flotta (dal deep-pass QA sull'app) tre copie deboli mai propagate — l'ordinamento del magazzino ricambi con la formula grezza già sostituita in sottoScorta, csvBudget col punto inglese come i quattro export gemelli prima del 17/09, e propostaScorte che diceva «soglia oggi 0» per un ricambio mai impostato come statoScorta prima della correzione — poi, prima di questo, dopo aver corretto il ponte Genesi→Terra (dal deep-pass QA su Terra) — un volume in unità arbitrarie della nuvola («u³», nuvola non georeferenziata) passava per metri cubi veri perché la regex di pulizia toglieva anche l'unità, entrando così nella denuncia annuale e negli altri conti che presumono metri cubi reali — poi, prima di questo, dopo aver corretto in Genesi `pointcloud.js:parseXYZ` (dal deep-pass QA sull'app) — un file XYZ misto (righe con e senza RGB) disallineava l'array dei colori da quello delle posizioni, scalando i colori sui punti sbagliati da quel punto in poi — poi, prima di questo, dopo aver corretto in Sentinella (dal deep-pass QA sull'app) `dataIt`: una copia debole locale leggeva la forma della stringa invece del calendario vero, e un documento che esce (referto, report, scheda volata) scriveva una data inesistente come «30/02/2026» invece di «—» — poi, prima di questo, dopo aver corretto in Campo (dal deep-pass QA sull'app) `testoConsegnaTurno`: il semaforo delle azioni correttive HSE mancava nella checklist della consegna testuale, mentre `rapportoGiornata` già lo mostrava — dopo aver corretto in dw-shell.js i tre difetti dal deep-pass su quel file: `leggiCsv` trimmava OGNI campo, quotato o no, mentre `parseCsvLine` dichiara che un campo tra virgolette conserva apposta gli spazi di contorno (una causale bancaria «  SALDO  » li perdeva comunque solo in `leggiCsv`) — `_combacia` riconosceva una sottosequenza CON BUCHI come «l'inizio» di una tabella (un file estraneo con tre colonne comuni veniva rifiutato come file di un'altra app), e `parseCsvLine` perdeva lo spazio bianco che la guardia anti-formula protegge (il `.trim()` arrivava dopo aver tolto l'apostrofo) — dopo aver corretto in Flotta (quarto giro di deep-pass) il libretto esportato in CSV, che non portava la sezione «Componenti a vita propria» mostrata a schermo e in stampa — dopo aver corretto il ponte `idoneitaDiTurno` (shared/dw-ponti.js): mancava un contatore per l'ottavo stato, «senza data» — propagato a cinque punti di Campo (mappa colore riga, didascalia, Quadro, riepilogo Personale, i due documenti stampati) — dopo aver corretto in Scudo (quinto giro di deep-pass) `cartellaLavoratore`: un DPI previsto dalla mansione e mai consegnato non entrava nel fascicolo per l'ispettore, solo nel Quadro — dopo aver corretto nel core `esitoSparo`: la guardia di coerenza era asimmetrica, bloccava «mancati > fori» ma non il gemello «esplosi > fori» senza mancati scritto — dopo aver corretto in Conti (sesto giro di deep-pass) `incassoAtteso`/`incassoPerMese` e la copia debole del Quadro/delle Fatture: una fattura scartata dallo SdI restava cassa in arrivo e credito sollecitabile — dopo aver corretto in Campo (quinto giro di deep-pass) `rapportoGiornata`/`testoConsegnaTurno`: l'idoneità nei documenti nominava solo chi è NON idoneo, non chi ha un documento HSE scaduto o in scadenza (e un secondo difetto trovato scrivendo il test: `idoneitaDiTurno` non riceveva la data del rapporto, quindi giudicava le scadenze contro l'orologio reale) — dopo aver aggiunto in Flotta (dal delta della ricerca continua, tredicesimo giro) la soglia di vita per i componenti a scaglioni (`vitaAttesaOre` opzionale, non una costante di prodotto): `vitaComponenti` giudica ok/attenzione/scaduto solo se qualcuno l'ha dichiarata, e un componente scaduto o vicino a scadere entra in `prioritaOperative` — dopo aver corretto in Conti (quinto giro di deep-pass) sei funzioni che trattavano una fattura scartata dallo SdI (non emessa) come credito vero — dopo aver corretto in Scudo (quarto giro di deep-pass) `abilitazioneLavoratore`/`pillReq` e `csvRegistroInfortuni`: mancava il ramo "senza data" fra i quattro che `statoScadenzaHSE` sa dire (un corso con la scadenza illeggibile spariva da bloccanti/attenzioni e la pastiglia lo disegnava come "in ordine"), e categoria/gravità potenziale/anonimato del near-miss non facevano il giro export→import — dopo aver corretto in Terra (quinto giro di deep-pass) `anniConVolumi`: ultima copia della guardia calendario debole, un rilievo a calendario impossibile allargava di 73 anni la finestra "Banchi da sempre" — dopo aver corretto in Conti (quarto giro di deep-pass) `registroVendite`: una fattura corretta con la matita mescolava imponibile/imposta calcolati dalle righe vecchie col totale registrato nuovo — dopo aver corretto in Campo (terzo giro di deep-pass) il rapporto di fine turno stampato e firmato, che non portava né i near-miss del turno né il giudizio di idoneità medica (ponte con Scudo) mentre il Quadro schermo e il documento gemello li mostravano già — dopo aver corretto in Sentinella (quarto giro di deep-pass) due delle quattro chiamate a `misuraFuoriCondizioni` rimaste senza il ponte meteo con Campo — dopo aver corretto in Terra (terzo giro di deep-pass) `varianzaLottoAnno`: un rilievo a calendario impossibile ribaltava il verdetto pianificato-vs-reale del lotto — dopo aver corretto in Flotta (secondo giro di deep-pass) tre difetti veri: i CSV esportati scrivevano i decimali col punto inglese invece della virgola italiana; il libretto macchina — «il foglio che si consegna a chi compra la macchina» — non riportava mai il costo orario completo (possesso + esercizio), il numero che il codice stesso dichiara decisivo; l'età del mezzo era calcolata e testata ma non compariva mai a schermo, solo nel CSV — dopo aver corretto in Terra (deep-pass) `sequenzaLotto`: l'articolo scritto a mano («il 80%») invece di `articoloNumero`, e in Flotta (ricerca continua sul mestiere) `PIANI_TAGLIANDO` che non dichiarava la fonte dei suoi passi a ore (generici di settore, non il libretto del mezzo) — dopo aver corretto in Scudo (censimento a doppio punto di chiamata, quinto difetto vero nello stesso giorno, ma di forma diversa: qui il lettore `parseInfortuniCsv` non leggeva affatto le tre colonne della denuncia INAIL, non una singola chiamata che le scartava) il registro infortuni: `dataCertificato`/`denunciaData`/`denunciaNumero`, scritte già nella settima colonna come frase per l'RSPP ma mai come dati rileggibili — un registro esportato e ri-caricato perdeva la denuncia già presentata, senza modale per correggerla dopo la registrazione; ottava/nona/decima colonna in coda, scrittore e lettore insieme, nuovo test con controprova, dopo aver corretto in Sentinella (censimento a doppio punto di chiamata, quarto difetto vero trovato con lo stesso metodo nello stesso giorno) `db.aggiungi("adempimenti",...)`: l'import CSV non passava `periodoMesi`/`giorniConsegna` che `parseAdempimentiCsv` già leggeva — un adempimento re-importato perdeva il periodo dichiarato, `periodoAdempimento` tornava "senza-periodicita" e il bottone "Prepara il report" si rifiutava di partire; nuovo test di wiring con controprova, dopo aver corretto in Conti (censimento a doppio punto di chiamata, terzo difetto vero trovato con lo stesso metodo nello stesso giorno) `csvClienti`/`parseClientiCsv`: la copia di sicurezza dell'anagrafica non portava `listinoId`, quindi un cliente col listino personalizzato ri-caricato dal backup tornava silenziosamente al listino base — quattordicesima colonna, scrittore e lettore insieme (non prima fetta: il campo esisteva già su entrambi i lati dello schermo), nuovo test con controprova, dopo aver corretto in Terra (passata di profondità, binario 2, nessun agente di ricerca) un ponte wired solo a metà: `tolleranzaPct` del rilevatore, provato a livello di modulo (`csvRilievi`/`parseRilieviCsv`/`classeAccuratezza`), non passava dal gestore di import CSV a `db.aggiungi` — un rilievo re-importato perdeva la tolleranza dichiarata e ricadeva sulla tipica in silenzio; stessa famiglia del bug di `rapportoGiornata` in Campo, trovato lo stesso giorno con lo stesso metodo (censimento a doppio punto di chiamata); normalizzato a `null`, non `undefined` (Firestore lancia su un campo `undefined`); nuovo test di wiring con controprova, dopo aver migrato a Conti (`csvClienti`) l'OTTAVO scrittore del vocabolario condiviso di P2 — e la CORREZIONE di un errore ripetuto tre volte: `csvClienti` non ha mai avuto una collisione di nome su `stato` (a differenza di `csvGare`, con cui era stato scartato "per contagio" senza un `grep` separato); `fido` è il campo che D1 misurava «assente (ok)», tredicesima colonna, restano davvero irraggiungibili solo `csvGare`/`csvSquadre`/`csvAzioni`, dopo aver migrato a Sentinella (`csvTarature`) il settimo scrittore del vocabolario condiviso di P2 — l'ultimo dei sei candidati liberi di D1 (allora creduti quattro, poi corretti a tre); settima colonna, prima fetta, dopo aver migrato a Conti (`csvListino`) il sesto scrittore del vocabolario condiviso di P2 — `prezzo` è il campo per cui D1 misurava una riga persa, stesso binario di Terra e degli incassi; sesta colonna, prima fetta; sei scrittori su undici, più della metà, dopo aver migrato a Sentinella (`csvRicettori`) il quinto scrittore del vocabolario condiviso di P2 — la prima volta che la riga non sparisce mai senza il valore misurato (un ricettore senza distanza resta un ricettore); scartati come candidati `csvClienti` e `csvGare` perché avevano già una colonna chiamata `stato` con un significato diverso; undicesima colonna, prima fetta, dopo aver migrato a Conti (`csvPesate`) il quarto scrittore del vocabolario condiviso di P2 — la prima volta con un TERZO codice: `pesiPesata` (riusata, non riscritta) distingue già un peso completo da uno letto a metà (un solo dei due, lordo o tara — `illeggibile`, un ticket guasto) da nessun peso (`mai-misurato`), tre stati genuinamente diversi; ventunesima colonna, prima fetta, dopo aver migrato a Conti (`csvIncassi`) il terzo scrittore del vocabolario condiviso di P2 — scelto invece di `csvPesate` perché più semplice (quattro colonne, un solo campo scartabile), stesso binario misurato/mai-misurato su `importo`, quinta colonna, prima fetta, dopo aver migrato a Terra (`csvRilievi`) il secondo scrittore del vocabolario condiviso di P2 — a differenza di Flotta, che aveva già i due stati scritti a mano, qui il modello non distingueva nessuna ragione per un volume mancante, quindi il binario resta lo stesso (misurato/mai-misurato); ottava colonna, prima fetta (solo lo scrittore, `parseRilieviCsv` resta posizionale e compatibile con i file vecchi), aggiornata anche `CSV_TABELLE` in `dw-shell.js`, dopo aver aggiunto in `shared/dw-ponti.js` il vocabolario condiviso di P2 (docs/RICERCA_CONTINUA_ASSENZA.md §4) — sei costanti (`STATO_CELLA_*`) per dire PERCHÉ una cella di un CSV è vuota o vale zero per convenzione, non solo CHE lo è; prima fetta: un solo scrittore migrato, `csvRicambi` di Flotta, che P4 aveva già trovato scritto con le stesse due parole a mano — il rischio che una seconda copia dello stesso vocabolario nasca da una firma troppo stretta era già lì, pronto a mordere il prossimo scrittore; gli altri dieci CSV restano il passo successivo, dopo aver corretto in Campo un buco di CABLAGGIO trovato con una lettura diretta del sorgente (nessun agente): il rapporto di fine turno STAMPATO E FIRMATO (`rapportoGiornata`, wired il 15/09 con la sezione "Volate del giorno", provata a fondo come funzione pura) non riceveva mai `volateSentinella` dalla pagina — diceva SEMPRE "Sentinella non raggiungibile", anche col ponte P6 che aveva letto dati veri — mentre il documento gemello `testoConsegnaTurno` lo riceveva già; il controllo di cablaggio che esisteva per questa chiamata guardava solo l'inizio della riga e non l'aveva mai visto, rinforzato per nominare esplicitamente il parametro; dopo una revisione di qualità sulla stessa unità: `csvRegistroInfortuni` e `fogliaCartella` non portavano la nota della denuncia INAIL che lo schermo già mostrava — la settima colonna del CSV era un `?:` che poteva dire un solo avviso alla volta, e ora compone un elenco (`note`, unito con " · ", la stessa forma dello schermo) invece di sceglierne uno tacendo gli altri; `csvRegistroInfortuni` guadagna anche un `oggi` iniettabile (prima usava `new Date()` fisso, non testabile a una data precisa), dopo aver aggiunto a Scudo (dal delta della ricerca continua sulla scadenza della denuncia INAIL, D.P.R. 1124/1965 art. 53, testo verificato via WebSearch) `scadenzaDenunciaInail`: due termini diversi da due basi diverse — 2 giorni dalla ricezione del certificato medico (`dataCertificato`, campo nuovo) per il caso ordinario (oltre 3 giorni di assenza), 24 ore dall'evento per il caso mortale. Il termine mortale è dichiarato come MASSIMO, non preciso: Scudo registra solo il giorno dell'infortunio, non l'ora, quindi non si può contare un termine in ore — si tiene il caso peggiore (il giorno dopo) e lo si dice. Applica anche la decisione 17 (l'assenza non è un dato favorevole) a un obbligo legale: una prognosi ancora aperta (`giorniAssenza: null`) non è "non dovuta", è "non si sa ancora" — due `motivo` diversi per due `null` diversi, non lo stesso "da valutare" indistinto. Wired nel registro degli eventi (nota testuale, non badge: la barra dei comandi è già piena) e nel modale di analisi; tre campi nuovi nel form di registrazione (`dataCertificato`/`denunciaData`/`denunciaNumero`) — nessun modo di tornarci sopra DOPO la registrazione, il registro è di sola aggiunta: un limite dichiarato, non nascosto. Verificato anche nel browser (`tests/browser/scudo-denuncia-inail.mjs`: i casi reali della dimostrazione, i2/i7/i9 con "manca il certificato" e i8 con "prognosi aperta" — le due ragioni non si scambiano mai), dopo aver costruito il ponte Campo→Sentinella (sovrapposizione 3g di `docs/MAPPA_ECOSISTEMA.md`, cercata il 15/09): `meteoDelGiorno` (in `shared/dw-ponti.js`, perché guarda la forma del dato di Campo) traduce i turni meteo di un giorno in `{pioggia, ventoForte}` — `pioggia` solo se TUTTI i turni di quel giorno sono d'accordo (altrimenti `null`, mai dedotta a caso), `ventoForte` è **sempre e solo** un sospetto qualitativo perché Campo non sa dare un numero in m/s, mai un verdetto. `ponteCampo()` in `sentinella-data.js` (stessa forma di `ponteScudo`, stessa esclusione dalla copertura) fa da async fetch; `misuraFuoriCondizioni` accetta un terzo argomento opzionale e retrocompatibile — un dato misurato in loco vince sempre su uno dedotto dal turno di Campo, e il confronto resta per GIORNO, non per l'istante della misura (Sentinella non registra il turno), dichiarato sempre nella frase mostrata all'utente. Wired su un solo punto di consumo (la riga della lettura), CSV ed export invariati di proposito. Non testabile end-to-end nel browser demo per lo stesso motivo di `ponteScudo`/`AZI` (in demo il ponte torna sempre "non leggibile"): verificato con test puri su `meteoDelGiorno` e `misuraFuoriCondizioni`, più un controllo sul cablaggio nel sorgente della pagina, dopo aver aggiunto a Terra (ultimo delta del tredicesimo giro di ricerca continua) `serieAnni` dentro `banchiDaSempre`: il totale «almeno 62.700 m³» diceva CHE un banco non è stato misurato in tutti gli anni della finestra, non DOVE — il modulo calcolava già il valore anno per anno dentro il proprio ciclo di somma e lo buttava via all'uscita. Prima fetta: solo il valore misurato/non misurato per anno, niente `statoProgettuale` né `volumePianificato` per banco (non esiste nel modello un'entità "banco" con un ciclo di vita proprio — decisione architetturale non presa qui, di proposito, per non scriverla di sfuggita). Nella sezione «Lo stesso banco, da sempre» della Denuncia, sotto il totale, compare la riga anno per anno (mostrata solo con più di un anno in finestra). Verificato anche nel browser (`tests/browser/terra-banchi-serie-anni.mjs`: la riga del banco 2 deve riportare ESATTAMENTE 2024 non misurato, 2025 22.000 m³, 2026 40.700 m³ — la stessa serie che il totale aggregato già dichiarava, non un secondo conto), dopo aver aggiunto a Terra (quinto dei sei delta dello stesso giro di ricerca, parente di `sequenzaLotto`) `aperturaFuoriProgramma`: un lotto può dichiarare `aperturaPrevista: "AAAA-MM"`, e la funzione confronta quel mese col vero `apertoIl` — non con l'avanzamento di un altro lotto (quello è `sequenzaLotto`), col CALENDARIO del progetto. `verso` usa un vocabolario diverso apposta ("anticipo"/"ritardo", non "avanti"/"indietro" di `varianzaLottoAnno"): una data non è un volume. Nella dimostrazione il Lotto 4, previsto per novembre 2023, è stato aperto a maggio 2024 — 183 giorni di ritardo, il caso più comune in cava (un'autorizzazione, un accesso). Verificato anche nel browser (`tests/browser/terra-apertura-programma.mjs`), dopo aver aggiunto a Sentinella (dal delta della ricerca continua, nono giro — escalation sui superamenti ripetuti, verificato indipendentemente sul codice vero prima di scrivere: `statPeriodo`/`confrontoMesi`/`andamentoRicettore` non sommano mai i superamenti di TUTTI i punti di un ricettore su una finestra mobile) `superamentiUltimiGiorni`: conta gli episodi sopra la soglia EFFICACE (quella del ricettore, non quella grezza del punto) di tutti i punti di un ricettore in una finestra mobile, e dichiara un `pattern` quando raggiungono la soglia — un parametro, non un numero cablato, perché nessuna fonte del mondo ne dà uno universale. La frase entra nella bozza dell'azione correttiva («è il 3° superamento negli ultimi 30 giorni su questo ricettore») e un badge compare nel ponte, entrambi silenziosi finché non c'è un pattern vero. Il caso non è nella dimostrazione reale (zero superamenti aperti oggi, misurato) — forzarlo su V2 avrebbe rotto la sua dimostrazione dedicata (la soglia del ricettore, 20 mm/s, vince su quella del punto, 5) — quindi verificato nel browser iniettando un punto apposta (`tests/browser/sentinella-escalation-superamenti.mjs`), mai sul file su disco, dopo aver aggiunto a Terra (stesso giro di ricerca) `sequenzaLotto`: `lotto.ordine` esiste da sempre ma non era mai usato in nessun controllo, solo mostrato nel verbale — un lotto può dichiarare `dipendeDa: {lottoId, percentuale}`, e la funzione dice (non blocca: Terra non ha un bottone "apri" distinto dal form generico) se è stato aperto rispettando la soglia sul lotto precedente, con la stessa forma `{pertinente, frase}` già usata da `attesaCollaudo`/`attesaRecupero`. Due stati nella dimostrazione, di proposito: il Lotto 5 è fuori sequenza (aperto prima che il Lotto 4 raggiungesse l'80%, oggi al 34,8%), il Lotto 6 la rispetta — verificato anche nel browser (`tests/browser/terra-sequenza-lotto.mjs`: il badge "fuori sequenza" e la frase devono riportare ESATTAMENTE la percentuale calcolata dal modulo), dopo aver aggiunto a Terra (dal delta della ricerca continua, sequenziamento multi-anno, verificato indipendentemente prima di scrivere codice) `varianzaLottoAnno`/`volumePianificatoLottoAnno`: `varianzaMensilePiano` è aggregata su TUTTI i lotti insieme, quindi non dice QUALE lotto sta slittando — un ritardo sul Lotto 3 si nasconde dietro un Lotto 1 in anticipo. Il nuovo campo opzionale `lotto.volumiAnnuali` porta il piano per anno, e il confronto riusa `volumeMisuratoDiLotto` filtrando i rilievi sull'anno invece di riscrivere il ponte lotto→fronte→rilievo — prima fetta: un solo lotto della dimostrazione (`lo4`) dichiara il piano, gli altri cinque restano silenziosi (campo nuovo, nessun numero inventato), il form per scriverlo dagli altri lotti resta il passo successivo — verificato anche nel browser (`tests/browser/terra-piano-lotto-anno.mjs`: la riga del lotto deve mostrare ESATTAMENTE il verso e lo scarto calcolati dal modulo, non un numero riscritto nella pagina), dopo aver aggiunto a Scudo (dal delta della ricerca continua, tema segnalato tre volte — luglio, 09/08, 16/09 — mai colmato prima d'ora) il fascicolo macchina: entità `attrezzature/{id}` (tipo/modello/matricola/costruttore/anno) collegata alla verifica periodica tramite `attrezzaturaId`, con `attrezzaturaDiScadenza` a distinguere «non ancora collegata» da «collegamento rotto» (un id che non trova più niente perché l'attrezzatura è stata tolta dall'anagrafica) e `descriviLegameAttrezzatura` a scriverne la frase — prima fetta: la verifica periodica già esistente si arricchisce (tendina di collegamento + nota viva con matricola/costruttore/anno), un form di censimento dedicato resta il passo successivo — verificato anche nel browser (`tests/browser/scudo-verifica-periodica.mjs`, esteso: la tendina deve mostrare il legame salvato e il salvataggio deve persistere alla riapertura, non solo mostrare la selezione fatta), dopo aver aggiunto a Scudo (dal delta della ricerca continua, dodicesimo giro) il preset `rischio-chimico` (gemello di `rumore-vibraz`, titolo IX D.Lgs 81/08) e il tipo di documento «Scheda dati di sicurezza (SDS)» — prima fetta: entrano nel ciclo di vita generico già esistente (scadenzario, valido/da rivedere/scaduto), i campi propri (sostanza, classificazione, data di revisione) restano il passo successivo — dopo aver aggiunto a Scudo (dal delta della ricerca continua, dodicesimo giro — "notifiche automatiche", primo passo senza server) `notificheScadenzeNonLette`: un contatore di scadenze urgenti che RESTA acceso finché la pagina Scadenze non si visita, non solo mentre la si guarda — "nuova" non è un campo salvato, si deduce confrontando `livelloScadenza` alla data dell'ultima visita (un solo timestamp, `impostazioni.scadenzeVisteIl`) con quello di oggi, senza dover storicizzare ogni scadenza — verificato anche nel browser (`tests/browser/scudo-notifiche-scadenze.mjs`: il badge deve sparire DOPO la visita, scrivendo il record davvero — un `aggiorna`→`aggiungi` scambiato non lo vedrebbe nessuna suite `node` — e nel farlo si è trovato un difetto CSS reale: `.badge` dichiara `display:inline-flex` con la stessa specificità di `[hidden]{display:none}`, quindi l'attributo `hidden` da solo non nasconde mai il badge — visibile solo misurando il RENDERING, non la proprietà DOM), dopo aver aggiunto a Conti (dal delta della ricerca continua, decimo giro) `statoPianoRientro`: un accordo di pagamento a rate su una fattura scaduta, fra il sollecito e la messa in mora formale — le rate sono una CASCATA (ogni rata copre il cumulato fino a lì, non un incasso a sé), e tre esiti dichiarati (`rispettato`/`in-ritardo`/`decaduto`, mai un "a posto" tacito): "decaduto" solo se la rata in ritardo resta scoperta anche quando scade anche la rata successiva, e allora il residuo torna nell'escalation intera del sollecito. Prima fetta come `componentiDelMezzo`/`sezionePeggiore`: sola lettura (un badge nell'elenco fatture), il form per registrare un piano dalla fattura resta il passo successivo — verificato anche nel browser (`tests/browser/conti-piano-rientro.mjs`: il badge deve comparire sulla fattura GIUSTA, un difetto — il confronto per `id` invece che per `fatturaId` — che nessuna suite `node` può vedere), dopo aver aggiunto a Conti (dal delta della ricerca continua, decimo giro) `statoRecupero`: `livelloSollecito`/`testoSollecito` ricalcolano il livello dal solo ritardo, ogni volta, senza sapere se una lettera è già PARTITA — un log leggero (`fattura.solleciti: [{livello, data, canale}]`) scritto SOLO quando l'utente conferma un invio già avvenuto (bottone "Segna come inviato" accanto a "Sollecito", nessun invio automatico) rende "mai comunicato" uno stato dichiarato invece di un livello zero, e distingue il livello comunicato da quello che il ritardo di oggi implicherebbe — verificato anche nel browser (`tests/browser/conti-solleciti-storico.mjs`: il bottone deve aprire la modale sulla FATTURA GIUSTA, un difetto — l'ID scambiato per il numero — che nessuna suite `node` può vedere, e la registrazione deve sopravvivere alla chiusura della modale), dopo aver aggiunto a Flotta (dal delta della ricerca continua, undicesimo giro — prima fetta) `componentiDelMezzo`/`vitaComponenti`: pneumatici, cingoli e denti benna guadagnano un punto di partenza sulle ore del mezzo, riusando lo schema di `azzeramentiDelMezzo`/`spezzaLetture` — verificato nel browser (`tests/browser/flotta-componenti-vita.mjs`), dove il PRIMO collegamento alla pagina aveva un difetto reale (il filtro per nome mezzo applicato a un elenco già scoperto a un mezzo solo, quindi sempre vuoto) che nessuna suite `node` poteva vedere, dopo aver corretto in Conti (dal delta della ricerca continua, decimo giro) `esitoMovimento`: un pagamento più basso dell'aperto che coincide con lo sconto cassa concordato (`scontoCassa: {pct, giorniEntro}` sulla fattura, `scontoCassaMaturato` la calcola) non è più letto come "è un acconto" — diventa grado `certo` con l'indicazione di registrare anche la nota di credito che chiude davvero la fattura; fuori termine, o senza uno sconto dichiarato, il comportamento resta quello di sempre, dopo aver aggiunto a Scudo (dal delta della ricerca continua, undicesimo giro — ICAM) `barriereRicorrenti`/`BARRIERE_MANCATE`: non «che cosa ha causato l'evento» ma «che cosa avrebbe dovuto fermarlo e non l'ha fatto», sorella di `causeRicorrenti` (stessa guardia di leggibilità, non ricopiata), con un chip multi-select nella modale di analisi (a differenza della causa, che è singola) — verificato anche nel browser (`tests/browser/scudo-barriere-icam.mjs`: il multi-select e la sua persistenza al salvataggio, che nessuna suite `node` può vedere) e con un caso vero già in demo (`an1`/i1, la fascia di rispetto non delimitata che il suo stesso «perché» già descriveva), dopo aver aggiunto a `leggiCsv` (dal delta della riverifica su PAROLE) `nRighe` — il numero di riga FISICO su cui comincia ogni riga logica, che un a capo dentro le virgolette può spostare senza chiudere la riga — e migrati con lei gli ultimi due lettori non standard rimasti (`scudo.scartiAzioniCsv`, `conti.scartiClientiCsv`): la migrazione dei 21 lettori CSV alle righe fisiche, aperta dal delta PAROLE del 15/09, è ora completa, dopo aver aggiunto a Flotta (dal delta della ricerca continua, undicesimo giro, che riprende un gap dichiarato aperto il 15/09) `frequenzaFermiControStoria` — terza sorella di `consumoControStoria`/`costoControStoria`: il RITMO dei fermi (episodi al giorno, non giorni persi) confrontato fra la finestra recente e la storia del mezzo, per accorgersi che un mezzo si guasta più spesso prima che scada un tagliando a soglia fissa — collegata a `prioritaOperative` come terza voce "trend" (badge "Fermi in aumento", tolleranza dichiarata `TOLLERANZA_FERMI_PCT=40`, nessuna fonte di settore per questo numero), dopo aver aggiunto a Conti (dal delta della ricerca continua, decimo giro) `concentrazionePortafoglio` — quanto pesa il cliente più esposto sul credito aperto totale, riusando `esposizioneClienti` invece di ricalcolare il totale una seconda volta, `calcolabile:false` quando il credito aperto è zero — mostrata nella scheda Clienti sotto la lista dell'esposizione, e verificata anche nel browser (`tests/browser/conti-barre-peso.mjs`, sezione 6: la quota scritta nella nota deve essere quella che le righe della lista stessa danno, non una copia ricalcolata a parte), dopo aver migrato anche l'ultima forma standard-nel-verdetto-ma-non-nella-firma rimasta fuori dal quarto lotto — `scartiTelemetriaCsv` di Flotta, che riconosce l'intestazione per NOME di colonna (`mappaTelemetriaCsv`) e non con una parola chiave fissa: il predicato passato a `righeCsvNumerate` chiede «sono la prima riga vista?» invece di «assomiglio a un'intestazione?», e la riga persa senza nome del mezzo torna a essere quella FISICA anche nella forma posizionale senza intestazione riconosciuta (controprova: rimessa la vecchia numerazione per posizione, `riga 5` torna `riga 3` e la prova cade), dopo aver aggiunto a `righeCsvNumerate` (dal delta della riverifica sul documento invecchiato PAROLE, proposta 4 del Blocco 2 — riscontrata identica in tutti e 21 i lettori) il numero di riga FISICO nel file invece della posizione nell'elenco già scartato, e migrati un secondo lotto (`scartiScadenzeCsv`/`scartiInfortuniCsv` di Scudo, `scartiMonitoraggiCsv`/`scartiRicettoriCsv`/`scartiAdempimentiCsv`/`scartiVolateCsv` di Sentinella) un terzo (`scartiSquadreCsv`/`scartiPianoCsv` di Campo, `scartiRicambiCsv`/`scartiMezziCsv` di Flotta) e un quarto (`scartiFattureCsv`/`scartiGareCsv`/`scartiListinoCsv` di Conti — i lettori standard sono ora tutti migrati), dopo aver esteso `righeCsvNumerate` per accettare anche un PREDICATO oltre a una parola chiave (senza cambiare il contratto a stringa per i 18 chiamanti già migrati) e aver migrato con lui `scartiLavoratoriCsv` di Scudo, che riconosce l'intestazione sulla prima cella già scomposta invece che con `isIntestazione` — restano cinque forme non standard basate su celle già parsate invece che su testo grezzo (`scartiAzioniCsv` di Scudo, `scartiTelemetriaCsv` di Flotta, `scartiPesateCsv`/`scartiIncassiCsv`/`scartiClientiCsv` di Conti), dopo aver aggiunto a Genesi (dal secondo giro di ricerca) `burdenPerForo` — il pannello «Burden per foro» sulla scheda Progetto 2D, che elenca il burden vero di TUTTI i fori insieme leggendo `h.burdenVero`/`h.burdenLoc` già scritti da `computeEnergia2D` a ogni rigenerazione della maglia: nessun import, nessun calcolo nuovo, verificato anche nel browser (`tests/browser/genesi-burden-per-foro.mjs`, 11 prove più la controprova), dopo aver riscritto in Sentinella (dal delta della riverifica su PAROLE, proposta 2) la provenienza del periodo di un adempimento al positivo invece che in negazione, e aggiunto a `run-stile.mjs` la regola 33 (proposta 3, metà b) — mai «non rilevato» in nessun testo, perché nei rapporti di prova italiani vuol dire il contrario di «non misurato» — dopo aver corretto in `numeri-nei-documenti.mjs` una regex che smetteva di leggere un modulo condiviso appena la sua copertura saliva sopra il fondo storico (l'ancora di fine riga non ammetteva il testo «(il fondo era N: alzalo)» che `copertura-funzioni.mjs` appende in quel caso — trovato perché `dw-shell.js` è salito da 61/61 a 62/62 nella stessa unità), dopo aver aggiunto a `sezionePeggiore` di Terra (dal delta del sesto giro di ricerca, lacuna 2 sulle sezioni trasversali per fronte, scomposta il 15/09 prima di scrivere codice) la prima fetta — un fronte porta un array opzionale e additivo di sezioni, e con zero sezioni il verdetto ricade identico su `conformitaGeometria`; collegata subito al posto di `conformitaGeometria` in `conformitaProgetto`, senza cambiare nessun contratto quando nessuna sezione è dichiarata (il form a righe ripetibili per scriverle resta la fetta successiva), dopo aver aggiunto a `scartiInfortuniCsv` di Scudo e `scartiMonitoraggiCsv` di Sentinella (dal delta della riverifica sul documento invecchiato ASSENZA) i due ultimi lettori CSV rimasti «muti» — adesso ogni riga scartata si nomina con la sua ragione, e `frasePersi` la appende ai messaggi d'import delle due pagine, dopo aver aggiunto al registro vendite di Conti (dal delta della ricerca su trasporto conto terzi e rese) la causale della nota, già scritta e mostrata altrove ma tenuta fuori dal CSV per il commercialista, a `attesaRecupero` di Terra (dal delta della ricerca sul ripristino progressivo) il gemello di `attesaCollaudo` per la transizione esaurito→recupero iniziato, a `lavoriNonConclusi` di Campo (dal delta della ricerca sulla consegna di turno) la causale e i minuti di un fermo nella riga stampata, non solo nel Pareto interno, a `testoPromemoriaAzione` di Scudo (dal delta della ricerca sulle azioni correttive) lo stesso promemoria manuale già usato per le scadenze dei lavoratori, ma per il responsabile di un'azione correttiva, a `etaMezzo` di Flotta (dal delta della ricerca continua sul TCO) la messa in servizio prima e il possesso come ripiego, mai un'età negativa su una data nel futuro, alla pagella di Flotta il costo orario col possesso portato in riga (già calcolato, mai passato al confronto fra mezzi) senza toccare verdetto o ordine, a `run-kpi` la prova che «saldata» e «parziale» non sono mai vere insieme in `statoFattura` di Conti, a `claims-convergenza` il limite a tre scritture, a `kpiFrom` di Scudo un `oggi` fisso, alla conformità di Terra il fronte conteso fra due lotti, a `tagliandiInScadenza` di Flotta lo stesso criterio di `urgenzaManutenzione`, a `fogliaVolata` di Sentinella la lettura trovata per valore e non solo per (data, ora), a `applicaIncassi` di Conti la cecità alle note di credito, a `cancellazioneLasciaBuco` la numerazione DDT senza salti dichiarata ma non imposta, al margine fra esaurimento e scadenza in `vitaCava` di Terra, alla sospensione temporanea in `abilitazioneLavoratore` di Scudo, a `reclamiPerRicettore` di Sentinella l'aggregazione per punto, a `costoControStoria` di Flotta il costo medio per intervento contro la sua storia, a `varianzaMensilePiano` di Terra lo scarto del mese corrente dal piano annuo, a `prioritaOperative` di Flotta le voci "trend" sul consumo e sul costo fuori tolleranza, a `avvisiChiusuraTurno` di Campo gli avvisi (non bloccanti) sull'appello e sulle attività aperte alla chiusura del turno, a `tendenzaRitmo` di Terra il ritmo corto contro quello lungo, a `testoSollecito` di Conti l'escalation per livello del sollecito, a `fattureOltre90` di Conti l'elenco per il commercialista, a `cartellaLavoratore` di Scudo gli infortuni della persona collegati al fascicolo, a `visitaRientroNecessaria`/`riepilogoInfortuni`/`cartellaLavoratore` di Scudo la visita medica di rientro dopo un'assenza oltre 60 giorni (art. 41 c.2 lett. e-ter), a `GRAVITA_INFORTUNIO`/`infortunioGrave`/`giornateConvenzionali` di Scudo il terzo e quarto gradino di gravità di un infortunio vero coi giorni convenzionali UNI 7249 nell'indice di gravità, a `#inf-list` di Scudo la lettura dell'etichetta di gravità dal vocabolario invece del campo grezzo (trovato da una QA visiva), e alla barra in basso di Sentinella il bottone «Scadenze» al posto di «Adempimenti» (i bersagli di tocco a 320px, misurati con Playwright, sono saliti da 41,4 a 45,61–46,86 px):
 
 > ⚠️ **E quel numero conta NOVE suite, non tutto quello che gira.** Il giro
-> `node` completo esegue **3.282** asserzioni su **37** comandi.
+> `node` completo esegue **4266** asserzioni su **41** comandi *(ricontato il
+> 19/09 dopo G56d, sulla copia da committare — lo stampa `giro-node.mjs`
+> ogni volta che gira, non lo si insegue a mano. ⚠️ Il documento è arrivato
+> a questo numero passando per tre valori diversi nella stessa giornata,
+> senza che il codice di produzione cambiasse fra il primo e il terzo: 4263
+> (rimasto scritto da dopo G56b), poi 4212 (rimisurato dopo G56c, ma con due
+> comandi ancora rossi — `numeri-nei-documenti.mjs`, `date-checkpoint.mjs`,
+> corretti nella stessa unità di G56c — le cui asserzioni non venivano
+> contate finché il comando cadeva), poi 4265 (rimisurato a comandi tutti
+> verdi), poi 4266 (dopo G56d). La lezione non è sul numero, è sul metodo:
+> **si rimisura DOPO ogni correzione, non si propaga a mente il delta di
+> un'unità sopra un numero che potrebbe già essere sbagliato per un'altra
+> ragione**)* — ⚠️ e quel
+> numero **NON oscilla a parità di codice**: cambia solo quando cambiano le
+> prove (misurato il 17/09 — la stessa apparente "oscillazione" vista quel
+> pomeriggio, 4046→4091→4092, era il confronto fra un numero scritto in un
+> commit precedente e una misura fresca dopo che il codice era già cambiato,
+> non instabilità: tre lanci sullo STESSO commit invariato hanno dato 4092
+> tutte e tre le volte), quindi non lo si insegue a mano: lo
+> stampa `giro-node.mjs` ogni volta che gira (il
+> quarantunesimo comando, dal 16/09, è `prove-grep-scadute.mjs`: rilancia i comandi
+> `grep` scritti nei documenti di ricerca continua e confronta l'uscita con
+> quella dichiarata — un "non c'è" scaduto in poche ore, non in giorni).
 > ⏱️ **Dal 09/08 quel numero non si scrive più a mano: lo stampa il giro**
 > (`node apps/deepwork-id/tests/giro-node.mjs`, riga «Asserzioni eseguite dal
-> giro»), col suo denominatore accanto — 22 comandi su 34 hanno una riga da
-> sommare, e gli altri **12 sono nominati** invece che contati.
+> giro»), col suo denominatore accanto — 27 comandi su 41 hanno una riga da
+> sommare (dal 15/09 anche `numeri-nei-documenti.mjs`, corretto un difetto suo:
+> vedi il suo commento), e gli altri **14 sono nominati** invece che contati.
 > ⛔ *E «lo stampa il giro» non bastava: era rimasto **2.757** mentre il giro ne
 > eseguiva 2.815 — stale di cinquantotto — perché stamparlo e ricopiarlo a mano
 > sono la stessa cosa. Dal 09/08 il giro, dopo aver stampato il totale,* **apre
@@ -78,21 +101,20 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 > 2.251» mentre il titolo sopra diceva già 2.310: il controllo sorveglia il
 > **totale**, non la prosa che lo spiega. È la quarta forma di invecchiamento
 > raccolta in `CLAUDE.md`.*
-> **Il numero da citare resta 2.877**, e la ragione è che le altre dieci contano
+> **Il numero da citare resta 3.203**, e la ragione è che le altre dieci contano
 > **file, non prove**: `import esistenti` fa un'asserzione per file e `classi
 > orfane` una per pagina, quindi il loro totale si muove ogni volta che nasce un
 > file — un numero che cresce senza che nessuno abbia scritto una prova è un
 > numero che non vuol dire niente. Le sei suite contano **casi**, e per questo
 > sono quelle sorvegliate da `numeri-nei-documenti.mjs`.
 
-E **760 funzioni pure su 760** sono chiamate per nome da quelle prove: tutte e
+E **1053 funzioni pure su 1053** sono chiamate per nome da quelle prove *(ricontato il 19/09 con `copertura-funzioni.mjs`, dopo il quattordicesimo giro — Campo ha guadagnato `checklistUltimePerTurno`, con la sua prova; dopo il dodicesimo giro Sentinella aveva già guadagnato `BADGE_LETTURE_SCOPERTE`)*: tutte e
 sei le app al 100%. Non è «provate bene» — è «non ce n'è nessuna che nessuno ha
 ancora guardato», che è il minimo e finora non c'era.
 
-⚠️ **Quel 760 conta le sei app, non i moduli condivisi**, e la riga di riepilogo
-lo dice («in 6 app»). I condivisi si contano a parte — **183 su 183** in cinque
-moduli: `dw-shell.js` **54/54**, `dw-ponti.js` **47/47**, `genesi-data.js`
-**69/69**, `genesi-formato.js` **8/8**, `pointcloud.js` **5/5**. Vanno guardati
+⚠️ **Quel 802 conta le sei app, non i moduli condivisi**, e la riga di riepilogo
+lo dice («in 6 app»). I condivisi si contano a parte — **348 su 348** in cinque
+moduli: `dw-shell.js` **62/62**, `dw-ponti.js` **97/97**, `genesi-data.js` **175/175**, `genesi-formato.js` **9/9**, `pointcloud.js` **5/5**. Vanno guardati
 con più attenzione delle app, non con meno: una funzione sbagliata lì sbaglia in
 sei posti insieme.
 ⏱️ **Questi sei numeri sono invecchiati due volte in due giorni, e la seconda
@@ -110,7 +132,7 @@ esiste.
 
 ⛔ **E il 100% vale per il perimetro misurato, non per tutto il prodotto.**
 Le sei app hanno la loro logica in `apps/<nome>/<nome>-data.js`, che `node`
-importa. **Genesi no**: le sue **170 funzioni** stanno dentro
+importa. **Genesi no**: le sue **138 funzioni** stanno dentro
 `apps/genesi/genesi.html`, e da lì non si importano — di Genesi entrano nel
 conto solo i moduli già tirati fuori (`pointcloud.js`, `genesi-formato.js`,
 `genesi-data.js`, elencati con i loro conti nella tabella dei condivisi qui
@@ -126,14 +148,286 @@ funzioni si possono portare fuori **senza cambiargli la firma**:
 
 | variabili del modulo che legge | funzioni |
 |---|---|
-| nessuna — si porta fuori com'è | **29** |
-| una o due | **59** |
-| da tre a cinque | 23 |
-| da sei a dieci | 26 |
-| più di dieci — lì è un rifacimento | 33 |
+| nessuna — si porta fuori com'è | **23** |
+| una o due | **38** |
+| da tre a cinque | 18 |
+| da sei a dieci | 17 |
+| più di dieci — lì è un rifacimento | 42 |
 
-Cioè **66 su 170 si estraggono senza rifare il modo in cui Genesi tiene il suo
-stato**, e le restanti 105 sono una decisione di architettura.
+Cioè **46 su 138 si estraggono senza rifare il modo in cui Genesi tiene il suo
+stato**, e le restanti 92 sono una decisione di architettura.
+⏱️ *39→38 e 41→42 il 19/09 (G56b, l'annulla premuto a metà di un
+trascinamento — deep-pass QA su G48-G56): `d2ApplySnap` leggeva solo `D2`
+("una o due"); il difetto vero era proprio che non azzerava anche
+`d2drag`/`d2dragPt` quando l'annulla rimpiazzava `D2.holes` — la cura fa
+scivolare la funzione direttamente a "più di dieci". Gli estraibili
+scendono (47→46): nessuna funzione nuova, il totale (138) non cambia.*
+⏱️ *40→39, 17→18, 18→17 e 40→41 il 19/09 (G56, la guida di allineamento sul
+trascinamento di un foro): la nuova variabile del modulo `d2AlignGuide`
+tocca DUE funzioni, in direzioni opposte del conto. `d2Up` (prima 2
+variabili: `d2drag`, `d2dragPt`) ne legge/scrive una terza e scivola da
+"una o due" a "3-5". `d2Move` (già oltre la soglia "6-10") ne legge una in
+più e scivola a "più di dieci". Gli estraibili scendono (48→47): nessuna
+funzione nuova, il totale (138) non cambia.*
+⏱️ *18→17 e 39→40 il 18/09 (`genesi-estraibili.mjs`, ricontato dopo le unità
+della giornata): una funzione è scivolata dal bucket "sei-dieci" a "più di
+dieci", stessa forma già vista il 14/09 qui sotto.*
+⏱️ *137→138 e 39→40 il 19/09 (G53, `fraseGraviExport`): una funzione nuova
+che legge una variabile del modulo (`D2._sintesi`) cade nel bucket "una o
+due", alzando sia il totale che gli estraibili (47→48).*
+⏱️ *49→48, 57→56 e 143→142 il 14/09 (B3, stesso giorno): `_snapXY(D2, v)`,
+l'ultimo "legame di una riga" rimasto nel blocco G34 (l'aggancio opzionale
+alla griglia) — componeva solo `snapAGriglia` già pura. Dieci punti di
+chiamata nella pagina, tutti dentro gli event handler del mouse dell'editor
+2D, tutti aggiornati a passare `D2` (sostituzione globale sicura: `_snapXY(`
+non compare in nessun altro contesto). Nessun wrapper lasciato. Stesso
+margine dello strumento già visto su `activeProf`: `d2Move` guadagna
+`renderInspector` nel proprio elenco "chiama" (chiamata presente nel suo
+corpo da sempre, prima mascherata da `_snapXY`) — bucket "3-5" invariato.*
+⏱️ *48→47, 56→55 e 142→141 il 15/09 (B3, cantiere ripreso dopo la misura
+sul costo di `selRoccia`/`selEsplosivo`/`selInnesco`, vedi checkpoint
+`20260914-234319`): `computeInnesco2D(D2)`. Il G39 del 14/09 aveva già
+estratto `innescoSuMaglia`, ma aveva lasciato in pagina il legame a zero
+argomenti — stessa forma di `computeEnergia2D`/`computeRelief2D` prima di
+loro, e nessuna ragione strutturale per fermarsi un passo prima: unico
+chiamante (`computeSeq2D`) già con `D2` in scope. Non lascia un wrapper
+(era già zero-arg, ora è un'importazione). Difetto iniettato provato e
+rimesso: uno scambio S/B è invisibile per costruzione (usati solo dentro
+un `Math.max` simmetrico); il difetto verificabile è sulla sorgente dei
+fori. Unico effetto collaterale: `computeSeq2D` perde `computeInnesco2D`
+dal proprio elenco "chiama" (stessa famiglia già vista su
+`computeEnergia2D`/`computeRelief2D`).*
+⏱️ *47→46, 55→54 e 141→140 il 15/09 (B3, stesso giorno): `_sigDetTimes`
+è uscita del tutto dalla pagina (nessuna funzione nuova nel modulo:
+componeva SOLO `tempiDetonazione(D2)`, già esattamente la forma che
+`genesi-data.js` espone dal G23 del 10/09 — un alias senza logica
+propria, come `sitoStore`). I suoi due chiamanti (la modale del PPV
+composito, il nome del file esportato) chiamano `tempiDetonazione(D2)`
+direttamente. Nessuno spostamento di bucket per altre funzioni,
+misurato confrontando `--elenco` prima/dopo.*
+⏱️ *46→42, 54→50 e 140→139 il 15/09 (B3, stesso giorno): `mdlProfSnap`
+è uscita del tutto dalla pagina (nessuna funzione nuova: componeva SOLO
+`scattoProfili(P.profilo, D2.piede)`, già pura dal blocco G30 dell'11/09).
+I suoi tre chiamanti (`mdlPushUndo`, `mdlUndo`, `mdlRedo`, la stessa
+famiglia undo/redo del modello 3D) chiamano `scattoProfili` direttamente.
+⚠️ **Effetto collaterale reale, non un margine dello strumento**: i tre
+chiamanti leggevano `mdlUndoStack` (e `mdlRedoStack`/`MDL_UNDO_MAX`) e
+basta — `P`/`D2` restavano dentro `mdlProfSnap()`, quindi mascherati.
+Inlineando la composizione dentro i loro corpi, `P` e `D2` diventano
+letture dirette e tutti e tre salgono dal bucket "1-2" al "3-5" (bucket
+"1-2" 46→42, "3-5" 14→17: −4 e +3, non −1 e +0 come nelle unità
+precedenti). Misurato confrontando `--elenco` prima/dopo su una
+worktree, non dedotto.*
+⏱️ *42→41, 50→49 e 139→138 il 15/09 (B3, stesso giorno): `crestZ` è
+uscita del tutto dalla pagina (nessuna funzione nuova: componeva SOLO
+`quotaCresta(P.profilo, x)`, già pura dal blocco G24 del 10/09). I sei
+chiamanti — sparsi su funzioni non correlate (la scheda dei fori, la
+sincronizzazione 3D del modello, l'esportazione del piede) — chiamano
+`quotaCresta(P.profilo, x)` direttamente. A differenza di `mdlProfSnap`,
+nessuno spostamento di bucket per altre funzioni: i sei chiamanti
+leggevano già altre variabili proprie in numero sufficiente da non
+cambiare scaglione con l'aggiunta di `P`, misurato confrontando
+`--elenco` prima/dopo.*
+⏱️ *41→40, 49→48, 168 su 168 condivisi (era 167) e 138→137 il 15/09
+(B3, stesso giorno): `measureGeom2D(design)`. Il G35 del 13/09 aveva
+già estratto `misuraGeom2D` ma lasciato in pagina il legame a zero
+argomenti — sette punti di chiamata, tenuto per il nome corto invece
+di ripetere tre campi ad ogni chiamata. Nessuna ragione per lasciarlo
+in pagina: stesso nome, salito nel modulo con lo stato come primo
+argomento esplicito. Difetto iniettato provato e rimesso: uno scambio
+dei due campi nel composer si vede SOLO nel caso senza fori (con fori
+veri la spaziatura si ricalcola dalle posizioni, stessa famiglia di
+`_spazTipico`/`computeInnesco2D`), catturato dal test dedicato.
+Nessuno spostamento di bucket per altre funzioni: i sette chiamanti
+leggevano già abbastanza altre variabili di modulo, come per `crestZ`
+e a differenza di `mdlProfSnap`, misurato confrontando `--elenco`
+prima/dopo.*
+⏱️ *40→39, 48→47 e 137→136 il 15/09 (B3, stesso giorno): `interpFronte`
+è uscita del tutto dalla pagina
+(nessuna funzione nuova: componeva SOLO `interpProf(D2.profilo, mx)`,
+già pura dal blocco G9 del 09/08). Il legame più grande chiuso finora
+per punti di chiamata (sedici, sparsi su funzioni di rendering non
+correlate — il disegno 2D, la mappa dell'energia, la rete di
+collegamento, l'editor del piede), sostituito con uno script Python
+di replace globale (sicuro: la sottostringa non compare altrove,
+confermato con `grep -c` prima e dopo). Nessuno spostamento di bucket
+per altre funzioni, misurato confrontando `--elenco` prima/dopo: i
+sedici chiamanti erano già in buckets più alti. Resta deferred il
+gruppo `selRoccia`/`selEsplosivo`/`selInnesco` (46 punti di chiamata,
+quasi tre volte questo).*
+⏱️ *52→49, 60→57 e 146→143 il 14/09 (B3, stesso giorno): TRE funzioni uscite
+insieme — `activeProf(D2)`, `d2HitTest(D2, px, py)`, `d2HitTestPt(D2, px, py)`
+— perché `d2HitTest`/`d2HitTestPt` compongono `puntoTela`/`indicePiuVicino`
+già pure e `d2HitTestPt` compone anche `activeProf`: non potevano cambiare
+firma separatamente. `activeProf` è la prima fetta di B3 senza una funzione
+pura preesistente da comporre — calcola direttamente da `D2.tool`, pura di
+suo. `d2HitTest` sostituisce `interpFronte(mx)` (wrapper di pagina, resta:
+sedici altri punti di chiamata) con `interpProf(D2.profilo, mx)` diretto,
+come già per G41. Nessuna delle tre lascia un wrapper: sei punti di chiamata
+in tutto.
+⚠️ Effetto collaterale nel censimento, non un bucket-shift: `d2Move` mostra
+`computeSeq2D` nel proprio elenco "chiama" dove prima non compariva — quella
+chiamata è nel suo corpo da sempre (riga non toccata da questa unità), il
+censimento la vedeva mascherata mentre elencava `activeProf`. Margine noto
+dello strumento, non un difetto di questa fetta.*
+⏱️ *54→52, 62→60 e 148→146 il 14/09 (B3, stesso giorno): DUE funzioni
+indipendenti in un'unica unità — `_spazTipico(D2, H)` (componeva solo
+`spaziaturaTipica` già pura dal blocco G24) e `innTaglioOk(D2, dt)`
+(componeva solo `taglioRealizzabile` già pura dal blocco G25). Non
+accoppiate come `scatterMs`/`computeRelief2D`: erano semplicemente gli
+ultimi due "legami di una riga" rimasti nei rispettivi blocchi. Nessuna
+delle due lascia un wrapper (tre punti di chiamata in tutto). Nessuno
+spostamento di bucket per altre funzioni.*
+⏱️ *55→54, 15→14, 63→62 e 150→148 il 14/09 (B3, stesso giorno): DUE funzioni in un'unica
+unità, perché accoppiate — `scatterMs(D2)` (dal bucket "3-5": un falso
+positivo del censimento, leggeva solo `D2` più tre parole corte di un
+commento vicino) e `computeRelief2D(D2)` (dal bucket "1-2"), che chiama
+`scatterMs` e quindi non poteva cambiare firma da sola. Componevano solo
+`scatterInnesco`/`reliefSuMaglia` già pure. Nessuno dei due lascia un
+wrapper (tre punti di chiamata in tutto, tutti aggiornati a passare `D2`).
+Unico effetto collaterale reale: `computeSeq2D` perde `computeRelief2D`
+dal proprio elenco "chiama" (stessa famiglia di `computeEnergia2D`).*
+⏱️ *56→55, 64→63 e 151→150 il 14/09 (B3, stesso giorno): `isoPasso`, stesso
+schema (`isoPasso(D2)`), componeva solo `passoIsocrone` già pura dal blocco
+G24 (10/09) — come `computeEnergia2D`, esce DEL TUTTO dalla pagina (nessun
+wrapper: due punti di chiamata, entrambi aggiornati a `isoPasso(D2)`).
+Nessuno spostamento di bucket per altre funzioni.*
+⏱️ *57→56, 65→64 e 152→151 il 14/09 (B3, stesso giorno): `computeEnergia2D`
+è uscita dalla pagina DEL TUTTO (non lascia un wrapper: era void, un solo
+punto di chiamata dentro `computeSeq2D`), stesso schema
+(`computeEnergia2D(D2)`), componeva solo `energiaSuMaglia` già pura dal
+blocco G41 (14/09). Unico effetto collaterale misurato confrontando
+`--elenco` prima/dopo: `computeSeq2D` perde `computeEnergia2D` dal proprio
+elenco "chiama" (non è più una funzione della pagina, è un import) —
+nessuno spostamento di bucket vero.*
+⏱️ *58→57, 66→65 e 153→152 il 14/09 (B3, stesso giorno): `reliefCls` è
+uscita dalla pagina, stesso cambio di firma (`reliefCls(D2, r)`).
+Componeva solo `classeRelief`, già pura in `genesi-data.js` dal blocco G26
+(10/09) — la prima volta che B3 tocca un "legame di una riga" già marcato
+"resta come legame" da un cantiere precedente, invece di uno senza quel
+commento: la nota descriveva l'architettura di quel momento, non un
+divieto a finire l'estrazione dopo. I suoi due chiamanti (`drawDesign2D`,
+`renderInspector`) leggono già `D2` per conto proprio: nessuno spostamento
+di bucket, misurato confrontando `--elenco` prima/dopo su una worktree.*
+⏱️ *59→58, 67→66 e 154→153 il 14/09 (B3, stesso giorno): `pieDev` è
+uscita dalla pagina, stesso cambio di firma (`pieDev(D2, x)`). Effetto
+collaterale VERO, non rumore dello strumento: `mdlBuild` (che la
+chiama) è passata dal bucket "sei-dieci" a "più di dieci" (19→18,
+38→39) perché ora scrive `D2` esplicitamente nella chiamata — quel
+token è nel suo corpo per davvero, non nel commento di qualcun altro.
+Misurato confrontando `--elenco` prima/dopo: è l'unica funzione che ha
+cambiato bucket.*
+⏱️ *60→59, 68→67 e 155→154 il 14/09 (B3, cantiere del trasloco di Genesi,
+ripreso dopo G47): `pfNominale` è uscita dalla pagina, con CAMBIO DI
+FIRMA (`pfNominale(D2)` invece di leggere `D2` dalla chiusura) — lo
+stesso schema già usato per ogni altro "legame di una riga" di questa
+fascia. Componeva solo due funzioni già pure (`consumoSpecifico`,
+`volumeForo`, già in `genesi-data.js`): nessun calcolo nuovo, solo
+l'argomento esplicito. I cinque punti che la chiamavano nella pagina
+passano ora `D2`.*
+⏱️ *61→60, 18→19 e 69→68 il 14/09 (G47d, ULTIMA fetta di G47), e come per
+G47a QUESTA VOLTA NON È UN CANTIERE VERO: `d2Snap` (una riga, legge solo
+`D2` davvero) è finita nel bucket "sei-dieci" perché il commento italiano
+appena scritto sopra di lei contiene le parole «dxf», «pts», «e», «a»,
+«lo» — lo stesso margine accettato dello strumento già misurato su G47a.
+`d2Down`/`drawDesign2D` hanno guadagnato "tratti" nel loro elenco per la
+stessa ragione (il commento su G47d nomina "tratti" più volte). 155 non
+cambia: nessuna funzione nuova, solo tre lette come se leggessero più
+variabili di quante ne leggano davvero.*
+⏱️ *60→61, 68→69 e 154→155 il 14/09 (G47b): una funzione nuova
+(`syncStratiUI`, i livelli veri — mostra/nascondi/blocca per entità,
+non i vecchi interruttori di un calcolo).*
+⏱️ *59→60, 67→68 e 153→154 il 14/09 (G47c-2): una funzione nuova
+(`syncTrattoUI`, la primitiva di disegno libero — tratti/polilinee senza
+la semantica di prodotto di foro/fronte/piede), anche lei nel bucket
+"una o due" (legge poco `D2`/`D2.tratti`).*
+⏱️ *53→59, 61→67 e 147→153 il 14/09 (G47c-1): sei funzioni nuove
+(`d2Snap`, `d2BtnSync`, `d2PushUndo`, `d2ApplySnap`, `d2Undo`, `d2Redo`),
+l'annulla/ripristina per l'editor 2D che l'editor di modellazione 3D già
+aveva (`mdlUndo`/`mdlRedo`) e l'editor 2D no. Tutte e sei nel bucket "una
+o due": leggono poco stato del modulo (soprattutto `D2` e le due pile
+`d2UndoStack`/`d2RedoStack`, dichiarate lì per lì), quindi si estraggono
+senza rifare niente — il 86 (le funzioni che sono una vera decisione di
+architettura) non si tocca.*
+⏱️ *19→18 e 37→38 il 14/09 (G47a, prima fetta di "Genesi simile a un CAD" —
+il fondatore ha risposto "tutto" alla domanda di chiarimento), e QUESTA VOLTA
+NON È UN CANTIERE VERO: è il margine accettato dello strumento stesso
+(intestazione di `genesi-estraibili.mjs`, "contenuto di stringa o commento
+scambiato per una dipendenza da variabile del modulo"). Misurato confrontando
+l'elenco `--elenco` prima/dopo in una worktree su HEAD: il commento italiano
+aggiunto contiene 4 volte la parola «da» e il codice dichiara 5 volte `dy`
+(il nome del nuovo campo "spalla") — due token corti che lo strumento tratta
+come nomi di variabili del modulo ovunque compaiano nel testo, non solo dove
+sono davvero letti. Sette funzioni lontanissime dal punto toccato
+(`riconRender`, `_riconCampoHtml`, `sitoRender`, `applyDesign`,
+`_riconForiHtml`, `sentRender`, `drawIsocrone2D`, `salvaVolata`,
+`rockTextures`, `drawInnesco2D`, `flyrockInv`…) hanno guadagnato "da" o "dy"
+nel proprio elenco di letture senza che una sola riga del loro corpo sia
+cambiata — la riga numeri è la stessa, solo spostata più in basso nel file.
+61 non si tocca: nessuna funzione ha cambiato bucket per una ragione vera.*
+⏱️ *38→37 il 14/09 (G42), stesso giorno, ULTIMA fetta del gruppo:
+`computeSeq2D` è diventata un legame di poche righe (`sequenzaSuMaglia` è
+salita in `genesi-data.js`), settima volta sulla stessa famiglia di falso
+positivo di G39/G40/G41. Il 60 sale a 61 per la stessa ragione.*
+⏱️ *39→38 il 14/09 (G41), stesso giorno: `computeEnergia2D` è diventata un
+legame di una riga (`energiaSuMaglia` è salita in `genesi-data.js`), sesta
+volta sulla stessa famiglia di falso positivo di G39/G40. Il 59 sale a 60 per
+la stessa ragione (bucket "più di dieci" → "una o due").*
+⏱️ *20→19 il 14/09 (G40), stesso giorno: `computeRelief2D` è diventata un
+legame di una riga (`reliefSuMaglia` è salita in `genesi-data.js`), stessa
+famiglia esatta di G39 appena sopra. Il 59 sale di uno per la stessa ragione.*
+⏱️ *21→20 il 14/09 (G39): `computeInnesco2D` è diventata un legame di una
+riga (`innescoSuMaglia` è salita in `genesi-data.js`), e il legame stesso
+legge una sola variabile del modulo — scivolato da "sei-dieci" a "una o
+due". Il 58 sale di uno per la stessa ragione.*
+⏱️ *22→21 e 38→39 il 14/09: `genMaglia2D` ha guadagnato una variabile del
+modulo in più (la dichiarazione della maglia assente, G37/B0-septies) ed è
+scivolata da "sei-dieci" a "più di dieci". Il 57 non cambia: le due colonne
+che lo formano restano ferme.*
+
+✅ **13/09 (G34): 147 → 148.** `_snapXY`, l'aggancio opzionale alla griglia nel
+Progetto 2D (disegno di precisione — secondo pezzo di "tutte e tre le
+alternative"), è nuova nella pagina e legge due variabili del modulo
+(`D2.snap`, `D2.snapPasso`): cade nel bucket "una o due" e alza sia il totale
+sia gli estraibili (55 → 56).
+
+✅ **13/09 (G35), stesso giorno: `measureGeom2D` è salita in genesi-data.js
+come `misuraGeom2D`.** Il totale nella pagina resta 148 (il wrapper c'è
+ancora, una riga sola), ma la sua forma ridotta a `return
+misuraGeom2D(D2.holes, D2.S, D2.B);` sposta il conteggio del censimento
+statico dal bucket "3-5" (dove viveva per un falso positivo del
+tokenizzatore sulle variabili locali `o`/`minx`) al bucket "una o due" (17→16,
+48→49): il totale estraibile sale di uno (56→57), perché il wrapper stesso è
+ormai un legame di una riga.
+
+✅ **13/09 (G36), stesso giorno: `_puntiNuvola` è salita in genesi-data.js
+con lo stesso nome, senza lasciare un wrapper.** Non leggeva `D2` per
+niente: il censimento la marcava legata a nove variabili del modulo
+(«lo, conta, c, locale, n, riga, a, si, su») per lo stesso falso positivo
+già preso tre volte su questo file — lettere e parole dentro le sue
+STRINGHE («nel ritaglio», «caricati», «disegnati su») e nei suoi commenti.
+Effetto: il totale nella pagina scende **148 → 147** (nessun wrapper resta,
+l'import la sostituisce), il bucket "6-10" scende **23 → 22**, gli
+estraibili restano **57** (non erano mai stati contati lì: una funzione
+tolta dalla pagina non è più "da estrarre", è già uscita).
+
+⚠️ **13/09, stesso giorno: `d2Down` passa dal bucket "3-5" a "11+" per un
+commento, non per il codice.** Aggiungendo la memoria dell'ultima selezione
+(`D2.selPrev`, per la misura fra due fori qualunque — vedi G34quinquies in
+`genesi.html`) è entrato anche un commento esplicativo di sei righe: il
+tokenizzatore del censimento conta le parole sull'indentazione, non
+distingue prosa da codice, e alcune parole del commento sono finite lette
+come variabili del modulo. Non è un difetto della funzione (che legge
+sempre `D2` e basta): 16→**15**, 37→**38**.
+
+✅ **12/09 (unità 121, 122 e 124): 151 → 147.** `_sitoParseCsv`, `_sentCell`,
+`esplCardHtml` e `innCardHtml` sono salite in `genesi-data.js`: il censimento
+le marcava legate a variabili del modulo per due varianti dello stesso falso
+positivo del suo tokenizzatore — lettere dentro le regex della funzione
+(`_sitoParseCsv`, `_sentCell`) o dentro le sue STRINGHE (`esplCardHtml`,
+`innCardHtml`: `'ritardi '`, `"es-nome"`) — lette a mano non leggevano nessuno
+stato. I 55 estraibili non cambiano: erano già in quel conto, solo nel bucket
+sbagliato.
 
 ⏱️ **Questi sette numeri erano tutt'e sette diversi fino al 09/08** — 46 · 64 ·
 27 · 31 · 24, cioè «110 su 192» — e non perché qualcuno li avesse sbagliati:
@@ -187,8 +481,11 @@ node apps/deepwork-id/tests/copertura-funzioni.mjs --elenco   # dice anche QUALI
 node apps/deepwork-id/tests/nomi-doppi.mjs
 ```
 
-**123 con l'emulatore Firestore** (**75** regole di sicurezza, 19 SDK, 21
+**144 con l'emulatore Firestore** (**93** regole di sicurezza, 19 SDK, 24
 funzioni, 8 primo avvio) — servono `firebase-tools` e Java.
+✅ *Rimisurati il 05/09 in questo contenitore, in un solo* `emulators:exec
+--only firestore,auth,functions` *(la CLI con* `npx --yes firebase-tools@13`*, le
+dipendenze già installate): 81 + 19 + 8 + 21, tutti verdi, in circa un minuto.*
 ⏱️ **Qui c'era scritto 125, e i quattro addendi accanto ne fanno 123**: due
 numeri che si contraddicono **nella stessa frase**, che è peggio di un numero
 vecchio perché fanno dubitare di tutti gli altri. `STATO_PRODOTTO.md`, con gli
@@ -212,7 +509,7 @@ difetto nostro: `firebase` non è sul PATH e le `node_modules` non ci sono. Il
 giro che gira davvero è uno solo:
 
 ```sh
-node apps/deepwork-id/tests/giro-sicurezza.mjs   # 123 prove: 75 regole, 19 SDK, 8 primo avvio, 21 funzioni
+node apps/deepwork-id/tests/giro-sicurezza.mjs   # 144 prove: 93 regole, 19 SDK, 8 primo avvio, 24 funzioni
 ```
 
 Un comando solo, che alza l'emulatore da sé, ripiega su `npx firebase-tools@13`
@@ -233,9 +530,12 @@ vuota**, e nessuno ha riletto quel messaggio d'errore perché **la spiegazione
 c'era già**. Il segno da riconoscere non è l'errore: è la **rinuncia scritta
 accanto**.
 
-**200 esecuzioni che aprono davvero le pagine** in Chromium — banchi distinti,
-ognuno seguito dalla sua **controprova** (Chromium è già installato in
-`/opt/pw-browsers/chromium`, **non** si lancia `playwright install`):
+**451 esecuzioni che aprono davvero le pagine** in Chromium *(ricontato il
+19/09 con `suite-collegate.mjs`, dopo l'annulla premuto a metà di un
+trascinamento, G56b)* —
+banchi distinti, ognuno seguito dalla sua **controprova** (Chromium è già
+installato in `/opt/pw-browsers/chromium`, **non** si lancia
+`playwright install`):
 
 ```sh
 node apps/deepwork-id/tests/browser/tutti.mjs

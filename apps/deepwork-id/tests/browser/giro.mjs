@@ -123,7 +123,23 @@ const AGGANCIO = 'window.fabPrimary=fabPrimary;';
 export async function apriSuperficie(browser, { nome, via, porta, larghezza = 430, altezza = 950,
                                                 ruolo = 'admin', trasforma = null, montaFintoFirebase = null,
                                                 rotte = [] }) {
-  const ctx = await browser.newContext({ viewport: { width: larghezza, height: altezza }, locale: 'it-IT' });
+  /* ⛔ SUL CORE IL SERVICE WORKER VA BLOCCATO, se no il RELOAD di
+     `accediAlCore` NON PASSA DALLE ROTTE. Misurato il 04/09 con una sonda
+     datata: il core registra `./sw.js` (cache-first sull'app shell, e
+     `./index.html` sta nella precache), e già 3,5 s dopo il primo `goto`
+     `navigator.serviceWorker.controller` è attivo. Al reload la rotta su
+     `index.html` NON veniva colpita (una richiesta sola, non due), la pagina
+     tornava dalla cache del SW in 72–98 ms **senza la porticina**
+     `__provaUtente` (e senza il finto Firestore che rifiuta), i moduli gstatic
+     uscivano `net::ERR_ABORTED` — e l'accesso non riusciva più: ogni banco
+     moriva su «`window.__provaUtente is not a function`». Con il SW bloccato:
+     due richieste, porticina presente, dentro al secondo tentativo in 1,3 s.
+     È la stessa famiglia già scritta in `core-documenti-che-escono.mjs`: le
+     rotte di Playwright non intercettano ciò che passa dal service worker.
+     Solo per il core: le app non hanno un SW (Genesi sì, ma nessun banco la
+     ricarica) e non si cambia il comportamento di chi già entrava. */
+  const ctx = await browser.newContext({ viewport: { width: larghezza, height: altezza }, locale: 'it-IT',
+                                         ...(nome === 'core' ? { serviceWorkers: 'block' } : {}) });
   const p = await ctx.newPage();
   const errori = [];
   p.on('pageerror', (e) => errori.push(e.message));
@@ -183,9 +199,21 @@ export async function apriSuperficie(browser, { nome, via, porta, larghezza = 43
        esce è di un'altra pagina. La riga costa niente e si vede nel riepilogo
        del banco che la stampa. */
     if (!dentro) console.warn('  ⚠️  core: non si è riusciti ad ACCEDERE — quello che segue misura la schermata d\'accesso, non l\'app');
+    /* ⛔ E SE LA PORTICINA NON C'È, LO SI DICE INVECE DI MORIRE. Fino al 04/09
+       questa riga era un `TypeError` che uccideva il banco intero — nessun
+       riepilogo, nessuna riga «non ho guardato» — quando la pagina dopo
+       l'accesso non era più quella servita dalla rotta (vedi il blocco sul
+       service worker più su). Un banco che muore qui non ha misurato niente:
+       si dichiara, e si torna con `dentro:false` così chi chiama lo stampa. */
+    const porticina = await p.evaluate(() => typeof window.__provaUtente === 'function').catch(() => false);
+    if (!porticina) {
+      console.warn('  ⚠️  core: la porticina __provaUtente non c\'è dopo l\'accesso — la pagina non è quella servita dalla rotta (service worker? reload fuori rotta?): quello che segue è il GUSCIO');
+      return { ctx, p, errori, dentro: false };
+    }
     await p.evaluate((u) => window.__provaUtente(u), UTENTE_PROVA(ruolo));
+    return { ctx, p, errori, dentro };
   }
-  return { ctx, p, errori };
+  return { ctx, p, errori, dentro: true };
 }
 
 /* Entra nel core coi dati d'esempio. Torna `true` se ci è riuscito: chi la
@@ -213,9 +241,13 @@ export async function accediAlCore(p) {
       return !!h && getComputedStyle(h).display !== 'none';
     }).catch(() => false);
     if (dentro) return true;
-    await p.fill('#lu', 'admin').catch(() => {});
-    await p.fill('#lp', 'admin').catch(() => {});
-    await p.click('#btn-login').catch(() => {});
+    /* ⚠️ TIMEOUT ESPLICITI: quando il campo non è azionabile (la pagina è un
+       guscio) `fill`/`click` aspettano i 30 s di Playwright CIASCUNO, e dieci
+       giri fanno un quarto d'ora di banco appeso senza una riga. Misurato il
+       04/09: 31 s a giro. Se il campo è visibile, 5 s bastano a chiunque. */
+    await p.fill('#lu', 'admin', { timeout: 5000 }).catch(() => {});
+    await p.fill('#lp', 'admin', { timeout: 5000 }).catch(() => {});
+    await p.click('#btn-login', { timeout: 5000 }).catch(() => {});
     await p.waitForFunction(() => {
       const h = document.getElementById('screen-home');
       return !!h && getComputedStyle(h).display !== 'none';

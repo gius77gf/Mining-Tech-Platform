@@ -340,6 +340,29 @@ Fonti: Newtrax MDP product page, Micromine Pitram short-interval control docs.
 
 ## Verifica del delta (01/08 · riverificato il 03/08 · **arretrato richiuso il 06/08**)
 
+> ⏱️ **Verificato contro il codice al commit `6225df74`** (16/09/17, notte,
+> riallineato dal `97cbf67` di sotto — è l'ultimo commit che ha DAVVERO
+> toccato `apps/campo/`, non il commit in cui questa riga viene scritta:
+> quello non esiste ancora quando la si scrive). L'arretrato segnalava
+> **38 commit** su Campo/`shared/dw-ponti.js` da `97cbf67`, di cui **12 che
+> MORDONO** (aggiungono o tolgono una `export function` o un `<button>`).
+> Cercati i termini degli undici item ancora `CONFERMATO ASSENTE`
+> (geofencing/GPS, IoT/sensori, tablet in-cab, dispatch, RFID/barcode/QR,
+> mixed-fleet monitoring, offline/IndexedDB, multi-sito, meteo a griglia,
+> RFID componenti, manutenzione predittiva) **solo nelle righe AGGIUNTE**
+> dell'intero intervallo (`git diff 97cbf67..6225df74 -- apps/campo/
+> shared/dw-ponti.js | grep '^+'`): **un solo colpo**, `vibrazione`, dentro
+> il commento di `righeVolateDelGiorno` (ponte P6, 05/09) — che parla della
+> lettura di vibrazione già misurata da Sentinella per una volata, non di
+> un sensore IoT integrato in Campo. Falso positivo della stessa famiglia
+> già censita altrove in questo documento (il gergo di casa che entra nel
+> conto): **nessuna riga di questa tabella si muove**. I commit hanno
+> costruito P2 di ASSENZA, il ponte Campo↔Sentinella per il meteo del
+> turno, il rapporto stampato con le volate, e varie correzioni di
+> cablaggio — nessuno tocca una delle undici capacità ancora assenti.
+>
+> *(Il blocco qui sotto è la verifica del 14/08 e resta com'era scritta.)*
+>
 > **Verificato contro il codice al commit `97cbf67`** *(14/08 · riallineato nel
 > giro della direttiva 7. L'unico commit di arretrato è `97cbf67` e **non
 > MORDE**: `<button>` 48 prima e 48 dopo, `export function` nuove **zero**, e le

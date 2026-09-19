@@ -340,10 +340,33 @@ const BANCHI = [
   ['striscia di stato · controprova', 'note-stato.mjs', ['--controprova'], true],
   ['niente fuori schermo', 'fuori-schermo.mjs', []],
   ['fuori schermo · controprova', 'fuori-schermo.mjs', ['--controprova', '--solo=sentinella'], true],
+  ['etichette delle tacche che non si toccano', 'grafici-tacche.mjs', []],
+  ['tacche · controprova', 'grafici-tacche.mjs', ['--controprova', '--solo=conti,flotta', '--larghezze=320'], true],
   ['id unici nella pagina viva', 'id-unici.mjs', []],
   ['id unici · controprova', 'id-unici.mjs', ['--controprova'], true],
+  /* ⛔ le quattro pagine di Deepwork ID negli stati VERI (membro, senza org,
+     tour): fino al 04/09 ogni banco le vedeva solo in anteprima, perché il
+     finto Firebase del core non risponde per auth e functions e l'SDK non
+     parte. `finto-id.mjs` sì. */
+  ['Deepwork ID negli stati veri', 'id-stati.mjs', []],
+  ['Deepwork ID · controprova', 'id-stati.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 18/09, secondo giro di deep-pass QA su Deepwork ID: il
+     select di cambio ruolo offriva "Owner" anche a un admin non-owner (il
+     server rifiuta sempre, ma il bottone prometteva un'azione impossibile
+     — la stessa famiglia del difetto già corretto nella metà opposta). */
+  ['admin.html: il select di cambio ruolo non offre "Owner" a un non-owner', 'deepworkid-role-select-owner.mjs', []],
+  ['select di cambio ruolo · controprova', 'deepworkid-role-select-owner.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 18/09: profilo.html/non-autorizzato.html non caricano
+     shared/dw-app-ui.js, quindi non avevano occupato() — un doppio tocco su
+     "Crea" (organizzazione) o "Invita" duplicava, senza nessuna idempotenza
+     lato server. `guard()` ha imparato a disabilitare il bottone da sé. */
+  ["non-autorizzato.html: «Crea» si spegne durante la scrittura", 'deepworkid-guard-occupato.mjs', []],
+  ['guard/occupato di Deepwork ID · controprova', 'deepworkid-guard-occupato.mjs', ['--controprova'], true],
   ['bersagli degli stati vuoti', 'vuoti-azione.mjs', []],
   ['bersagli · controprova', 'vuoti-azione.mjs', ['--controprova'], true],
+  /* «Scarica tutto» scarica davvero tutte le collezioni dichiarate (11/09) */
+  ['scarica tutto, in ogni app', 'scarica-tutto.mjs', []],
+  ['scarica tutto · controprova', 'scarica-tutto.mjs', ['--controprova'], true],
   ['navigazione fra le pagine', 'navigazione.mjs', []],
   ['navigazione · controprova', 'navigazione.mjs', ['--senza-guardie'], true],
   ['sconto del cliente', 'sconto-cliente.mjs', []],
@@ -390,8 +413,117 @@ const BANCHI = [
   ['recettore assente · controprova', 'genesi-recettore-assente.mjs', ['--controprova'], true],
   ['i campi di Genesi che restano vuoti', 'genesi-campi-assenti.mjs', []],
   ['campi vuoti di Genesi · controprova', 'genesi-campi-assenti.mjs', ['--controprova'], true],
+  /* B0-SEPTIES, 14/09: con burden o interasse non numerici `genMaglia2D` non
+     genera più coordinate (prima: tutti i fori sovrapposti sullo stesso
+     punto per coercizione di `null` a zero). Il banco arriva dalla via vera
+     — `localStorage` → Home → «Apri» — la stessa di B0-nonies. */
+  ['la maglia assente di Genesi non si disegna', 'genesi-maglia-assente.mjs', []],
+  ['maglia assente di Genesi · controprova', 'genesi-maglia-assente.mjs', ['--controprova'], true],
+  ['un tratto non resta attaccato alla volata aperta dopo (Genesi)', 'genesi-tratti-non-persistono-su-apri.mjs', []],
+  ['tratti su "Apri" di Genesi · controprova', 'genesi-tratti-non-persistono-su-apri.mjs', ['--controprova'], true],
+  ['direzione d\'innesco e costi non restano attaccati alla volata aperta dopo (Genesi)', 'genesi-dir-costi-non-persistono-su-apri.mjs', []],
+  ['dir/costi su "Apri" di Genesi · controprova', 'genesi-dir-costi-non-persistono-su-apri.mjs', ['--controprova'], true],
+  ['errore al colletto e deviazione non restano attaccati alla volata aperta dopo (Genesi)', 'genesi-errcoll-dev-non-persistono-su-apri.mjs', []],
+  ['errColl/dev su "Apri" di Genesi · controprova', 'genesi-errcoll-dev-non-persistono-su-apri.mjs', ['--controprova'], true],
+  ['la finestra del relief non resta attaccata alla volata aperta dopo (Genesi)', 'genesi-relief-non-persiste-su-apri.mjs', []],
+  ['relief su "Apri" di Genesi · controprova', 'genesi-relief-non-persiste-su-apri.mjs', ['--controprova'], true],
   ['il piano di innesco XML di Genesi', 'genesi-piano-innesco.mjs', []],
   ['piano di innesco · controprova', 'genesi-piano-innesco.mjs', ['--controprova'], true],
+  /* AGGIUNTO IL 14/09: G38 (obiettivo di pezzatura) e G44 (confronta burden
+     con MIC/PPV) erano verificati solo con uno screenshot in scratchpad —
+     mai un banco vero. Rilanciando la verifica per revisione qualità è
+     saltato fuori un difetto reale (parola doppia nella riga di
+     provenienza, «e da da litologia»), preso solo perché si è aperto di
+     nuovo il browser invece di fidarsi dello screenshot vecchio. */
+  ['obiettivo x50 e confronta burden di Genesi', 'genesi-obiettivo-burden.mjs', []],
+  ['obiettivo/confronta burden · controprova', 'genesi-obiettivo-burden.mjs', ['--controprova'], true],
+  ['burden per foro di Genesi (15/09, dalla ricostruzione automatica)', 'genesi-burden-per-foro.mjs', []],
+  ['burden per foro · controprova', 'genesi-burden-per-foro.mjs', ['--controprova'], true],
+  ['vocabolario della voladura di Genesi (17/09, spalla/burden, consumo specifico/powder factor)', 'genesi-vocabolario-voladura.mjs', []],
+  ['vocabolario della voladura · controprova', 'genesi-vocabolario-voladura.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 17/09 — dal terzo giro di deep-pass su Genesi: il CSV
+     "Esporta scheda volata" contava i fori sulla griglia di progetto, non
+     su quelli disegnati sulla tela, divergendo da schermo e Report. */
+  ['la scheda volata (CSV) di Genesi conta i fori disegnati, non la griglia', 'genesi-csv-fori-disegnati.mjs', []],
+  ['scheda volata di Genesi, fori disegnati · controprova', 'genesi-csv-fori-disegnati.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 17/09 — dal terzo giro di deep-pass su Genesi: la terza
+     riga di "Ponti con le altre app" nella Home veniva tagliata a metà
+     senza affordance di scroll (172px vs 214px di contenuto reale). */
+  ['la Home di Genesi non taglia la terza riga dei ponti con le altre app', 'genesi-home-ponti-tagliati.mjs', []],
+  ['Home di Genesi, ponti tagliati · controprova', 'genesi-home-ponti-tagliati.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 17/09 — dal terzo giro di deep-pass su Genesi: "carica per
+     un obiettivo di pezzatura" poteva proporre una carica impossibile da
+     entrare nel foro, senza nessun avviso sul limite fisico. */
+  ['la carica per un obiettivo di pezzatura avvisa se non entra nel foro', 'genesi-carica-fuori-foro.mjs', []],
+  ['carica fuori dal foro di Genesi · controprova', 'genesi-carica-fuori-foro.mjs', ['--controprova'], true],
+  /* AGGIUNTO IL 14/09: censiti tutti i bottoni `btn-*` premuti da tutta la
+     superficie browser di Genesi, ne restavano due senza banco —
+     `btn-piano-dxf` (G33, costruita il 13/09 su richiesta diretta del
+     fondatore) e `btn-rilievo-dev`, che resta FUORI di proposito perché è
+     l'import del rilievo boretrack, dietro il gate di sicurezza bloccato
+     sul fondatore (DECISIONI_WEEKEND.md §6) — questo blocco non lo tocca. */
+  ['il piano fori DXF di Genesi (G33)', 'genesi-piano-dxf.mjs', []],
+  ['piano fori DXF · controprova', 'genesi-piano-dxf.mjs', ['--controprova'], true],
+  /* AGGIUNTO IL 14/09 (G47c-1): l'editor di modellazione 3D del fronte ha
+     annulla/ripristina da mesi (mdlUndo/mdlRedo); l'editor 2D (fori,
+     fronte, piede — e i campi x/spalla/allinea di G47a) non aveva nessuna
+     cronologia. Copre l'aggiunta/eliminazione di un foro, il caso "un clic
+     di sola selezione non deve mai pushare niente", e Ctrl+Z/Ctrl+Y. */
+  ["l'annulla/ripristina dell'editor 2D di Genesi (G47c-1)", 'genesi-d2-undo.mjs', []],
+  ['annulla/ripristina 2D · controprova', 'genesi-d2-undo.mjs', ['--controprova'], true],
+  /* AGGIUNTO IL 14/09 (G47c-2): la primitiva di disegno libero — un
+     tratto/polilinea senza la semantica di prodotto di foro/fronte/
+     piede. Il caso che conta è "Fine tratto" seguito da un nuovo clic:
+     deve aprire un SECONDO tratto, non allungare quello appena chiuso. */
+  ["i tratti liberi dell'editor 2D di Genesi (G47c-2)", 'genesi-tratti.mjs', []],
+  ['tratti liberi 2D · controprova', 'genesi-tratti.mjs', ['--controprova'], true],
+  ["lo snap a un estremo già disegnato di Genesi (G48)", 'genesi-snap-estremo.mjs', []],
+  ['snap a estremo di Genesi · controprova', 'genesi-snap-estremo.mjs', ['--controprova'], true],
+  ["la selezione multipla dei fori di Genesi (G49)", 'genesi-selezione-multipla.mjs', []],
+  ['selezione multipla di Genesi · controprova', 'genesi-selezione-multipla.mjs', ['--controprova'], true],
+  ["rifletti la selezione dei fori di Genesi (G50)", 'genesi-rifletti-selezione.mjs', []],
+  ['rifletti selezione di Genesi · controprova', 'genesi-rifletti-selezione.mjs', ['--controprova'], true],
+  ["input relativo/polare delle coordinate di Genesi (G51)", 'genesi-input-relativo.mjs', []],
+  ['input relativo/polare di Genesi · controprova', 'genesi-input-relativo.mjs', ['--controprova'], true],
+  ["l'esito della detonazione di Genesi (G52)", 'genesi-esito-detonazione.mjs', []],
+  ["l'esito della detonazione di Genesi · controprova", 'genesi-esito-detonazione.mjs', ['--controprova'], true],
+  ["il semaforo di sintesi letto prima di esportare (G53)", 'genesi-semaforo-export.mjs', []],
+  ["il semaforo di sintesi prima di esportare · controprova", 'genesi-semaforo-export.mjs', ['--controprova'], true],
+  ["il limite dello stack di annulla di Genesi (G54)", 'genesi-undo-limite.mjs', []],
+  ["il limite dello stack di annulla di Genesi · controprova", 'genesi-undo-limite.mjs', ['--controprova'], true],
+  ["il misfire nel report stampato di Genesi (G55)", 'genesi-report-misfire.mjs', []],
+  ["il misfire nel report stampato di Genesi · controprova", 'genesi-report-misfire.mjs', ['--controprova'], true],
+  ["la guida di allineamento sul trascinamento di un foro (G56)", 'genesi-guida-allineamento.mjs', []],
+  ["la guida di allineamento sul trascinamento di un foro · controprova", 'genesi-guida-allineamento.mjs', ['--controprova'], true],
+  ["l'annulla premuto a metà di un trascinamento (G56b)", 'genesi-drag-annulla.mjs', []],
+  ["l'annulla premuto a metà di un trascinamento · controprova", 'genesi-drag-annulla.mjs', ['--controprova'], true],
+  ["Genesi: una volata salvata porta l'identità di chi era collegato", 'genesi-autore-volata.mjs', []],
+  ['autore della volata di Genesi · controprova', 'genesi-autore-volata.mjs', ['--controprova'], true],
+  [".chg: larghezza minima nel tema del sole (Terra)", 'chg-min-larghezza.mjs', []],
+  ['.chg larghezza minima · controprova', 'chg-min-larghezza.mjs', ['--controprova'], true],
+  ['.dwg-tab > summary: bersaglio minimo di tocco (Sentinella)', 'dwg-tab-min-tocco.mjs', []],
+  ['.dwg-tab bersaglio minimo · controprova', 'dwg-tab-min-tocco.mjs', ['--controprova'], true],
+  ['Sentinella · modale PPV aperto due volte di fila', 'sentinella-ppv-modale-race.mjs', []],
+  ['modale PPV due volte di fila · controprova', 'sentinella-ppv-modale-race.mjs', ['--controprova'], true],
+  ['.dw-senza-rete: contrasto del bordo nei tre temi (Campo)', 'senza-rete-contrasto.mjs', []],
+  ['.dw-senza-rete contrasto · controprova', 'senza-rete-contrasto.mjs', ['--controprova'], true],
+  ['Deepwork ID: tema caricato e bordo dei campi (4 pagine)', 'deepworkid-tema-e-input.mjs', []],
+  ['Deepwork ID tema/bordo · controprova', 'deepworkid-tema-e-input.mjs', ['--controprova'], true],
+  /* AGGIUNTO IL 14/09 (G47b): livelli VERI (mostra/nascondi, blocca) per
+     fori/fronte/piede/tratti — non i vecchi interruttori di un calcolo
+     (iso/rel/ene/inn). Il caso che conta è il blocco: un'entità bloccata
+     non riceve click né trascinamento, nemmeno dai comandi dell'ispettore
+     su un foro già selezionato prima del blocco. */
+  ["i livelli veri dell'editor 2D di Genesi (G47b)", 'genesi-strati.mjs', []],
+  ['livelli veri 2D · controprova', 'genesi-strati.mjs', ['--controprova'], true],
+  /* AGGIUNTO IL 14/09 (G47d, ULTIMA fetta di G47): import DXF in sola
+     lettura, ma SOLO come tratti — mai come fori/fronte/piede, la scelta
+     di sicurezza che chiude la ricerca del 13/09 sulla convenzione degli
+     assi. Il caso che conta è che i CIRCLE/TEXT dei fori non diventino
+     tratti, e che un import di più entità sia UN'unica operazione
+     annullabile (Ctrl+Z toglie tutto in un colpo, non un tratto alla volta). */
+  ["l'import DXF come tratti di Genesi (G47d)", 'genesi-dxf-import.mjs', []],
+  ['import DXF · controprova', 'genesi-dxf-import.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 07/08, e completa la domanda qui sopra: il foglio stampato
      era UNA delle uscite di Genesi, e i nove bottoni che salvano un FILE non
      li aveva ancora aperti nessuno. Aprendoli: la scheda volata archiviata col
@@ -460,6 +592,48 @@ const BANCHI = [
      alto il difetto non si presenta, com'era successo nel core. */
   ['le barre di peso di Conti', 'conti-barre-peso.mjs', []],
   ['barre di peso di Conti · controprova', 'conti-barre-peso.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 16/09 — le barriere mancate (ICAM) di Scudo, dal delta
+     della ricerca continua, undicesimo giro: il multi-select dei chip e la
+     sua persistenza al salvataggio, che nessuna suite `node` può vedere. */
+  ['le barriere mancate (ICAM) di Scudo', 'scudo-barriere-icam.mjs', []],
+  ['barriere mancate (ICAM) di Scudo · controprova', 'scudo-barriere-icam.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 16/09 — i componenti a vita propria di Flotta, dal delta
+     della ricerca continua, undicesimo giro: il primo collegamento alla
+     pagina aveva un difetto (filtro per mezzo su un elenco già scoperto a
+     un mezzo solo) che nessuna suite `node` poteva vedere. */
+  ['i componenti a vita propria di Flotta', 'flotta-componenti-vita.mjs', []],
+  ['componenti a vita propria di Flotta · controprova', 'flotta-componenti-vita.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 17/09 — dal terzo giro di deep-pass: `vitaComponenti` era
+     l'unica funzione a ore di Flotta a non tenere conto del contatore
+     sostituito (a differenza di consumo/ritmo/tagliandi). */
+  ['la vita di un componente tiene conto del contatore sostituito', 'flotta-componente-contatore-sostituito.mjs', []],
+  ['componente e contatore sostituito · controprova', 'flotta-componente-contatore-sostituito.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 16/09 — lo storico dei solleciti di Conti, dal delta
+     della ricerca continua, decimo giro: il bottone "Segna come inviato"
+     deve aprire la modale sulla fattura giusta (un ID scambiato per il
+     numero non lo vedrebbe nessuna suite `node`) e la registrazione deve
+     sopravvivere alla chiusura della modale. */
+  ['lo storico dei solleciti di Conti', 'conti-solleciti-storico.mjs', []],
+  ['storico dei solleciti di Conti · controprova', 'conti-solleciti-storico.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 16/09 — il piano di rientro di Conti, dal delta della
+     ricerca continua, decimo giro: il badge deve comparire sulla fattura
+     GIUSTA (un confronto `p.id === f.id` al posto di `p.fatturaId === f.id`
+     non lo vedrebbe nessuna suite `node`). */
+  ['il piano di rientro di Conti', 'conti-piano-rientro.mjs', []],
+  ['piano di rientro di Conti · controprova', 'conti-piano-rientro.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 17/09 — la fattura differita di Conti, dal terzo giro di
+     deep-pass (agente a5fa955d5c679000d): senza cliente scelto la lista
+     mostrava e sommava DDT di clienti diversi insieme (`difVisibili()`
+     senza guardia sul valore vuoto di `pesateDaFatturare`). */
+  ['la fattura differita di Conti non mescola i clienti', 'conti-differita-cliente.mjs', []],
+  ['fattura differita di Conti · controprova', 'conti-differita-cliente.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 16/09 — il contatore di notifiche sulle scadenze di
+     Scudo, dal delta della ricerca continua, dodicesimo giro (primo passo
+     di "notifiche automatiche" senza server): il badge deve sparire DOPO
+     la visita, scrivendo il record davvero (un `aggiorna`→`aggiungi`
+     scambiato non lo vedrebbe nessuna suite `node`). */
+  ['il contatore di notifiche sulle scadenze di Scudo', 'scudo-notifiche-scadenze.mjs', []],
+  ['contatore di notifiche sulle scadenze di Scudo · controprova', 'scudo-notifiche-scadenze.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 09/08 — il filone «un numero tranquillo dove non è stato
      misurato niente», portato dove Conti non era mai stata guardata: le tele di
      `dwGrafici`. `conti-barre-peso` misura le `span.bar` delle liste e
@@ -474,6 +648,74 @@ const BANCHI = [
      con una barra di 0 px, identica a chi non ha venduto niente. */
   ['i numeri tranquilli di Conti', 'conti-numeri-tranquilli.mjs', []],
   ['numeri tranquilli di Conti · controprova', 'conti-numeri-tranquilli.mjs', ['--controprova'], true],
+  /* 02/09: il primo ponte fra app, Flotta→Conti. Tre passate perché sono tre
+     esiti: Flotta risponde (tabella, riga «in tutt'e due»), Flotta NON risponde
+     (tono avviso e NESSUNO zero), e la controprova che rimette la traduzione
+     null→[] nella pagina e pretende che il verso «assente» cada. */
+  ['il ponte Flotta→Conti nei costi', 'conti-ponte-flotta.mjs', []],
+  ['ponte Flotta→Conti · Flotta assente', 'conti-ponte-flotta.mjs', ['--flotta-assente']],
+  ['ponte Flotta→Conti · controprova', 'conti-ponte-flotta.mjs', ['--controprova'], true],
+  ['Flotta: il consumo di un mezzo contro la sua storia', 'flotta-consumo-storia.mjs', []],
+  ['consumo contro la storia · controprova', 'flotta-consumo-storia.mjs', ['--controprova'], true],
+  /* IL CONTATORE SOSTITUITO O AZZERATO (04/09): registra davvero i pieni con la
+     casella «contatore nuovo» a 320 e 390 px e legge che consumo e ritmo
+     ripartono e lo dicono; la controprova rimette l'azzeramento ignorato.
+     Alza un server suo (porta 8781), come `flotta-consumo-storia`. */
+  ['Flotta: il contatore sostituito o azzerato', 'flotta-contatore.mjs', []],
+  ['contatore sostituito · controprova', 'flotta-contatore.mjs', ['--controprova'], true],
+  ['Flotta: il secondo tocco sul doppio invio (btn-rif/btn-cos)', 'flotta-doppio-invio.mjs', []],
+  ['doppio invio · controprova', 'flotta-doppio-invio.mjs', ['--controprova'], true],
+  ['il ponte Campo→Conti nel report', 'conti-ponte-campo.mjs', []],
+  ['ponte Campo→Conti · Campo assente', 'conti-ponte-campo.mjs', ['--campo-assente']],
+  ['ponte Campo→Conti · controprova', 'conti-ponte-campo.mjs', ['--controprova'], true],
+  ['il verbale di riconciliazione di Conti', 'conti-verbale.mjs', []],
+  ['verbale di riconciliazione · controprova', 'conti-verbale.mjs', ['--controprova'], true],
+  /* 03/09: il terzo lato del triangolo. Terra registra l'inventario dei
+     cumuli (fotografia del piazzale a una data), Conti lo legge e chiude
+     cavato − venduto − Δscorte in tonnellate, ognuno con la SUA densità.
+     Un cumulo non misurato non vale zero, un materiale senza densità nel
+     listino resta fuori ed è elencato: i due banchi lo pretendono nei tre
+     esiti (chiuso, un inventario solo / nessuno, Terra che non risponde). */
+  ["Terra: l'inventario dei cumuli", 'terra-inventario.mjs', []],
+  ["inventario dei cumuli · controprova", 'terra-inventario.mjs', ['--controprova'], true],
+  ["Terra: i bottoni di scrittura si spengono durante il salvataggio, un doppio tocco non duplica", 'terra-bottoni-occupato.mjs', []],
+  ["bottoni occupato di Terra · controprova", 'terra-bottoni-occupato.mjs', ['--controprova'], true],
+  ["Conti: il bottone «Emetti» si spegne durante la scrittura, un doppio tocco non duplica il numero", 'conti-bottone-emetti-occupato.mjs', []],
+  ["bottone «Emetti» occupato di Conti · controprova", 'conti-bottone-emetti-occupato.mjs', ['--controprova'], true],
+  ["Conti: la nota sull'esito SdI si scrive e si rilegge, il title della pastiglia mostra il testo completo", 'conti-sdi-nota.mjs', []],
+  ["nota sull'esito SdI di Conti · controprova", 'conti-sdi-nota.mjs', ['--controprova'], true],
+  ["Campo: i bottoni di scrittura si spengono durante il salvataggio (squadre, attività, firma del turno)", 'campo-bottoni-occupato.mjs', []],
+  ["bottoni occupato di Campo · controprova", 'campo-bottoni-occupato.mjs', ['--controprova'], true],
+  ["audit occupato: i quattro bottoni residui di Scudo/Sentinella/Conti (infortuni, scadenze, volate, DDT)", 'audit-occupato-residui.mjs', []],
+  ["audit occupato residui · controprova", 'audit-occupato-residui.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 18/09, terzo giro di deep-pass QA su Conti: costi,
+     preventivi e la modale "Registra incasso" (il caso più grave per
+     gravità economica: un doppio tocco quasi simultaneo raddoppiava un
+     acconto). */
+  ['Conti: costi, preventivi e la modale "Registra incasso" si spengono durante la scrittura', 'conti-bottoni-occupato.mjs', []],
+  ['bottoni occupato di Conti · controprova', 'conti-bottoni-occupato.mjs', ['--controprova'], true],
+  ["Flotta: magazzino ricambi, mezzi e ordine di lavoro si spengono durante il salvataggio", 'flotta-bottoni-occupato.mjs', []],
+  ["bottoni occupato di Flotta · controprova", 'flotta-bottoni-occupato.mjs', ['--controprova'], true],
+  ["Flotta: il contatore sostituito o azzerato ha una via sola, non quattro", 'flotta-contatore-sceso.mjs', []],
+  ["contatore sceso di Flotta · controprova", 'flotta-contatore-sceso.mjs', ['--controprova'], true],
+  ['Conti: le scorte misurate chiudono il triangolo', 'conti-inventario.mjs', []],
+  ['scorte misurate · controprova', 'conti-inventario.mjs', ['--controprova'], true],
+  ["Terra: il CSV degli inventari, che esce e si ri-carica", 'terra-inventario-csv.mjs', []],
+  ["CSV degli inventari · controprova", 'terra-inventario-csv.mjs', ['--controprova'], true],
+  /* 02/09, il verso di ritorno: Flotta chiede a Conti «questa spesa ce l'hai
+     anche tu?». Stessa funzione condivisa, stessi tre esiti, stessa controprova. */
+  ['il ponte Conti→Flotta nei costi dei mezzi', 'flotta-ponte-conti.mjs', []],
+  ['ponte Conti→Flotta · Conti assente', 'flotta-ponte-conti.mjs', ['--conti-assente']],
+  ['ponte Conti→Flotta · controprova', 'flotta-ponte-conti.mjs', ['--controprova'], true],
+  /* 02/09: la fattura elettronica esce dal bottone, e il banco APRE il file:
+     righe e DDT citati contro il modulo, e con un dato mancante niente file. */
+  ['il file XML per lo SdI esce dalla fattura', 'conti-xml-sdi.mjs', []],
+  ['XML per lo SdI · controprova', 'conti-xml-sdi.mjs', ['--controprova'], true],
+  /* 02/09, ponte 3b: il muro di Scudo legge concessione (Terra) e mezzi (Flotta).
+     Tre esiti come per i ponti dei costi, e la controprova rimette null→[]. */
+  ['il muro di tutta la cava in Scudo', 'scudo-scadenze-unite.mjs', []],
+  ['muro di tutta la cava · Terra assente', 'scudo-scadenze-unite.mjs', ['--terra-assente']],
+  ['muro di tutta la cava · controprova', 'scudo-scadenze-unite.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 03/08, stessa domanda applicata a Scudo: dove l'app compone
      qualcosa che ESCE, chi decide i suoi numeri? I quattro CSV li scrive la
      pagina, e ognuno era più tranquillo dello schermo — un'azione scaduta da
@@ -483,6 +725,14 @@ const BANCHI = [
      cella vuota che si legge «zero giorni». */
   ['i documenti che escono da Scudo (4 CSV, 2 fogli stampati, il promemoria)', 'scudo-documenti.mjs', []],
   ['documenti di Scudo · controprova', 'scudo-documenti.mjs', ['--controprova'], true],
+  /* 05/09 · il giudizio del medico si scrive, non si cicla: il tocco sul badge
+     dell'idoneità apre la modale con la data e — per le prescrizioni — il
+     testo obbligatorio; il vuoto e la data futura sono rifiutati e la riga
+     resta com'era; registrato, la riga dice «Giudizio del … · Prescrizioni
+     del medico: …». La controprova rimette `giudizioIdoneita` che accetta le
+     prescrizioni vuote. */
+  ['il giudizio del medico in Scudo, scritto e non ciclato', 'scudo-giudizio-medico.mjs', []],
+  ['giudizio del medico · controprova', 'scudo-giudizio-medico.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 06/08 insieme alla dichiarazione «dati di esempio» sui due
      fogli di Scudo — il verbale di consegna dei DPI (art. 77 D.Lgs 81/2008) e
      la cartella del lavoratore. `--live` è la metà che conta quanto l'altra:
@@ -655,6 +905,66 @@ const BANCHI = [
      frasi e le celle vivono nella pagina. */
   ['i documenti di Terra e gli zeri mai misurati', 'terra-numeri-tranquilli.mjs', []],
   ['zeri mai misurati · controprova', 'terra-numeri-tranquilli.mjs', ['--controprova'], true],
+  /* 04/09 · la relazione di fine lavori del lotto, premuta davvero: il foglio
+     per chiedere il collaudo e lo svincolo, catturato dalla finestra nuova —
+     gli stessi numeri della riga del lotto, le date, la quota di garanzia, e
+     la sezione «Che cosa manca» dove un dato non registrato resta scritto come
+     tale. La controprova rimette «0 m³» al posto di «non misurato». */
+  ['la relazione di fine lavori del lotto di Terra, premuta davvero', 'terra-relazione-lotto.mjs', []],
+  ['relazione di fine lavori · controprova', 'terra-relazione-lotto.mjs', ['--controprova'], true],
+  /* 16/09 · il piano pluriennale, un anno alla volta (dal delta della ricerca
+     continua su Terra, sequenziamento multi-anno): `varianzaLottoAnno` dice
+     QUALE lotto sta slittando, non solo il ritmo aggregato di tutta la cava.
+     La controprova azzera il confronto nella riga come se il campo (nuovo,
+     opzionale) non fosse mai arrivato alla pagina. */
+  ['il piano pluriennale per lotto nella pagina Titolo di Terra', 'terra-piano-lotto-anno.mjs', []],
+  ['piano pluriennale per lotto · controprova', 'terra-piano-lotto-anno.mjs', ['--controprova'], true],
+  /* 16/09 · la sequenza del progetto (dallo stesso giro di ricerca): un peso
+     finalmente dato a `lotto.ordine`, mai usato in nessun controllo prima
+     d'ora. Non blocca niente, lo dice: badge "fuori sequenza" quando un
+     lotto è aperto prima che il precedente raggiunga la soglia dichiarata. */
+  ['la sequenza del progetto (lotto.ordine finalmente usato) nella pagina Titolo di Terra', 'terra-sequenza-lotto.mjs', []],
+  ['sequenza del progetto · controprova', 'terra-sequenza-lotto.mjs', ['--controprova'], true],
+  /* 16/09 · l'apertura fuori programma (quinto delta dello stesso giro):
+     parente di sequenzaLotto, ma il confronto è col CALENDARIO dichiarato
+     dal progetto, non con l'avanzamento di un altro lotto. */
+  ['l\'apertura fuori programma (anticipo/ritardo sul calendario) nella pagina Titolo di Terra', 'terra-apertura-programma.mjs', []],
+  ['apertura fuori programma · controprova', 'terra-apertura-programma.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 17/09 — dal terzo giro di deep-pass su Terra: un rilievo a
+     calendario impossibile ("2026-13-45") mandava in RangeError la sezione
+     turni della pagina Rilievi (`dataISOBuona`, copia debole di forma). */
+  ['un rilievo a calendario impossibile non manda in crash la pagina Rilievi di Terra', 'terra-rilievo-calendario-impossibile.mjs', []],
+  ['rilievo a calendario impossibile · controprova', 'terra-rilievo-calendario-impossibile.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 17/09 — stesso giro: la pagina Piano aveva una TERZA copia
+     a mano dello stesso conto di `proiezioneAnnua` per la riserva residua,
+     con la guardia più debole (`rilievoUsabile`, non `...ConData`). */
+  ['la riserva residua di Terra non crolla per un rilievo a calendario impossibile', 'terra-riserva-calendario-impossibile.mjs', []],
+  ['riserva residua e calendario impossibile · controprova', 'terra-riserva-calendario-impossibile.mjs', ['--controprova'], true],
+  ['il valore del materiale di Terra non gonfia per un rilievo a calendario impossibile', 'terra-valore-calendario-impossibile.mjs', []],
+  ['valore del materiale e calendario impossibile · controprova', 'terra-valore-calendario-impossibile.mjs', ['--controprova'], true],
+  ['un fronte condiviso fra due lotti produce un avviso visibile in Terra', 'terra-fronte-condiviso-avviso.mjs', []],
+  ['fronte condiviso e avviso · controprova', 'terra-fronte-condiviso-avviso.mjs', ['--controprova'], true],
+  ['Terra: la schermata Denuncia dice anche che il residuo è la cifra più alta possibile, non solo che il cumulato è un minimo', 'terra-denuncia-residuo-massimo.mjs', []],
+  ['Denuncia residuo massimo · controprova', 'terra-denuncia-residuo-massimo.mjs', ['--controprova'], true],
+  ['Terra: il bottone «Registra» della modale nuovo inventario si spegne durante il salvataggio', 'terra-inventario-occupato.mjs', []],
+  ['bottone «Registra» inventario · controprova', 'terra-inventario-occupato.mjs', ['--controprova'], true],
+  /* 16/09 · il banco da sempre, anno per anno (sesto e ultimo delta dello
+     stesso giro): il totale «almeno» diceva CHE manca qualcosa, non DOVE. */
+  ['il banco da sempre, anno per anno nella pagina Denuncia di Terra', 'terra-banchi-serie-anni.mjs', []],
+  ['banco da sempre anno per anno · controprova', 'terra-banchi-serie-anni.mjs', ['--controprova'], true],
+  /* 16/09 · la denuncia INAIL di un infortunio (D.P.R. 1124/1965, art. 53):
+     due «da valutare» diversi (manca il certificato / prognosi ancora
+     aperta) non devono mai scambiarsi la ragione. */
+  ['la denuncia INAIL nel registro degli eventi di Scudo', 'scudo-denuncia-inail.mjs', []],
+  ['denuncia INAIL · controprova', 'scudo-denuncia-inail.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 17/09 — dal terzo giro di deep-pass: nel Quadro una
+     verifica periodica di attrezzatura, quando entra anche lei nella
+     finestra scaduta/in-scadenza, compariva due volte (`verUrg` col badge
+     specifico, `urg` col ramo generico senza deduplica). */
+  ['il Quadro di Scudo non mostra due volte la stessa verifica periodica', 'scudo-verifica-doppia.mjs', []],
+  ['Quadro di Scudo, verifica doppia · controprova', 'scudo-verifica-doppia.mjs', ['--controprova'], true],
+  ['il Quadro di Scudo mostra la denuncia INAIL scaduta come urgenza', 'scudo-inail-quadro.mjs', []],
+  ['Quadro di Scudo, denuncia INAIL · controprova', 'scudo-inail-quadro.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 06/08, ed è una famiglia TERZA rispetto alle due qui
      intorno: non il numero sbagliato (`terra-numeri-tranquilli`) né il disegno
      che mente (`terra-geometrie`), ma la FRASE — la parola incollata al numero
@@ -720,6 +1030,13 @@ const BANCHI = [
      quindi sulla copia misura la copia. */
   ['le frasi di Conti quando il numero è uno', 'conti-frasi-da-uno.mjs', []],
   ['frasi di Conti da uno · controprova', 'conti-frasi-da-uno.mjs', ['--controprova'], true],
+  /* 05/09 · il file della banca nelle sue forme vere, caricato davvero: le
+     colonne lette per NOME (entrate/uscite/saldo/causale ABI; dare/avere con la
+     descrizione in fondo), l'esito che dice quali sono riconosciute e quali
+     lasciate fuori, il bonifico che vale 12.300 e non il saldo. La controprova
+     rimette la lettura per posizione. */
+  ['il file della banca di Conti, letto per nome di colonna', 'conti-banca-colonne.mjs', []],
+  ['file della banca · controprova', 'conti-banca-colonne.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 06/08, ed è la famiglia che il 06/08 è stata censita nel
      core: il numero è giusto e a mentire è il DISEGNO. Là una barra da 2.261,7
      m³ ne disegnava 3, identica ai cinque mesi a zero, perché `height:100%` si
@@ -758,6 +1075,11 @@ const BANCHI = [
      uno scratchpad, che alla sessione dopo non esistono. */
   ['il core e i rapportini mai misurati', 'core-rapportini-non-misurati.mjs', []],
   ['rapportini mai misurati · controprova', 'core-rapportini-non-misurati.mjs', ['--controprova'], true],
+  /* 03/09: l'esito dello sparo sul rapportino fochino — colpi esplosi contati
+     e colpi mancati. Assenti = NON CONTATO, mai «0 mancati»; una funzione sola
+     (`esitoSparo` in dw-shell) decide lista, scheda e PDF. */
+  ["il core: l'esito dello sparo (colpi esplosi e mancati)", 'core-esito-sparo.mjs', []],
+  ["esito dello sparo · controprova", 'core-esito-sparo.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 07/08, gemello del banco qui sopra sull'ALTRO documento del
      core. Stessa decisione (`misureVolataProgetto` in `shared/`), quarta copia
      debole: documento, scheda e riquadro la chiamavano, l'ELENCO no — e
@@ -796,6 +1118,8 @@ const BANCHI = [
      scheda scriva davvero quella frase, `node` non lo può vedere. */
   ['i numeri tranquilli che escono da Sentinella', 'sentinella-numeri-tranquilli.mjs', []],
   ['numeri tranquilli di Sentinella · controprova', 'sentinella-numeri-tranquilli.mjs', ['--controprova'], true],
+  ["Sentinella: il badge «letture senza taratura» sul superamento con calendario regolare", 'sentinella-badge-scoperta.mjs', []],
+  ['badge letture senza taratura di Sentinella · controprova', 'sentinella-badge-scoperta.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 03/08, terza passata sul documento che va all'ente: non più
      «che numero scrive» ma «che cosa dichiara di NON sapere», e se lo dichiara
      dove qualcuno lo legge. Tre cose che solo il browser vede, perché il
@@ -807,6 +1131,8 @@ const BANCHI = [
      il cliente consegna. */
   ['le dichiarazioni del report di Sentinella', 'sentinella-report-dichiarazioni.mjs', []],
   ['dichiarazioni del report · controprova', 'sentinella-report-dichiarazioni.mjs', ['--controprova'], true],
+  ['la scheda della singola volata (Sentinella)', 'sentinella-foglio-volata.mjs', []],
+  ['scheda della volata · controprova', 'sentinella-foglio-volata.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 13/08 (riga B4). Il documento poteva essere vero e rispondere
      a UN'ALTRA DOMANDA: lo scadenzario sapeva quando va consegnato un
      adempimento, il Report faceva digitare «dal» e «al», e fra le due cose non
@@ -835,6 +1161,91 @@ const BANCHI = [
      `>=`. Finché quella riga non cambia, questo banco è KO di proposito. */
   ['i disegni di Sentinella, misurati in pixel', 'sentinella-disegni.mjs', []],
   ['disegni di Sentinella · controprova', 'sentinella-disegni.mjs', ['--controprova'], true],
+  /* 04/09 · la lettura dichiarata non valida (mezzo di passaggio, temporale,
+     prova dello strumento), premuta davvero: la modale del core, la riga che
+     resta barrata col valore e la ragione, il riepilogo di conformità che
+     cambia SOLO con la dichiarazione e lo dice, il report e il file per
+     l'ente che scrivono «1 lettura annullata (temporale)», il ripristino. La
+     controprova rimette `lettureLeggibili` senza il filtro: l'annullata conta
+     lo stesso, e il banco deve cadere. */
+  ['la lettura dichiarata non valida di Sentinella, premuta davvero', 'sentinella-annullate.mjs', []],
+  ['lettura non valida di Sentinella · controprova', 'sentinella-annullate.mjs', ['--controprova'], true],
+  /* 16/09 · l'escalation sui superamenti ripetuti (dal delta della ricerca
+     continua, nono giro): il caso non è nella dimostrazione vera (zero
+     superamenti aperti oggi, misurato), quindi si inietta un punto/ricettore
+     apposta — mai sul file su disco — per provare che il badge nel ponte
+     arriva davvero dal modulo. */
+  ['l\'escalation sui superamenti ripetuti nel ponte di Sentinella', 'sentinella-escalation-superamenti.mjs', []],
+  ['escalation sui superamenti ripetuti · controprova', 'sentinella-escalation-superamenti.mjs', ['--controprova'], true],
+  /* 04/09 · la scheda del punto sta nella sua larghezza: il quadrante dei KPI
+     troncava «44,2 µg/m³» in «44,2 …» (l'unità sparita) a 320 e 390 px, e la
+     tabella «Le ultime misure» scorreva nel suo riquadro con le pillole della
+     provenienza tagliate alla vista. Misura a 320/360/390/430 nei tre temi su
+     ogni punto della dimostrazione, col Range sui nodi di testo. La controprova
+     rimette l'ellissi, l'ora come colonna a sé e il min-width delle azioni. */
+  ['la scheda del punto di Sentinella sta nella sua larghezza', 'sentinella-scheda-larghezze.mjs', []],
+  ['scheda del punto · controprova', 'sentinella-scheda-larghezze.mjs', ['--controprova'], true],
+  /* 04/09 · il file del sismografo a più colonne (PPV sui tre assi, vettore
+     somma, frequenza, sovrapressione) incollato davvero: la finestra propone
+     PVS come valore e non un asse, «nessuna» calcola la risultante e scarta
+     la riga con un asse vuoto col motivo, la serie del punto e il report
+     portano l'evento e dichiarano da dove viene il numero. La controprova
+     rimette `lettureLeggibili` senza `campiEvento` e la risultante a due assi. */
+  ['il file del sismografo a più colonne di Sentinella, incollato davvero', 'sentinella-evento-import.mjs', []],
+  ['sismografo a più colonne · controprova', 'sentinella-evento-import.mjs', ['--controprova'], true],
+  /* 05/09 (sera) · le condizioni meteo della misura, dal file e a mano: il
+     file del fonometro con la stazione meteo incollato davvero («Evento» non
+     è «vento»), l'anteprima con «non letta: vento» e i tag, l'archivio che
+     tiene le condizioni, la striscia di «Registra» che C'È e avvisa (dall'08/08
+     il gestore moriva su `letture` fuori scope), il report che conta fuori ·
+     dentro · non si può dire. La controprova rimette tre difetti, due nel
+     modulo e uno nella pagina, applicati per file. */
+  ['le condizioni meteo di Sentinella, dal file e a mano', 'sentinella-meteo-import.mjs', []],
+  ['condizioni meteo · controprova', 'sentinella-meteo-import.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 18/09, secondo giro di deep-pass QA: reclami, scadenze,
+     punti di misura e ricettori sono tutti scritture pure senza nessun
+     controllo di doppione — verificato dal vivo su tutti e quattro. */
+  ['Sentinella: reclami/scadenze/punti-di-misura/ricettori si spengono durante il salvataggio', 'sentinella-bottoni-occupato.mjs', []],
+  ['bottoni occupato di Sentinella · controprova', 'sentinella-bottoni-occupato.mjs', ['--controprova'], true],
+  /* 05/09 (notte) · il ponte 3e: Genesi → Sentinella senza il file. Due pagine
+     nello stesso browser: «per Sentinella» scrive la prevista nella collezione,
+     il registro di Sentinella la mostra e la accoglie con gli stessi numeri;
+     riesportare non raddoppia, accolta sparisce dalle nuove, le eseguite non
+     cambiano. La controprova rimette Genesi che non scrive e Sentinella che
+     confronta una lista vuota, per file. */
+  ['il ponte 3e: Genesi → Sentinella senza il file', 'ponte-genesi-sentinella.mjs', []],
+  ['ponte 3e · controprova', 'ponte-genesi-sentinella.mjs', ['--controprova'], true],
+  /* 05/09 (notte) · il piano di carico Genesi → Campo senza il file: «Esporta
+     piano» scrive nella collezione, Campo mostra «Piani da Genesi», «carica»
+     percorre la stessa strada del file (finestra compresa) e i dodici fori
+     entrano; riesportare non raddoppia. Controprova per file. */
+  ['il piano di carico: Genesi → Campo senza il file', 'ponte-genesi-campo.mjs', []],
+  ['piano Genesi → Campo · controprova', 'ponte-genesi-campo.mjs', ['--controprova'], true],
+  /* 05/09 (notte) · la passata in profondità come banco: ogni schermata delle
+     sei app a 320 px, linguette chiuse aperte, nessuna riga con «NaN»,
+     «undefined», «null», «[object»; gli zeri con unità e i trattini contati
+     come misura col denominatore. Controprova: un «undefined» e un «NaN»
+     rimessi in due testi statici. */
+  ['ogni schermata delle sei app a 320 px: le quattro parole vietate, e gli zeri contati', 'numeri-tranquilli-a-320.mjs', []],
+  ['schermate a 320 px · controprova', 'numeri-tranquilli-a-320.mjs', ['--controprova'], true],
+  ['le osservazioni di sicurezza di Scudo: il modale, i due versi, il filtro, il riepilogo', 'scudo-osservazioni.mjs', []],
+  ['osservazioni di Scudo · controprova', 'scudo-osservazioni.mjs', ['--controprova'], true],
+  ['le versioni di un documento di Scudo: la domanda, il sostituito fermo, il DSS che conserva', 'scudo-versioni-documenti.mjs', []],
+  ['versioni dei documenti · controprova', 'scudo-versioni-documenti.mjs', ['--controprova'], true],
+  ['il verbale di ispezione di Scudo su carta: la finestra prima, il foglio, le voci senza esito', 'scudo-verbale-ispezione.mjs', []],
+  ['verbale di ispezione · controprova', 'scudo-verbale-ispezione.mjs', ['--controprova'], true],
+  ['le rimanenze di piazzale di Conti: a listino, il cumulo non misurato fuori, il CSV dallo stesso conto', 'conti-rimanenze.mjs', []],
+  ['rimanenze di piazzale · controprova', 'conti-rimanenze.mjs', ['--controprova'], true],
+  ['il registro delle vendite di Conti per il commercialista: una riga per aliquota, IVA vuota non zero, il file letto', 'conti-registro-vendite.mjs', []],
+  ['registro vendite · controprova', 'conti-registro-vendite.mjs', ['--controprova'], true],
+  ['i listini per cliente di Conti: la pesata di Stradesud al SUO prezzo col base accanto, la sezione, il CSV letto', 'conti-listini.mjs', []],
+  ['listini per cliente · controprova', 'conti-listini.mjs', ['--controprova'], true],
+  ['il piede della modale di Conti non accumula ascoltatori («Scrivi il verbale»)', 'conti-modal-foot-listener.mjs', []],
+  ['piede della modale · controprova', 'conti-modal-foot-listener.mjs', ['--controprova'], true],
+  ['«il primo dei due» in Flotta: ore E data, la peggiore comanda, il mezzo fuori parco resta per data', 'flotta-primo-dei-due.mjs', []],
+  ['primo dei due · controprova', 'flotta-primo-dei-due.mjs', ['--controprova'], true],
+  ['il ponte Conti → Flotta: la fattura dell\'officina collegata all\'ordine di lavoro, nelle due pagine', 'ponte-conti-flotta-odl.mjs', []],
+  ['ponte Conti → Flotta · controprova', 'ponte-conti-flotta-odl.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 06/08, stessa famiglia, su Scudo. Qui il censimento ha
      cambiato la domanda: su dodici tappe i soggetti con una geometria sono 91,
      e le geometrie che rappresentano una QUANTITÀ sono NOVE — tutte del motore
@@ -862,6 +1273,10 @@ const BANCHI = [
      quella, lo dice solo il browser. */
   ['i numeri tranquilli che escono da Campo', 'campo-numeri-tranquilli.mjs', []],
   ['numeri tranquilli di Campo · controprova', 'campo-numeri-tranquilli.mjs', ['--controprova'], true],
+  ['il Quadro di Campo segnala anche il giudizio medico "non idoneo" (17/09)', 'campo-quadro-non-idoneo.mjs', []],
+  ['Quadro di Campo, giudizio non idoneo · controprova', 'campo-quadro-non-idoneo.mjs', ['--controprova'], true],
+  ['la consegna di turno di Campo non riscrive un turno già firmato (17/09)', 'campo-consegna-turno-chiuso.mjs', []],
+  ['consegna di turno chiuso di Campo · controprova', 'campo-consegna-turno-chiuso.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 06/08, la domanda col righello su Campo. Il censimento a
      tappeto (percentuali negli style inline, SVG con dimensioni calcolate,
      min-width/min-height, su tutte e cinque le schermate) dice che le
@@ -925,6 +1340,18 @@ const BANCHI = [
      della tendina ci stia a 390 px, lo dice solo il browser. */
   ['i numeri tranquilli che escono da Scudo', 'scudo-numeri-tranquilli.mjs', []],
   ['numeri tranquilli di Scudo · controprova', 'scudo-numeri-tranquilli.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 18/09, dal deep-pass QA: tredici bottoni di scrittura su
+     quindici senza `occupato()`. Il banco copre i due casi più chiari — il
+     doppione vero e verificato dal vivo (DPI, scrittura pura senza dedup) e
+     la trappola dell'etichetta (Mansioni, come btn-azi). */
+  ['bottoni di scrittura di Scudo si spengono durante il salvataggio', 'scudo-bottoni-occupato.mjs', []],
+  ['bottoni occupato di Scudo · controprova', 'scudo-bottoni-occupato.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 18/09: le due modali (near-miss, analisi) hanno la stessa
+     trappola di Terra — `chiudiModale()` arriva SOLO dopo la scrittura. Il
+     near-miss era verificato dal vivo dall'agente, l'analisi era «sospetta,
+     non confermata»: verificata qui leggendo il codice prima di correggerla. */
+  ['le modali near-miss e analisi di Scudo si spengono durante il salvataggio', 'scudo-modali-occupato.mjs', []],
+  ['modali occupato di Scudo · controprova', 'scudo-modali-occupato.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 03/08, seconda passata su Genesi dopo i cinque numeri
      tranquilli corretti la mattina dentro `genesi-data.js`. I quattro rimasti
      stavano tutti dove `node` non arriva: un campo SVUOTATO nella
@@ -958,6 +1385,13 @@ const BANCHI = [
      con ventotto chiamate all'assenza, non aveva niente. */
   ['i numeri tranquilli di Flotta', 'flotta-numeri-tranquilli.mjs', []],
   ['numeri tranquilli di Flotta · controprova', 'flotta-numeri-tranquilli.mjs', ['--controprova'], true],
+  /* 15/09: l'import CSV del parco confrontava il nome INTERO contro
+     l'archivio invece del nome breve (la chiave vera, dichiarata dal
+     modulo) — un mezzo già registrato con marca/modello non fermava una
+     riga CSV che portava solo il nome corto, e nasceva un secondo
+     documento con lo stesso nome breve. */
+  ['Flotta · l\'import del parco non sdoppia un mezzo per il nome breve', 'flotta-import-mezzi-nome-breve.mjs', []],
+  ['Flotta · import parco nome breve · controprova', 'flotta-import-mezzi-nome-breve.mjs', ['--controprova'], true],
   /* ⛔ E DAL 06/08 LE FRASI, non i numeri. Il numero era giusto e a mentire era
      la frase intorno: undici punti incollavano un plurale a un conto che può
      valere uno («Consuntivo importato: 1 fori», «Il file ha 1 righe», e —
@@ -970,6 +1404,31 @@ const BANCHI = [
      frasi escano davvero così lo dice solo il browser. */
   ['le frasi limite di Genesi', 'genesi-frasi-limite.mjs', []],
   ['frasi limite di Genesi · controprova', 'genesi-frasi-limite.mjs', ['--controprova'], true],
+  ['il decking di Genesi non disegna un piano senza borraggio per uno stem illeggibile', 'genesi-decking-stem-null.mjs', []],
+  ['decking e stem illeggibile · controprova', 'genesi-decking-stem-null.mjs', ['--controprova'], true],
+  ['il Validatore di Genesi non accusa un borraggio/sottoperf. "corto" quando stem/sub sono illeggibili', 'genesi-validatore-stem-sub-null.mjs', []],
+  ['Validatore stem/sub illeggibili · controprova', 'genesi-validatore-stem-sub-null.mjs', ['--controprova'], true],
+  ['il Validatore di Genesi non accusa "banco rigido/ritardo basso" quando altezza banco o ritardi sono illeggibili', 'genesi-rigidita-timing-null.mjs', []],
+  ['Validatore rigidità/timing illeggibili · controprova', 'genesi-rigidita-timing-null.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 18/09, terzo giro di deep-pass QA: stessa famiglia, sul
+     badge "Spalla / Ø" — l'unico rimasto senza la guardia degli altri. */
+  ['il Validatore di Genesi non accusa "spalla piccola" quando la spalla è illeggibile', 'genesi-spalla-diametro-null.mjs', []],
+  ['Validatore spalla/diametro illeggibile · controprova', 'genesi-spalla-diametro-null.mjs', ['--controprova'], true],
+  ['Genesi: forma del cumulo e decking non fabbricano un numero su B/S/carica illeggibili', 'genesi-muckshape-decking-null.mjs', []],
+  ['muckShape e decking illeggibili · controprova', 'genesi-muckshape-decking-null.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 18/09: la riconciliazione e "Duplica" volata non avevano
+     nessuna guardia contro il doppio tocco, confermato dal vivo. */
+  ['Genesi: riconciliazione e "Duplica" volata si spengono durante la scrittura', 'genesi-scritture-occupato.mjs', []],
+  ['scritture occupato di Genesi · controprova', 'genesi-scritture-occupato.mjs', ['--controprova'], true],
+  ['la vista 3D raggi-X di Genesi non disegna la carica fino al colletto quando il borraggio è illeggibile', 'genesi-xray-stem-null.mjs', []],
+  ['raggi-X e stem illeggibile · controprova', 'genesi-xray-stem-null.mjs', ['--controprova'], true],
+  ['il popup del foro e la timeline di Genesi mostrano il tempo di progetto, non lo scatter sorteggiato', 'genesi-timing-nominale.mjs', []],
+  ['timing nominale di Genesi · controprova', 'genesi-timing-nominale.mjs', ['--controprova'], true],
+  ["l'import .volata.json di Genesi rilegge esplosivo e innesco dichiarati nel file", 'genesi-import-esplosivo-innesco.mjs', []],
+  ['import esplosivo/innesco di Genesi · controprova', 'genesi-import-esplosivo-innesco.mjs', ['--controprova'], true],
+  ['Genesi: le volate passano dalla porta sui dati', 'genesi-locale.mjs', []],
+  ['porta sui dati di Genesi · senza rete', 'genesi-locale.mjs', ['--offline']],
+  ['porta sui dati di Genesi · controprova', 'genesi-locale.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 14/08 — lo stesso principio del fondatore applicato al
      TEMPO invece che al dato. Fra l'apertura della pagina e l'arrivo dei dati
      c'è una finestra in cui l'app ha già disegnato tutto e non sa ancora
@@ -988,6 +1447,23 @@ const BANCHI = [
      sarebbe peggio del difetto. */
   ['«non ancora caricato» non è «non c\'è»', 'finestra-caricamento.mjs', []],
   ['finestra di caricamento · controprova', 'finestra-caricamento.mjs', ['--controprova'], true],
+  ['la modale intrappola Tab e mette inert il fondo (Conti · shared, e il core)', 'focus-trap-modale.mjs', []],
+  ['trappola del focus · controprova', 'focus-trap-modale.mjs', ['--controprova'], true],
+  ['Scudo: una qualifica in scadenza non sparisce dalla riga dell appalto', 'scudo-appalto-in-scadenza.mjs', []],
+  ['appalto in scadenza · controprova', 'scudo-appalto-in-scadenza.mjs', ['--controprova'], true],
+  ['Campo: chi non ha ancora un documento in Scudo non sparisce dal banner', 'campo-hse-senza-scadenze.mjs', []],
+  ['senza scadenze in Campo · controprova', 'campo-hse-senza-scadenze.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 18/09, dalla ricerca continua (ottavo giro su Campo,
+     metodo Short Interval Control): l'obiettivo di turno diceva solo
+     "quanto manca", mai "sei indietro rispetto al ritmo di ADESSO". */
+  ["Campo: l'obiettivo di turno distingue presto da indietro-rispetto-al-ritmo", 'campo-obiettivo-ritmo.mjs', []],
+  ['obiettivo e ritmo del turno · controprova', 'campo-obiettivo-ritmo.mjs', ['--controprova'], true],
+  ['Campo: il ricontrollo dei fronti non sparisce se il meteo viene corretto dopo', 'campo-checklist-meteo-corretto.mjs', []],
+  ['ricontrollo dei fronti e meteo corretto · controprova', 'campo-checklist-meteo-corretto.mjs', ['--controprova'], true],
+  ['Flotta: un componente scaduto ha la fascia colorata giusta', 'flotta-componenti-fascia.mjs', []],
+  ['fascia componenti Flotta · controprova', 'flotta-componenti-fascia.mjs', ['--controprova'], true],
+  ['Conti: la fattura scartata dallo SdI non è emesso nel Report', 'conti-emesso-scartata.mjs', []],
+  ['emesso scartata Conti · controprova', 'conti-emesso-scartata.mjs', ['--controprova'], true],
 ];
 
 /* «finto 2» è dichiarata CONTROPROVA di proposito: così `impronta-giro.mjs`,
@@ -1031,7 +1507,10 @@ async function aspetta(porta, secondi) {
   return false;
 }
 
-const PORTA = process.argv[2] || '8823';
+/* ⚠️ 03/09: lanciato come `tutti.mjs --solo=conti` prendeva «--solo=conti» per
+   la PORTA e moriva provando ad alzare un server lì sopra. La porta è il
+   primo argomento che NON comincia con `--`; se non c'è, 8823. */
+const PORTA = process.argv.slice(2).find((a) => !a.startsWith('--')) || '8823';
 const SU_COPIA = !process.argv.includes('--sulla-viva');
 
 /* ══ IL GIRO GIRA SU UNA COPIA CONGELATA ═══════════════════════════════════
@@ -1267,8 +1746,20 @@ for (const [nome, file, argomenti, eControprova, appeso] of DA_FARE) {
     /* `detached` serve al kill dell'ALBERO qui sotto: senza, il figlio resta
        nel gruppo del runner e `process.kill(-pid)` ammazzerebbe il runner
        stesso. Con lui, un Chromium orfano non sopravvive al limite. */
+    /* ⛔ IL PROXY DEL CONTENITORE FA ASPETTARE 12,7 SECONDI A OGNI PAGINA, e i
+       banchi che aspettano un tempo fisso misurano una schermata VUOTA.
+       Misurato il 02/09: Chromium legge `HTTPS_PROXY` dall'ambiente e manda lì
+       l'import di Firebase da gstatic; il proxy tiene la connessione e la
+       azzera dopo ~12,7 s, e solo allora l'app ripiega sulla dimostrazione.
+       Senza quelle variabili l'import fallisce in 260 ms. Sei banchi di Conti
+       lanciati a mano davano «#vend-list è vuota: non ho misurato niente»,
+       «il file esce davvero: KO» su tutti i CSV — cioè accusavano il prodotto
+       dell'ambiente. Qui le variabili si tolgono al figlio, non al runner:
+       `giro-node` e chi usa `curl` le vogliono. */
+    const senzaProxy = Object.fromEntries(Object.entries(process.env)
+      .filter(([k]) => !/^(https?_proxy|no_proxy)$/i.test(k)));
     const p = file
-      ? spawn(process.execPath, [join(QUI, file), PORTA, ...argomenti], { stdio: 'inherit', detached: true })
+      ? spawn(process.execPath, [join(QUI, file), PORTA, ...argomenti], { stdio: 'inherit', detached: true, env: senzaProxy })
       : spawn(process.execPath, ['-e', appeso ? 'setInterval(() => {}, 1000)' : 'setTimeout(() => {}, 600)'],
               { stdio: 'inherit', detached: true });
     /* si uccide l'ALBERO, non solo il capo: un banco che alza un browser lascia

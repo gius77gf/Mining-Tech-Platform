@@ -218,10 +218,33 @@ studio che abbassò i limiti dal precedente 140 dB ai livelli attuali).
   Da pinnare quando la fonte integrale sarà accessibile.
 
 ## 5-bis. Aree ancora da completare
-- **Fori bagnati / decoupling / decking**: non ancora coperti dalla letteratura
-  (la fisica implementata resta dichiarata come stima).
+- ✅ **Fori bagnati**: coperto il 12/09 (unità 126) — tabella di penalità RWS
+  consolidata in `PENALITA_ACQUA`/`rwsEffettiva` (`genesi-data.js`), 5
+  occorrenze duplicate chiuse. La fisica resta dichiarata come stima
+  empirica (nessuna fonte pubblica pinnata su questi coefficienti
+  specifici), ma non è più duplicata in 5 punti diversi.
+- **Decoupling / decking**: ancora non coperti dalla letteratura di questo
+  documento (la fisica implementata resta dichiarata come stima) — nota
+  però che il **presplit** (una forma specifica di decoupling) ha una
+  ricerca dedicata più recente, 12/09, in
+  `docs/RICERCA_CONTINUA_GENESI.md`.
 - **Numeri di frontiera DIN** da ri-confermare sul testo della norma (sez. 4-bis).
 - **Intercetta airblast 172** da pinnare (sez. 6).
+
+⛔ **AGGIORNAMENTO 12/09 sul punto 3 di "Prossimi passi" qui sotto
+("completare flyrock... ricerca dedicata")**: fatta, con un limite
+importante da dichiarare. `docs/RICERCA_CONTINUA_GENESI.md` (sezione
+2026-09-12 "flyrock e backbreak") ha trovato che il modello più citato e
+confermato da fonti indipendenti (**Lundborg 1975**, `Lm=260·D^(2/3)`) è
+diverso dalla forma che appare nel codice di Genesi — non è stato
+verificato in questa unità se `flyrockEst` di Genesi usi Lundborg, una
+variante di Richards & Moore, o una formula propria: quel confronto
+riga-per-riga (il punto 2 di "Prossimi passi", mai fatto per il flyrock)
+resta aperto. **E per la stessa ragione della segnalazione di sicurezza
+del 12/09 su burden/boretrack (`docs/DECISIONI_WEEKEND.md` §6): qualunque
+verifica del flyrock che porti a una CORREZIONE del modello non si fa
+senza il via libera del fondatore, come già scritto al punto 4 qui sotto
+("il motore fisico si tocca SOLO col suo via libera").**
 
 ## 6. Prossimi passi (ordine)
 1. **Verificare i claim [NV]** aprendo le fonti (dopo il reset del limite).
