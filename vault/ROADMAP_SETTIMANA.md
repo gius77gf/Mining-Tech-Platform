@@ -11962,3 +11962,24 @@ su Deepwork ID.
 run-kpi.mjs 3180/3180. numeri-nei-documenti.mjs 43/43 (415 banchi, 187
 file distinti). scudo-inail-quadro.mjs 4/4 normale, 1 KO sotto
 `--controprova`.
+
+## Decimo giro: riverifica ricerca Conti, QA Flotta ed esito Genesi (19/09)
+
+- [x] **Riverifica su Conti** (`86591f7d`, solo docs): due "manca" su tre
+      proposte della ricerca continua erano FALSE, verificato leggendo
+      `statoSdi()`. Il testo esplicativo scarto/mancata-consegna era già
+      scritto parola per parola; il conto alla rovescia dei 5 giorni è in
+      gran parte già fatto e la parte mancante è una scelta già presa e
+      motivata nel codice, non una lacuna. Confermata solo la proposta del
+      campo `codiceErrore` standardizzato, come candidato non implementato.
+- [x] **Flotta** (agente UX, seconda iterazione): nessun difetto trovato,
+      con misure vere (contrasto WCAG reale, overflow a 320px, tap-target,
+      alone dinamico). Report onesto di "a posto", nessuna unità aperta.
+- [x] **Genesi** (`be0eaccd`): il report stampabile scriveva
+      `gnum(D2.ritardoFila||0,1)` — un ritardo per fila illeggibile usciva
+      come "42 / 0 ms" invece di "42 / — ms". Corretto, nuovo scenario in
+      `genesi-numeri-tranquilli.mjs` con controprova (8/8 iniezioni, 19 KO).
+
+run-kpi.mjs 3180/3180. numeri-nei-documenti.mjs 43/43 (415 banchi,
+copertura 1051/1051, invariati). genesi-numeri-tranquilli.mjs 39/39
+normale, 19 KO / 8 iniezioni sotto `--controprova`.
