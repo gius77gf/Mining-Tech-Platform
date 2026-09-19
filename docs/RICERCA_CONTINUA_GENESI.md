@@ -4180,3 +4180,293 @@ descrive. La seconda parte (lo scatter fisso di «elettrico») è più piccola e
 più incerta: è un'incoerenza testo/numero verificata col grep, non un
 numero di soglia sbagliato — servirebbe una fonte dedicata al tipo esatto di
 detonatore elettrico a relè MS/LP prima di cambiare la costante.
+
+## Ricerca del 2026-09-19 — validazione pre-sparo, checklist di sicurezza e tracciabilità dell'approvazione (metà sul mondo)
+
+_Timestamp: 2026-09-19T02:39:17Z_
+
+_Strumento: `WebSearch` soltanto, come impone il mandato. `WebFetch` non è
+stato ritentato (resta `EGRESS_BLOCKED`, verificato più volte da ricerche
+precedenti di questo file). Ogni fatto sul mondo è marcato [di seconda mano]:
+nessuna pagina è stata letta per intero, solo risultati di ricerca._
+
+### Già scritto (per non ripeterlo) — letto PRIMA di cercare nel mondo
+
+Verificato con `grep -n "^## " docs/RICERCA_CONTINUA_GENESI.md` e rileggendo
+per intero le sezioni pertinenti prima di formulare qualunque proposta:
+
+- **14/09 (righe 2995-3095), "Controlli automatici di validazione"**: aveva
+  censito i validatori di Genesi (MIC, PPV, airblast, pezzatura, acqua,
+  presplit, sequenza, innesco — nove categorie in `computeKPI()`) e aveva
+  proposto, come mancante, «un modulo "Controlla piano" che... stampi un
+  rapporto 🟢 PRONTO A SPARARE o 🔴 CORREGGERE prima» (riga 3074).
+  ⛔ **Quella proposta è stata COSTRUITA lo stesso giorno**, non è rimasta
+  aperta: `git log -1 --format="%H %ad %s" --date=short -S "verdetto di
+  sintesi" -- apps/genesi/genesi.html` → `874f96e 2026-09-14 feat: G45 —
+  verdetto di sintesi sopra la scheda validatori, con perimetro dichiarato
+  sempre visibile`. Verificato leggendo il codice (`genesi.html:7394-7404`):
+  esiste `sintesiHtml`, un badge 🔴/🟡/🟢 che conta quanti dei 33 indicatori
+  `sv-ok`/`sv-warn`/`sv-bad` della scheda sono fuori fascia o gravemente
+  fuori fascia (`_sintN`, `_sintFuori`, `_sintGravi`), con perimetro
+  dichiarato in un commento («copre geometria, carica, esplosivo, vibrazione,
+  airblast e flyrock»). **Chi riaprisse questa proposta costruirebbe un
+  doppione**: è la stessa famiglia di errore già raccolta più volte in questo
+  file («il non c'è va provato, non dichiarato» / documento che invecchia lo
+  stesso giorno in cui viene scritto).
+- **16/09 e 18/09 (righe 3507-3946)**: i quattro rapporti geometrici (B/D,
+  S/B, borraggio/B, sottoperforazione/B) sono badge veri con verdetto e
+  spiegazione, non numeri grezzi — chiuso.
+- **09/11 (righe 545-682)**: la «firma» del direttore/fochino sul foglio
+  stampato **non esiste come dato**, esiste come tre righe bianche da
+  compilare a penna dopo la stampa (`genesi.html:4134-4135`, blocco G8 del
+  14/09: «Responsabile del tiro (nome e cognome) · Firma · Data e ora dello
+  sparo»), con la motivazione esplicita nel commento: *Genesi non tiene
+  un'anagrafica di persone*, e la decisione se il foglio valga come ordine
+  di servizio è del direttore, non di questa sessione. **Questa decisione
+  resta valida e non viene rimessa in discussione qui** — ma vedi sotto:
+  esiste un dato diverso dalla «firma del direttore», più piccolo e già
+  disponibile, che oggi non viene usato.
+- **11/09, seconda parte (Domanda 4)**: le quantità autorizzate (licenza)
+  sono dichiarate assenti e rimandate a una decisione di prodotto — non
+  ridiscusso qui, fuori dal perimetro di questa domanda.
+- **Il consuntivo di carico foro-per-foro ESISTE GIÀ**, ed è quasi
+  esattamente la terza parte della domanda del mandato («conferma che tutti
+  i fori siano caricati secondo il piano»): Campo esporta un CSV con
+  intestazione `data;turno;foro;carica_prog_kg;carica_reale_kg;scarto_pct...`
+  (`apps/genesi/genesi-data.js:625`, colonna `foro` = per singolo foro, non
+  aggregata), Genesi lo legge con `_riconParseCampo` (riga 655) e calcola lo
+  scarto progetto-vs-reale. Non è un "non c'è": è già la stessa funzione che
+  il mondo (BlastIQ/SHOTPlus, sezione sotto) chiama "as-designed vs
+  as-loaded". **Nessuna proposta scritta su questo punto.**
+- **La zona di sgombero (flyrock) è già disegnata geometricamente, non solo
+  in una tabella**: nella scena 3D (`genesi.html:2206-2236`) tre anelli
+  concentrici colorati (gittata prevista, 2× mezzi, 4× persone) attorno alla
+  volata, nel layer `lFly`, con un disco di terreno sotto per non lasciarli
+  "sospesi nel vuoto" — verificato leggendo il codice, non dedotto dal nome
+  (il grep per `exclusionZone|zonaSgombero` in inglese dava zero, la stessa
+  trappola già raccolta in questo file per il rapporto B/D il 18/09). **Non
+  proposto come mancante**: il meccanismo del mondo (Orica SHOTPlus,
+  "Exclusion Zone Tool", raggio costante o gittata calcolata) è già coperto,
+  e con più dettaglio (tre soglie invece di una).
+
+### Il mondo [tutte le fonti di seconda mano, solo risultati di ricerca]
+
+- **Il pre-blast checklist è un elenco fisso di controlli**, ricorrente in
+  più fonti indipendenti (SafetyCulture DNAP/GRM, Sitemate): conformità del
+  progetto approvato, trasporto/certificazione dell'esplosivo, zona di
+  esclusione con barricate e accesso controllato (lockout-tagout),
+  ispezione pre-carico dell'area, verifica di profondità dei fori, quantità
+  di carica e borraggio, collegamento della rete di innesco, linee di
+  sparo/comunicazione, posizioni di guardia, e — nel dopo-volata — verifica
+  di stabilità del fronte/backbreak e identificazione mancate esplosioni.
+  [di seconda mano: safetyculture.com/library/mining/dnap-blasting-audit,
+  .../grm-blast-area-inspection, sitemate.com/us/templates/safety/forms/
+  blasting-safety-checklist]
+- **Il sign-off è esplicitamente un ruolo, non solo una firma di modulo**:
+  "pre-blast procedures promote authorized handling only, effective misfire
+  management, and proper supervision and sign off"; il rientro è autorizzato
+  **solo dopo** che il "blaster-in-charge" firma il modulo post-sparo e dà
+  il segnale di area libera. [di seconda mano: stessa fonte SafetyCulture,
+  sintesi aggregata]
+- **La conferma "come progettato" vs "come caricato" esiste in prodotti
+  commerciali reali**: sistemi di consegna abilitati ricevono e rispondono
+  a condizioni/istruzioni di carica aggiornate rispetto al piano; app da
+  campo permettono a operatori e ingegneri di "verify blast progress,
+  validate KPIs, and control charges in each blast hole from the field".
+  [di seconda mano: orica.com/en/digital-solutions/blast-design-and-
+  execution/blastiq; coalage.com/features/software-solutions-for-better-
+  blasting; e-mj.com stessa fonte]
+- **La zona di sgombero moderna è geolocalizzata e a marca temporale, non
+  un appello via radio**: "modern systems verify that every piece of
+  equipment and every worker is outside a defined blast exclusion zone
+  using live location data, replacing manual radio roll calls with
+  automated, time-stamped confirmation" — un salto di categoria (verifica
+  automatica di posizione) che Genesi, essendo un progettista e non un
+  sistema di tracciamento in tempo reale del personale, non può replicare
+  da sola: è un dato che dovrebbe venire da un sistema di campo (Campo/
+  Scudo), non da Genesi. [di seconda mano: fleetrabbit.com/industry/mining-
+  fleet-software/best-mining-blast-clearance-management-software-2026]
+- **L'audit trail delle approvazioni, nel software in generale (non
+  specifico del blast design)**, si costruisce tracciando identità
+  dell'utente, marca temporale e azione — non il solo testo dell'esito.
+  [di seconda mano: ricerca aggregata su "approval audit trail", nessuna
+  fonte specifica di blast design trovata su questo punto esatto: **cercato
+  per SHOTPlus/BlastLogic in particolare e non trovato nulla di specifico**
+  — dichiarato come assenza della ricerca, non del mondo].
+
+### Il delta, verificato aprendo il codice (non dedotto dal nome)
+
+**1. Nessuno dei controlli che escono dalla pagina (7+1 bottoni di export)
+legge il semaforo di sintesi appena scoperto (G45) prima di scaricare.**
+
+```bash
+grep -c "a.download='genesi_" apps/genesi/genesi.html
+→ 8
+grep -n "_sintGravi\|_sintFuori" apps/genesi/genesi.html
+→ 7395:  const _sintFuori=rows.filter(r=>r.cls==='sv-warn'||r.cls==='sv-bad').length;
+  7396:  const _sintGravi=rows.filter(r=>r.cls==='sv-bad').length;
+  7398, 7399, 7401, 7402:  (le stesse due variabili, tutte dentro renderScheda2D — mai lette fuori da questa funzione)
+```
+Le due variabili che decidono il colore del semaforo (`_sintGravi`,
+`_sintFuori`) sono locali a `renderScheda2D()` e non vengono mai lette da
+nessuna delle otto funzioni di export (`genesi_piano_carico.csv`,
+`genesi_piano_innesco.xml`, `genesi_piano_fori.dxf`, `genesi_scheda_
+volata.csv`, ecc. — righe 3752, 4204, 4501, 4654, 4941, 5552, 5580, 5636).
+Verificato anche che la completezza (non solo la severità) non è
+controllata all'export: `grep -n "volataSenzaValori(D2)" apps/genesi/
+genesi.html` → **0 righe** (la funzione esiste ed è usata solo quando si
+RIAPRE una volata salvata dallo storico, riga 5480, mai su quella
+correntemente in editing al momento di scaricare un file). Il mondo (sezione
+sopra: "compliance with approved drill and blast designs" come primo punto
+di ogni checklist pre-sparo) tratta l'atto di portare un piano fuori
+dall'ufficio come il punto in cui la conformità va controllata **di nuovo**,
+non solo mostrata più in alto nella stessa schermata.
+
+**2. `GDB.utente` (identità di chi è collegato, uid+email) è già disponibile
+in modalità organizzazione, ma nessuna volata salvata la registra — e
+nessuna schermata la mostra.**
+
+```bash
+grep -n "utente: { uid" apps/genesi/genesi-data.js
+→ 2496:          utente: { uid: id.user.uid, email: id.user.email || null },
+grep -n "utente: null" apps/genesi/genesi-data.js
+→ 2566:    utente: null,   // da solo sul dispositivo non c'è nessuno da firmare
+sed -n '5262p' apps/genesi/genesi.html
+→ 5262:  return { id:'v'+Date.now(), nome:nome,
+grep -niE "autore|uid|utente" apps/genesi/genesi.html | sed -n '1,0p'; sed -n '5239,5280p' apps/genesi/genesi.html | grep -ciE "autore|uid|GDB\.utente"
+→ 0
+```
+`volSnapshot()` (`genesi.html:5239-5262`) costruisce l'oggetto salvato con
+`id`, `nome`, `data` (solo `timbroLocale()`, un timestamp) e `design`: **zero
+riferimenti a `GDB.utente`**, benché la variabile sia globale e già
+popolata in modalità organizzazione esattamente nello stesso file. La lista
+Home (`renderHome`, riga 5310-5316) stampa nome, data e sintesi di ogni
+volata salvata — mai chi l'ha salvata. In un'organizzazione dove più persone
+condividono lo stesso ambiente (il caso normale, non l'eccezione: è la
+premessa multi-tenant di questo repository), due volate omonime salvate da
+due persone diverse sono oggi indistinguibili per autore, e non c'è modo di
+rispondere alla domanda "chi ha preparato quella volata, e quando l'ha
+salvata l'ultima volta" — che è esattamente la metà "tracciabilità" della
+domanda del mandato. Non è la stessa cosa della «firma del direttore» già
+dichiarata fuori perimetro il 09/11-14/09 (quella è un atto legale su carta,
+verso l'ispettore, e richiederebbe un'anagrafica che Genesi non ha): questo
+è un dato che Genesi **ha già** (l'identità di accesso via deepwork-id) e
+che oggi butta via ad ogni salvataggio.
+
+### Proposte
+
+`schermata · che cosa non va · come si vede · quanto costa · come si misura`
+
+1. **Bottoni di export nella pagina 2D di Genesi (Scarica piano di carico,
+   piano d'innesco, DXF, scheda volata, ecc.) · nessuno dei sette/otto
+   controlla il semaforo di sintesi (🔴/🟡/🟢, badge G45 del 14/09) prima di
+   scaricare il file: un piano con indicatori gravemente fuori fascia (PPV
+   sopra soglia, flyrock oltre il limite, geometria fuori range) si esporta
+   in silenzio esattamente come uno sano · si vede coi grep sopra: `_sintGravi`
+   e `_sintFuori` esistono solo dentro `renderScheda2D` (righe 7394-7404) e
+   non sono mai letti dalle funzioni di export (righe 3752, 4204, 4501, 4654,
+   4941, 5552, 5580, 5636); il mondo tratta "conformità al progetto
+   approvato" come il primo controllo di ogni checklist pre-sparo trovata
+   (SafetyCulture DNAP/GRM/Sitemate, tre fonti indipendenti) · costo:
+   piccolo — una funzione condivisa che, chiamata prima di ciascun
+   `a.click()` di export, rilegge `_sintGravi` (ricalcolandolo da `rows` o
+   esponendo il valore già calcolato da `renderScheda2D`) e se `>0` mostra
+   una conferma **col modale del core** (mai `confirm()` nativo, vietato
+   dalla direttiva di stile) — "N indicatori sono fuori fascia grave.
+   Esportare comunque?" con Annulla/Esporta comunque; non blocca, avvisa,
+   perché la decisione di sparare resta sempre di chi è in cava · si misura:
+   progettare una volata con burden troppo piccolo per il diametro (badge
+   "Spalla / Ø" rosso) e premere "Scarica piano di carico" — oggi il file
+   scarica senza nessun avviso; dopo la modifica deve comparire la conferma
+   prima del download, e annullando la conferma il file non deve scaricare.
+
+2. **Home di Genesi, riga di ogni volata salvata (lista `hgVolate`,
+   `genesi.html:5313-5316`) · non registra né mostra CHI ha salvato quella
+   versione della volata, benché l'identità (`GDB.utente.uid`/`email`) sia
+   già disponibile in modalità organizzazione nello stesso file · si vede
+   coi grep sopra: `volSnapshot()` non scrive mai `GDB.utente` nell'oggetto
+   restituito, e `renderHome()` non lo legge in nessuna riga della lista;
+   il mondo (checklist SafetyCulture + pratica generale di audit trail)
+   tratta identità+marca-temporale come il dato minimo di tracciabilità,
+   distinto dalla firma legale su carta (già dichiarata fuori perimetro il
+   14/09 per mancanza di un'anagrafica — qui non serve un'anagrafica nuova,
+   serve solo salvare un dato che l'app ha già in mano) · costo: piccolo —
+   in `volSnapshot()` aggiungere `autoreUid: (GDB.utente&&GDB.utente.uid)||
+   null, autoreEmail:(GDB.utente&&GDB.utente.email)||null` (stesso schema
+   già usato da `portaNellOrganizzazione`/`marchia`, riga 2642 di
+   `genesi-data.js`, che marca già `autore` sulle righe migrate — qui si
+   applica lo stesso campo al salvataggio ordinario, non solo alla
+   migrazione una tantum), e in `renderHome()` stampare l'email (o "salvata
+   da questo dispositivo" quando `autoreEmail` è `null`, cioè fuori
+   organizzazione — mai un vuoto silenzioso, per il principio del
+   fondatore) accanto alla data · si misura: salvare una volata mentre si è
+   collegati a un'organizzazione con due account diversi (o due sessioni)
+   e verificare che la riga in Home distingua le due; salvare da soli
+   (locale, senza organizzazione) e verificare che scriva esplicitamente
+   "salvata da questo dispositivo", non un campo vuoto o "null".
+
+### Fonti (risultati di ricerca, nessuna letta per intero)
+
+- [SafetyCulture — DNAP Blasting Audit Template](https://safetyculture.com/library/mining/dnap-blasting-audit)
+- [SafetyCulture — Drill and Blast Work Areas Planned Inspection Checklist](https://safetyculture.com/library/mining/planned-inspection-drill-and-blast-work-areas)
+- [SafetyCulture — GRM Blast Area Inspection Checklist](https://safetyculture.com/library/mining/grm-blast-area-inspection)
+- [Sitemate — Blasting Safety Checklist](https://sitemate.com/us/templates/safety/forms/blasting-safety-checklist)
+- [Orica — BlastIQ, Integrated Technology Solutions](https://www.orica.com/en/digital-solutions/blast-design-and-execution/blastiq)
+- [Orica — SHOTPlus, Exclusion Zone Tool](https://support.blastiq.com/hc/en-us/articles/900007101403-Exclusion-Zone-Tool)
+- [Coal Age — Software Solutions for Better Blasting](https://www.coalage.com/features/software-solutions-for-better-blasting/)
+- [E&MJ — Software Solutions for Better Blasting](https://www.e-mj.com/features/software-solutions-for-better-blasting/)
+- [FleetRabbit — Best Mining Blast Clearance Management Software 2026](https://fleetrabbit.com/industry/mining-fleet-software/best-mining-blast-clearance-management-software-2026)
+- [Strayos — Product Spotlight: Blast Exclusion Zone](https://blog.strayos.com/product-spotlight-blast-exclusion-zone/)
+
+### Riassunto onesto
+
+Il cuore della domanda del mandato ("che tipo di controlli mostrano prima di
+autorizzare uno sparo") era **già in gran parte risposto in questo stesso
+file prima di iniziare**: il semaforo di sintesi (G45, 14/09) copre la
+metà "coerenza tecnica", il consuntivo per-foro copre la metà "caricato
+secondo il piano", i tre anelli 3D coprono la zona di sgombero. Rileggere
+per intero prima di proporre ha tolto tre "non c'è" che sarebbero stati
+falsi. Quello che resta, verificato col codice e non con la parola del
+mondo, sono due buchi piccoli e concreti: il semaforo esiste ma **non è
+collegato** a nessuna delle azioni che portano il piano fuori dall'app
+(proposta 1), e l'identità di chi lavora è **già nota al sistema** (via
+deepwork-id) ma **non viene mai scritta** sul documento che quella persona
+produce (proposta 2) — non una firma legale, che resta giustamente una
+decisione del direttore fuori da questa app, ma il dato minimo che
+distingue "chi ha fatto che cosa" in un'organizzazione dove più persone
+condividono lo stesso ambiente.
+
+### ⛔ RIVERIFICA (19/09, stesso giorno): la proposta 1 costava "piccolo" sulla carta, "medio" alla prova
+
+*Regola di CLAUDE.md: "misurare prima di irrigidire" — il costo dichiarato
+da una ricerca si verifica scrivendo davvero il codice, non solo
+leggendolo.*
+
+**Proposta 2 (autore della volata): CONFERMATA e implementata** (`61da46dc`):
+`autore:{uid,email}` aggiunto a `volSnapshot()`, mostrato in Home, nuovo
+banco `genesi-autore-volata.mjs` con controprova.
+
+**Proposta 1 (avviso prima di esportare con indicatori gravi): il codice è
+stato scritto, provato, e SCARTATO — non per un difetto nella proposta, ma
+perché il suo costo reale è più alto di "piccolo".** Implementata una
+funzione condivisa `avvisoSeGravi()` (modale del core, mai `confirm()`)
+richiamata all'inizio dei quattro export che portano il piano fuori
+dall'ufficio (`btn-scheda-csv`, `btn-piano-csv`, `btn-piano-dxf`,
+`btn-innesco-xml`). Prima di committare, rilanciato
+`genesi-documenti-che-escono.mjs` (il banco che prova proprio questi
+export): **24 prove su 91 sono cadute**, tutte con lo stesso segno —
+`"nessun download"` — perché quel banco preme i bottoni di export dentro
+scenari che hanno DAVVERO indicatori `sv-bad` (servono a provare altro:
+messaggi di riepilogo, decimali, andata-e-ritorno) e non sapeva cliccare
+il nuovo modale di conferma. Il costo vero non è la funzione (poche righe,
+comportamento corretto e verificato a mano): è **aggiornare ogni banco
+esistente che preme quei quattro bottoni** per gestire il modale — un
+lavoro trasversale su più file di test, non la singola unità che la
+ricerca stimava. Codice **ripristinato** (`git checkout`), nessuna riga
+resta nel prodotto.
+**Se si vuole ancora fare la proposta 1**: il costo reale è Medio (non
+Piccolo), e va fatta come unità a sé che tocca ANCHE i banchi esistenti —
+non solo il prodotto — o rischia di rompere la copertura che già esiste
+per proteggere quegli stessi quattro export. Lasciata come candidato per
+un cantiere dedicato, non implementata.
+
