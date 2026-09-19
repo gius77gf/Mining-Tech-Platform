@@ -1,24 +1,23 @@
 # Ultimo ciclo
 
-- **Quando**: 2026-09-19T20:10:48Z (letta da `date -u`, non predetta)
-- **Commit di partenza**: 2cfa9272 (feat(genesi): G59, statistica di QC
-  sulla deviazione di perforazione)
-- **Cosa sto per fare**: chiusa l'ultima riga di
-  `docs/RICERCA_CONTINUA_GENESI.md` sotto "proposto da ricerca, non
-  verificato" — «timing timeline» — verificando che è GIÀ PRESENTE:
-  `buildTicks()` (genesi.html, "UI: timeline") disegna una tacca per
-  foro dentro `#ticks`, sovrapposta alla barra di scorrimento `#track`
-  della simulazione 3D, posizionata su `f.tDet/SIM.tEnd*100%` — è
-  letteralmente una linea del tempo con la sequenza dei ritardi. Nessun
-  codice scritto: costruirla avrebbe duplicato una funzione esistente,
-  la stessa lezione già presa 3 volte su 6 nella stessa ricerca
-  (Rosin-Rammler, Swebrec, isocrone: tutte "non c'è" false). La sezione
-  "proposto da ricerca" della ricerca JKSimBlast del 19/09 è ora vuota.
-  Checkpoint:
-  `vault/checkpoints/20260919-201048_genesi-timing-timeline-gia-presente.md`.
-- **Prossimo passo atomico**: leggere il registro completo di `tutti.mjs
-  --solo=genesi` (lanciato alle 20:08Z con l'output intero salvato su
-  file, non troncato con `| tail -20` come l'ultima volta) appena
-  finisce, e distinguere i KO veri dalle controprove volute fra i "21 da
-  guardare" del batch precedente (dopo G58) prima di aprire qualunque
-  cantiere su di essi.
+- **Quando**: 2026-09-19T21:47:41Z (letta da `date -u`, non predetta)
+- **Commit di partenza**: 00943886 (docs(genesi): chiudi "timing timeline"
+  della ricerca JKSimBlast, è già presente)
+- **Cosa sto per fare**: la sessione è rimasta idle per oltre un'ora fra il
+  lancio di `tutti.mjs --solo=genesi` (20:08Z) e questo risveglio (21:47Z),
+  ed è la stessa famiglia già scritta in CLAUDE.md — "un giro più lungo
+  della sessione non finisce mai": il processo in background è morto senza
+  arrivare al RIEPILOGO finale (il registro si ferma a metà di una
+  controprova, senza la riga di chiusura). Non è un guasto del prodotto:
+  è il contenitore che ha riciclato il processo mentre non c'era nessuno a
+  guardarlo. Prossimo passo: leggere quel che c'è (fino a dov'è arrivato,
+  ~813 righe, sei RIEPILOGHI parziali) per candidati veri, ma SENZA
+  fidarsi di un giro incompleto per dichiarare "pulito" — e rilanciarlo con
+  un limite di tempo esplicito o in una finestra in cui la sessione resta
+  attiva, non lasciato a girare da solo per oltre un'ora.
+- **Prossimo passo atomico**: leggere le sezioni già scritte nel log
+  parziale (`tutti-genesi-3.log` nello scratchpad di sessione — attenzione,
+  è nello scratchpad, quindi NON sopravvive a un riavvio del contenitore:
+  se sparito, si rilancia da zero) e distinguere KO veri da controprove
+  volute; poi proseguire con la prossima unità verificata su Genesi, mandato
+  del fondatore invariato: solo Genesi, massimo sforzo.
