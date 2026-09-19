@@ -17481,7 +17481,7 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
                            foriReg: 12, foriTot: 12, kgReale: 690, kgProgReg: 696, scostPct: -0.86 } }];
     const testo = v.csvRiconciliazione(st);
     const capo = testo.split("\n")[0].split(";");
-    eq(capo.length, 19, "diciannove colonne");
+    eq(capo.length, 20, "venti colonne");
     eq(capo.slice(0, 10).join(";"), "data;nome;x50_prev_cm;x50_reale_cm;ppv_prev_mms;ppv_reale_mms;flyrock_prev_m;flyrock_reale_m;oversize_reale_pct;note",
        "⛔ le prime dieci sono quelle di sempre: chi rilegge un export vecchio le trova nello stesso ordine");
     eq(capo[10], "campo_data", "e le otto del carico reale cominciano dall'undicesima");
@@ -17489,7 +17489,8 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
        leggere. Lo stesso identico progetto, con la legge di sito accesa su tre
        referti, scrive 2.8 dove prima scriveva 6.4 — e le due righe finiscono
        nello stesso file, confrontabili solo per sbaglio. */
-    eq(capo[18], "ppv_prev_base", "e la base della PPV prevista è l'ultima, aggiunta in fondo");
+    eq(capo[18], "ppv_prev_base", "e la base della PPV prevista è la penultima, aggiunta in fondo");
+    eq(capo[19], "campo_misfire", "e il misfire (G52, 19/09) è l'ultima, aggiunta in fondo dopo di lei");
     /* ⛔ È UN FILE DI SCAMBIO: il decimale resta il PUNTO, non la virgola —
        se no chi lo apre con un altro programma non capisce più i numeri.
        È l'asserzione sul TESTO che una prova di andata e ritorno non darebbe:
@@ -17506,6 +17507,8 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     eq(rilette[2][17], "-0.86", "e lo scostamento percentuale");
     eq(rilette[1][18], "",
        "⛔ una riconciliazione salvata prima che la colonna esistesse lascia la cella VUOTA: non le si attribuisce una base che nessuno aveva registrato");
+    eq(rilette[2][19], "",
+       "⛔ G52: un consuntivo salvato prima di questa colonna (o senza `colonnaEsito`) lascia il misfire VUOTO, non zero — 'non lo so' non è 'nessun colpo cieco'");
     /* e con la base registrata ci finisce la frase corta di `provenienzaPpv`,
        che è la stessa che decide il numero: il file e lo schermo non possono
        scostarsi */
@@ -17516,6 +17519,47 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     eq(conBase[1][18], "legge di sito · 3 referti · provvisoria",
        "⛔ e quando c'è, il file dice su che cosa è tarata la previsione — «provvisoria» compresa");
     eq(v.csvRiconciliazione([]).split("\n")[0], testo.split("\n")[0], "storico vuoto: resta l'intestazione, uguale");
+  });
+
+  /* ═══ G52 (19/09) — L'ESITO DELLA DETONAZIONE, dal delta verificato di
+     docs/RICERCA_CONTINUA_GENESI.md: `carica_reale_kg` da sola non
+     distingue un foro sparato da uno caricato e MAI sparato (misfire, il
+     caso più pericoloso). Tre uscite dichiarate per `_riconRiassuntoCampo`,
+     sullo stesso principio di `misurabile`: `colonnaEsito:false` (il file
+     non porta la colonna, non si sa), `nMisfire:0` (colonna tracciata,
+     nessun misfire — uno zero VERO), `nMisfire:N` (colonna tracciata,
+     N misfire dichiarati). */
+  test("Genesi · _riconParseCampo legge la colonna «esito», opzionale e solo per NOME", () => {
+    const conEsito = v._riconParseCampo(
+      "foro;carica_prog_kg;carica_reale_kg;esito\n1;58;61;sparato\n2;58;58;MISFIRE\n3;58;;\n");
+    eq(conEsito.colonnaEsito, true, "la colonna c'è");
+    eq(conEsito.righe.map(r => r.esito), ["sparato", "misfire", ""],
+       "letto per nome, minuscolo, e la cella vuota resta vuota — non 'sparato' di comodo");
+    const senzaEsito = v._riconParseCampo("foro;carica_prog_kg;carica_reale_kg\n1;58;61\n");
+    eq(senzaEsito.colonnaEsito, false, "senza la colonna, dichiarato: non un default silenzioso");
+    eq(senzaEsito.righe[0].esito, null, "⛔ null, non '': la colonna manca dal FILE, non è una cella vuota dentro una colonna che c'è");
+    const senzaIntestazione = v._riconParseCampo("2026-07-29;A;1;12,5;14,0\n");
+    eq(senzaIntestazione.colonnaEsito, false, "senza intestazione l'esito non si cerca: nessuna posizione fissa esisteva prima di oggi");
+    const valoreIgnoto = v._riconParseCampo("foro;carica_prog_kg;carica_reale_kg;esito\n1;58;61;boh\n");
+    eq(valoreIgnoto.righe[0].esito, "", "⛔ un valore che non è né 'sparato' né 'misfire' non si spaccia per uno dei due: un refuso non è più sicuro di una cella vuota");
+  });
+  test("⛔ Genesi · _riconRiassuntoCampo: il misfire non tracciato NON è zero misfire", () => {
+    const senzaColonna = v._riconRiassuntoCampo(
+      v._riconParseCampo("foro;carica_prog_kg;carica_reale_kg\n1;58;61\n2;58;58\n"), "vecchio.csv");
+    eq(senzaColonna.colonnaEsito, false);
+    eq(senzaColonna.nMisfire, null, "⛔ il principio del fondatore applicato al dato più pericoloso: 'non lo so' non è 'nessun colpo cieco'");
+    eq(senzaColonna.foriMisfire, [], "e comunque nessuna lista, senza la colonna");
+    const zeroVero = v._riconRiassuntoCampo(
+      v._riconParseCampo("foro;carica_prog_kg;carica_reale_kg;esito\n1;58;61;sparato\n2;58;58;sparato\n"), "nuovo.csv");
+    eq(zeroVero.colonnaEsito, true);
+    eq(zeroVero.nMisfire, 0, "qui lo zero è vero: la colonna c'è, e non dichiara nessun misfire");
+    const dueMisfire = v._riconRiassuntoCampo(
+      v._riconParseCampo("foro;carica_prog_kg;carica_reale_kg;esito;id_foro\n1;58;61;sparato;f1\n2;58;58;misfire;f2\n3;58;58;misfire;f3\n"), "");
+    eq(dueMisfire.nMisfire, 2);
+    eq(dueMisfire.foriMisfire, ["f2", "f3"], "l'id del foro quando c'è, non solo il numero");
+    const senzaId = v._riconRiassuntoCampo(
+      v._riconParseCampo("foro;carica_prog_kg;carica_reale_kg;esito\n5;58;58;misfire\n"), "");
+    eq(senzaId.foriMisfire, ["foro 5"], "senza id si nomina per numero, mai un foro anonimo in un avviso di sicurezza");
   });
 
   test("⛔ Genesi · il CSV dello storico è protetto dalla CSV-injection, con la difesa di casa", () => {

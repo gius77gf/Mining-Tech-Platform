@@ -315,6 +315,13 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);
 .ricamp-warn{margin-top:10px;font-size:12px;line-height:1.55;color:#ffb27a;background:rgba(255,120,60,.10);
   border:1px solid rgba(255,120,60,.34);border-radius:9px;padding:8px 10px}
 .ricamp-warn b{color:#ffcaa4}
+/* G52 — un misfire non è un avviso di qualità dei dati come gli altri
+   `.ricamp-warn` (colonna mancante, riga scartata): è un colpo cieco, il
+   caso più pericoloso della schermata. Colore distinto (rosso, non
+   arancio) e in cima alla scheda, prima della griglia dei numeri. */
+.ricamp-danger{margin-bottom:10px;font-size:12px;line-height:1.55;color:#ffb0ab;background:rgba(239,83,80,.14);
+  border:1px solid rgba(239,83,80,.45);border-radius:9px;padding:8px 10px}
+.ricamp-danger b{color:#ffcdc9}
 /* Sul telefono le tre colonne non ci stanno. La provenienza NON può finire da
    sola su una riga a destra: si incolla visivamente all'etichetta SOTTO e
    sembra riferita al numero sbagliato. Va messa a sinistra, sotto la sua
@@ -4246,6 +4253,15 @@ function _riconCampoHtml(){
     +'<div class="ricamp-sub">'+(c.file?'File <b>'+_rEsc(c.file)+'</b> · ':'')+'volata del <b>'+quando+'</b>'
       +(chi?' · registrata da <b>'+chi+'</b>':'')+(sq?' ('+sq+')':'')
       +(chi?'':' · <i>il file non dice chi ha registrato le cariche</i>')+'</div>'
+    /* G52 (19/09, dal delta verificato di docs/RICERCA_CONTINUA_GENESI.md) —
+       il caso più pericoloso di questa schermata va in cima, non in coda
+       fra gli avvisi di qualità dei dati: un foro caricato e MAI sparato
+       ha lo stesso scostamento vicino a zero di uno sparato regolarmente,
+       quindi nessun numero qui sopra lo segnala da solo. */
+    +(c.colonnaEsito && c.nMisfire
+      ? '<div class="ricamp-danger">⚠️ <b>'+_ricPlur(c.nMisfire,'foro risulta','fori risultano')+' con esito «misfire» (colpo cieco, MAI sparato)</b>: '
+        +c.foriMisfire.map(_rEsc).join(', ')+'. Prima di avvicinarsi, seguire la procedura di sicurezza per un colpo inesploso — verificare sempre il testo normativo vigente.</div>'
+      : '')
     +'<div class="ricamp-g">'
     + riga('Fori con la carica registrata','<b>'+c.foriReg+'</b> / '+c.foriTot,'dal file')
     /* ⛔ E LO ZERO DI QUESTE DUE RIGHE È LO STESSO ZERO DELLE DUE SOTTO, che il
@@ -4321,7 +4337,10 @@ function _riconCampoHtml(){
   if(c.scartate) avvisi.push('Ho saltato <b>'+_ricPlur(c.scartate,'riga illeggibile','righe illeggibili')+'</b> (numero del foro o carica di progetto mancanti).');
   if(k&&k.nf&&c.foriTot!==k.nf) avvisi.push('Il consuntivo ha <b>'+_ricPlur(c.foriTot,'foro','fori')+'</b>, il progetto aperto adesso in Genesi ne ha <b>'+k.nf+'</b>: potrebbe essere <b>un’altra volata</b>. Il confronto con il previsto qui sotto ha senso solo se è la stessa.');
   if(avvisi.length) h+='<div class="ricamp-warn">'+avvisi.join('<br>')+'</div>';
-  h+='<div class="ricamp-note">Dal file arrivano <b>solo</b> i chili caricati. <b>Pezzatura, PPV e gittata non ci sono</b> — nessuno strumento in Campo li misura — e restano da compilare qui sotto a mano.</div>';
+  h+='<div class="ricamp-note">'+(!c.colonnaEsito
+      ? 'Il file non porta la colonna «esito»: non si sa se ci sono stati colpi ciechi (misfire) — un consuntivo di prima di questa colonna, o una Campo che non la esporta ancora, non lo dice. '
+      : (c.nMisfire ? '' : 'Nessun foro con esito «misfire» (colpo cieco) dichiarato nel file. '))
+    +'Dal file arrivano <b>solo</b> i chili caricati. <b>Pezzatura, PPV e gittata non ci sono</b> — nessuno strumento in Campo li misura — e restano da compilare qui sotto a mano.</div>';
   h+=_riconForiHtml();
   return h+'</div>';
 }
@@ -4443,7 +4462,12 @@ async function riconRender(){
           +(campoMisurato(r.campo)
             ? _ricKg(r.campo.kgReale)+' kg caricati su '+gnum(r.campo.foriReg,0)+'/'+gnum(r.campo.foriTot,0)+' '+plurale(r.campo.foriTot,'foro','fori')+' ('+(r.campo.scostPct==null?'scostamento non misurabile':_ricPct(+r.campo.scostPct)+' sul progetto')+')'
             : 'nessuna carica reale registrata sui '+gnum(r.campo.foriTot,0)+' '+plurale(r.campo.foriTot,'foro','fori')+' del file')
-          +(r.campo.chi&&r.campo.chi.length?' · '+_rEsc(r.campo.chi.join(', ')):'')+'</span>':'')
+          +(r.campo.chi&&r.campo.chi.length?' · '+_rEsc(r.campo.chi.join(', ')):'')
+          /* G52 — un misfire salvato in questa riga resta visibile per sempre,
+             non solo finché il pannello live è aperto. `nMisfire` di zero
+             (colonna tracciata, nessun misfire) non stampa niente: qui non è
+             il posto per una conferma calma, è il posto per un allarme. */
+          +(r.campo.colonnaEsito&&r.campo.nMisfire?' · <b style="color:#ef5350">⚠️ '+_ricPlur(r.campo.nMisfire,'misfire','misfire')+'</b>':'')+'</span>':'')
         +(r.real.note?' · '+_rEsc(r.real.note):'')+'</div>').join('')
       +'</div>'):'<div style="margin-top:12px;color:var(--mut);font-size:12px;">Nessuna riconciliazione salvata: inserisci i valori reali e premi “Salva”.</div>');
   const upd=()=>{ $('ric-d-x50').innerHTML=riconDelta(prev.x50,$('ric-x50').value,'cm'); $('ric-d-ppv').innerHTML=riconDelta(prev.ppv,$('ric-ppv').value,'mm/s'); $('ric-d-fly').innerHTML=riconDelta(prev.fly,$('ric-fly').value,'m'); };
@@ -4491,7 +4515,11 @@ async function riconSave(){
     chi:_ricCampo.chi, squadre:_ricCampo.squadre, foriTot:_ricCampo.foriTot, foriReg:_ricCampo.foriReg,
     misurabile:_ricCampo.misurabile,
     kgReale:_ricCampo.kgReale, kgProgReg:_ricCampo.kgProgReg, scostKg:_ricCampo.scostKg,
-    scostPct:_ricCampo.scostPct, medioKg:_ricCampo.medioKg, medioPct:_ricCampo.medioPct };
+    scostPct:_ricCampo.scostPct, medioKg:_ricCampo.medioKg, medioPct:_ricCampo.medioPct,
+    /* G52 — la stessa lezione di `misurabile` due righe più su, sullo stesso
+       campo che l'aveva già pagata: un misfire non copiato qui sparisce dalla
+       riga di storico e dal CSV il momento stesso in cui si salva. */
+    colonnaEsito:_ricCampo.colonnaEsito, nMisfire:_ricCampo.nMisfire };
   if(rec.real.x50==null&&rec.real.ppv==null&&rec.real.fly==null&&!rec.campo){ toast('Inserisci almeno un valore reale, o importa il consuntivo di carico da Campo'); return; }
   /* ⛔ 18/09, dal terzo giro di deep-pass QA: nessuna guardia — confermato dal
      vivo, un doppio tocco registra due riconciliazioni identiche. */

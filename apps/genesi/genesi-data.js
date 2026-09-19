@@ -669,6 +669,15 @@ export function _riconParseCampo(testo){
   const iSquadra= haIntestazione ? col('squadra') : -1;
   const iOper   = haIntestazione ? col('operatore','fochino','chi') : -1;
   const iId     = haIntestazione ? col('id_foro','idforo') : 9;   // l'id stabile, in coda dal 05/09
+  /* G52 (19/09, dal delta verificato di docs/RICERCA_CONTINUA_GENESI.md) —
+     l'esito della detonazione, colonna nuova e ancora opzionale: senza
+     intestazione non la si cerca (nessuna posizione fissa esisteva prima
+     di oggi, quindi un ordine posizionale non può contenerla). Il punto
+     del delta era esatto: `carica_reale_kg` da sola non distingue un foro
+     caricato e sparato da uno caricato e MAI sparato — un colpo cieco, il
+     caso più pericoloso, che oggi produce lo stesso scostamento vicino a
+     zero di uno sparato regolarmente. */
+  const iEsito  = haIntestazione ? col('esito') : -1;
   if(haIntestazione && iForo<0)
     return { errore:'Non trovo la colonna «foro»: questo non sembra il consuntivo di carico di Campo.' };
   if(haIntestazione && iReale<0)
@@ -683,14 +692,21 @@ export function _riconParseCampo(testo){
     if(!(foro>0)||!(prog>0)){ scartate++; continue; }
     const grezzo = iReale>=0 ? String(c[iReale]==null?'':c[iReale]).trim() : '';
     const reale = grezzo === '' ? null : numIt(grezzo);
+    /* «sparato»/«misfire» sono i due valori dichiarati; qualunque altra
+       cosa scritta nella colonna (un refuso, un valore vecchio) non si
+       spaccia per uno dei due — resta '' come una cella vuota, perché un
+       valore che non capiamo non è più sicuro di uno assente. */
+    const esitoGrezzo = iEsito>=0 ? String(c[iEsito]==null?'':c[iEsito]).trim().toLowerCase() : '';
+    const esito = (esitoGrezzo==='sparato'||esitoGrezzo==='misfire') ? esitoGrezzo : '';
     righe.push({ foro, prog, reale: (reale!=null&&isFinite(reale)&&reale>=0)?reale:null,
       data: (iData>=0?c[iData]:'')||'', turno:(iTurno>=0?c[iTurno]:'')||'',
       squadra:(iSquadra>=0?c[iSquadra]:'')||'', operatore:(iOper>=0?c[iOper]:'')||'',
-      idForo: iId>=0 ? String(c[iId]==null?'':c[iId]).trim() : '' });
+      idForo: iId>=0 ? String(c[iId]==null?'':c[iId]).trim() : '',
+      esito: iEsito>=0 ? esito : null });
   }
   if(!righe.length) return { errore:'Nessuna riga leggibile: servono almeno il numero del foro e la carica di progetto in chili'
     +(scartate?' (ho scartato '+scartate+(scartate===1?' riga':' righe')+').':'.') };
-  return { righe, scartate, colonneDaNome:haIntestazione };
+  return { righe, scartate, colonneDaNome:haIntestazione, colonnaEsito: iEsito>=0 };
 }
 
 /* IL CONFRONTO FORO PER FORO (05/09) — quello che fino a oggi NON c'era:
@@ -889,10 +905,22 @@ export function _riconRiassuntoCampo(p, nomeFile){
   const medioKg=misurabile?+(somma(reg,r=>Math.abs(r.reale-r.prog))/reg.length).toFixed(3):null;
   const medioPct=misurabile?+(somma(reg,r=>Math.abs(r.reale-r.prog)/(r.prog||1))/reg.length*100).toFixed(2):null;
   const peggio=reg.slice().sort((a,b)=>Math.abs(b.reale-b.prog)-Math.abs(a.reale-a.prog))[0]||null;
+  /* G52 — l'esito della detonazione non è come i sei numeri sopra: quelli
+     rispondono `null` quando manca la MISURA (nessuna carica reale), questo
+     risponde `null` quando manca la COLONNA (un consuntivo di prima di
+     oggi, o scritto da una Campo che non la esporta ancora). I due «non lo
+     so» sono diversi apposta: un file senza la colonna non deve dire «zero
+     misfire», che si legge come «tutto sparato regolarmente» — esattamente
+     il principio del fondatore, applicato al dato più pericoloso di questa
+     schermata invece che a un chilo. */
+  const misfire = p.colonnaEsito ? p.righe.filter(r=>r.esito==='misfire') : null;
   return { file:nomeFile||'', scartate:p.scartate||0,
     date:uniche(r=>r.data), turni:uniche(r=>r.turno),
     chi:uniche(r=>r.operatore), squadre:uniche(r=>r.squadra),
     foriTot:p.righe.length, foriReg:reg.length, misurabile,
+    colonnaEsito: !!p.colonnaEsito,
+    nMisfire: misfire ? misfire.length : null,
+    foriMisfire: misfire ? misfire.map(r=>r.idForo || ('foro '+r.foro)) : [],
     /* ⛔ E DUE DEI SEI NUMERI ERANO RIMASTI ZERO, per tre anni buoni di lettori.
        Il 03/08 questa funzione ha imparato a rispondere `null` sui quattro
        scostamenti; `kgReale` e `kgProgReg` no, perché sullo SCHERMO la loro
@@ -1031,7 +1059,14 @@ export function csvRiconciliazione(st){
               lo schermo non possono scostarsi.
               La colonna si AGGIUNGE IN FONDO, come le otto di Campo: chi
               rilegge un export vecchio trova le altre nello stesso ordine. */
-           'ppv_prev_base'];
+           'ppv_prev_base',
+           /* G52 — vuota quando il consuntivo non porta la colonna «esito»
+              (non lo sappiamo), non zero: la stessa distinzione già scritta
+              sopra per `campo_kg_reali`/`campo_kg_progetto`, applicata al
+              dato più pericoloso invece che a un chilo. Ultima colonna, come
+              tutte le altre aggiunte qui: un export vecchio resta leggibile
+              con le colonne precedenti nello stesso ordine. */
+           'campo_misfire'];
   /* ⛔ QUI C'ERA UNA `cell` DI CASA, ED ERA UNA COPIA PIÙ DEBOLE DI `csvCell`.
      Metteva le virgolette su `; " \n` e basta: quindi `@SUM(1+1)` scritto nel
      nome di una volata usciva **nudo** — e questo è il file che l'azienda
@@ -1054,7 +1089,10 @@ export function csvRiconciliazione(st){
       /* una riconciliazione salvata prima che questa colonna esistesse resta
          VALIDA e lascia la cella vuota: non le si attribuisce una base che
          nessuno aveva registrato (è la stessa scelta di `_sitoFonte`). */
-      (r.prev&&r.prev.ppvBase&&r.prev.ppvBase.breve)||''].map(csvCell).join(';');
+      (r.prev&&r.prev.ppvBase&&r.prev.ppvBase.breve)||'',
+      // G52 — vuota se la riconciliazione è di prima di questa colonna, o il
+      // consuntivo non tracciava l'esito: non «zero misfire», «non lo so».
+      (c&&c.colonnaEsito)?c.nMisfire:''].map(csvCell).join(';');
   }).join('\n')+'\n';
   return csv;
 }
