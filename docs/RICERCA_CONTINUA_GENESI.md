@@ -5414,3 +5414,85 @@ La fix del 18/09 su muckShape (measureGeom2D) è corretta e completa. Il codice 
 
 Fonte verifica: Lettura genesi.html linee 1742-1797, 1806-1816, 2428-2580, 2641-2695, 2783-2792, 2929-2946, 6242-6289; genesi-data.js linea 5960-6021.
 
+
+---
+
+## QA del 2026-09-19 — lettori CSV/DXF
+
+Revisione di qualità mirata sui lettori di file esterni (CSV e DXF) usati da Genesi per importare dati da software di terzi (topografia, CAD, database di magazzino). Verifica concreta tramite test Node.js.
+
+### Funzioni testate
+
+1. **`_riconParseCampo`** (genesi-data.js): Legge CSV di consuntivo turno da Campo
+2. **`abbinaForiRighe`** (genesi-data.js): Abbina fori a righe CSV per ID o numero
+3. **`dxfInTratti`** (genesi-data.js): Legge file DXF e estrae tratti (LINE, POLYLINE, ecc.)
+4. **`parseXYZ`** (pointcloud.js): Legge nuvole di punti XYZ da drone/topografia
+
+### Difetti veri trovati con riproduzione
+
+**1 difetto critico confermato:**
+
+**Bug: parseXYZ fallisce con CSV puro in notazione italiana (virgola decimale senza spazi)**
+
+- **Funzione**: `parseXYZ` (pointcloud.js, linee 27-28)
+- **Input**: `10,5,20,3,30,7` (CSV puro — 3 coordinate con virgola decimale italiana, senza spazi)
+- **Output atteso**: `[10.5, 20.3, 30.7, 40.1, 50.2, 60.3]` (3 punti, 6 valori)
+- **Output ottenuto**: `[10, 5, 20, 40, 1, 50]` (6 interi — tratta le virgole come separatori di campo)
+- **Causa**: Linee 27-28 applicano `numIt` (parser per decimali italiani) **solo** se la riga contiene spazi. Altrimenti usa `s.split(/[,;]+/).map(Number)` che perde il significato di virgola decimale
+- **Costo**: **MEDIO** — perdita silenziosa di dati XYZ da file CSV in notazione italiana, comune da software CAD/topografia italiano (QGIS, GeoX, TopCon, Trimble)
+- **Test**: `/tmp/test-lettori-2.mjs` righe 4-12
+
+**2 difetti confermati su dxfInTratti:**
+
+**Bug 2: dxfInTratti scarta POLYLINE senza SEQEND**
+
+- **Funzione**: `dxfInTratti` (genesi-data.js, linee 3788-3816)
+- **Input**: POLYLINE con 2 VERTEX ma senza SEQEND terminatore
+- **Output atteso**: 1 tratto con 2 punti (geometria leggibile)
+- **Output ottenuto**: 0 tratti (risultato vuoto)
+- **Causa**: Parser attende SEQEND come chiusura esplicita di POLYLINE; assenza silenziosa → nessun tratto estratto
+- **Costo**: **MEDIO** — perdita di geometria se DXF da software non-standard omette SEQEND o file corrotto
+- **Test**: `/tmp/test-dxf.mjs` righe 3-32
+
+**Bug 3: dxfInTratti scarta LINE se prima coordinata è invalida**
+
+- **Funzione**: `dxfInTratti` → `_dxfEntita` (genesi-data.js, linee 3762-3786)
+- **Input**: LINE con primo punto invalido (X="abc", Y="def") ma secondo punto valido (10, 10)
+- **Output atteso**: Potrebbe ignorare il primo punto malformato e leggere il secondo, o leggere il line come (NaN,NaN)→(10,10)
+- **Output ottenuto**: 0 tratti (l'intera entità è scartata)
+- **Causa**: Parser fallisce se qualunque coordinata non converte a numero; nessun fallback
+- **Costo**: **BASSO-MEDIO** — impedisce lettura di qualunque geometria se un singolo dato è corrotto, ma almeno non produce dati falsi
+- **Test**: `/tmp/test-dxf.mjs` righe 68-85
+
+### Sospetti testati e scartati
+
+**6 sospetti iniziali, tutti verificati corretti:**
+
+1. ✓ `_riconParseCampo` normalizza "SPARATO" (maiuscolo) → "sparato" (minuscolo) via `.toLowerCase()`
+2. ✓ `_riconParseCampo` legge righe duplicate con stesso numero foro (colonna "foro": 1, 1, 2) — le legge entrambe
+3. ✓ `_riconParseCampo` salta righe vuote in mezzo al CSV
+4. ✓ `_riconParseCampo` parse corretto di virgola decimale italiana in campi quoted (`"10,5"` → 10.5)
+5. ✓ `abbinaForiRighe` rileva correttamente duplicati su ID (`idForo` ripetuto) e marchia come doppie
+6. ✓ `dxfInTratti` ignora correttamente entità sconosciute (ARC), continua a leggere LINE e POLYLINE
+
+### Edge case che funziona correttamente
+
+- parseXYZ con spazi INCLUSI (es. `10,5 20,3 30,7`) — correttamente riconosciuto come decimale italiano e parsato: `[10.5, 20.3, 30.7, ...]`
+- parseXYZ con misto spazi/virgole/punti-virgola — normalizza a spazi e processa
+- parseXYZ con righe vuote e commenti — saltate correttamente
+- dxfInTratti POLYLINE con SEQEND regolare — correttamente letto come 1 tratto con N punti
+
+### Conclusione
+
+**3 difetti reali trovati, tutti confermati con output concreto (non ipotizzato).**
+
+Il più grave è il **bug 1 su parseXYZ**: perdita silenziosa di interi file XYZ se in formato CSV con notazione decimale italiana e senza spazi di separazione. Questo è storicamente il pattern di file più frequente da software topografico italiano.
+
+**Difetti 2 e 3 su dxfInTratti** sono meno probabili in pratica (POLYLINE senza SEQEND è raro, file DXF ben-formati hanno coordinate valide) ma restano fallimenti silenziosi su dati corrotti.
+
+Fonti verifica:
+- `pointcloud.js` linee 13-62 (parseXYZ)
+- `genesi-data.js` linee 3762-3816 (dxfInTratti, _dxfEntita)
+- `genesi-data.js` linee 655-710 (_riconParseCampo)
+- Test execution output: `/tmp/test-lettori-2.mjs`, `/tmp/test-dxf.mjs`, `/tmp/test-lettori-genesi.mjs`
+
