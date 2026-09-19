@@ -442,4 +442,114 @@ trasformazioni oltre il move, selezione multipla.
 
 ---
 
-**Documento chiuso al:** 2026-09-19T11:45Z (dopo il recupero della sezione concorrenti)
+---
+
+## ⛔ CORREZIONE (19/09, pomeriggio): IL CENSIMENTO SOPRA È SIGNIFICATIVAMENTE
+## SBAGLIATO SU PIÙ PUNTI — IL FONDATORE AVEVA GIÀ FATTO QUESTA DOMANDA IL
+## 13/09, E UN CICLO PRECEDENTE AVEVA GIÀ RISPOSTO
+
+**La risposta era quasi tutta già in casa** (la regola di CLAUDE.md, nella
+sua forma più cara: qui non mancava un `grep`, mancava sapere che il
+fondatore aveva già fatto la STESSA domanda sei giorni prima). Aprendo
+`apps/genesi/genesi-data.js` e `apps/genesi/genesi.html` per verificare la
+"Fase 1" proposta nella Sintesi Decisionale qui sopra, si trova un blocco
+di commento a riga 3646 di `genesi-data.js`:
+
+> «G33 · IL PIANO CHE APRE UN CAD VERO (13/09, **su richiesta diretta del
+> fondatore**: "potremmo rendere Genesi più simile a un CAD?")»
+
+Il checkpoint `vault/checkpoints/20260914-100055_genesi-cad-ricerca-verificata.md`
+racconta la storia per intero: il fondatore fece la stessa domanda il
+13/09, gli fu proposta una scelta fra **quattro assi** (precisione/snap,
+layer di disegno veri, strumenti di disegno liberi, import/export CAD), e
+il fondatore rispose **"tutto"**. Il ciclo del 14/09 li ha costruiti tutti
+e quattro, in una serie di blocchi `G33`-`G47d` (14/09, "GENESI SIMILE A
+UN CAD"):
+
+- **G33** — **export DXF** (`dxfPianoFori`, righe 3679-3790): fori come
+  cerchi + etichette, fronte come polilinea, formato DXF R12 verificato con
+  un lettore vero (`ezdxf`). **Il censimento sopra dice "❌ DXF export: NON
+  TROVATO" — è FALSO**, il censimento ha cercato `toDxf`/`exportDxf`/
+  `writeDxf` e non ha trovato il nome vero della funzione.
+- **G34** — **aggancio alla griglia** (`snapAGriglia`/`_snapXY`, righe
+  3814+, esportate): opzionale, si accende/spegne dalla pagina. **Il
+  censimento sopra dice "cerca `_snapXY` → NON TROVATO in genesi-data.js,
+  è uno stub nella pagina" — è FALSO**, la funzione è lì, esportata, con
+  un commento di 15 righe che ne spiega il contratto.
+- **G47a** (14/09) — **input di coordinate esatte** per un foro selezionato
+  (due campi, x e spalla, scritti a tastiera) **+ un vincolo di
+  allineamento** ("⊥ allinea al [foro N]": porta la spalla di un foro alla
+  stessa distanza dal fronte di un altro foro già selezionato, senza
+  toccare la posizione lungo la fila) — non è l'input relativo/polare pieno
+  (`@dx,dy` / `@dist<angolo`) che il censimento chiede, ma è un pezzo reale
+  del delta "input coordinate", non zero come scritto sopra.
+- **G47b** (14/09) — **layer di disegno VERI**: mostra/nascondi e blocca
+  per entità, estesi anche ai tratti liberi (non solo fori/fronte/piede).
+  Il censimento sopra (sezione 4) aveva già trovato visibility/lock per
+  fori — corretto — ma non sapeva che è stato ESTESO il 14/09 a un quarto
+  livello, "Tratti".
+- **G47c-1** (14/09) — **annulla/ripristina** per l'intero editor 2D (fori,
+  fronte, piede, tratti): il censimento sopra lo dà "presente ma
+  minimale" — corretto nella sostanza, ma non sapeva della sua estensione
+  recente a tutte e quattro le entità.
+- **G47c-2** (14/09) — **uno strumento di disegno libero**: polilinee
+  disegnate a mano sulla pianta ("tratti liberi"), un punto per click,
+  "Fine tratto" per chiudere. **Il censimento sopra non lo trova affatto**
+  (sezione 5/6, "nessun window/crossing selection", "solo move") — non
+  è uno strumento di selezione, è uno strumento di DISEGNO che il
+  censimento non ha cercato.
+- **G47d** (14/09, esteso 19/09 con LWPOLYLINE) — **import DXF** in sola
+  lettura, come tratti di riferimento (mai come dati di calcolo, scelta di
+  sicurezza motivata da `docs/RICERCA_CONTINUA_GENESI.md`, 13/09). Il
+  censimento sopra lo trova correttamente (sezione 11, "DXF import:
+  parziale") — questo punto era giusto.
+
+**Quello che RESTA davvero mancante**, verificato di nuovo il 19/09 con
+`grep` mirato (non sul nome del mondo, sul MECCANISMO — la lezione di
+CLAUDE.md sulla ricerca del 14/08):
+- ❌ **Snap a oggetti** (endpoint/midpoint/intersezione su tratti/fronte/
+  piede): `grep -n "snapEndpoint\|snapIntersezione\|objectSnap\|snapOggetto"
+  apps/genesi/genesi.html apps/genesi/genesi-data.js` → **0 righe**. G34 è
+  solo griglia. Confermato assente.
+- ❌ **Selezione multipla** (window/crossing): `grep -in "multiselez\|
+  selMultipla\|D2\.selezione\|rettangolo.*selezione" apps/genesi/genesi.html`
+  → **0 righe**. Confermato assente.
+- ❌ **Trasformazioni oltre move** (rotate/scale/mirror su un foro o un
+  tratto selezionato): `grep -in "mirror\|rifletti\|rotate.*selez\|ruota.*
+  foro" apps/genesi/genesi.html apps/genesi/genesi-data.js` → nessuna
+  occorrenza pertinente (solo `rotate()` CSS/Three.js per animazioni,
+  nessuno strumento di editing). Confermato assente.
+- ❌ **Blocchi/simboli riusabili**: confermato assente, nessun contro-
+  esempio trovato.
+- ⚠️ **Input relativo/polare pieno**: parzialmente coperto da G47a
+  (allineamento a un foro esistente), ma non un vero `@dx,dy`/`@dist<ang`
+  per un punto qualunque. Delta reale, ma più piccolo di quanto il
+  censimento originale suggerisse.
+
+**Perché il censimento ha sbagliato, in una frase**: ha cercato i NOMI che
+il mondo userebbe (`toDxf`, `_snapXY` scritto per esteso) invece di leggere
+il MECCANISMO — la stessa causa già raccolta in CLAUDE.md il 14/08 ("una
+frase LETTERALMENTE VERA con un verdetto falso" e "la risposta è quasi
+sempre già in casa"), qui aggravata dal fatto che il lavoro mancante non
+era di dominio (una parola del mestiere) ma di CODICE recentissimo (5
+giorni) che un agente di ricerca non aveva modo di sapere fosse già
+successo, perché il fondatore aveva fatto la stessa domanda in una
+conversazione precedente che il documento di ricerca non poteva leggere.
+**Lezione per il prossimo mandato di ricerca su un'app**: prima di
+cercare "che cosa manca", cercare nel codice stesso i marcatori di lavoro
+recente (blocchi di commento con una sigla e una data, tipo `G33 ·`,
+`B3`, `L5` — il vocabolario interno di ogni app) — sono il modo in cui
+questo repository si lascia messaggi su "che cosa è già stato deciso qui".
+
+**Sintesi decisionale corretta**: i quattro assi del 13/09 sono stati
+serviti tutti; il delta reale che resta per un CAD più maturo è più
+STRETTO di quanto scritto sopra — snap a oggetti, selezione multipla,
+trasformazioni (rotate/scale/mirror), blocchi riusabili. Fra questi, lo
+snap a oggetti è il più naturale da costruire subito: riusa gli stessi
+dati di `estremiDisegno` (fronte, piede, tratti — inclusi quelli importati
+da DXF) già esistenti da G47, e serve esattamente al caso d'uso che aveva
+motivato l'import DXF in primo luogo (disegnare con precisione a partire
+da un rilievo importato).
+
+**Documento chiuso al:** 2026-09-19T11:45Z (recupero concorrenti); **corretto
+il 19/09 pomeriggio** dopo la verifica riga per riga contro il codice.

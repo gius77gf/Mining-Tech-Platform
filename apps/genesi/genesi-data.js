@@ -3814,6 +3814,44 @@ export function snapAGriglia(v, passo){
 export function _snapXY(D2, v){ return D2.snap ? snapAGriglia(v, D2.snapPasso) : v; }
 
 /* ══════════════════════════════════════════════════════════════════════════
+   G48 · SNAP A UN ESTREMO GIÀ DISEGNATO (19/09, dal delta verificato del
+   censimento CAD chiesto dal fondatore — vedi la correzione in
+   docs/RICERCA_GENESI_CAD.md: lo snap a OGGETTI, non solo a griglia, era
+   l'unico dei quattro assi del 13/09 rimasto scoperto).
+   ══════════════════════════════════════════════════════════════════════════
+   G34 aggancia alla griglia; questo aggancia a un vertice che esiste GIÀ
+   sulla pianta — un punto del fronte, del piede, o di un tratto libero
+   (disegnato a mano o importato da DXF, stessa struttura da G47c-2/G47d).
+   Serve a chiudere una polilinea esattamente sul suo punto di partenza, o a
+   far ripartire un tratto nuovo esattamente dalla fine di uno vecchio,
+   senza indovinare a occhio — quello che un CAD chiama "endpoint snap".
+   Ogni vertice di una polilinea è un candidato valido (non solo i due
+   estremi): in un rilievo importato il punto utile è spesso un vertice
+   intermedio, non la fine della linea.
+   La tolleranza è passata già convertita in METRI dalla pagina (pixel /
+   scala corrente): a uno zoom stretto un aggancio in metri sarebbe enorme
+   sullo schermo, a uno zoom largo invisibile — la stessa ragione per cui
+   G34 lavora in unità di griglia e non in pixel. */
+export function estremiDisegno(profilo, piede, tratti){
+  const pts = [];
+  for(const p of (profilo||[])) if(p && Number.isFinite(+p.x) && Number.isFinite(+p.y)) pts.push({x:+p.x, y:+p.y});
+  for(const p of (piede||[])) if(p && Number.isFinite(+p.x) && Number.isFinite(+p.y)) pts.push({x:+p.x, y:+p.y});
+  for(const t of (tratti||[])) for(const p of (t&&t.pts)||[]) if(p && Number.isFinite(+p.x) && Number.isFinite(+p.y)) pts.push({x:+p.x, y:+p.y});
+  return pts;
+}
+export function puntoSnapEstremo(candidati, mx, my, tolleranza){
+  const x=+mx, y=+my, tol=+tolleranza;
+  if(!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(tol) || tol<=0) return null;
+  let migliore=null, distMin=Infinity;
+  for(const p of (candidati||[])){
+    if(!p || !Number.isFinite(+p.x) || !Number.isFinite(+p.y)) continue;
+    const d=Math.hypot(+p.x-x, +p.y-y);
+    if(d<distMin){ distMin=d; migliore=p; }
+  }
+  return (migliore && distMin<=tol) ? {x:+migliore.x, y:+migliore.y} : null;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
    G35 · IL PROSSIMO PEZZO DI "GENESI CONTINUA A USCIRE DALLA PAGINA" (13/09)
    ══════════════════════════════════════════════════════════════════════════
    `measureGeom2D` misura la maglia DISEGNATA (non quella di progetto): il

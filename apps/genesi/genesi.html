@@ -1256,7 +1256,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, reliefCls, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino, activeProf, d2HitTest, d2HitTestPt,
-         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfInTratti, snapAGriglia, _snapXY, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
+         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfInTratti, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -6390,7 +6390,13 @@ function drawDesign2D(){
   if(D2.rel) drawReliefLegenda(ctx,gGeo);
   else if(D2.ene) drawEnergiaLegenda(ctx,gGeo,eneInfo);      // una legenda per volta in fondo alla pianta: due si sovrapporrebbero
   if(D2.tool==='fronte'||D2.tool==='piede'){ const arr=activeProf(D2); arr.forEach((p,k)=>{ const X=mx2(p.x), Y=my2(p.y); ctx.beginPath(); ctx.arc(X,Y,7,0,7); ctx.fillStyle=(k===D2.selPt)?'#fff':(D2.tool==='piede'?'#ffe27a':'#ffd54f'); ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle='#ff6d00'; ctx.stroke(); }); }
-  if(D2.tool==='tratto'){ const ultimo=D2.tratti[D2.tratti.length-1]; if(ultimo && ultimo.aperto) ultimo.pts.forEach(p=>{ const X=mx2(p.x), Y=my2(p.y); ctx.beginPath(); ctx.arc(X,Y,5,0,7); ctx.fillStyle='#8cbedc'; ctx.fill(); ctx.lineWidth=1.5; ctx.strokeStyle='#1c150b'; ctx.stroke(); }); }
+  if(D2.tool==='tratto'){ const ultimo=D2.tratti[D2.tratti.length-1]; if(ultimo && ultimo.aperto) ultimo.pts.forEach(p=>{ const X=mx2(p.x), Y=my2(p.y); ctx.beginPath(); ctx.arc(X,Y,5,0,7); ctx.fillStyle='#8cbedc'; ctx.fill(); ctx.lineWidth=1.5; ctx.strokeStyle='#1c150b'; ctx.stroke(); });
+    /* G48 — l'anello verde dice "qui il prossimo click si aggancia a un
+       punto esistente", la stessa lingua visiva di ogni CAD per lo snap a
+       oggetti: un segno DISTINTO dal punto (anello vuoto, non un riempito)
+       perché non è ancora un punto del tratto, è solo dove cadrebbe. */
+    if(d2HoverSnap){ const X=mx2(d2HoverSnap.x), Y=my2(d2HoverSnap.y); ctx.beginPath(); ctx.arc(X,Y,9,0,7); ctx.lineWidth=2; ctx.strokeStyle='#5fd97a'; ctx.stroke(); }
+  }
   /* G34quater (13/09) — stessa idea di quota di G34ter (chi modella la
      cresta a mano vuole sapere DOVE ha messo il punto, non solo vederlo
      spostarsi), ma NON accanto al punto: quella zona (fronte + quota
@@ -6416,6 +6422,12 @@ function drawDesign2D(){
 function d2EvtToCanvas(e){ const cv=$('d2-canvas'); const r=cv.getBoundingClientRect(); return { x:(e.clientX-r.left)*(cv.width/r.width), y:(e.clientY-r.top)*(cv.height/r.height) }; }
 let d2drag=-1;
 let d2dragPt=-1;
+/* G48 — il punto (in metri) su cui il prossimo click del tratto scatterebbe,
+   se dentro la tolleranza di uno snap a un estremo esistente. Solo per il
+   disegno (mai per fori/fronte/piede, che non lo usano): `null` quando il
+   cursore non è vicino a niente, così il cerchio di anteprima non si disegna
+   da solo su un punto vecchio quando ci si allontana. */
+let d2HoverSnap=null;
 /* G34 — l'aggancio si applica SOLO mentre l'utente posiziona un punto col
    mouse/dito: mai sui dati già salvati, e mai quando la griglia è spenta.
    ⛔ Trasloco B3 (14/09): il legame è uscito in `./genesi-data.js` — `D2`
@@ -6479,7 +6491,13 @@ function d2Down(e){ const p=d2EvtToCanvas(e);
   if(D2.tool==='fori' && D2.strati.fori.bloccato){ toast('I fori sono bloccati — sblocca dal pannello sopra la tela'); return; }
   if(D2.tool==='tratto'){
     if(!D2._m) return;
-    const mx=_snapXY(D2, (p.x-D2._m.startX)/D2._m.scale), my=_snapXY(D2, (p.y-D2._m.faceY)/D2._m.scale);
+    let mx=(p.x-D2._m.startX)/D2._m.scale, my=(p.y-D2._m.faceY)/D2._m.scale;
+    /* G48 — l'aggancio a un estremo già disegnato vince su quello alla
+       griglia: chi sta chiudendo una polilinea sul fronte importato vuole
+       il punto ESATTO del rilievo, non il nodo più vicino della griglia.
+       10 px di tolleranza, nelle unità della mappa alla scala corrente. */
+    const estremo=puntoSnapEstremo(estremiDisegno(D2.profilo, D2.piede, D2.tratti), mx, my, 10/D2._m.scale);
+    if(estremo){ mx=estremo.x; my=estremo.y; } else { mx=_snapXY(D2, mx); my=_snapXY(D2, my); }
     d2PushUndo();
     const ultimo=D2.tratti[D2.tratti.length-1];
     if(ultimo && ultimo.aperto) ultimo.pts.push({x:+mx.toFixed(2),y:+my.toFixed(2)});
@@ -6500,6 +6518,17 @@ function d2Down(e){ const p=d2EvtToCanvas(e);
   if(i>=0 && D2.sel>=0 && D2.sel!==i) D2.selPrev=D2.sel;
   D2.sel=i; d2drag=i; if(i>=0) e.preventDefault(); drawDesign2D(); renderScheda2D(); renderInspector(); }
 function d2Move(e){
+  /* G48 — anteprima dello snap: aggiornata a ogni movimento, indipendente
+     dal trascinamento (il tratto non si trascina, si clicca punto per
+     punto). `null` appena il cursore esce dalla tolleranza, così
+     un'anteprima vecchia non resta disegnata su un punto che non è più
+     quello giusto. */
+  if(D2.tool==='tratto' && D2._m){
+    const p=d2EvtToCanvas(e);
+    const mx=(p.x-D2._m.startX)/D2._m.scale, my=(p.y-D2._m.faceY)/D2._m.scale;
+    d2HoverSnap=puntoSnapEstremo(estremiDisegno(D2.profilo, D2.piede, D2.tratti), mx, my, 10/D2._m.scale);
+    drawDesign2D();
+  }
   if(d2dragPt>=0 && D2._m){ if(!d2dragPushed){ d2PushUndo(); d2dragPushed=true; } e.preventDefault(); const p=d2EvtToCanvas(e); const arr=activeProf(D2); let mx=(p.x-D2._m.startX)/D2._m.scale, my=(p.y-D2._m.faceY)/D2._m.scale; my=Math.max(-D2.B*1.2,Math.min(D2.B*1.6,my)); mx=_snapXY(D2, mx); my=_snapXY(D2, my); if(arr[d2dragPt]) arr[d2dragPt]={x:+mx.toFixed(2),y:+my.toFixed(2)}; drawDesign2D(); renderScheda2D(); return; }
   if(d2drag<0||!D2._m) return; if(!d2dragPushed){ d2PushUndo(); d2dragPushed=true; } e.preventDefault(); const p=d2EvtToCanvas(e); let mx=(p.x-D2._m.startX)/D2._m.scale, my=(p.y-D2._m.faceY)/D2._m.scale; my=Math.max(0.3,my); mx=Math.max(-3,Math.min(D2.perRow*D2.S+5,mx)); mx=_snapXY(D2, mx); my=Math.max(0.3,_snapXY(D2, my)); D2.holes[d2drag].mx=+mx.toFixed(2); D2.holes[d2drag].my=+my.toFixed(2); computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector(); }
 function d2Up(){ d2drag=-1; d2dragPt=-1; }

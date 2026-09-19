@@ -45304,6 +45304,50 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
 }
 /* ===== fine l'aggancio alla griglia (13/09) ===== */
 
+/* ===== GENESI · SNAP A UN ESTREMO GIÀ DISEGNATO (19/09, G48) =====
+   Il delta verificato di docs/RICERCA_GENESI_CAD.md: dei quattro assi del
+   13/09, lo snap a OGGETTI (endpoint, non solo griglia) era l'unico rimasto
+   scoperto. `estremiDisegno`/`puntoSnapEstremo` sono pure e testabili qui;
+   il collegamento nei gestori del mouse (d2Down/d2Move) e l'anteprima sul
+   canvas vivono in genesi.html e li verifica `sintassi-pagine.mjs` più la
+   conta dei punti di chiamata, come per `_snapXY` qui sopra. */
+{
+  test("Genesi · estremiDisegno raccoglie i vertici di fronte, piede e tratti", () => {
+    const profilo=[{x:0,y:0},{x:10,y:2}];
+    const piede=[{x:1,y:-1}];
+    const tratti=[{pts:[{x:5,y:5},{x:6,y:6}]},{pts:[{x:9,y:9}]}];
+    eq(genesi.estremiDisegno(profilo, piede, tratti),
+      [{x:0,y:0},{x:10,y:2},{x:1,y:-1},{x:5,y:5},{x:6,y:6},{x:9,y:9}],
+      "un candidato per ogni vertice, nell'ordine fronte→piede→tratti, un tratto qualunque numero di punti");
+  });
+  test("Genesi · estremiDisegno scarta i punti illeggibili e accetta gli array assenti", () => {
+    eq(genesi.estremiDisegno(null, undefined, [{pts:null},{pts:[{x:"boh",y:1},{x:2,y:2}]}]), [{x:2,y:2}],
+      "profilo/piede assenti non rompono nulla; un tratto senza pts o con un punto illeggibile perde solo quel punto");
+  });
+  test("Genesi · puntoSnapEstremo aggancia al candidato più vicino entro la tolleranza", () => {
+    const cand=[{x:0,y:0},{x:10,y:10},{x:10.05,y:9.98}];
+    eq(genesi.puntoSnapEstremo(cand, 10, 10, 0.5), {x:10,y:10}, "il più vicino vince anche se un altro è quasi altrettanto vicino");
+    eq(genesi.puntoSnapEstremo(cand, 0.3, 0.1, 0.5), {x:0,y:0});
+  });
+  test("Genesi · puntoSnapEstremo non aggancia fuori tolleranza né senza candidati", () => {
+    eq(genesi.puntoSnapEstremo([{x:0,y:0}], 1, 1, 0.5), null, "distanza √2 ≈ 1.41 m, tolleranza 0.5: fuori");
+    eq(genesi.puntoSnapEstremo([], 0, 0, 5), null, "nessun candidato: niente su cui agganciare");
+    eq(genesi.puntoSnapEstremo(null, 0, 0, 5), null, "candidati assenti: stesso ripiego, non un errore");
+  });
+  test("Genesi · puntoSnapEstremo con input illeggibili non aggancia (mai un aggancio a caso)", () => {
+    eq(genesi.puntoSnapEstremo([{x:0,y:0}], NaN, 0, 5), null);
+    eq(genesi.puntoSnapEstremo([{x:0,y:0}], 0, 0, 0), null, "tolleranza zero: nessuna finestra in cui cadere");
+    eq(genesi.puntoSnapEstremo([{x:0,y:0}], 0, 0, -1), null, "tolleranza negativa: stesso ripiego di snapAGriglia col passo negativo");
+  });
+  test("⛔ Genesi · lo snap a estremo è collegato nella pagina (G48)", () => {
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    eq((pag.match(/puntoSnapEstremo\(/g) || []).length, 2, "d2Down (il click) e d2Move (l'anteprima)");
+    eq((pag.match(/estremiDisegno\(/g) || []).length, 2, "una chiamata per ciascuno dei due punti sopra, non una funzione unica riscritta due volte");
+    eq((pag.match(/_snapXY\(D2,/g) || []).length, 10, "il fallback alla griglia quando lo snap a estremo non trova nulla resta agli stessi dieci punti di prima");
+  });
+}
+/* ===== fine snap a un estremo già disegnato (19/09, G48) ===== */
+
 /* ===== GENESI · misuraGeom2D SALITA DA genesi.html (13/09, G35) =====
    "Genesi continua a uscire dalla pagina": stessa logica, cambia solo che
    legge tre parametri invece di `D2` a mano. Il caso che contava di più —
