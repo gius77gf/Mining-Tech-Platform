@@ -36,6 +36,13 @@
       una volata si può sparare — e il riquadro «Manda a Sentinella» dicevano
       soltanto «calibrata sui tuoi referti». La guardia esisteva e non era
       collegata a chi disegna il numero.
+   5. **UN `||0` TRASFORMAVA L'ASSENZA IN UNO ZERO "MISURATO", NEL REPORT
+      STAMPABILE.** (19/09, dal terzo giro QA.) La riga «Ritardo foro / fila»
+      scriveva `gnum(D2.ritardoFila||0,1)`: un ritardo per fila illeggibile
+      (volata salvata con quel campo `null`, `Object.assign` non valida) usciva
+      come «42 / 0 ms» — file tutte simultanee, misurato — invece di
+      «42 / — ms». `D2.ritardo`, nella stessa riga, non aveva il fallback;
+      `gnum` scrive già «—» su `null`, bastava smettere di pre-convertirlo.
 
    ⚠️ I CASI SI COSTRUISCONO NEI DATI, MAI NEL DOCUMENTO. La normativa
    sconosciuta e la legge su tre referti entrano da `localStorage` — cioè dalla
@@ -95,6 +102,9 @@ const DIFETTI = [
   // 4b · e nel riquadro da cui parte il file per Sentinella
   ["    provvisoria: st.fonte==='sito' && !!(st.fit && st.fit.avviso==='pochi'),",
    "    provvisoria: false,"],
+  // 5 · il ritardo per fila trasformato in zero "misurato" nel report stampabile
+  ["gnum(D2.ritardo,1)+' / '+gnum(D2.ritardoFila,1)+' ms']",
+   "gnum(D2.ritardo,1)+' / '+gnum(D2.ritardoFila||0,1)+' ms']"],
 ];
 
 const colpiti = new Set();
@@ -210,6 +220,14 @@ const VOLATA_NORMA_IGNOTA = () => {
       innesco: "nonel", roccia: "calcare", frat: "media", bagnato: false, presplit: false,
       sequenza: "diagonale", recNorma: "uni-9916", recFreq: 25, recDist: 300, perRow: 12, file: 1 } }]));
 };
+const VOLATA_RITARDOFILA_ASSENTE = () => {
+  localStorage.setItem("genesiDisclaimerV1", "1");
+  localStorage.setItem("genesiVolate", JSON.stringify([{ id: "v1", nome: "Fronte Sud 20/07",
+    data: "2026-07-20", sintesi: "10 fori",
+    design: { B: 3, S: 3.5, diam: 102, prof: 10, kg: 58, ritardo: 42, ritardoFila: null, stem: 2.2, sub: 0.9,
+      esplosivo: "anfo-standard", innesco: "nonel", roccia: "calcare", frat: "media", bagnato: false, presplit: false,
+      sequenza: "diagonale", recNorma: "uni-9916", recFreq: 25, recDist: 300, perRow: 10, file: 1 } }]));
+};
 const SITO_TRE_REFERTI = () => {
   localStorage.setItem("genesiDisclaimerV1", "1");
   localStorage.setItem("genesiSito", JSON.stringify({ usa: true, punti: [
@@ -288,6 +306,34 @@ console.log("\n· volata salvata con una normativa che Genesi non conosce");
   const doc = String(await pg.evaluate(() => window.__doc) || "");
   const m = doc.match(/PPV al recettore[^<]*<\/td><td>([^<]*)</);
   dice(m && /limite —/.test(m[1]), "e il report stampabile scriveva già «limite —»", m && m[1]);
+  dice(pg.__errori.length === 0, "la pagina non solleva errori", pg.__errori[0]);
+  await pg.close();
+}
+
+// ── 5 · IL RITARDO PER FILA ASSENTE, NEL REPORT STAMPABILE ────────────────
+console.log("\n· volata salvata con il ritardo per fila illeggibile");
+{
+  const pg = await apri(VOLATA_RITARDOFILA_ASSENTE);
+  const scadenzaApri = Date.now() + 25000;
+  let cls = "";
+  do {
+    await pg.evaluate(() => {
+      const it = document.querySelector('.hg-item[data-id="v1"]');
+      const btn = it && it.querySelector('button[data-act="apri"]');
+      if (btn) btn.click();
+    });
+    await pg.waitForTimeout(400);
+    cls = await pg.evaluate(() => document.body.className);
+  } while (!cls.includes("scr-design") && Date.now() < scadenzaApri);
+  dice(cls.includes("scr-design"), "la volata salvata si apre davvero nel 2D", cls);
+
+  await pg.evaluate(() => document.getElementById("btn-report").click());
+  await pg.waitForTimeout(500);
+  const doc = String(await pg.evaluate(() => window.__doc) || "");
+  const m = doc.match(/Ritardo foro \/ fila<\/td><td>([^<]*)</);
+  dice(!!m, "la riga «Ritardo foro / fila» c'è nel report", doc.slice(0, 200));
+  dice(m && /^42 \/ —\s*ms$/.test(m[1]),
+    "⛔ e il ritardo per fila illeggibile resta «—», non «0» (file tutte simultanee, misurato)", m && m[1]);
   dice(pg.__errori.length === 0, "la pagina non solleva errori", pg.__errori[0]);
   await pg.close();
 }
