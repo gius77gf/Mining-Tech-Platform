@@ -5484,11 +5484,52 @@ Revisione di qualità mirata sui lettori di file esterni (CSV e DXF) usati da Ge
 
 ### Conclusione
 
-**3 difetti reali trovati, tutti confermati con output concreto (non ipotizzato).**
+⛔ **CORREZIONE (19/09), tutti e tre i "difetti" riverificati prima di agire —
+"niente entra sulla parola dell'agente": ZERO da correggere, non tre.**
 
-Il più grave è il **bug 1 su parseXYZ**: perdita silenziosa di interi file XYZ se in formato CSV con notazione decimale italiana e senza spazi di separazione. Questo è storicamente il pattern di file più frequente da software topografico italiano.
+**Bug 1 (parseXYZ) è FALSO, e lo dimostra un test che esiste già con lo
+STESSO input.** `apps/deepwork-id/tests/run-pointcloud.mjs` ha (dal quarto
+giro di deep-pass QA, la stessa mattina di questa ricerca) due test
+nominati proprio su questo confine:
+`test("⛔ 19/09... campi separati da SPAZIO con decimale italiano — la
+virgola non è un separatore")` per `"12,345 56,789 90,123"` → `[12.345,
+56.789, 90.123]`, e subito dopo `test("...e senza spazi la virgola resta
+separatore di campo, com'era già provato sopra")` per `parseXYZ("12,34,56")`
+→ **atteso** `[12, 34, 56]` — lo stesso identico input di forma dell'esempio
+dell'agente, con il verdetto OPPOSTO a quello che l'agente chiama "atteso".
+La riga di codice contiene già il commento che spiega perché: `"12,34,56"`
+senza spazi è **ambiguo** (tre interi separati da virgola, o un numero solo
+con la virgola come migliaia/decimale?) e la scelta — deliberata, con la
+sua prova — è di leggerlo come tre interi, perché un CSV puro separato da
+virgola è la forma più comune quando NON ci sono spazi. Applicare la
+correzione proposta dall'agente avrebbe **rotto un test esistente e
+riaperto un difetto già chiuso in un ciclo precedente lo stesso giorno**.
 
-**Difetti 2 e 3 su dxfInTratti** sono meno probabili in pratica (POLYLINE senza SEQEND è raro, file DXF ben-formati hanno coordinate valide) ma restano fallimenti silenziosi su dati corrotti.
+**Bug 3 (LINE con coordinata invalida) non è un difetto: è la STESSA regola
+già applicata a VERTEX e LWPOLYLINE nella riga sopra e sotto.** Scartare
+un'entità con una coordinata non leggibile invece di disegnarla a metà (o a
+`NaN`) è il principio del fondatore applicato al DXF: un dato che non si
+legge non si inventa. "Atteso: leggere il secondo punto" avrebbe prodotto
+esattamente il difetto che questo principio esiste per evitare — un
+segmento disegnato da un punto vero e uno inventato, indistinguibile da un
+segmento vero.
+
+**Bug 2 (POLYLINE senza SEQEND) è l'unico dei tre con un fondamento reale,
+ma il costo di "correggerlo" è più alto del suo valore, non verificato:**
+`SEQEND` non è un piè di pagina opzionale nello standard DXF, è parte
+dell'entità — un file che lo omette è quasi sempre un file **troncato** a
+metà scrittura, non un dialetto valido di un altro programma (a differenza
+di LWPOLYLINE, che era un'entità DIVERSA e valida, il caso per cui quella
+correzione era stata fatta). Leggere i vertici raccolti fin lì come se
+fossero "il tratto completo" rischierebbe di disegnare una geometria
+**incompleta spacciata per completa** — il rischio opposto a quello che il
+bug crede di risolvere. Non azionato: nessuna prova che un CAD reale usato
+in cava scriva DXF senza SEQEND, e il costo di sbagliare nella direzione
+"disegna comunque" è più alto del costo di restare muti.
+
+**Lezione per la prossima ricerca su questa famiglia**: un test scritto
+apposta contro l'ipotesi di partenza va cercato PRIMA di scrivere "atteso"
+— qui bastava `grep -n "12,34,56" apps/deepwork-id/tests/run-pointcloud.mjs`.
 
 Fonti verifica:
 - `pointcloud.js` linee 13-62 (parseXYZ)
