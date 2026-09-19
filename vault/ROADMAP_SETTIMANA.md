@@ -11983,3 +11983,24 @@ file distinti). scudo-inail-quadro.mjs 4/4 normale, 1 KO sotto
 run-kpi.mjs 3180/3180. numeri-nei-documenti.mjs 43/43 (415 banchi,
 copertura 1051/1051, invariati). genesi-numeri-tranquilli.mjs 39/39
 normale, 19 KO / 8 iniezioni sotto `--controprova`.
+
+## Undicesimo giro: Genesi (DXF/3D), ricerca Terra, decisione 40 (19/09)
+
+- [x] **Genesi** (`15881fd0`): `parseXYZ` spaccava un decimale italiano
+      quando la riga aveva già spazi ("12,345 56,789 90,123" letto come
+      sei numeri, non tre); `dxfInTratti` non riconosceva LWPOLYLINE
+      (l'entità di default di AutoCAD/LibreCAD/QCAD), dando "nessun tratto
+      leggibile" falso su un file con la geometria vera. Corretti entrambi,
+      con controprova.
+- [x] **Ricerca su Terra** (`b6f3b4df`): GCP (costruisce il modello) contro
+      checkpoint indipendente (l'unico che misura l'accuratezza vera) — il
+      concetto è già nominato in quattro punti di Terra ma non implementato.
+      Proposta a costo Medio, non implementata.
+- [x] **Decisione 40** (`4cc456bf`): la barra di navigazione in basso è
+      sotto i 44px di larghezza su Conti (31px @320) e Scudo (37-43px),
+      sotto i 60px del tema del sole su quasi tutte le app. Tocca
+      `shared/`, richiede una scelta di design: messa in
+      `docs/DECISIONI_WEEKEND.md`.
+
+run-kpi.mjs 3180/3180. run-pointcloud.mjs 36/36. numeri-nei-documenti.mjs
+43/43 (3678 prove, decisioni aperte 27).
