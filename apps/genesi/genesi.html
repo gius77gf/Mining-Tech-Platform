@@ -816,6 +816,7 @@ body.scr-sim #tl{bottom:80px}
     <button type="button" id="d2Redo" class="dt-undo" title="Ripristina (Ctrl+Y)" disabled>↪</button>
     <button type="button" id="dtTrattoFine" class="dt-reset" hidden>✓ Fine tratto</button>
     <button type="button" id="dtEliminaSel" class="dt-reset" hidden title="Elimina tutti i fori selezionati con Maiusc+clic">✕ Elimina selezionati</button>
+    <button type="button" id="dtRifletti" class="dt-reset" hidden title="Specchia i fori selezionati lungo la fila, attorno al loro centro">⇋ Rifletti selezionati</button>
     <button type="button" id="dtReset" class="dt-reset">↺ Reset fronte</button>
   </div>
   <div id="d2-strati">
@@ -1257,7 +1258,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, reliefCls, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino, activeProf, d2HitTest, d2HitTestPt,
-         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfInTratti, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
+         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfInTratti, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, foriRiflessi, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -7951,6 +7952,12 @@ function syncSelMultiUI(){
   const eb=$('dtEliminaSel');
   if(eb){ eb.hidden=!(D2.tool==='fori' && D2.selMulti.length>0);
     eb.textContent='✕ Elimina selezionati ('+D2.selMulti.length+')'; }
+  /* G50 — specchiare un foro solo, attorno al proprio centro, non
+     sposta niente: il bottone chiede almeno due fori scelti, se no
+     premerlo sarebbe un'azione che non fa nulla e sembra rotta. */
+  const rb2=$('dtRifletti');
+  if(rb2){ rb2.hidden=!(D2.tool==='fori' && D2.selMulti.length>=2);
+    rb2.textContent='⇋ Rifletti selezionati ('+D2.selMulti.length+')'; }
 }
 if($('dtEliminaSel')) $('dtEliminaSel').onclick=()=>{
   if(D2.strati.fori.bloccato){ toast('I fori sono bloccati — sblocca dal pannello sopra la tela'); return; }
@@ -7960,6 +7967,15 @@ if($('dtEliminaSel')) $('dtEliminaSel').onclick=()=>{
   D2.selMulti=[]; D2.sel=-1; D2.selPrev=-1; computeSeq2D();
   drawDesign2D(); renderScheda2D(); renderInspector(); syncSelMultiUI();
   toast(n+' '+plurale(n,'foro eliminato','fori eliminati'));
+};
+if($('dtRifletti')) $('dtRifletti').onclick=()=>{
+  if(D2.strati.fori.bloccato){ toast('I fori sono bloccati — sblocca dal pannello sopra la tela'); return; }
+  const n=D2.selMulti.length; if(n<2) return;
+  d2PushUndo();
+  D2.holes=foriRiflessi(D2.holes, D2.selMulti);
+  computeSeq2D();
+  drawDesign2D(); renderScheda2D(); renderInspector();
+  toast(n+' '+plurale(n,'foro specchiato','fori specchiati')+' attorno al loro centro');
 };
 /* G47b — livelli veri: mostra/nascondi e blocca per entità. Niente
    `d2PushUndo`: `D2.strati` è stato dell'INTERFACCIA (cosa si vede o si

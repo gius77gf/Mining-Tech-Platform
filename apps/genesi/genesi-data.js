@@ -3870,6 +3870,31 @@ export function foriSenzaId(holes, idsSelezionati){
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
+   G50 · RIFLETTI LA SELEZIONE — LA PRIMA TRASFORMAZIONE (19/09, terzo asse
+   CAD confermato dal censimento: rotate/scale/mirror completi con pivot
+   scelto a mano sono "costo medio-grande" — vedi
+   docs/RICERCA_GENESI_CAD.md, sezione 3 — e restano il passo pieno.
+   Questo è il mirror più stretto possibile: nessun pivot da scegliere
+   (il centro è il centroide della selezione stessa, calcolato, non
+   chiesto), nessun angolo (l'asse è sempre verticale — la fila resta
+   una fila, si specchia solo lungo di lei, la direzione in cui un
+   pattern di fori è quasi sempre simmetrico in cava). Un mirror ad
+   asse scelto liberamente è un'estensione della stessa idea, non una
+   riscrittura, quando servirà davvero.
+   ══════════════════════════════════════════════════════════════════════════
+   La spalla (`my`, la distanza dal fronte) non si tocca: specchiare la
+   PROFONDITÀ di un foro non ha significato fisico in questo dominio,
+   solo la sua posizione lungo la fila (`mx`) — a differenza di un CAD
+   generico, dove "verticale" e "orizzontale" sono simmetrici fra loro. */
+export function foriRiflessi(holes, idsSelezionati){
+  const via=new Set(idsSelezionati||[]);
+  const selezionati=(holes||[]).filter(h=>h && via.has(h.id));
+  if(!selezionati.length) return (holes||[]).slice();
+  const cx=selezionati.reduce((s,h)=>s+ +h.mx, 0)/selezionati.length;
+  return (holes||[]).map(h=>(h && via.has(h.id)) ? {...h, mx:+(2*cx - h.mx).toFixed(2)} : h);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
    G35 · IL PROSSIMO PEZZO DI "GENESI CONTINUA A USCIRE DALLA PAGINA" (13/09)
    ══════════════════════════════════════════════════════════════════════════
    `measureGeom2D` misura la maglia DISEGNATA (non quella di progetto): il

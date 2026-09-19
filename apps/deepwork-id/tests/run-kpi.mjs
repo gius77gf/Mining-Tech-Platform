@@ -45375,6 +45375,39 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
 }
 /* ===== fine selezione multipla dei fori (19/09, G49) ===== */
 
+/* ===== GENESI · RIFLETTI LA SELEZIONE — PRIMA TRASFORMAZIONE (19/09, G50) =====
+   Nessun pivot da chiedere (centroide della selezione, calcolato) e nessun
+   angolo (asse sempre verticale, solo `mx` cambia): il mirror più stretto
+   possibile, per non costruire un dialog di pivot/angolo prima di sapere
+   se serve davvero. */
+{
+  test("Genesi · foriRiflessi specchia SOLO i selezionati, attorno al loro centroide", () => {
+    const H = [{ id: "a", mx: 0, my: 3 }, { id: "b", mx: 10, my: 3 }, { id: "c", mx: 100, my: 5 }];
+    // centroide di a,b: (0+10)/2 = 5 → a: 2*5-0=10, b: 2*5-10=0
+    const R = genesi.foriRiflessi(H, ["a", "b"]);
+    eq(R.find((h) => h.id === "a").mx, 10);
+    eq(R.find((h) => h.id === "b").mx, 0);
+    eq(R.find((h) => h.id === "c").mx, 100, "un foro non selezionato non si tocca, nemmeno la sua my");
+    eq(R.find((h) => h.id === "a").my, 3, "my non si specchia mai: la spalla non ha un 'mirror' fisico in questo dominio");
+  });
+  test("Genesi · foriRiflessi su un solo selezionato non lo sposta (specchiato attorno a sé stesso)", () => {
+    const H = [{ id: "a", mx: 7.5, my: 2 }];
+    eq(genesi.foriRiflessi(H, ["a"]), [{ id: "a", mx: 7.5, my: 2 }]);
+  });
+  test("Genesi · foriRiflessi con selezione vuota o assente non tocca l'array", () => {
+    const H = [{ id: "a", mx: 1 }];
+    eq(genesi.foriRiflessi(H, []), H);
+    eq(genesi.foriRiflessi(H, null), H);
+    eq(genesi.foriRiflessi(null, ["a"]), []);
+  });
+  test("⛔ Genesi · rifletti la selezione è collegato nella pagina (G50)", () => {
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    eq((pag.match(/foriRiflessi\(/g) || []).length, 1, "un solo punto di trasformazione batch");
+    ok(/D2\.selMulti\.length>=2/.test(pag), "il bottone chiede almeno due fori: specchiare un foro solo attorno a sé stesso non sposta niente");
+  });
+}
+/* ===== fine rifletti la selezione (19/09, G50) ===== */
+
 /* ===== GENESI · misuraGeom2D SALITA DA genesi.html (13/09, G35) =====
    "Genesi continua a uscire dalla pagina": stessa logica, cambia solo che
    legge tre parametri invece di `D2` a mano. Il caso che contava di più —
