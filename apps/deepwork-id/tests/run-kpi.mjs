@@ -27884,7 +27884,17 @@ console.log("\n— Campo: i file che escono —");
     eq(v.classeRelief(10, undefined, undefined), "ok", "senza finestra valgono 5 e 15");
     eq(v.classeRelief(10.4, 10, 3), "ok", "un massimo sotto il minimo viene alzato a minimo + 0,5: 10,4 è dentro");
     eq(v.classeRelief(10.6, 10, 3), "hi", "e 10,6 è fuori");
-    eq(Object.keys(v.RELCOL), ["bad", "warn", "ok", "hi", "none"], "RELCOL copre tutte le classi che classeRelief sa dire");
+    eq(Object.keys(v.RELCOL), ["bad", "warn", "ok", "hi", "none", "noneGap"], "RELCOL copre tutte le classi che classeRelief sa dire");
+  });
+  test("⛔ Genesi · G56c: classeRelief distingue «primo della zona» da «vicino fuori dalla distanza di adiacenza»", () => {
+    /* Prima di questa unità un `relief=null` con un vicino fuori fascia
+       (foro mancante nel mezzo) veniva letto come il vero primo della zona:
+       stessa classe, stesso colore neutro, stesso messaggio tranquillo. */
+    eq(v.classeRelief(null, 5, 15, false), "none", "senza il quarto argomento (o falso): il vero primo della zona, tranquillo");
+    eq(v.classeRelief(null, 5, 15, true), "noneGap", "con `fuoriFascia`: un vicino ha già sparato ma è oltre la distanza di adiacenza — non tranquillo");
+    ok(v.classeRelief(null, 5, 15, true) !== v.classeRelief(null, 5, 15, false), "le due cause del null non collassano più sulla stessa classe");
+    eq(v.RELCOL.noneGap, v.RELCOL.warn, "noneGap usa il colore di attenzione, non quello neutro di «none»: è un rischio, non un'informazione mancante qualunque");
+    eq(v.reliefCls({ relLo: 5, relHi: 15 }, null, true), "noneGap", "reliefCls porta avanti il quarto argomento fino a classeRelief");
   });
   test("⛔ Genesi · codiceVolataGenesi: deterministico dal progetto, nella forma che Sentinella riconosce", () => {
     const d = { nFori: 18, kgTotali: 1080, mic: 60, dist: 320 };
@@ -27995,13 +28005,14 @@ console.log("\n— Campo: i file che escono —");
       const dMax = 1.5 * Math.max(S || 3.5, B || 3.0, genesi.spaziaturaTipica(H, Math.max(S || 3.5, B || 3)));
       const dtMin = Math.max(1, dtMinRaw);
       for (let i = 0; i < H.length; i++) {
-        const h = H[i]; let best = null;
+        const h = H[i]; let best = null, fuoriFascia = false;
         for (let j = 0; j < H.length; j++) {
           if (j === i) continue;
           const dt = (h.tDet || 0) - (H[j].tDet || 0);
           if (dt < dtMin) continue;
           const d = Math.hypot(H[j].mx - h.mx, H[j].my - h.my);
-          if (d < 0.05 || d > dMax) continue;
+          if (d < 0.05) continue;
+          if (d > dMax) { fuoriFascia = true; continue; }
           const r = dt / d;
           if (!best || r < best.r) best = { r, j, d, dt };
         }
@@ -28009,6 +28020,7 @@ console.log("\n— Campo: i file che escono —");
         h.relFrom = best ? best.j : -1;
         h.relD = best ? +best.d.toFixed(2) : null;
         h.relDt = best ? +best.dt.toFixed(1) : null;
+        h.relFuoriFascia = !best && fuoriFascia;
       }
     };
     const casi = [
@@ -28030,6 +28042,32 @@ console.log("\n— Campo: i file che escono —");
     genesi.reliefSuMaglia(null, 3, 3.5, 8);
     genesi.reliefSuMaglia(undefined, 3, 3.5, 8);
     const vuoto = []; genesi.reliefSuMaglia(vuoto, 3, 3.5, 8); eq(vuoto, []);
+  });
+  test("⛔ Genesi · G56c: un foro tolto dalla fila distingue il primo VERO dal vicino fuori dalla distanza di adiacenza", () => {
+    /* Maglia a 12 fori, 1 fila, S=3.5 (identica a genMaglia2D di default),
+       poi si toglie il foro f1-6 come farebbe un operatore col trascinamento
+       + Canc: verificato dal vivo con Playwright il 19/09, è il caso che ha
+       trovato il difetto. `f1-7` ha un vicino che ha GIÀ sparato (f1-5, 84 ms
+       prima) ma a 7 m di distanza — oltre dMax=1,5*3,5=5,25 m — quindi non è
+       il primo della sua zona: è un buco che il relief non riesce a coprire. */
+    const H = [
+      { id: "f1-2", mx: 3.5, my: 3, tDet: 0 },
+      { id: "f1-3", mx: 7, my: 3, tDet: 42 },
+      { id: "f1-4", mx: 10.5, my: 3, tDet: 84 },
+      { id: "f1-5", mx: 14, my: 3, tDet: 126 },
+      { id: "f1-7", mx: 21, my: 3, tDet: 210 },   // f1-6 (17.5,3, tDet 168) tolto: buco di 7 m invece di 3,5
+      { id: "f1-8", mx: 24.5, my: 3, tDet: 252 },
+    ];
+    genesi.reliefSuMaglia(H, 3.5, 3, 8);
+    const f = Object.fromEntries(H.map((h) => [h.id, h]));
+    eq(f["f1-2"].relief, null, "f1-2 è il vero primo della fila: nessun vicino ha ancora sparato");
+    eq(f["f1-2"].relFuoriFascia, false, "e non è per un buco: è la partenza della sequenza");
+    eq(f["f1-7"].relief, null, "f1-7 non ha un relief calcolabile (il vicino più vicino già sparato, f1-5, è a 7 m)");
+    eq(f["f1-7"].relFuoriFascia, true, "⛔ MA f1-7 NON è il primo della zona: f1-5 ha già sparato 84 ms prima, solo troppo lontano — prima di questa unità le due cause erano indistinguibili");
+    ok(f["f1-3"].relief != null && f["f1-4"].relief != null && f["f1-5"].relief != null && f["f1-8"].relief != null,
+      "i fori con un vicino entro la distanza di adiacenza continuano ad avere un relief vero, invariato dal buco altrove");
+    eq(v.reliefCls({ relLo: 5, relHi: 15 }, f["f1-2"].relief, f["f1-2"].relFuoriFascia), "none", "f1-2 in schermo resta la classe tranquilla");
+    eq(v.reliefCls({ relLo: 5, relHi: 15 }, f["f1-7"].relief, f["f1-7"].relFuoriFascia), "noneGap", "f1-7 in schermo diventa la classe di attenzione");
   });
   test("⛔ Genesi · G40: nella pagina il conto non c'è più (⚠️ 14/09, B3: anche il legame è uscito)", () => {
     const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");

@@ -3152,16 +3152,22 @@ export const LEGENDA_ENERGIA=[
   ['alta',_p(SOGLIE_PF.ok)+'–'+_p(SOGLIE_PF.alta)+'%'],
   ['moltoAlta','> '+_p(SOGLIE_PF.alta)+'%'],
 ];
-export const RELCOL={bad:'#ef5350', warn:'#ffb300', ok:'#66bb6a', hi:'#86b0d8', none:'#9b8a60'};
-export function classeRelief(r, relLo, relHi){
-  if(r==null) return 'none';
+/* G56c (19/09) — `noneGap` accanto a `none`: stesso `relief=null`, causa
+   diversa. `none` è il vero primo della zona (tranquillo, colore neutro);
+   `noneGap` è un vicino che ha già sparato ma è oltre la distanza di
+   adiacenza — quasi sempre un foro mancante nel mezzo — e usa il colore di
+   `warn` perché è la stessa famiglia di rischio (confinamento non
+   verificabile), non un'informazione mancante qualunque. */
+export const RELCOL={bad:'#ef5350', warn:'#ffb300', ok:'#66bb6a', hi:'#86b0d8', none:'#9b8a60', noneGap:'#ffb300'};
+export function classeRelief(r, relLo, relHi, fuoriFascia){
+  if(r==null) return fuoriFascia ? 'noneGap' : 'none';
   const lo=relLo||5, hi=Math.max((relLo||5)+0.5, relHi||15);
   if(r<lo*0.6) return 'bad';                                 // molto sotto finestra
   if(r<lo) return 'warn';                                    // sotto finestra
   if(r<=hi) return 'ok';                                     // in finestra
   return 'hi';                                               // relief eccessivo
 }
-export function reliefCls(D2, r){ return classeRelief(r, D2.relLo, D2.relHi); }
+export function reliefCls(D2, r, fuoriFascia){ return classeRelief(r, D2.relLo, D2.relHi, fuoriFascia); }
 export function codiceVolataGenesi(d,data,fronte){
   const base=[data,String(fronte||'').trim().toLowerCase(),d.nFori,d.kgTotali,d.mic,d.dist].join('|');
   let h=0; for(let i=0;i<base.length;i++) h=(Math.imul(h,31)+base.charCodeAt(i))|0;
@@ -3204,26 +3210,45 @@ export function codiceVolataGenesi(d,data,fronte){
    riga su `scatterInnesco`, già in questo modulo) — passato qui come
    parametro invece di ricalcolato, perché richiede altri tre campi di `D2`
    (`ritardo`, `lastDet`, `innesco`) che non servono a nient'altro in questa
-   funzione. Entrata identica, `H` mutato sul posto. */
+   funzione. Entrata identica, `H` mutato sul posto.
+
+   ⛔ G56c (19/09) — `relief=null` NASCONDEVA DUE CAUSE DIVERSE SOTTO LA
+   STESSA FACCIA TRANQUILLA. Misurato togliendo un foro dalla maglia
+   (drag+Canc, gesto reale: un operatore scarta un foro perché intasato o
+   fuori posto): il foro rimasto senza il suo vicino più vicino non diceva
+   «attenzione, manca un vicino entro la distanza di adiacenza» — diceva
+   ESATTAMENTE la stessa cosa del vero primo foro della volata, «primo
+   della sua zona: spara sulla faccia già aperta» (il testo in genesi.html),
+   perché `best` restava `null` sia quando NESSUN vicino aveva ancora
+   sparato sia quando un vicino AVEVA sparato ma era finito fuori da `dMax`
+   a causa del buco lasciato dal foro tolto. La seconda causa è quella che
+   il relief foro-per-foro esiste apposta per segnalare (G40, sopra: «è
+   quello che decide se la roccia davanti ha fatto in tempo a muoversi»),
+   e finiva scartata in silenzio anche dalla sintesi del Validatore
+   (`filter(v=>v!=null)`, genesi.html), che poteva scrivere «tutti i fori
+   sono dentro la finestra impostata» ignorando proprio il foro col
+   problema. Le due cause si dichiarano separate con `h.relFuoriFascia`. */
 export function reliefSuMaglia(H, S, B, dtMin){
   if(!H||!H.length) return;
   const dMax=1.5*Math.max(S||3.5, B||3.0, spaziaturaTipica(H, Math.max(S||3.5, B||3)));   // solo i fori ADIACENTI: oltre, la roccia in mezzo e di un altro foro
   const soglia=Math.max(1, dtMin);                             // sotto la dispersione dell'innesco i due fori sono un istante solo
   for(let i=0;i<H.length;i++){
-    const h=H[i]; let best=null;
+    const h=H[i]; let best=null, fuoriFascia=false;
     for(let j=0;j<H.length;j++){
       if(j===i) continue;
       const dt=(h.tDet||0)-(H[j].tDet||0);
       if(dt<soglia) continue;                                 // solo fori che hanno gia sparato, e non "insieme" a questo
       const d=Math.hypot(H[j].mx-h.mx, H[j].my-h.my);
-      if(d<0.05 || d>dMax) continue;
+      if(d<0.05) continue;
+      if(d>dMax){ fuoriFascia=true; continue; }               // un vicino ha già sparato, ma il buco fra i due è troppo largo per dirsi adiacente
       const r=dt/d;                                          // ms/m disponibili verso QUEL foro
       if(!best || r<best.r) best={r:r,j:j,d:d,dt:dt};        // vince il vincolo piu stretto
     }
-    h.relief = best? +best.r.toFixed(2) : null;              // null = nessun vicino ha gia sparato: si libera sulla faccia gia aperta
+    h.relief = best? +best.r.toFixed(2) : null;              // null = nessun vicino adiacente ha gia sparato
     h.relFrom = best? best.j : -1;
     h.relD = best? +best.d.toFixed(2) : null;
     h.relDt = best? +best.dt.toFixed(1) : null;
+    h.relFuoriFascia = !best && fuoriFascia;                 // il vicino c'è, ma è oltre dMax: quasi sempre un foro mancante nel mezzo
   }
 }
 /* Trasloco B3 (14/09): con `scatterMs` uscita anche lei (D2 esplicito), il

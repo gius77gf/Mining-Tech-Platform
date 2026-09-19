@@ -6393,7 +6393,7 @@ function drawDesign2D(){
   if(D2.inn) innInfo=drawInnesco2D(ctx,gGeo);                // la rete sopra i campi, sotto i fori
   const tMax=Math.max(1,D2.lastDet||1), pfRif=pfNominale(D2);
   if(D2.strati.fori.visibile) H.forEach((h,i)=>{ const cx=mx2(h.mx), cy=my2(h.my+interpProf(D2.profilo, h.mx)), u=(h.tDet||0)/tMax;
-    const rcl=reliefCls(D2, h.relief);
+    const rcl=reliefCls(D2, h.relief, h.relFuoriFascia);
     /* il pallino del foro prende il colore del livello attivo: il relief ha la
        precedenza perché è quello che segnala un rischio, l'energia viene dopo */
     /* ⛔ SERVONO TUTT'E DUE I PEZZI DEL RAPPORTO, e fino al 09/08 se ne
@@ -6676,10 +6676,18 @@ function renderInspector(){
   const h=D2.holes[D2.sel]; let nn=Infinity;
   for(let i=0;i<D2.holes.length;i++){ if(i===D2.sel) continue; const o=D2.holes[i]; const d=Math.hypot(o.mx-h.mx,o.my-h.my); if(d<nn) nn=d; }
   el.style.display='flex';
-  /* G2 — il relief del singolo foro in chiaro nella sua scheda */
-  const rcl=reliefCls(D2, h.relief), from=(h.relFrom>=0 && D2.holes[h.relFrom])?((D2.holes[h.relFrom].seq||0)+1):null;
+  /* G2 — il relief del singolo foro in chiaro nella sua scheda.
+     G56c (19/09) — `relief==null` per DUE cause diverse (vedi il commento
+     su `reliefSuMaglia` in genesi-data.js): la vera prima della zona
+     (tranquilla) e il vicino fuori dalla distanza di adiacenza, quasi
+     sempre un foro mancante nel mezzo (attenzione, non tranquilla). Prima
+     di questa unità le due si leggevano identiche: «primo della sua zona»
+     anche quando un vicino aveva già sparato ma il buco era troppo largo. */
+  const rcl=reliefCls(D2, h.relief, h.relFuoriFascia), from=(h.relFrom>=0 && D2.holes[h.relFrom])?((D2.holes[h.relFrom].seq||0)+1):null;
   const relTx = (h.relief==null)
-    ? '<span style="color:'+RELCOL.none+'">relief — primo della sua zona: spara sulla faccia gia libera</span>'
+    ? (h.relFuoriFascia
+        ? '<span style="color:'+RELCOL.noneGap+'">relief non calcolabile: il vicino più vicino già sparato è oltre la distanza di adiacenza — verificare un foro mancante o uno scarto insolito nella maglia</span>'
+        : '<span style="color:'+RELCOL.none+'">relief — primo della sua zona: spara sulla faccia gia libera</span>')
     : '<b style="color:'+RELCOL[rcl]+';margin-right:6px">'+fmtMs(h.relief)+' ms/m</b><span>relief'+(from?' dal foro '+from:'')+' · '+fmtMs(h.relDt)+' ms su '+fmtMs(h.relD)+' m'
       +(rcl==='ok'?' · in finestra':(rcl==='hi'?' · sopra finestra':' · sotto finestra'))+'</span>';
   /* G5 — il consumo specifico del singolo foro: quanta roccia gli tocca davvero */
@@ -7180,21 +7188,32 @@ function renderScheda2D(){
     'ritardo/spalla tra file 8–15 ms/m: buono spostamento del cumulo.',
     'ritardo basso tra file: la fila dietro spara nel burden ancora fermo → confinamento/backbreak.',
     'ritardo alto tra file: relief eccessivo → blocchi e cumulo troppo disteso.'));
-  /* G2 — relief foro per foro: sintesi della mappa (la media sopra non dice DOVE) */
+  /* G2 — relief foro per foro: sintesi della mappa (la media sopra non dice DOVE).
+     G56c (19/09) — `filter(v=>v!=null)` scartava in silenzio anche i fori
+     con `relFuoriFascia` (un vicino ha già sparato ma è oltre la distanza
+     di adiacenza, quasi sempre un foro mancante nel mezzo): la sintesi
+     poteva scrivere «tutti i fori sono dentro la finestra impostata»
+     ignorando proprio il foro col relief non verificabile. Adesso si
+     contano a parte e cambiano sia la classe che la frase. */
   (function(){
     const HH=D2.holes||[], rr=HH.map(h=>h.relief).filter(v=>v!=null);
+    const nGap=HH.filter(h=>h.relFuoriFascia).length;
     const lo=D2.relLo||5, hi=Math.max(lo+0.5,D2.relHi||15);
-    if(!rr.length){ rows.push({lab:'Relief per foro',valStr:'—',cls:'sv-info',
+    if(!rr.length && !nGap){ rows.push({lab:'Relief per foro',valStr:'—',cls:'sv-info',
       why:'con un foro solo (o con tutti i fori sullo stesso istante) non c\'è un foro che ne libera un altro: il relief non è definito.'}); return; }
     const nLo=rr.filter(v=>v<lo).length, nHi=rr.filter(v=>v>hi).length, nBad=rr.filter(v=>v<lo*0.6).length;
-    const mn=Math.min(...rr), mx=Math.max(...rr);
-    const cls=nBad>0?'sv-bad':(nLo>0?'sv-warn':(nHi>0?'sv-warn':'sv-ok'));
-    rows.push({lab:'Relief per foro',valStr:fmtMs(mn)+'–'+fmtMs(mx)+' <span>ms/m · '+nLo+' sotto / '+nHi+' sopra</span>',cls:cls,
-      why:'millisecondi che ogni foro ha per liberare un metro della roccia che lo separa dal foro vicino già sparato (si tiene il vincolo più stretto). Qui va da '+fmtMs(mn)+' a '+fmtMs(mx)+' ms/m, finestra '+fmtMs(lo)+'–'+fmtMs(hi)+' modificabile accanto al pulsante Relief. '
+    const valStr = rr.length ? (fmtMs(Math.min(...rr))+'–'+fmtMs(Math.max(...rr))+' <span>ms/m · '+nLo+' sotto / '+nHi+' sopra'+(nGap?' / '+nGap+' non verificabile':'')+'</span>')
+      : ('— <span>'+nGap+' non verificabile</span>');
+    const cls=(nBad>0||nGap>0)?(nBad>0?'sv-bad':'sv-warn'):(nLo>0?'sv-warn':(nHi>0?'sv-warn':'sv-ok'));
+    rows.push({lab:'Relief per foro',valStr:valStr,cls:cls,
+      why:'millisecondi che ogni foro ha per liberare un metro della roccia che lo separa dal foro vicino già sparato (si tiene il vincolo più stretto). '
+        +(rr.length?('Qui va da '+fmtMs(Math.min(...rr))+' a '+fmtMs(Math.max(...rr))+' ms/m, finestra '+fmtMs(lo)+'–'+fmtMs(hi)+' modificabile accanto al pulsante Relief. '):'')
         +'<b>Sotto</b>: il foro spara quando la roccia davanti non si è ancora mossa → resta confinato: blocchi, picchi di vibrazione, proiezioni. '
         +'<b>Sopra</b>: passa troppo tempo, la roccia è già andata via e il foro lavora da solo → pezzatura più grossa e cumulo sparpagliato. '
         +(nLo+nHi>0?'Qui '+_ricPlur(nLo+nHi,'foro','fori')+' fuori finestra: il livello <b>Relief</b> '+(nLo+nHi===1?'lo':'li')+' segna con un anello sulla pianta. Da guardare: ritardo tra fori e tra file, distanza fra i fori interessati, ordine della sequenza. '
-                   :'Tutti i fori sono dentro la finestra impostata. ')
+                   :(rr.length?'Tutti i fori con un relief calcolabile sono dentro la finestra impostata. ':''))
+        +(nGap?'⚠️ '+_ricPlur(nGap,'foro','fori')+' con relief NON verificabile: il vicino più vicino già sparato è oltre la distanza di adiacenza — quasi sempre un foro mancante o tolto nella maglia. Non è "a posto": è un buco che non si sa quantificare, da controllare sulla pianta prima dello sparo. '
+              :'')
         +'I fori che partono entro la dispersione dell\'innesco ('+fmtMs(scatterMs(D2))+' ms) contano come un istante solo: sparando insieme non si liberano a vicenda. I badge Timing inter-foro/inter-fila restano la media di progetto. '
         +'Letteratura: ≈8–14 ms/m tra prima e seconda fila, ≈5 tra le ultime. È una <b>diagnosi</b>, non un\'istruzione: i ritardi restano decisione del responsabile del tiro.'});
   })();

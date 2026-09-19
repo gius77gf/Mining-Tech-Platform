@@ -236,6 +236,13 @@ const SCUSATI = new Map([
     + "minuti avanti e un giorno di calendario avanti). Rinominato col nome giusto "
     + "(`20260918-235658_…`, stesso contenuto); resta il PERCORSO vecchio nella storia. Prima eccezione a cavallo "
     + "di mezzanotte: scusata anche nella prova sul GIORNO, non solo su quella sull'ora."],
+  ["vault/checkpoints/20260919-160145_verifica-diretta-export-genesi.md",
+    "19/09: stessa causa, quinta volta — l'ora scritta nel nome era una STIMA (letta da `date -u` durante il "
+    + "ragionamento, non appena prima di scrivere il file) e non quella vera al momento della scrittura: era "
+    + "entrato alle 2026-09-19T15:59:43Z, il nome diceva 16:01:45, due minuti avanti. Rinominato col nome giusto "
+    + "(`20260919-155943_…`, stesso contenuto); resta il PERCORSO vecchio nella storia. Quinta volta della stessa "
+    + "causa in poche settimane: la disciplina resta la stessa, leggere `date -u` immediatamente prima di ogni "
+    + "scrittura del nome, mai riusare un orario letto anche solo qualche minuto prima."],
 ]);
 
 test("nessun checkpoint NUOVO è datato dopo il giorno in cui è entrato in git", () => {
