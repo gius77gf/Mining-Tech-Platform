@@ -2929,6 +2929,9 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
+- `UX Campo` *(seconda iterazione UX, ricerca su Scudo sul ciclo di vita
+  delle azioni correttive, seconda UX su Deepwork ID — tutti dispatchati,
+  in attesa dei report)*
 
 ## 🎯 L'obiettivo della settimana
 
@@ -12075,3 +12078,22 @@ copertura 1052/1052).
 run-kpi.mjs 3183/3183. numeri-nei-documenti.mjs 43/43 (427 banchi,
 copertura 1053/1053). iniezioni-fresche.mjs 714/714.
 campo-foglio-turno.mjs 54/54 normale, 19 KO sotto --controprova.
+
+## Quindicesimo giro: QA Terra, ricerca Genesi, UX Campo/Scudo/Deepwork ID (19/09)
+
+- [x] **QA su Terra**: report pulito, nessun difetto reale nuovo dopo
+      ~14 giri di deep-pass su quest'app in questa sessione. Un'unica
+      osservazione di contesto (campi form mancanti per il
+      sequenziamento pluriennale), già dichiarata come apertura
+      deliberata nei checkpoint del 16/09, non un difetto nuovo.
+- [x] **Ricerca su Genesi** (`16fe8adf`, solo docs): Swebrec/KCO e la
+      sequenza anti-flyrock erano già implementati (confermato, non
+      riproposto). Un buco vero: il consuntivo Campo→Genesi non
+      distingue un foro sparato da un misfire — stessa colonna
+      numerica per due esiti opposti per sicurezza. Filato come
+      Decisione 41 (attraversa due app), non implementato direttamente.
+- [ ] **UX Campo**, **QA Scudo** (ciclo di vita azioni correttive) e
+      **UX Deepwork ID**: dispatchati, in attesa dei report.
+
+run-kpi.mjs 3183/3183. numeri-nei-documenti.mjs 43/43 (427 banchi,
+copertura 1053/1053, decisioni aperte 28).
