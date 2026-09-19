@@ -495,6 +495,8 @@ const BANCHI = [
   ["il misfire nel report stampato di Genesi · controprova", 'genesi-report-misfire.mjs', ['--controprova'], true],
   ["la guida di allineamento sul trascinamento di un foro (G56)", 'genesi-guida-allineamento.mjs', []],
   ["la guida di allineamento sul trascinamento di un foro · controprova", 'genesi-guida-allineamento.mjs', ['--controprova'], true],
+  ["l'annulla premuto a metà di un trascinamento (G56b)", 'genesi-drag-annulla.mjs', []],
+  ["l'annulla premuto a metà di un trascinamento · controprova", 'genesi-drag-annulla.mjs', ['--controprova'], true],
   ["Genesi: una volata salvata porta l'identità di chi era collegato", 'genesi-autore-volata.mjs', []],
   ['autore della volata di Genesi · controprova', 'genesi-autore-volata.mjs', ['--controprova'], true],
   [".chg: larghezza minima nel tema del sole (Terra)", 'chg-min-larghezza.mjs', []],

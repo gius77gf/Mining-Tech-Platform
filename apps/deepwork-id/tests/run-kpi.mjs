@@ -17631,6 +17631,26 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     ok(/get d2AlignGuide\(\)\{return d2AlignGuide\}/.test(pag), "leggibile dal debug hook per il banco che la prova");
   });
 
+  /* ═══ G56b (19/09) — L'ANNULLA PREMUTO A METÀ DI UN TRASCINAMENTO, trovato
+     dal deep-pass QA sulle unità G48-G56: `d2ApplySnap` (chiamata da
+     Ctrl+Z/Ctrl+Y) rimpiazza `D2.holes`/`profilo`/`piede` con un array
+     nuovo, ma non azzerava `d2drag`/`d2dragPt` (indici del VECCHIO array,
+     variabili del modulo, mai proprietà di `D2`) — un trascinamento in
+     corso sopravviveva silenziosamente all'annullamento del suo stesso
+     stato, e la prossima mossa del mouse lo faceva ripartire come se
+     niente fosse successo (o, con uno stato ripristinato più corto,
+     lanciava un errore JS non gestito). Qui solo il collegamento; il
+     comportamento vero lo prova genesi-drag-annulla.mjs con un
+     trascinamento e un Ctrl+Z veri, mouse ancora giù. */
+  test("⛔ Genesi · `d2ApplySnap` azzera il trascinamento in corso, non solo la selezione (G56b)", () => {
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    const corpo = pag.match(/function d2ApplySnap\(s\)\{[\s\S]*?\n\}/);
+    ok(corpo, "d2ApplySnap dev'essere leggibile per intero");
+    ok(/D2\.sel=-1; D2\.selPrev=-1; D2\.selPt=-1;[\s\S]*d2drag=-1; d2dragPt=-1;/.test(corpo[0]),
+      "azzera d2drag/d2dragPt DOPO aver azzerato la selezione, prima di ridisegnare — non dentro D2 (sono variabili del modulo)");
+    ok(!/D2\.d2drag/.test(corpo[0]), "⛔ mai `D2.d2drag`: sarebbe una proprietà nuova e inutile, non la variabile che d2Move legge");
+  });
+
   test("⛔ Genesi · il CSV dello storico è protetto dalla CSV-injection, con la difesa di casa", () => {
     /* ⛔ IL DIFETTO CHE QUESTA PROVA BLINDAVA, corretto il 03/08 ed era il più
        grave dei cinque: `csvRiconciliazione` si portava dietro dalla pagina una

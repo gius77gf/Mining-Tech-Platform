@@ -6571,6 +6571,19 @@ function d2ApplySnap(s){
   D2.piede=(s.piede||[]).map(p=>({...p}));
   D2.tratti=(s.tratti||[]).map(t=>({ ...t, pts:(t.pts||[]).map(p=>({...p})), aperto:!!t.aperto }));
   D2.sel=-1; D2.selPrev=-1; D2.selPt=-1;
+  /* ⛔ G56b (19/09, dal deep-pass QA su G48-G56) — Ctrl+Z premuto MENTRE
+     il mouse è ancora giù su un trascinamento: `D2.holes`/`profilo`/
+     `piede` vengono RIMPIAZZATI con un array nuovo, ma `d2drag`/
+     `d2dragPt` (indici nel VECCHIO array, mai proprietà di `D2` — sono
+     variabili del modulo dichiarate accanto) restavano invariati. Il
+     prossimo `d2Move` continuava a scrivere su `D2.holes[d2drag]`: se lo
+     stato ripristinato ha MENO elementi (es. un annulla che risale a
+     prima di un foro aggiunto), `D2.holes[d2drag]` è `undefined` e
+     l'assegnazione lancia — il trascinamento muore in silenzio, senza
+     toast, alla prossima mossa del mouse. Si azzera qui, non in d2Move:
+     un trascinamento sopravvive a un annulla del SUO stesso stato tanto
+     quanto un clic di sola selezione, cioè non ci sopravvive affatto. */
+  d2drag=-1; d2dragPt=-1;
   computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector(); syncTrattoUI();
 }
 function d2Undo(){

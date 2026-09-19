@@ -8684,7 +8684,7 @@ numero scritto dove non era stato misurato niente**.*
   il lettore non leggeva affatto le tre colonne, non una chiamata che le
   scartava): il registro infortuni esportato e ri-caricato perdeva la
   denuncia INAIL (3097→3109):
-  **3.708 prove girano senza rete** *(ricontato il 19/09, dopo la guida di allineamento in Y sul trascinamento di un foro (G56, dal delta di una ricerca in background su snap magnetico/tracking dinamico); 3.707 dopo il misfire nel report stampato (G55, _repEsito); 3.706 dopo il limite dello stack di annulla (G54, già scritto il 14/09 e mai provato prima d'ora); 3.705 dopo il semaforo di sintesi letto prima di esportare (G53, fraseGraviExport); 3.704 dopo l'esito della detonazione di Genesi (G52, _riconRiassuntoCampo/csvRiconciliazione); 3.702 dopo l'input relativo/polare di Genesi (G51, coordinataRelativa); 3.695 dopo rifletti la selezione di Genesi (G50, foriRiflessi); 3.691 dopo la selezione multipla dei fori (G49, foriSenzaId); 3.688 dopo lo snap a oggetti di Genesi (G48, puntoSnapEstremo/estremiDisegno); 3.682 dopo il dodicesimo giro (Sentinella, allerteTaratura/badge); 3.676 dopo il sesto
+  **3.709 prove girano senza rete** *(ricontato il 19/09, dopo l'annulla premuto a metà di un trascinamento (G56b, dal deep-pass QA in background sulle nove unità appena costruite); 3.708 dopo la guida di allineamento in Y sul trascinamento di un foro (G56, dal delta di una ricerca in background su snap magnetico/tracking dinamico); 3.707 dopo il misfire nel report stampato (G55, _repEsito); 3.706 dopo il limite dello stack di annulla (G54, già scritto il 14/09 e mai provato prima d'ora); 3.705 dopo il semaforo di sintesi letto prima di esportare (G53, fraseGraviExport); 3.704 dopo l'esito della detonazione di Genesi (G52, _riconRiassuntoCampo/csvRiconciliazione); 3.702 dopo l'input relativo/polare di Genesi (G51, coordinataRelativa); 3.695 dopo rifletti la selezione di Genesi (G50, foriRiflessi); 3.691 dopo la selezione multipla dei fori (G49, foriSenzaId); 3.688 dopo lo snap a oggetti di Genesi (G48, puntoSnapEstremo/estremiDisegno); 3.682 dopo il dodicesimo giro (Sentinella, allerteTaratura/badge); 3.676 dopo il sesto
   giro di deep-pass QA su Sentinella/Genesi/Conti — `run-kpi` 3172→3177 — e
   il settimo giro — 3177→3178, correzione del refuso di `terra-sequenza-lotto.mjs`
   più il test sulla sezione Personale presente di Campo — le altre otto invariate)*. La frase va
@@ -8698,13 +8698,16 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **449 esecuzioni** che
-  aprono le pagine in un browser vero, da **204** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **451 esecuzioni** che
+  aprono le pagine in un browser vero, da **205** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
-  `impronta.mjs`, il runner stesso). *(Ricontato il 19/09 dopo la guida di
-  allineamento sul trascinamento di un foro di Genesi — G56,
-  `genesi-guida-allineamento.mjs` — e prima di questo dopo il quattordicesimo
+  `impronta.mjs`, il runner stesso). *(Ricontato il 19/09 dopo l'annulla
+  premuto a metà di un trascinamento di Genesi — G56b,
+  `genesi-drag-annulla.mjs`, trovato da un deep-pass QA in background — e
+  prima di questo dopo la guida di allineamento sul trascinamento di un
+  foro di Genesi — G56, `genesi-guida-allineamento.mjs` — e prima di questo
+  dopo il quattordicesimo
   giro di deep-pass UX — nuovi banchi
   `dwg-tab-min-tocco.mjs` su un componente condiviso,
   `sentinella-ppv-modale-race.mjs` sull'eccezione del modale PPV, e
