@@ -3053,3 +3053,286 @@ automatica.
 `grep -n "codiceErrore\|codice.*errore\|codiceSdi" apps/conti/index.html` →
 0 righe; `fattura.sdi` ha solo `nota` a testo libero (`conti-data.js:1935`).
 Questa resta un candidato valido, costo piccolo, non ancora implementato.
+
+## 19/09 — quattordicesimo giro: scoring credito, riconciliazione bancaria, split payment/reverse charge (verifica di ciò che c'è già, prima di proporre)
+
+*Domanda guidata dal coordinatore su tre fronti: (a) scoring/affidabilità
+cliente, (b) riconciliazione bancaria automatica, (c) reverse charge/split
+payment nel settore estrattivo. Verificato contro il commit `2f5d6569`
+(19/09).*
+
+### CHE COSA HO VERIFICATO ESISTERE GIÀ, PRIMA DI PROPORRE
+
+Letto per intero `docs/RICERCA_CONTINUA_CONTI.md` (tutte le sezioni dal
+07/08 al 19/09, in particolare il settimo giro del 15/09 "gestione del
+credito e riconciliazione bancaria", l'ottavo giro 15/09 sul fido, il
+decimo giro 16/09 su piani di rientro/concentrazione/sconto cassa/storico
+solleciti, e il blocco 2 del 04/09 su split payment/reverse charge/bollo) e
+`vault/ROADMAP_SETTIMANA.md` (unità 118 esito SdI, decimo giro riverifica
+16/09, quarto giro deep-pass 18/09). Tutt'e tre le domande erano **già
+state aperte** in ricerche precedenti: qui NON le riapro da zero, verifico
+lo stato attuale del codice (che nel frattempo si è mosso) e completo solo
+dove resta un buco vero.
+
+Comandi usati per dichiarare "che cosa c'è già" prima di proporre:
+```
+$ grep -n "function tempiPagamentoClienti\|function esposizioneClienti\|function agingIncassi\|function concentrazionePortafoglio" apps/conti/conti-data.js
+2602:export function tempiPagamentoClienti(...)   1662:export function esposizioneClienti(...)
+820:export function agingIncassi(...)             1700:export function concentrazionePortafoglio(...)
+$ grep -n "function.*[Rr]iconcili\|function mappaMovimentiCsv\|function riferimentoInCausale\|function abbina" apps/conti/conti-data.js
+3805 riconciliazione · 4928 mappaMovimentiCsv · 4955 riferimentoInCausale · 5115 abbinaMovimenti
+$ grep -inE "scoring|rating|classe di rischio|affidabilit" apps/conti/conti-data.js → 0
+$ grep -n -i "CIG\b|CUP\b" apps/conti/conti-data.js apps/conti/index.html → 0
+$ grep -n "EsigibilitaIVA" apps/conti/conti-data.js → una riga sola, fissa a "I"
+```
+
+---
+
+### (a) Scoring/affidabilità cliente — IL MONDO
+
+Ricerca WebSearch (tre query), tutto **di seconda mano**, non letto il
+testo primario.
+
+- **Il modello a semaforo, non il numero.** Più fonti italiane descrivono
+  il rating interno come una classificazione verde/giallo/rosso: "verde
+  indica che la pratica avanza, giallo richiede motivazioni aggiuntive,
+  rosso comporta la chiusura della pratica" — e le soglie diventano regole
+  operative: "pre-allerta quando lo scoring scende di una classe, blocco
+  automatico di nuove dilazioni oltre un certo rapporto fatturato/fido
+  utilizzato" *[seconda mano: teamsystem.com/magazine/fintech/credit-intelligence-pmi-valutare-rischio,
+  blog.docfinance.net/indicatori-rischio-di-credito]*.
+- **I quattro ingredienti standard, con nome tecnico**:
+  1. **DSO** (Days Sales Outstanding) — "(Crediti verso clienti / Fatturato
+     IVA inclusa) × giorni del periodo", il tempo medio di incasso
+     *[esker.com/it/blog/o2c/dso, farenumeri.it/dso-days-sales-outstanding]*;
+  2. **ADD** (Average Days Delinquent) — il ritardo medio rispetto ai
+     termini pattuiti, distinto dal DSO perché guarda lo scarto contro la
+     scadenza e non il tempo assoluto *[emagia.com/it/blog/accounts-receivable-days-sales-outstanding]*;
+  3. **% crediti oltre 90 giorni**, come proxy di rischio alto
+     *[stessa fonte]*;
+  4. **Concentrazione top-N clienti** — quota del credito sui primi 10
+     clienti *[stessa fonte]*.
+  E un elemento di processo: "la puntualità dei pagamenti passati pesa
+  circa il 35% nelle metodologie di rating", con "l'indicatore di ritardo
+  medio ponderato calcolato sui dati di fattura e pagamento"
+  *[seconda mano: fiscoetasse.com/approfondimenti/14157-la-metodologia-di-determinazione-del-rating-creditizio,
+  citando la Piattaforma dei Crediti Commerciali — riferimento non letto
+  per intero]*.
+- **Il punto che conta per una scelta di prodotto**: i motori di scoring
+  descritti combinano SEMPRE dati interni (storico proprio) con dati
+  esterni opzionali (Coface, InfoCamere) — ma "combinano lo storico interno
+  con provider esterni... per uno score unico con semaforo rischio", non
+  li richiedono come unico ingrediente: un punteggio-solo-interno è
+  descritto come base legittima, arricchibile in un secondo tempo
+  *[seconda mano: risultati di ricerca aggregati, nessuna fonte isolata
+  letta per intero]*. Questo è compatibile con la regola SOLDI di questo
+  repository (nessuna spesa su servizi esterni prima della fase di
+  commercializzazione): uno scoring-solo-interno è l'unica forma percorribile
+  oggi.
+
+### (a) Il delta su Conti
+
+**Il verdetto del settimo giro (15/09) resta esatto e non cambia**:
+`grep -inE "scoring|rating|classe di rischio|affidabilit" apps/conti/conti-data.js`
+→ **0**, confermato di nuovo oggi. Quello che questo giro aggiunge è la
+misura di **quanto è già combinabile senza scrivere un solo calcolo nuovo**
+— perché nei quattro giorni fra il 15/09 e oggi il modulo si è mosso
+(`concentrazionePortafoglio` è arrivata il 16/09, dopo il settimo giro):
+
+| Ingrediente del mondo | Funzione già in `conti-data.js` | Riga |
+|---|---|---|
+| DSO (giorni medi di incasso) | `tempiPagamentoClienti(...).giorniMedi` per cliente | 2602-2623 |
+| ADD (ritardo medio vs termine) | `tempiPagamentoClienti(...).ritardoMedio` per cliente | 2602-2623 |
+| % crediti oltre 90gg | `agingIncassi` (fasce, incl. `oltre90`) + `fattureOltre90` (elenco) | 820, e la funzione del settimo giro |
+| Concentrazione top-N | `concentrazionePortafoglio(fatture, oggi, clienti, note, primi=5)` | 1700 |
+| Esposizione/fido | `esposizioneClienti` | 1662 |
+
+**Cioè le "tre funzioni separate e mai combinate" del settimo giro sono
+oggi CINQUE**, tutte pure, tutte già testate, tutte disponibili per
+cliente. Non manca il calcolo: manca la **funzione che le legge tutte e
+scrive un giudizio unico** (`affidabilitaCliente(clienteId, fatture,
+incassi, note, oggi)` → `{ classe: "verde"|"giallo"|"rosso", perche: [...],
+ingredienti: {...} }`), nel formato a semaforo che il mondo descrive come
+standard — non un punteggio numerico assoluto, che sarebbe un "numero
+tranquillo" (il principio del fondatore) su un giudizio che quattro
+ingredienti diversi possono contraddire a vicenda.
+
+- **schermata**: nessuna oggi — la scheda cliente (anagrafica) mostra fido
+  ed esposizione separati, senza un giudizio complessivo.
+- **che cosa non va**: un cliente con DSO alto ma pochissime fatture, o con
+  un solo ritardo isolato ma altrimenti puntuale, oggi si legge solo
+  guardando quattro numeri in tre schermate diverse (anagrafica, aging,
+  report concentrazione) — chi decide se concedere altro fido deve fare la
+  sintesi a mente.
+- **come si vede**: sulla dimostrazione, Edilcave (`c1`) è già oltre fido
+  (18.300 aperti − 6.000 incassati = 12.300 su fido 10.000, dal terzo giro),
+  ha pesate non fatturate (ottavo giro) e compare fra i clienti concentrati;
+  nessuna schermata lo dice con un giudizio solo.
+- **quanto costa** (stima non verificata, da rimisurare da chi apre
+  l'unità): medio. La combinazione è quasi tutta lettura di funzioni
+  esistenti; il costo vero è la **soglia di ogni classe** (quando un DSO è
+  "giallo"?), che è una decisione di prodotto/fondatore più che di codice —
+  coerente con quanto già scritto nel settimo giro ("grande e a decisione
+  del fondatore"). Propongo di restringere la decisione: non serve
+  inventare pesi, bastano soglie dichiarate e spiegabili (es. rosso se
+  `ritardoMedio > 30` O `pctOltre90 > 20%` O oltre fido; giallo se un solo
+  ingrediente è borderline; verde altrimenti), con `perche` che nomina
+  quale ingrediente ha acceso quale colore — mai un numero unico senza la
+  sua scomposizione, per lo stesso principio già applicato a `statoSdi` e
+  `scontoCassaMaturato` in questo modulo.
+- **come si misura**: prova pura in scratchpad prima del modulo (regola di
+  questo file): costruire tre clienti finti — uno con tutti gli
+  ingredienti sani (verde atteso), uno con un solo ingrediente rosso e gli
+  altri sani (giallo o rosso, da decidere), uno con più ingredienti rossi
+  insieme (rosso atteso) — e pretendere che `affidabilitaCliente` restituisca
+  la classe attesa E che `perche` nomini l'ingrediente vero, non un testo
+  fisso. Controprova: rimuovere la lettura di un ingrediente e verificare
+  che la classe possa cambiare (se non cambia mai, la funzione non lo sta
+  usando davvero — la stessa disciplina già scritta in questo file per gli
+  "assert che non falliscono").
+
+---
+
+### (b) Riconciliazione bancaria automatica — IL MONDO E IL DELTA
+
+**Non riapro l'angolo**: il settimo giro (15/09, finding 3) e la ricerca
+del 05/09 hanno già smentito un "manca" falso e implementato tutto quello
+che restava (`mappaMovimentiCsv` per nome colonna, `riferimentoInCausale`/
+`riferimentoMovimento` per TRN/CRO). Riletto oggi `abbinaMovimenti`
+(riga 5115) e `esitoMovimento` per intero: la sofisticazione è **superiore
+a quanto la ricerca del 05/09 avesse anche solo descritto per il mondo**
+— gestisce il cumulativo dichiarato in causale con somma esatta, il
+pagamento parziale, lo sconto cassa maturato (distinto da un acconto),
+la fattura già saldata con lo stesso movimento (evita il doppio conteggio),
+e una guardia esplicita contro due movimenti che propongono la stessa
+fattura superando l'aperto (`guardiaStessaFattura`, riga 5144) — un
+controllo che nessuna delle fonti WebSearch di questo giro o dei
+precedenti cita esplicitamente per un software italiano PMI. **Nessuna
+proposta su questo fronte**: il codice è già oltre lo standard descritto
+dalle fonti consultate finora (CBI RH, TRN/CRO, mappatura per banca), e
+riaprirlo senza una domanda nuova sul mondo sarebbe il difetto che questo
+file vieta ("niente entra sulla parola dell'agente" applicato al
+contrario: qui il codice batte la ricerca, non il viceversa).
+
+Unico residuo dichiarato e non riaperto: il formato CBI-RH a posizioni
+fisse (05/09) resta non implementato — ma è un formato per operatività
+corporate, non quello che una cava scarica dal proprio home banking, e la
+ricerca del 05/09 lo aveva già classificato come non prioritario.
+
+---
+
+### (c) Reverse charge / split payment nel settore estrattivo — IL MONDO
+
+- **Reverse charge edilizia**: confermato di nuovo, stessa fonte del 04/09
+  — non si applica alla cessione di inerti (fiscomania.com, contrino.it).
+  **Nessuna azione**: il codice non lo automatizza ed è corretto così.
+- **Split payment (scissione dei pagamenti)**: confermato — "la PA non versa
+  l'IVA al fornitore ma direttamente all'erario"; esteso fino al 30 giugno
+  2029 *[seconda mano: dt.mef.gov.it, biblus.acca.it/esempio-fattura-split-payment,
+  danea.it/blog/split-payment]*. Si applica quando il cliente è una
+  Pubblica Amministrazione (Comune, ANAS, Provincia, Consorzio di
+  bonifica...) — cioè esattamente il tipo di cliente che compare nelle
+  "Gare" già presenti in Conti (`g1` Comune di Ragusa, `g2` ANAS, `g4`
+  Provincia).
+- **NOVITÀ rispetto al 04/09 — CIG e CUP obbligatori sulle fatture PA**:
+  confermato dallo schema ufficiale (GitHub, mirror dell'XSD FatturaPA
+  1.2.2): `CodiceCIG` e `CodiceCUP` sono campi `String15Type` dentro
+  `DatiGeneraliDocumento` *[seconda mano: github.com/italia/fatturapa-testsdi,
+  schema XSD]*, e la loro assenza — quando l'appalto li richiede — è motivo
+  di **rifiuto del pagamento da parte della PA** per legge (art. 25, D.L.
+  66/2014; citato da più guide di seconda mano: fatturah.it, faipreventivo.it
+  — non letto il testo di legge primario, fiducia media-alta perché
+  concordi). Il 04/09 questa ricerca non era stata fatta: il blocco 2 di
+  quel giorno copriva split payment/reverse charge/bollo ma **non** CIG/CUP.
+
+### (c) Il delta su Conti — verificato con `grep`, non sulla parola dell'agente
+
+```
+$ grep -n -i "CIG\b|CUP\b" apps/conti/conti-data.js apps/conti/index.html
+(nessun risultato)
+$ grep -n "EsigibilitaIVA" apps/conti/conti-data.js
+2334: ... tag("EsigibilitaIVA", "I") ...      ← fissa, un solo punto, mai "S" o "D"
+$ sed -n '2285,2289p' apps/conti/conti-data.js
+  const sdi = txt(c.sdi);
+  let codiceDest = "0000000", pec = "";
+  if (/^[A-Za-z0-9]{7}$/.test(sdi)) codiceDest = sdi.toUpperCase();
+  ...
+```
+
+Tre buchi CONFERMATI, uno già noto (04/09) e due nuovi:
+
+1. **CIG/CUP — NUOVO, non in nessuna ricerca precedente.** `xmlFatturaPA`
+   non scrive né i campi né li legge da nessuna parte del modulo dati. Le
+   "Gare" (`gare: []`, riga 178) hanno solo `titolo`, `base`, `scadenza`,
+   `stato` — nessun campo CIG/CUP nemmeno lì, e nessun collegamento fra una
+   gara vinta e le fatture che ne derivano (`grep -n "garaId" conti-data.js`
+   → 0). Per una cava che fattura ad ANAS/Comune/Consorzio (il caso reale
+   delle gare già in demo), una fattura senza CIG rischia il rifiuto di
+   pagamento — proprio il tipo di ritardo che le funzioni del punto (a)
+   qui sopra dovrebbero misurare, aggravato da una causa evitabile a monte.
+   - **come si misura**: aggiungere `cig`/`cup` opzionali sulla fattura
+     (o sulla gara, se si sceglie di collegarle: decisione di prodotto,
+     non aperta qui), farli comparire come tag opzionali nell'XML SOLO se
+     valorizzati (nessun tag vuoto: la stessa disciplina già usata per
+     `Natura` nel blocco 2 del 04/09), e una prova pura che pretenda: fattura
+     con CIG → tag presente col valore giusto; fattura senza → nessun tag,
+     nessun errore; un avviso (non un blocco, coerente con lo stile "solo
+     avviso" già scelto per il fido) quando il cliente è marcato PA (vedi
+     punto 2) e la fattura non ha CIG né CUP.
+2. **Nessun modo di dire "questo cliente è una PA"** — CONFERMATO,
+   variante del buco già aperto il 04/09 sul codice IPA a 6 caratteri.
+   `c.sdi` accetta solo la forma a **7 caratteri** o una PEC; un codice
+   IPA a 6 caratteri (quello degli enti pubblici) non supera la regex e
+   cade nel ramo "nessun codice: 0000000 + avviso" — cioè un ufficio
+   pubblico con un vero codice a 6 caratteri viene trattato come se non
+   ne avesse nessuno. **Riconfermato identico al 04/09** (stesso codice,
+   stessa riga 2287): non è stato ancora aperto come unità.
+3. **Split payment mai applicabile — CONFERMATO, stesso stato del 04/09.**
+   `EsigibilitaIVA` è sempre `"I"` (immediata): anche marcando un cliente
+   come PA (punto 2), oggi non c'è modo di scrivere `"S"` (scissione dei
+   pagamenti) in fattura. Una fattura a un ente pubblico che dovrebbe
+   uscire in split payment esce oggi come se il cliente pagasse l'IVA per
+   intero al fornitore — errore che il commercialista scoprirebbe, ma che
+   il software non segnala.
+
+I punti 2 e 3 sono **la stessa lacuna già scritta nel 04/09** ("candidato,
+insieme allo split payment... decisione del fondatore col commercialista")
+e non ancora presa in carico: qui la confermo ancora valida a 15 giorni di
+distanza (nessun regresso, nessun progresso), e la lego al punto 1 (CIG/CUP)
+perché tutt'e tre condividono la stessa causa — **Conti non ha un modo di
+distinguere un cliente Pubblica Amministrazione da un cliente privato** —
+e quindi la stessa unità di prodotto potrebbe risolverli insieme: un flag
+`tipoCliente: "privato"|"pa"` (o un booleano `pa: true`) in anagrafica che
+sblocca, SOLO per quel cliente: la lettura del codice IPA a 6 caratteri
+(punto 2), `EsigibilitaIVA:"S"` con la dicitura di legge in fattura (punto
+3), e l'avviso su CIG/CUP mancante (punto 1). Nessuno dei tre tocca la
+cessione di inerti in reverse charge, che resta correttamente assente.
+
+- **quanto costa** (stima non verificata): medio nel complesso (tre campi +
+  un flag anagrafica + tre rami nell'XML), ma **scomponibile** — il flag PA
+  da solo è piccolo e sblocca gli altri due incrementalmente.
+- **come si misura**: sulla dimostrazione, marcare ANAS/Comune di Ragusa
+  (già in `gare`, non ancora clienti in `clienti[]` — verificare se esiste
+  già un cliente PA fra i clienti demo: `grep -n "ragioneSociale" conti-data.js`
+  non ne mostra uno con "Comune"/"ANAS"/"Provincia" nell'elenco clienti
+  attuale, quindi la demo andrebbe arricchita di un cliente PA vero per
+  rendere visibile il caso — stessa regola "un caso raro va nella
+  dimostrazione, non dedotto" già scritta in questo file); poi pretendere
+  che la sua fattura porti `EsigibilitaIVA:"S"` e la dicitura di legge, e
+  che l'assenza di CIG/CUP produca un avviso non un blocco.
+
+### Riassunto
+
+**(a) Scoring**: verdetto del settimo giro confermato (0 occorrenze),
+aggiornato con la misura che gli ingredienti pronti sono passati da 3 a 5
+funzioni; proposta concreta di combinazione a semaforo con soglie
+dichiarate, non un punteggio unico. **(b) Riconciliazione bancaria**:
+nessuna lacuna — il codice supera lo standard descritto dal mondo in
+questo giro e nei precedenti; nessuna unità proposta. **(c) Reverse
+charge/split payment**: reverse charge correttamente assente (confermato);
+split payment e codice IPA 6 caratteri confermati ancora aperti dal 04/09
+(nessun progresso in 15 giorni); **CIG/CUP è un buco NUOVO**, non trovato
+da nessuna ricerca precedente su Conti, con impatto pratico reale per una
+cava che vende alla PA tramite le "Gare" già presenti nel prodotto. I tre
+punti di (c) condividono una causa sola (nessun flag "cliente PA") e sono
+proposti come un'unica unità di prodotto scomponibile.
