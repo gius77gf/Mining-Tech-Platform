@@ -6411,6 +6411,17 @@ function drawDesign2D(){
       if(rcl==='bad'){ ctx.lineWidth=1.8; ctx.globalAlpha=.95; ctx.shadowColor=RELCOL.bad; ctx.shadowBlur=8; }
       else { ctx.setLineDash([2.5,3.5]); ctx.lineWidth=1.2; ctx.globalAlpha=.6; }
       ctx.beginPath(); ctx.arc(cx,cy,13.5,0,7); ctx.stroke(); ctx.restore(); }
+    /* G56d (19/09) — un foro senza nessun raccordo che lo raggiunga non
+       lascia NESSUN segno su `drawInnesco2D` (che disegna solo le linee,
+       mai l'assenza di una linea): sulla pianta era invisibile, uguale a
+       un foro qualunque. Anello pieno, sempre acceso col livello Innesco
+       attivo — non tratteggiato come il relief «sotto finestra», perché
+       qui non c'è una gradazione: o il raccordo c'è o il foro non si
+       accende. */
+    if(D2.inn && h.innFuoriFascia){
+      ctx.save(); ctx.strokeStyle='#ef5350'; ctx.lineWidth=2.2; ctx.globalAlpha=.95;
+      ctx.shadowColor='#ef5350'; ctx.shadowBlur=9;
+      ctx.beginPath(); ctx.arc(cx,cy,15.5,0,7); ctx.stroke(); ctx.restore(); }
     if(D2.incl>0){ const off=D2.prof*Math.sin(D2.incl*Math.PI/180)*scale; ctx.strokeStyle='rgba(255,213,121,.5)'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx,cy-off); ctx.stroke(); ctx.fillStyle='rgba(255,213,121,.85)'; ctx.beginPath(); ctx.arc(cx,cy-off,2.2,0,7); ctx.fill(); }
     if(i===D2.sel){ ctx.save(); ctx.shadowColor='rgba(255,255,255,.55)'; ctx.shadowBlur=15; ctx.beginPath(); ctx.arc(cx,cy,12,0,7); ctx.fillStyle='rgba(255,255,255,.10)'; ctx.fill(); ctx.restore(); }
     /* G49 — un anello tratteggiato ciano distingue la selezione multipla
