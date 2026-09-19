@@ -772,3 +772,62 @@ senza conferma per singola org (`request.data` non usato, nessuna
 M per la seconda perché tocca il primo accesso. Nessuna delle due richiede
 di riaprire l'anti-hijack sull'email verificata, che resta valido. Tutto
 verificato contro il commit `2036687c`.
+
+## Ricerca del 2026-09-19 — audit log multi-tenant: come lo disegnano i migliori SaaS (Slack, Linear, Notion, Auth0), e cosa c'è in Deepwork ID
+
+**Domanda precisa.** In un sistema multi-tenant B2B con isolamento fra aziende concorrenti, come gestiscono il tracciamento immutabile (append-only) delle azioni sensibili? Quali eventi, chi può leggerli, per quanto tempo restano.
+
+### Il mondo (WebSearch, [di seconda mano])
+
+**Slack** [dal 30/04/2026 in poi]. Audit logs conservati per **2 anni**; sospesi gli accessi oltre quella soglia. Solo amministratori designati possono accedere (security role). Traccia: azioni amministrative, eventi di sicurezza, cambio settings, inviti, aggiunte/rimozioni di member. IP e paese dell'attore registrati. Per aziende in settori regolati (finanza SEC 5-7 anni, sanità HIPAA 6 anni, governo DFARS 7 anni) serve esportazione manuale e archivio esterno — **il fornitore non conserva oltre 2 anni**.
+
+**Linear** [docs ufficiali]. Audit logs accessibili per **90 giorni** nel UI; API per query su attributi (actor, email, IP, date range). Solo workspace owner può accedere. Traccia: accesso account, abbonamento, settings, attività utente, azioni amministrative. Webhook streaming per notifiche real-time dei nuovi eventi.
+
+**Notion** [docs ufficiali]. Audit log del workspace (owner-only access). Esportabile CSV per date range. Traccia: role changes, member add/remove, admin role revocations; notifica email quando utente rimosso. Non dichiara retention (sembra indefinito, Notion è cloud EU).
+
+**Auth0** [docs ufficiali]. Tenant logs = append-only record di ogni autenticazione + cambio configurazione (immutabile). Management API accesso basato su ruoli. Eventi sensibili marcati `#sensitive="true"` con retention estesa (200 anni vs. norma). Enfasi su: immutabilità (una volta scritto, non si aggiorna/cancella), isolamento tenant (tenant_id in ogni lettura), ordering (append-only garantisce la sequenza).
+
+### Il delta nel codice — verificato contro `functions/index.js` e `firestore.rules`, commit `c13e3e1e` (19/09)
+
+**Nessuna collezione audit log.** `grep -n "auditLog\|audit_log\|logAzione" apps/deepwork-id/functions/index.js` → **0 righe**. Non esiste nessun `organizations/{orgId}/auditLog` dove scrivere gli eventi.
+
+**Nessun "chi ha fatto cosa quando" sulle operazioni sensibili.**
+- `createOrganization` (riga 100-127): scrive org + primo owner. Log: `createdAt` sul documento. **Manca:** chi ha creato, e dove la creazione?
+- `inviteMember` (riga 132-160): scrive invito. Log: `invitedBy: auth.uid` + `createdAt`. **Ha tutto qui**, singolo evento tracciato.
+- `updateMemberRole` (riga 233-262): cambia ruolo membro. Log: **niente**. `tx.update(memRef, { role })` solo — senza registrare chi, quando, da quale ruolo a quale.
+- `removeMember` (riga 264-285): rimuove membro. Log: **niente**. `tx.delete(memRef)` solo — nessuna traccia di chi l'ha rimosso.
+- `revokeInvite` (riga 287-298): revoca invito. Log: `revokedBy: request.auth.uid` + lo scrive sull'invito stesso.
+
+Comando di verifica su tutto il resto del file:
+```
+grep -c "createdBy\|changedBy\|actedBy\|removedBy\|modifiedBy" apps/deepwork-id/functions/index.js
+```
+Risultato: **0** (nessun pattern di «chi ha fatto»).
+
+**Non esiste una policy di retention/visibilità.** Nessun documento che dica: «solo owner legge», «90 giorni», «esportabile». Non è scritto da nessuna parte.
+
+### Impatto sulla sicurezza multi-tenant (CRITICO)
+
+Un'organizzazione A (cava concorrente) nomina owner B. L'owner scaduto di organizzazione concorrente C, usando un token ancora valido per un'ora post-revoca (vedi CLAUDE.md regola di sicurezza, riga 205-218 di index.js), **rimuove l'owner B da A oppure ne toglie i permessi**. Nessuna traccia rimane di chi l'ha fatto o quando — ne in una collezione audit, ne in una modifica tracciata sul documento membership. L'owner B sparisce senza spiegazione. L'owner A non ha modo di ricercare «chi mi ha tolto questo membro», né di contestare davanti a una legge/norma che richieda un audit trail.
+
+### Domande per chi ha il codice in mano
+
+1. Dove scrivere gli eventi (quale collezione, quale struttura)?
+2. Quali eventi tracciare: oltre a createOrganization / updateMemberRole / removeMember, anche accessi (login/logout), tentativi falliti, cambio subscription/entitlement?
+3. Chi può leggere l'audit log: solo owner, owner+admin, o chiunque entro l'org?
+4. Quanto conservare: 2 anni (Slack), 90 giorni (Linear), indefinito (Notion), 200 anni per sensibili (Auth0)?
+5. Immutabilità: append-only nativa (Firestore lo è con `disableSnapshots` sulle scritture), o validazione in Cloud Function?
+
+### Fonti (WebSearch, [di seconda mano])
+
+- [Slack Audit Logs Help](https://slack.com/help/articles/360000394286-Audit-logs-in-Slack)
+- [Linear Docs: Audit Log](https://linear.app/docs/audit-log)
+- [Notion Help: Workspace Audit Log](https://www.notion.com/help/audit-log)
+- [Notion Developers: Audit Log Events](https://developers.notion.com/compliance/audit-log-events)
+- [Auth0 Docs: Logs](https://auth0.com/docs/deploy-monitor/logs)
+- [Datadog: What is Audit Logging?](https://www.datadoghq.com/knowledge-center/audit-logging/)
+- [Testing Audit Logs: Immutability, Ordering, Retention Verification](https://qaskills.sh/blog/audit-log-testing-immutability-ordering)
+
+**Riassunto** — **1 mancanza confermata e critica**: nessun audit log immutabile sulle azioni sensibili di gestione organizzazione (createOrganization, inviteMember, updateMemberRole, removeMember, subscription changes). Tre app dei sette hanno il core del problema (il core storico `index.html` riga 14 stampa un `auditLog` interno; Deepwork ID è multi-tenant e non lo ha). Candidato **DECISIONE_WEEKEND**: se tracciare, che cosa, e che policy. Delta implementativo: una collezione append-only `organizations/{orgId}/auditLog/{timestamp-ulid}` con struttura `{actor: uid, action: string, target: {type, id}, before, after, timestamp}` e una Cloud Function per scrivere; query per owner/admin; policy di retention (giorno 0 = non si cancella da noi, il fondatore decide se fare esportazione in GCS con TTL). Costo stimato: L per il disegno, M per l'implementazione, S per test (replica L'anti-hijack e il controllo ultimo owner, prove già scritte).
+
+Verificato contro commit `c13e3e1e` (2026-09-19, fine ricerca e delta).
