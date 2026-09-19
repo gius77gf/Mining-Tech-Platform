@@ -12137,3 +12137,50 @@ sostituito, mentre la decisione di tenere sempre la classe `tocca` è
 nella storia da `5ad3c864`, 17/09 — corretta, `71acaee6`). Il vecchio
 giro spento con `kill -TERM` sul PID e porta verificata libera; nuovo
 giro rilanciato sul commit corrente, log `giro-completo-19-0552.log`.
+
+## 🛑 DIRETTIVA DEL FONDATORE, in chat, 19/09 (le 06:xx UTC) — SOLO GENESI FINO A NUOVO ORDINE
+
+*Non un checkpoint automatico: il fondatore ha scritto direttamente in
+conversazione, dopo il quindicesimo giro. Sostituisce, per il tempo in
+cui resta in vigore, la direttiva 26/07 sui ≥3 cantieri su app diverse
+— quella regola vale ancora, ma applicata **dentro** Genesi (più
+cantieri sulle sue superfici), non più a rotazione fra le sei app.*
+
+- Concentrare TUTTI gli sforzi solo su **Genesi**. Nessun nuovo
+  cantiere QA/UX/ricerca va aperto su un'altra app finché il fondatore
+  non lo revoca in chat.
+- I tre cantieri già in corso quando è arrivata la direttiva (QA
+  Flotta, ricerca Conti — chiusa in `93ac74d6`, nessun difetto reale
+  di prodotto — e UX Flotta) sono stati lasciati finire e processati:
+  il lavoro era già speso, buttarlo via non serviva a nessuno.
+  **Nessun altro lavoro su Flotta/Conti va iniziato da qui in avanti.**
+- Prima azione: ricerca su concorrenza (blast-design software: Deswik,
+  Maptek BlastLogic, Orica SHOTPlus, JKSimBlast, O-Pitblast, Datamine,
+  Vulcan, Surpac…) e su che cosa serve per rendere Genesi un CAD vero
+  (snap, layer, quotatura, trasformazioni precise, blocchi riusabili,
+  selezione, undo/redo robusto) — non solo un calcolatore di volate con
+  un disegno sopra. Dispatchati **due** agenti Haiku in parallelo (non
+  quattro: numero verificato rileggendo i file di task, corretto da
+  una stima scritta a mente), entrambi puntati su
+  `docs/RICERCA_GENESI_CAD.md` (nuovo file, dedicato: non si mescola
+  con `docs/RICERCA_CONTINUA_GENESI.md`, che resta il registro delle
+  ricerche di dominio già avviate prima di questa direttiva) — uno sul
+  censimento capacità CAD fondamentali, uno sui concorrenti diretti.
+  ⛔ **E I DUE HANNO USATO `Write` (sovrascrittura intera) INVECE DI
+  APPEND SULLO STESSO FILE NUOVO, in parallelo**: il secondo a
+  scrivere ha cancellato il primo senza che nessuno dei due lo
+  sapesse. Il censimento capacità è sopravvissuto (ultimo a scrivere),
+  quello sui concorrenti no — recuperato leggendo la sua trascrizione
+  grezza (conservata nella cronologia dell'agente) invece di
+  rilanciare la ricerca da zero, e riattaccato in coda al file col
+  verdetto di delta del censimento (più verificato) come riferimento.
+  **Lezione per i prossimi dispatch su un file NUOVO condiviso da più
+  agenti in parallelo**: o si dispatcha in sequenza (il secondo legge
+  lo stato scritto dal primo), o ognuno scrive un file proprio che poi
+  si unisce a mano — mai "append-only" come unica istruzione quando il
+  file non esiste ancora e più agenti partono insieme.
+- Quando arriveranno i risultati: verificare ogni finding contro il
+  codice di Genesi PRIMA di scriverlo come delta reale (stessa
+  disciplina di sempre — niente entra sulla parola dell'agente), poi
+  tradurlo in unità di lavoro concrete o in decisioni per il fondatore
+  se il costo/la scelta di prodotto lo richiede.
