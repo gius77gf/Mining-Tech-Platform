@@ -8017,6 +8017,7 @@ if(location.hostname==='localhost'||location.hostname==='127.0.0.1'){
     look:(name)=>applyLook(name),
     play:()=>setPlaying(true), pause:()=>setPlaying(false),
     rebuild, renderScheda2D, get SIM(){return SIM}, get P(){return P}, get D2(){return D2}, get simT(){return simT}, get GDB(){return GDB},
+    get d2HoverSnap(){return d2HoverSnap},
     get frontMesh(){return frontMesh},
     get xrayCyls(){return xrayCyls}, holeInfoShow, buildTicks,
     loadFrontUrl: async (url)=>{ const t=await (await fetch(url)).text(); loadFrontMeshObject(new OBJLoader().parse(t)); return P.fori; },

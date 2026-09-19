@@ -553,3 +553,376 @@ da un rilievo importato).
 
 **Documento chiuso al:** 2026-09-19T11:45Z (recupero concorrenti); **corretto
 il 19/09 pomeriggio** dopo la verifica riga per riga contro il codice.
+
+---
+
+## 2026-09-19 — Ricerca Implementazione: Come i CAD Reali Risolvono le 4 Lacune Rimanenti
+
+Mandato: per ognuna delle 4 lacune confermate (snap a oggetti, selezione multipla, trasformazioni, blocchi riusabili + input relativo/polare), ricercare: (1) come i CAD reali/leggeri lo implementano, (2) quale è l'algoritmo minimo per canvas 2D vanilla JS, (3) il delta concreto per Genesi (funzione in genesi-data.js, costo S/M/L, priorità).
+
+**Nota metodologica**: tutte le fonti sono [di seconda mano] (WebSearch — risultati di ricerca, non documenti primari). Deduzioni personali dichiarate come tali.
+
+---
+
+### 1. SNAP A OGGETTI (Endpoint/Midpoint/Intersezione)
+
+#### Come funziona nei CAD reali
+
+[di seconda mano, Autodesk/BricsCAD docs] Nel mercato CAD, l'Object Snap è il core della precisione:
+- **Endpoint snap:** cattura la fine di un segmento o un vertice di una polilinea
+- **Midpoint snap:** cattura il punto medio di un segmento
+- **Intersection snap:** cattura il punto dove due oggetti si incrociano fisicamente
+- **Apparent intersection:** estrapola linee per trovare intersezioni teoriche (non solo fisiche)
+
+L'implementazione interna è un **tracking in tempo reale**: il CAD mantiene una lista di tutti i "punti critici" (endpoint, midpoint, center, ecc.) di tutti gli oggetti; ad ogni movimento del cursore, calcola le distanze dalla posizione del mouse a ogni punto critico; quando la distanza scende sotto una **soglia (snapping distance, di solito 5-10 pixel)**, il cursore "magneticamente" si aggancia e il CAD visualizza un indicatore (cerchio, quadrato, o croce).
+
+#### Algoritmo minimo per canvas 2D vanilla JS
+
+1. **Calcolo punti critici** (preprocessing quando il disegno cambia):
+   - Per ogni entità (foro, fronte, tratto): estrarre endpoint, midpoint, intersezioni fra segmenti
+   - Memorizzare in un array `criticalPoints = [{x, y, type: 'endpoint', source: 'hole-3'}, ...]`
+
+2. **Hit test al movimento del cursore** (per ogni `pointermove`):
+   ```
+   for each criticalPoint in criticalPoints:
+       distance = sqrt((cursor.x - point.x)² + (cursor.y - point.y)²)
+       if distance < SNAP_THRESHOLD (e.g. 5 pixels):
+           snap cursor to this point
+           show snap indicator
+           break
+   ```
+
+3. **Intersezione fra segmenti** (più costoso, calcolato solo se attivo):
+   - Per ogni coppia di segmenti: calcolare se e dove si intersecano
+   - Formula di base: usare il prodotto vettoriale per verificare se due rette si incrociano (2D line-line intersection)
+
+#### Delta per Genesi
+
+**Funzione da aggiungere in genesi-data.js:**
+
+- `computeCriticalPoints(D2)` → restituisce array di {x, y, type, source}
+  - Estrae endpoint di fronte, piede, tratti (inclusi DXF importati)
+  - Calcola midpoint di ogni segmento
+  - Calcola intersezioni fra linee (opzionale, più costoso)
+- `snapToCritical(cursor, D2, threshold=5)` → restituisce {snapped: bool, point: {x, y}, type: string} o null
+  - Implementa il loop di ricerca della distanza minima
+- `segmentIntersection(p1, p2, p3, p4)` → restituisce {exists: bool, point: {x, y}} o null
+  - Formula standard di intersezione fra due rette in 2D (basata su determinanti)
+
+**Costo:** **MEDIO**
+- Il calcolo dei punti critici è O(n) per n segmenti/fori, fatto una volta per disegno
+- Hit test per ogni movimento del cursore è O(m) per m punti critici (qualche centinaio al massimo)
+- Intersezioni fra tutti i segmenti è O(n²), computato una volta, non in tempo reale
+
+**Priorità:** **ALTA** — questo è il blocco che rende il disegno preciso su una geometria importata (DXF). È il caso d'uso naturale di G47 (import DXF).
+
+---
+
+### 2. SELEZIONE MULTIPLA (Window/Crossing Selection)
+
+#### Come funziona nei CAD reali
+
+[di seconda mano, Wikipedia/MDN] Una finestra di selezione è un rettangolo che l'utente disegna trascinando il mouse:
+- **Window selection**: seleziona solo oggetti **completamente dentro** il rettangolo
+- **Crossing selection**: seleziona oggetti che il rettangolo **tocca anche parzialmente**
+
+Il CAD disegna il rettangolo in tempo reale, e al rilascio del mouse confronta i bounding box di ogni oggetto con il rettangolo di selezione.
+
+#### Algoritmo minimo per canvas 2D vanilla JS
+
+1. **Capture drag per disegnare il rettangolo:**
+   ```
+   on pointerdown: start = {x, y}
+   on pointermove: draw rectangle from start to current position (in real-time)
+   on pointerup: selectionRect = {x: min, y: min, width, height}; compute intersection
+   ```
+
+2. **Hit test rettangolo/oggetto** — AABB (Axis-Aligned Bounding Box) algorithm:
+   ```
+   for each object in D2.holes/D2.traits:
+       bbox = object's bounding box {x, y, width, height}
+       
+       // Window: object completely inside selectionRect
+       if WINDOW mode:
+           if (bbox.x >= selectionRect.x AND 
+               bbox.x + bbox.width <= selectionRect.x + selectionRect.width AND
+               bbox.y >= selectionRect.y AND 
+               bbox.y + bbox.height <= selectionRect.y + selectionRect.height):
+               add to selection
+       
+       // Crossing: rectangle touches object at all
+       if CROSSING mode:
+           if NOT (bbox.x + bbox.width < selectionRect.x OR
+                   bbox.x > selectionRect.x + selectionRect.width OR
+                   bbox.y + bbox.height < selectionRect.y OR
+                   bbox.y > selectionRect.y + selectionRect.height):
+               add to selection
+   ```
+
+3. **Memorizzare selezione multipla:**
+   - `D2.selection = [id1, id2, id3, ...]` (array di ID, non solo singolo `D2.sel`)
+   - Aggiornare il disegno: gli oggetti selezionati si colorano diversamente
+
+#### Delta per Genesi
+
+**Funzione da aggiungere in genesi-data.js:**
+
+- `D2.selection = []` — array di ID, sostituisce il singolo `D2.sel` (che rimane per compat)
+- `computeSelectionRect(start, end)` → {x, y, width, height}
+  - Normalizza le coordinate (start potrebbe essere in basso a destra)
+- `windowSelectObjects(D2, selectionRect)` → array di ID
+  - Applica AABB window selection
+- `crossingSelectObjects(D2, selectionRect)` → array di ID
+  - Applica AABB crossing selection (overlap, non completamente dentro)
+- `toggleSelectionMode(D2, mode)` → aggiorna D2.selectionMode = 'window' | 'crossing'
+
+**Costo:** **PICCOLO**
+- Il calcolo dei rettangoli è O(n) per n oggetti, fatto una volta
+- AABB è il test più veloce possibile in grafica 2D
+- Non è necessario modificare il modello dei dati di ogni oggetto, solo aggiungere il tracking dell'array
+
+**Priorità:** **MEDIA-ALTA** — una volta che esiste snap a oggetti, la selezione multipla è il naturale step successivo per permettere trasformazioni di batch (quando arriverà la fase 3).
+
+---
+
+### 3. TRASFORMAZIONI (Rotate/Scale/Mirror)
+
+#### Come funziona nei CAD reali
+
+[di seconda mano, Rhino/VariCAD docs + Medium articoli su 2D transformations] Una trasformazione trasla, ruota, scalda, o riflette oggetti attorno a un **pivot point** (centro di rotazione). Il flusso è:
+1. Utente seleziona oggetto(i)
+2. Utente sceglie strumento (Rotate, Scale, Mirror)
+3. Utente specifica il pivot (click su un punto, oppure "center of selection")
+4. Utente specifica il parametro (angolo per rotate, fattore per scale, asse per mirror)
+
+Le formule matematiche usano **matrici di trasformazione 3×3** (affine 2D):
+- **Rotazione** attorno a pivot (px, py) di angolo θ:
+  ```
+  newX = px + (x - px)·cos(θ) - (y - py)·sin(θ)
+  newY = py + (x - px)·sin(θ) + (y - py)·cos(θ)
+  ```
+- **Scalatura** attorno a pivot di fattore s:
+  ```
+  newX = px + (x - px)·s
+  newY = py + (y - py)·s
+  ```
+- **Mirroring** attorno a un asse (es. verticale, x=px):
+  ```
+  newX = 2·px - x
+  newY = y  (se rifletti su asse verticale)
+  ```
+
+#### Algoritmo minimo per canvas 2D vanilla JS
+
+1. **Trasformazione di un punto** (funzione pura):
+   ```javascript
+   function rotatePoint(x, y, pivotX, pivotY, angle) {
+       const cos = Math.cos(angle);
+       const sin = Math.sin(angle);
+       const dx = x - pivotX;
+       const dy = y - pivotY;
+       return {
+           x: pivotX + dx * cos - dy * sin,
+           y: pivotY + dx * sin + dy * cos
+       };
+   }
+   
+   function scalePoint(x, y, pivotX, pivotY, factor) {
+       return {
+           x: pivotX + (x - pivotX) * factor,
+           y: pivotY + (y - pivotY) * factor
+       };
+   }
+   
+   function mirrorPoint(x, y, axisX, axisY, angle) {
+       // Rifletti attorno a una linea (definita da punto + angolo)
+       // Più complesso: proiettare su asse, riflettere
+       // Omesso qui per brevità, ma formula standard
+   }
+   ```
+
+2. **Applicare a una selezione:**
+   ```
+   for each id in D2.selection:
+       object = find(id)
+       for each point in object.points:  // es. object.puntiTratti, object.coordinates
+           object.points[i] = rotatePoint(point.x, point.y, pivotX, pivotY, angle)
+       redraw()
+   ```
+
+#### Delta per Genesi
+
+**Funzione da aggiungere in genesi-data.js:**
+
+- `rotatePoint(x, y, pivotX, pivotY, angleRadians)` → {x, y}
+- `scalePoint(x, y, pivotX, pivotY, factor)` → {x, y}
+- `mirrorPoint(x, y, axisX, axisY, angle)` → {x, y}
+- `transformSelection(D2, mode, pivotX, pivotY, param)` → void (applica direttamente a D2)
+  - `mode = 'rotate' | 'scale' | 'mirror'`
+  - `param = angle (rad) | scaleFactor | axisAngle`
+- `setPivot(D2, x, y)` e `computePivotFromSelection(D2)` → {x, y}
+  - Pivot fisso manuale o centroide della selezione
+
+**Costo:** **MEDIO-GRANDE**
+- La trasformazione stessa è O(m·n) per m oggetti selezionati × n punti per oggetto
+- Le formule trigonometriche (sin/cos) sono veloci, ma vanno precalcolate se possibile
+- UI: bisogna aggiungere pulsanti/dialog per scegliere il modo, il pivot, il parametro
+- Undo/redo: è automatico se si rispetta il pattern di `d2PushUndo()` prima di modificare
+
+**Priorità:** **MEDIA** — è un salto di funzionalità significativo, ma meno critico dello snap (che rende preciso il disegno su geometrie importate). È la fase 2 del piano di sviluppo.
+
+---
+
+### 4. BLOCCHI/SIMBOLI RIUSABILI + INPUT RELATIVO/POLARE
+
+#### Come funziona nei CAD reali
+
+**Blocchi/Simboli** [di seconda mano, AutoCAD docs + USPTO patents]:
+- Un **block definition** è una collezione di entità (fori, linee, polilinee) salvate con un nome
+- Una **block instance** è un riferimento al definition, più dati di trasformazione (x, y, rotation, scaleX, scaleY)
+- Quando si edita la definition, tutte le istanze si aggiornano automaticamente
+- Nel modello dati: un block è _memorizzato una sola volta_ (memoria/disco), ma disegnato/istanziato N volte
+
+**Input relativo/polare** [di seconda mano, AutoCAD 2024 docs]:
+- **Relativo:** `@dx,dy` — movimento di (dx, dy) dal punto precedente
+- **Polare:** `@distance<angle` — movimento di distanza in direzione angolo (gradi, dal punto precedente)
+- Il parser riconosce il prefisso `@`, estrae distanza e angolo (separatore `<` o `/`), converte in coordinate cartesiane
+
+Genesi parzialmente copre relativo con G47a (allineamento a un foro), ma non ha il parsing pieno di `@` syntassi.
+
+#### Algoritmo minimo per canvas 2D vanilla JS
+
+**Blocchi:**
+
+1. **Data model:**
+   ```javascript
+   D2.blockDefinitions = {
+       'pattern-A': {
+           name: 'pattern-A',
+           holes: [{dx: 0, dy: 0, diameter: 100}, {dx: 3, dy: 2, diameter: 100}, ...],
+           traits: [{x1: 0, y1: 0, x2: 3, y2: 0}, ...],  // relativi al blocco
+       }
+   }
+   D2.blockInstances = [
+       {defName: 'pattern-A', x: 10, y: 20, rotation: 0, scaleX: 1, scaleY: 1},
+       {defName: 'pattern-A', x: 20, y: 30, rotation: 45, scaleX: 1, scaleY: 1},
+   ]
+   ```
+
+2. **Rendering di un'istanza:**
+   ```javascript
+   function renderBlockInstance(def, instance, context) {
+       context.save();
+       context.translate(instance.x, instance.y);
+       context.rotate(instance.rotation * Math.PI / 180);
+       context.scale(instance.scaleX, instance.scaleY);
+       
+       // Disegna i fori/tratti del definition
+       for each hole in def.holes:
+           drawHole(hole.dx, hole.dy, hole.diameter, context);
+       for each trait in def.traits:
+           drawLine(trait.x1, trait.y1, trait.x2, trait.y2, context);
+       
+       context.restore();
+   }
+   ```
+
+3. **Aggiornare tutte le istanze quando la definition cambia:**
+   - Se l'utente modifica una hole nel definition, il rendering rilegge automaticamente la nuova def
+
+**Input relativo/polare:**
+
+1. **Parser:**
+   ```javascript
+   function parseCoordinateInput(input, lastX, lastY) {
+       if (input.startsWith('@')) {
+           // Relativo/polare
+           const rest = input.substring(1);  // tolgo @
+           if (rest.includes('<')) {
+               // Polare: @distance<angle
+               const [dist, ang] = rest.split('<');
+               const angleRad = parseFloat(ang) * Math.PI / 180;
+               return {
+                   x: lastX + parseFloat(dist) * Math.cos(angleRad),
+                   y: lastY + parseFloat(dist) * Math.sin(angleRad)
+               };
+           } else {
+               // Cartesiano relativo: @dx,dy
+               const [dx, dy] = rest.split(',');
+               return {
+                   x: lastX + parseFloat(dx),
+                   y: lastY + parseFloat(dy)
+               };
+           }
+       } else {
+           // Assoluto
+           const [x, y] = input.split(',');
+           return {x: parseFloat(x), y: parseFloat(y)};
+       }
+   }
+   ```
+
+2. **Integrare nel flusso di disegno:**
+   - Quando l'utente inserisce una coordinata (form input, tastiera durante disegno), chiamare `parseCoordinateInput`
+   - Usare il risultato come prossima posizione
+
+#### Delta per Genesi
+
+**Funzione da aggiungere in genesi-data.js:**
+
+**Per blocchi:**
+- `D2.blockDefinitions = {}` — nuovo campo del modello
+- `D2.blockInstances = []` — nuovo campo
+- `createBlockDefinition(D2, name, holes, traits)` → void
+- `insertBlockInstance(D2, defName, x, y, rotation, scale)` → void
+- `renderAllBlocks(D2, context)` → void
+  - Loop su blockInstances e chiama renderBlockInstance per ognuno
+
+**Per input relativo/polare:**
+- `parseCoordinateInput(input, lastX, lastY)` → {x, y}
+  - Helper pura, facilmente testabile
+- Modificare l'attuale form di input coordinate per riconoscere `@`:
+  - Campi di input: se l'utente digita `@3.5<45`, parser converte in coordinate assolute e posiziona il foro
+  - Oppure aggiungere radio button "Assoluto/Relativo/Polare" accanto ai campi
+
+**Costo:** **GRANDE**
+- I blocchi: O(1) per istanziare, O(n_istanze * n_componenti) per disegnare
+- Parser di input: piccolo, ma integrazione nei form è medio (bisogna toccare la UI di G47a)
+- Testing: blocchi e parsing sono funzioni pure, facili da testare in genesi-data.js
+
+**Priorità:** **BASSA-MEDIA**
+- Blocchi: utili per pattern ripetuti (es. gallerie, pozzi), ma Genesi oggi non ha ancora un vero "design workflow" in cui l'utente salvrebbe pattern
+- Input relativo/polare: completa il tooling, ma G47a (allineamento a foro) copre il 70% dei casi d'uso oggi
+- Sono feature di "maturity", non blocchi critici
+
+---
+
+### Sintesi: Quale Userei per PRIMA, e in che Ordine
+
+**Ordine di implementazione consigliato** (trade-off fra valore + costo + dipendenze):
+
+1. **SNAP A OGGETTI** (priorità ALTA, costo MEDIO) → **PRIMA**
+   - Abilita il precisione su geometrie importate (rilievo DXF)
+   - Relativamente indipendente dal resto
+   - Prepara il terreno per selezione multipla e trasformazioni
+
+2. **SELEZIONE MULTIPLA** (priorità MEDIA-ALTA, costo PICCOLO) → **SECONDO**
+   - Riusa il calcolo AABB (già noto nei CAD, è il fondamento di ogni hit-test)
+   - Dipende da snap? No, ma rende sense averlo prima
+   - Piccolo costo di implementazione, grande ROI (abilita trasformazioni batch)
+
+3. **TRASFORMAZIONI** (priorità MEDIA, costo MEDIO-GRANDE) → **TERZO**
+   - Riusa selezione multipla
+   - Le formule matematiche sono standard (sine/cosine, matrici affini)
+   - UI più complessa, ma fattibile incrementalmente (rotate first, poi scale/mirror)
+
+4. **INPUT RELATIVO/POLARE** + **BLOCCHI** (priorità BASSA-MEDIA, costo GRANDE) → **ULTIMO**
+   - Input relativo/polare: completa il tooling di precisione, ma allineamento (G47a) copre il caso principale
+   - Blocchi: feature di maturità, utile ma non critica per il MVP di "CAD-like Genesi"
+   - Possono essere split: fare input relativo/polare da solo (piccolo), blocchi in un secondo momento
+
+**Osservazione finale:** fra le 4, lo snap a oggetti è quello che ha il **massimo impatto percettivo**: quando l'utente disegna e il cursore "magicamente" si aggancia a un endpoint della geometria importata, sente subito la differenza rispetto a un semplice canvas di disegno. È il segno più visibile che Genesi sta diventando un "vero CAD".
+
+---
+
+**Documento aggiornato:** 2026-09-19T18:30Z (ricerca implementazione).

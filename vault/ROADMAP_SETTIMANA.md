@@ -8698,8 +8698,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **431 esecuzioni** che
-  aprono le pagine in un browser vero, da **195** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **433 esecuzioni** che
+  aprono le pagine in un browser vero, da **196** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso). *(Ricontato il 19/09 dopo il
