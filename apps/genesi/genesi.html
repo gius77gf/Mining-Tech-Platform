@@ -8135,13 +8135,26 @@ if($('dtReset')) $('dtReset').onclick=()=>{
    Tratto è attivo, sullo stesso schema del pulsante `dtReset` qui sopra. */
 function syncTrattoUI(){
   const ft=$('dtTrattoFine'), rb=$('dtReset');
-  const aperto=D2.tratti.length && D2.tratti[D2.tratti.length-1].aperto && D2.tratti[D2.tratti.length-1].pts.length>=2;
+  const ultimo=D2.tratti[D2.tratti.length-1];
+  const inCorso=!!(ultimo && ultimo.aperto);          // si stanno ancora piazzando i punti di QUESTO tratto
+  const aperto=inCorso && ultimo.pts.length>=2;
   if(ft) ft.hidden=!(D2.tool==='tratto' && aperto);
   if(rb && D2.tool==='tratto') rb.textContent='↺ Reset tratti';
   /* G57/G58 — ruotare o scalare zero tratti non farebbe niente: i
      bottoni chiedono almeno un tratto disegnato/importato, sullo
-     stesso schema di "Elimina selezionati"/"Rifletti selezionati". */
-  const mostraRuota = D2.tool==='tratto' && D2.tratti.length>0;
+     stesso schema di "Elimina selezionati"/"Rifletti selezionati".
+     ⛔ 19/09, trovato da `genesi-snap-estremo.mjs` (G48), non dal
+     censimento: mostrarli ANCHE mentre `inCorso` (si sta ancora
+     piazzando il primo punto del tratto, prima che esista "Fine
+     tratto" da premere) fa crescere la barra `#d2-tools` proprio nel
+     momento in cui la tela viene spinta più in basso sotto la barra di
+     navigazione fissa — misurato: 40 px in più bastano perché il
+     secondo clic che dovrebbe chiudere il tratto cada sull'icona della
+     barra invece che sulla tela, e il tratto resta bloccato a un punto
+     solo per sempre. Un CAD vero, del resto, ruota/scala geometria
+     ferma, mai una linea a metà: si mostrano solo a disegno ferma,
+     `!inCorso`. */
+  const mostraRuota = D2.tool==='tratto' && D2.tratti.length>0 && !inCorso;
   const rg=$('dtRuotaGradi'), rt=$('dtRuotaTratti');
   if(rg) rg.hidden=!mostraRuota;
   if(rt) rt.hidden=!mostraRuota;

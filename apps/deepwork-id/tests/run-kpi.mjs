@@ -45743,6 +45743,24 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     const elenco = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map(s2 => s2.trim());
     ok(elenco.includes("trattiScalati"), "la pagina importa la funzione dal modulo");
   });
+  test("⛔ Genesi · Ruota/Scala tratti restano nascosti mentre si sta ANCORA disegnando un tratto (19/09, trovato da genesi-snap-estremo.mjs)", () => {
+    /* Il difetto vero, misurato dal vivo con Playwright: `mostraRuota` senza
+       questa guardia diventava vero già dopo il PRIMO clic di un tratto
+       nuovo (`D2.tratti.length>0` bastava), facendo crescere #d2-tools di
+       ~40px proprio mentre si sta piazzando il secondo punto — quel tanto
+       che serve a spingere la tela sotto la barra di navigazione fissa: il
+       clic che dovrebbe chiudere il tratto ("Fine tratto") cadeva
+       sull'icona della barra invece che sulla tela, e il tratto restava
+       bloccato a un punto solo. Qui si guarda solo il sorgente (la
+       funzione vive nella pagina, non è esportata): la controprova che sa
+       DAVVERO fallire è `genesi-snap-estremo.mjs`, rimesso a mano e
+       verificato che si pianta con la vecchia condizione. */
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    const corpo = pag.match(/function syncTrattoUI\(\)\{[\s\S]*?\n\}/)[0];
+    ok(/const inCorso=/.test(corpo), "la funzione calcola se si sta ancora disegnando (tratto aperto)");
+    ok(/mostraRuota\s*=\s*D2\.tool===['"]tratto['"]\s*&&\s*D2\.tratti\.length>0\s*&&\s*!inCorso/.test(corpo),
+      "mostraRuota richiede ANCHE che non si stia disegnando (!inCorso), non solo che esista un tratto");
+  });
 }
 /* ===== fine scala i tratti (19/09, G58) ===== */
 

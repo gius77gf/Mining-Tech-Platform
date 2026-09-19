@@ -1,23 +1,30 @@
 # Ultimo ciclo
 
-- **Quando**: 2026-09-19T21:47:41Z (letta da `date -u`, non predetta)
-- **Commit di partenza**: 00943886 (docs(genesi): chiudi "timing timeline"
-  della ricerca JKSimBlast, è già presente)
-- **Cosa sto per fare**: la sessione è rimasta idle per oltre un'ora fra il
-  lancio di `tutti.mjs --solo=genesi` (20:08Z) e questo risveglio (21:47Z),
-  ed è la stessa famiglia già scritta in CLAUDE.md — "un giro più lungo
-  della sessione non finisce mai": il processo in background è morto senza
-  arrivare al RIEPILOGO finale (il registro si ferma a metà di una
-  controprova, senza la riga di chiusura). Non è un guasto del prodotto:
-  è il contenitore che ha riciclato il processo mentre non c'era nessuno a
-  guardarlo. Prossimo passo: leggere quel che c'è (fino a dov'è arrivato,
-  ~813 righe, sei RIEPILOGHI parziali) per candidati veri, ma SENZA
-  fidarsi di un giro incompleto per dichiarare "pulito" — e rilanciarlo con
-  un limite di tempo esplicito o in una finestra in cui la sessione resta
-  attiva, non lasciato a girare da solo per oltre un'ora.
-- **Prossimo passo atomico**: leggere le sezioni già scritte nel log
-  parziale (`tutti-genesi-3.log` nello scratchpad di sessione — attenzione,
-  è nello scratchpad, quindi NON sopravvive a un riavvio del contenitore:
-  se sparito, si rilancia da zero) e distinguere KO veri da controprove
-  volute; poi proseguire con la prossima unità verificata su Genesi, mandato
-  del fondatore invariato: solo Genesi, massimo sforzo.
+- **Quando**: 2026-09-19T22:45:08Z (letta da `date -u`, non predetta)
+- **Commit di partenza**: 9c10c262 (chore(vault): checkpoint di lettura sul batch genesi parziale)
+- **Cosa sto per fare**: letto per intero il batch `tutti.mjs
+  --solo=genesi` (73 a posto, 22 da guardare) — 20 dei 22 erano
+  controprove che funzionano correttamente (escono non-zero apposta),
+  1 era "NON MISURATO" (scena non raggiunta in un banco, da capire),
+  1 era un crash vero: `genesi-snap-estremo.mjs` (G48) andava in timeout
+  perché il secondo clic di un tratto cadeva sulla barra di navigazione
+  fissa invece che sulla tela. Causa isolata per confronto con la
+  baseline pre-G57: i controlli Ruota/Scala tratti (G57/G58) diventavano
+  visibili troppo presto (subito dopo il primo clic, non solo dopo
+  "Fine tratto"), facendo crescere la barra degli strumenti di 40 px —
+  quel tanto che basta a spingere la tela sotto la barra fissa.
+  Corretto in `syncTrattoUI` con una guardia `!inCorso`. Verificato dal
+  vivo con Playwright a 430×900/950 e 390×950 (le combinazioni usate dai
+  banchi reali): il banco che aveva trovato il difetto torna 8/8 pulito,
+  la sua controprova sa ancora fallire, rotate/scale restano funzionanti
+  dopo "Fine tratto". Limite dichiarato e non toccato: a viewport più
+  estremi (320×700) lo stesso schiacciamento esiste ANCHE nella
+  baseline pre-G57 — difetto strutturale preesistente, fuori scopo.
+  1 test nuovo in run-kpi.mjs (3230/0). Giro node completo, due lanci
+  consecutivi identici: 41/41, asserzioni 4282. Checkpoint:
+  `vault/checkpoints/20260919-224508_genesi-fix-syncTrattoUI-tela-coperta.md`.
+- **Prossimo passo atomico**: capire il "NON MISURATO" residuo nel banco
+  `genesi-campi-assenti.mjs` (2 scene su 57 non raggiunte: "la spalla",
+  "la spalla che non decide") — probabile problema di timing del banco,
+  non ancora confermato — prima di continuare con altre unità verificate
+  su Genesi.
