@@ -2583,3 +2583,178 @@ via `WebSearch` (nessuna letta per intero):
 *Ricerca del 17/09/2026. Nessun codice modificato, nessun commit. Due
 proposte confermate col grep; un candidato scartato con la misura invece
 che riproposto.*
+
+---
+
+## 19/09 — la stessa domanda del sesto giro (15/09), rimisurata: una metà è
+## stata chiusa nel frattempo, l'altra resta e si approfondisce nel mondo
+
+**Nota di processo (regola 1 e regola "non c'è scaduto"):** letto per intero
+questo file prima di proporre. Il mandato di questa unità era, alla lettera,
+*«come tracciano se un'azione correttiva è stata verificata come efficace
+dopo la chiusura, e come gestiscono l'escalation quando supera la scadenza»*
+— che è **esattamente** la domanda già fatta il 15/09 nella sezione «sesto
+giro: le azioni correttive nate da un evento — chiusura, verifica,
+scadenza» (righe 1817-1969 di questo stesso file). Questa unità non ripete
+quella ricerca da zero: **la rimisura** (perché quattro giorni e più commit
+sono passati — è esattamente il rischio di «non c'è scaduto» che CLAUDE.md
+descrive) e approfondisce la metà che risulta ancora vera.
+
+### Che cosa esiste GIÀ in Scudo su questo tema (dichiarato prima di proporre)
+
+Tutto quanto elencato nel sesto giro (15/09) resta vero e verificato di
+nuovo oggi: il modello `azioni` con `responsabileId`/`scadenza`/`stato`/
+`esito`/`dataChiusura`/`origineTipo`/`origineId`; il collegamento
+evento→azione (`azioniDiEvento`, `azioniDiIspezione`) esteso anche a
+Sentinella e Campo; il semaforo `statoAzione` (scaduta/in-scadenza/regolare/
+senza-data, mai "regolare" per assenza di dato); i KPI del Quadro e
+`riepilogoAzioni`; il responsabile deciso in un posto solo e condiviso via
+`shared/dw-ponti.js` (`etichettaResponsabile`); l'analisi causa (5 Perché)
+collegata via `azioniId`; l'export CSV completo.
+
+**Novità rispetto al 15/09, verificata col codice vero:** la mancanza #2 di
+quel giro — *"nessuna escalation, nemmeno come promemoria manuale"* — **è
+stata chiusa nel frattempo**, commit `cf6afc16` ("promemoria manuale per il
+responsabile di un'azione correttiva"). Prova:
+
+```
+$ grep -n "testoPromemoriaAzione" apps/scudo/scudo-data.js apps/scudo/index.html
+apps/scudo/scudo-data.js:1247:export function testoPromemoriaAzione(azione, lavoratori, oggi = new Date()) {
+apps/scudo/index.html:1791:  import { ... testoPromemoria, testoPromemoriaAzione, ... }
+apps/scudo/index.html:4751:      const nudo = a && testoPromemoriaAzione(a, LAV);
+```
+
+`testoPromemoriaAzione` genera un testo pronto da copiare (scaduta/in-
+scadenza/senza-data, con il singolare/plurale sui giorni, `null` se l'azione
+è chiusa o senza responsabile vero) ed è agganciato a un bottone nella riga
+della lista Azioni (`data-prom-azi`, `index.html:4748-4759`) che lo copia
+negli appunti o lo mostra in una modale se gli appunti non sono disponibili.
+È la stessa forma già usata per le scadenze personali (`testoPromemoria`),
+riusata invece che riscritta — coerente con la regola sulla firma stretta.
+**Quindi la mancanza #2 del 15/09 (escalation/promemoria) NON va più
+proposta: è chiusa.** Questa riga aggiorna quella del 15/09, come chiede
+CLAUDE.md a proposito dei documenti che invecchiano.
+
+⚠️ **Limite dichiarato, non nuovo**: resta un promemoria **manuale da
+copiare**, non un invio automatico — e resta vero, come già scritto il 15/09
+e il 16/09, che *nessuna* delle sei app dell'ecosistema ha un canale di
+invio automatico (email/SMS/push):
+
+```
+$ grep -ciE 'notific|push notif|invia.{0,3}email|invia.{0,3}sms' apps/scudo/scudo-data.js apps/scudo/index.html
+apps/scudo/scudo-data.js:0
+apps/scudo/index.html:0
+```
+
+Non è un difetto isolato di Scudo da colmare qui: è un limite architetturale
+condiviso, già dichiarato.
+
+### Rimisura della mancanza #1 del 15/09: verifica di efficacia — ANCORA VERA
+
+```
+$ grep -ciE "efficacia|verific(a|ato)Efficacia|verificatoDa|approvat" apps/scudo/scudo-data.js apps/scudo/index.html
+apps/scudo/scudo-data.js:0
+apps/scudo/index.html:0
+$ grep -n "verificaEfficacia" apps/scudo/scudo-data.js apps/scudo/index.html
+(nessuna riga)
+$ grep -niE "riapri|reopen" apps/scudo/scudo-data.js apps/scudo/index.html
+index.html:3736:      // riaprirla basta la matita, larga 30 px come negli altri elenchi. [ARIS = anagrafica appaltatori, tema diverso]
+index.html:4068,7221,7228,7230: riapertura delle ISPEZIONI, non delle azioni
+```
+
+Chiudere un'azione resta un tap sul badge (`azioneStatoSuccessivo`, ciclo
+aperta→in-corso→chiusa→aperta) più un campo di testo libero `esito`: nessun
+campo dice **chi** ha controllato che il problema non si sia ripresentato,
+**quando**, e nessun meccanismo la riporta aperta se il controllo fallisce
+— a differenza delle ispezioni, che un bottone dedicato sa riaprire
+esplicitamente (`btn-isp-chiudi` → "Riapri l'ispezione"). **Confermata
+ancora vera**, quattro giorni e più commit dopo.
+
+### Il mondo, approfondito oggi oltre quanto scritto il 15/09 [WebSearch, seconda mano — nessun testo primario letto per intero]
+
+Il 15/09 questo file citava già ISO 45001 clausola 10.2 e il principio
+generale "chiusura ≠ verifica di efficacia". Le tre ricerche di oggi vanno
+più a fondo sul **come**, che è il pezzo che mancava:
+
+1. **La finestra di tempo non è fissa, ma è un impegno DATATO e pianificato
+   in anticipo**, non "quando qualcuno se ne ricorda". Più fonti concordano
+   che un controllo di efficacia è "una revisione pianificata e datata di
+   prove oggettive, raccolta abbastanza tempo dopo l'implementazione perché
+   il problema, se doveva ripresentarsi, abbia avuto modo di farlo" — la
+   finestra si dimensiona sulla frequenza storica del problema, non su un
+   numero fisso di giorni uguale per tutte le azioni. ISO 45001 stessa non
+   prescrive una durata: usa "un periodo ragionevole" e lascia
+   all'organizzazione stabilirlo.
+2. **Se il controllo fallisce, l'azione NON si richiude silenziosamente: si
+   RIAPRE e torna all'analisi della causa.** È descritto come automatico nei
+   sistemi di riferimento: se l'evento si ripresenta con frequenza o
+   gravità simile entro la finestra di verifica, quello è il segnale che
+   l'azione non ha funzionato, e il record torna indietro nel flusso invece
+   di restare "chiuso" per sempre.
+3. **L'escalation per il ritardo è spesso TARATA sul livello di rischio, non
+   uguale per tutte le azioni** (di seconda mano, non specifico del
+   settore estrattivo ma generico EHS): schemi citati parlano di notifica al
+   responsabile diretto al superamento della scadenza, al responsabile HSE
+   dopo alcuni giorni, alla direzione di sito dopo una settimana — con soglie
+   più strette per le azioni ad alto rischio (es. procedure critiche) e più
+   larghe per quelle a basso rischio. Non è stato trovato un valore
+   numerico standard universale: gli esempi citati (24h/72h/7gg) sono
+   presentati come schema tipico, non come norma.
+4. **Metriche standard citate insieme**, oltre a quelle già in
+   `riepilogoAzioni`: tasso di azioni scadute sul totale aperte
+   (*overdue/delinquency rate*), giorni medi dall'apertura alla chiusura
+   verificata (*CAP cycle time*), tasso di eventi che si ripresentano dopo
+   la chiusura di un'azione collegata (*repeat incident/finding rate*), e
+   percentuale di azioni che superano il controllo di efficacia al primo
+   tentativo (*verification pass rate*) — quest'ultima esiste solo se
+   esiste prima un controllo di efficacia da superare, quindi dipende dalla
+   mancanza #1.
+
+Fonti (risultati di ricerca, seconda mano, nessuna letta per intero):
+- [Verification of Effectiveness (VoE) Best Practice — Qualio](https://docs.qualio.com/en/articles/8130081-verification-of-effectiveness-voe-best-practice)
+- [7 Steps to Confirm that Corrective Actions Are Working — Sologic](https://www.sologic.com/en-us/resources/learning/are-corrective-actions-working)
+- [Effectiveness Check — CAPA Verification — Complere](https://complere.tech/resources/glossary/effectiveness-check/)
+- [How to Verify CAPA Effectiveness — Harmony AI](https://www.tryharmony.ai/capa-effectiveness)
+- [How Does Automation Reduce Overdue Corrective Actions? — Simple But Needed](https://sbnsoftware.com/blog/how-does-automation-reduce-overdue-corrective-actions/)
+- [Corrective Action Tracking: From Finding to Fix in Safety — OQSHA](https://go.oqsha.com/corrective-action-tracking-safety/)
+- [Corrective Action Plan: Stop Repeat Incidents — Safety Evolution](https://www.safetyevolution.com/blog/corrective-action-plan)
+- [Executing Corrective Actions Like a Market Leader — Cority](https://www.cority.com/blog/executing-corrective-actions/)
+- [CAPA Software | Corrective Action Software — Intelex](https://www.intelex.com/products/applications/capa-software-corrective-and-preventive-action)
+- [ISO 45001 Clause 10.2 Incident, nonconformity and corrective action — Auditor Training Online](https://blog.auditortrainingonline.com/blog/iso-45001-clause-10-2)
+
+⚠️ Nessuna fonte specifica per il settore estrattivo è stata trovata per
+questo sotto-tema: tutte generiche EHS/qualità. Nessuna fonte è stata letta
+per intero (`WebFetch` non riprovato: il limite `EGRESS_BLOCKED` è già
+misurato nei giri precedenti su questo stesso documento).
+
+### La proposta (una sola, l'altra è già chiusa)
+
+| Schermata | Che cosa non va | Come si vede | Quanto costa | Come si misura |
+|---|---|---|---|---|
+| Azioni correttive | Chiudere un'azione non prevede un controllo successivo che dica se il problema è davvero sparito: nessun campo "chi ha verificato, quando, con che esito", e se l'evento si ripete l'azione resta "chiusa" per sempre, senza che niente la segnali di nuovo | Chiudere l'azione a1 della demo (o una vera): lo storico mostra solo `stato: chiusa`, `esito` (testo libero) e `dataChiusura`. Aprire un nuovo near-miss identico a quello che l'azione a1 avrebbe dovuto prevenire: niente collega i due eventi, niente riapre a1, niente segnala "questa azione era già stata chiusa per un evento simile" | Medio (piccolo il campo dati, medio il collegamento fra due eventi simili e il flusso di riapertura) | Tre pezzi separabili, a costo crescente: (1) *piccolo* — campo opzionale `verificaEfficacia: {prevista: dataISO\|null, fatta: bool, quando: dataISO\|null, daChi: id\|null, esito: "confermata"\|"non-confermata"\|null}` sul modello, popolato dal form di chiusura come domanda non bloccante (coerente col principio "assente ≠ verificato": un'azione chiusa senza controllo di efficacia resta dichiarata "da verificare", non "a posto"); (2) *piccolo* — funzione `statoVerificaEfficacia` gemella di `statoAzione` che dice se la data prevista di controllo è scaduta, così l'azione "chiusa ma non verificata da oltre N giorni" può comparire in un badge distinto dal semaforo di scadenza attuale (che oggi tratta ogni azione chiusa come "regolare" e basta); (3) *medio* — un bottone "Riapri: l'evento si è ripetuto" sull'azione chiusa, sul modello di quello già esistente per le ispezioni, che riporta `stato` ad "aperta" e registra nello storico il motivo, così una riapertura per fallimento non si confonde con il ciclo manuale del badge |
+
+⚠️ **Perché non è proposta anche la mancanza #3 del 15/09** (KPI tempo medio
+di chiusura / tasso di recidiva): resta confermata assente
+(`grep -n "giorni medi\|tempoMedio\|tassoChius\|onTime\|in tempo"
+apps/scudo/scudo-data.js` → 0 occorrenze, rimisurato oggi), ma **dipende**
+dal pezzo (1) qui sopra — un "tasso di verifica superata" non si può
+calcolare finché non esiste un controllo di efficacia da superare. Va
+insieme, non prima.
+
+### Nota sull'escalation a livelli (finding nuovo, minore, dichiarato)
+
+Il promemoria oggi è uno solo, uguale per ogni azione scaduta indipendente
+dal rischio. Il mondo (di seconda mano, vedi sopra) descrive schemi a più
+livelli tarati sul rischio dell'azione. **Non proposto come unità a sé**:
+Scudo non ha oggi un campo "livello di rischio" sull'azione correttiva
+distinto dalla gravità dell'evento di origine, e costruire una scala di
+escalation sopra un rischio che non esiste ancora sarebbe mettere il
+tetto prima dei muri. Dichiarato per chi, in futuro, aggiungesse quel campo.
+
+---
+
+*Ricerca del 19/09/2026. Nessun codice modificato, nessun commit. Una delle
+due mancanze del 15/09 è stata rimisurata come CHIUSA (con la prova del
+commit), l'altra rimisurata come ANCORA VERA e approfondita nel mondo con
+tre ricerche nuove; una sola proposta nuova (la verifica di efficacia si
+scompone in tre pezzi separabili invece di uno solo).*
