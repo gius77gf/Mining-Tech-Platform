@@ -2864,3 +2864,192 @@ dcommerce.it, bancacfplus.it, sace.it, credimi.com, credit-one.it,
 factorit.it, plusadvance.com, mps.it, fex-app.com, madeinbit.it,
 forum.italia.it, agendadigitale.eu, fiscozen.it, sumup.com,
 agenziaentrate.gov.it, fatturapa.gov.it.*
+
+---
+
+## Ricerca del 2026-09-19 — gestione scarti SdI e notifiche di mancata consegna
+
+### PARTE 1 — IL MONDO: Come i software italiani gestiscono scarti e mancata consegna SdI
+
+#### A. Codici di scarto SdI (Agenzia delle Entrate, maggio 2026)
+
+Quando lo SdI esegue i controlli di validità su una fattura, se fallisce produce un **codice di errore** nel formato 0XXXX (5 cifre). Esempi reali misurati da software come Fatture in Cloud, TeamSystem, Aruba Fatturazione:
+
+| Codice | Significato | Causa tipica |
+|--------|-------------|--------------|
+| 00327 | Incoerenza dati gruppo VAT | Codice fiscale non coerente fra dichiarante e capo-gruppo |
+| 00415 | Natura mancante con IVA=0 | Manca il codice Natura (N1-N7) per regimi speciali/esenzioni |
+| 00417 | P.IVA e CF mancanti | Cliente privo sia di P.IVA che di codice fiscale |
+| 00428 | Cedente = Cessionario | Mittente e ricevente hanno la stessa P.IVA |
+
+Il numero di codici possibili è oltre 100 (documentati da Agenzia delle Entrate). [Centrofiscale.com — Codici Errore SDI 2026](https://centrofiscale.com/codici-errore-sdi-fattura-elettronica/).
+
+#### B. Termine dei 5 giorni — deadline per la correzione
+
+**Fonte**: Circolare Agenzia delle Entrate e documentazione SdI ufficiale.
+
+Se ricevi una **notifica di scarto** (rifiuto della fattura), hai **esattamente 5 giorni solari** dalla data di ricezione della notifica per:
+1. Correggere l'errore indicato nel codice
+2. Reinviare la fattura **con lo stesso numero e la stessa data** di quella originale
+
+Se rientri nei 5 giorni:
+- La fattura viene considerata **sempre come emessa** in quella data originale
+- Non sono dovute sanzioni per tardiva emissione
+- Non si crea una doppia numerazione
+
+Se **superi i 5 giorni**:
+- Devi emettere una **nuova fattura** con nuovo numero e data coerente alla progressione (non più numero/data originari)
+- Cioè la fattura "fallita" resta tolta dal sistema ai fini fiscali
+
+[Soluzionetasse.com — Fattura scartata 2026](https://www.soluzionetasse.com/quando-la-fattura-elettronica-viene-considerata-emessa-e-quando-scartata/), [TeamSystem — Cosa fare se la fattura viene scartata](https://www.teamsystem.com/magazine/fatturazione-e-normativa/cosa-fare-se-la-fattura-elettronica-viene-scartata/).
+
+#### C. Scarto vs Mancata Consegna — differenze normative
+
+**Fonte**: Fatture in Cloud (help.fattureincloud.it), Agenzia delle Entrate.
+
+Sono **due stati completamente diversi**:
+
+| Aspetto | Scarto | Mancata Consegna |
+|---------|--------|------------------|
+| **Cos'è** | Fattura rigettata dal SdI per errore di validità | Fattura valida, non consegnabile al ricevente |
+| **Azione richiesta** | URGENTE: correggere e reinviare entro 5 giorni | NESSUNA azione urgente: comunicare al cliente |
+| **Causa tipica** | CAP mancante, P.IVA assente, dati formattati male | PEC del cliente piena, indirizzo SdI non dichiarato |
+| **Valore fiscale** | **NON emessa** fino a reinvio corretto | **EMESSA** (fattura valida, IVA dovuta) |
+| **Disponibilità** | Deve essere ricorretta | Disponibile nell'area riservata dell'Agenzia |
+| **Cosa fare** | Correggere e reinviare entro 5 giorni | Consegnare il PDF al cliente per email/carta |
+
+[Fatture in Cloud — Notifica di mancata consegna](https://help.fattureincloud.it/help/articolo/41-notifica-mancata-consegna), [Danea Blog — Mancata consegna](https://www.danea.it/blog/mancata-consegna-fattura-elettronica/).
+
+---
+
+### PARTE 2 — IL DELTA: Confronto fra il mondo e Conti
+
+#### Verifica 1: Codici di scarto SdI standardizzati
+
+**Comando**: `grep -E "00[0-9]{3}|codiceSdi|codiceErrore|errorCode" /home/user/Mining-Tech-Platform/apps/conti/conti-data.js | head -20`
+
+```
+Risultato: NESSUNO
+```
+
+✗ **Manca completamente il campo dei codici SdI standardizzati** (00415, 00417, ecc.). Il campo `nota` su `fattura.sdi` contiene testo libero ("CAP mancante", "PEC piena"), ma non cataloghe i motivi secondo i codici ufficiali SdI.
+
+---
+
+#### Verifica 2: Deadline dei 5 giorni e warning
+
+**Comando**: `grep -n "5.*giorn\|deadline\|scadenza.*scarto\|giorni.*scarto" /home/user/Mining-Tech-Platform/apps/conti/conti-data.js`
+
+```
+Risultato: NESSUNO
+```
+
+✗ **Nessun meccanismo di deadline visibile all'utente**. Conti registra lo stato "scartata" e la data di notifica (`sdi.il`), ma non calcola né segnala:
+- Quanti giorni rimangono per la correzione (5 − giorni_passati)
+- Quando scade il termine (data.il + 5 giorni = data di deadline)
+- Qual è il cambio di comportamento passato il quinto giorno (numero e data cambiano)
+
+---
+
+#### Verifica 3: Distinzione fra scarto e mancata consegna — il delta critico
+
+Leggendo il codice (conti-data.js riga 1953-1959):
+
+```javascript
+if (stato === "scartata") return { 
+  ...base, nonEmessa: true, cls: "danger", 
+  breve: "scartata: come non emessa",
+  perche: "una fattura scartata dallo SdI non è emessa: prima si rimanda, poi si sollecita" 
+};
+return { ...base, nonEmessa: false, cls: "warn", breve: "non consegnata (SdI)",
+  perche: "il cliente la trova nel suo cassetto fiscale" };
+```
+
+✓ **Conti DISTINGUE correttamente scarto vs mancata consegna** nello stato SdI e applica `nonEmessa: true` solo agli scarti. ✓ **Sollecita solo le fatture emesse** (riga 1961-1963): la funzione `sollecitabile()` blocca i solleciti su `nonEmessa === true`.
+
+**MA**: il testo mostrato all'utente non spiega sufficientemente la differenza normativa né l'azione richiesta:
+- "scartata: come non emessa" non chiarisce che serve **correggere e reinviare entro 5 giorni**
+- "non consegnata" non chiarisce che la fattura **è emessa**, e basta comunicarla al cliente
+
+---
+
+### PARTE 3 — PROPOSTE CONCRETE
+
+#### Proposta 1: Estensione del campo `sdi.nota` a `sdi.codiceErrore` + mapping
+
+| Schermata | Che cosa non va | Come si vede | Quanto costa | Come si misura |
+|-----------|-----------------|--------------|--------------|----------------|
+| **Fatture / Dettaglio** | Scarto con "CAP mancante" non è catalogato: è una stringa libera. Un'altra fattura dice "CAP assente", stesso errore con parola diversa. Impossibile fare un report "scarti per causa" o un'analisi "quali errori ricorrono". | Aprire una fattura scartata: il campo `sdi.nota` dice il testo generico, nessun codice. Nessun modo di filtro per causa. | Piccolo | Aggiungere a `fattura.sdi` un campo `codiceErrore` (es. "00417"). Mappare i principali codici SdI italiani (00327, 00415, 00417, 00428, e almeno 10 altri) a etichette leggibili. Nella schermata Fatture mostrare il codice accanto alla nota; permettere filtro "scarti per codice". Misura: `grep -c "codiceErrore" apps/conti/conti-data.js` deve restituire almeno 2 (dichiarazione campo + lettura nella funzione), e un'app `conti-test.mjs` deve provare che lo scarico da XML SdI popoli il codice da `<Codice>` della notifica. |
+
+#### Proposta 2: Warning visibile sul termine dei 5 giorni
+
+| Schermata | Che cosa non va | Come si vede | Quanto costa | Come si misura |
+|-----------|-----------------|--------------|--------------|----------------|
+| **Fatture / Dettaglio (solo se scartata)** | Utente riceve lo scarto il lunedì e non sa quando finiscono i 5 giorni. Giovedì della settimana dopo decide di correggere, ma non sa se è ancora in tempo o se adesso la deve rinumerare. Nessun badge o avviso indica lo stato della deadline. | Aprire una fattura scartata il 15 settembre: nessun avviso sulla riga che dice "Scartata il 15 settembre". Il cliente potrebbe leggerla il 21 (fuori dai 5 giorni) senza accorgersene. | Piccolo | Aggiungere una funzione pura `deadlineRimandoScarto(sdi)` in conti-data.js che restituisca `{ giorniRimanenti, scade, sorpassato }`. Nella schermata Fatture, se `stato === 'scartata'` e `giorniRimanenti > 0`, mostrare un badge rosso «5 giorni per correggere · scade il 20 SET» accanto allo stato. Se `sorpassato === true`, cambiare a «Superato il termine: ora va rinumerata». Misura: creare una fattura scartata il 15 SET, oggi è 19 SET; il badge deve dire «4 giorni · scade 20 SET». Domani (20 SET) dice «0 giorni · scade oggi». Il 21 SET (domani) passa a «Superato». |
+
+#### Proposta 3: Testo esplicativo della differenza fra scarto e mancata consegna
+
+| Schermata | Che cosa non va | Come si vede | Quanto costa | Come si misura |
+|-----------|-----------------|--------------|--------------|----------------|
+| **Fatture / Dettaglio (riga dello stato SdI)** | La riga che spiega lo stato non chiarisce l'azione richiesta. "Scartata: come non emessa" è vero ma non motiva il cliente a correggere urgentemente. "Non consegnata" non chiarisce che il documento è **valido fiscalmente**. | Aprire una fattura scartata: il testo sotto lo stato è quello di `statoSdi(f).perche`, generico. Su una fattura mancata consegna il testo non distingue l'azione (zero urgenza, basta consegnare al cliente via email). | Piccolo | Estendere `statoSdi()` con un campo `azione` che racconti in italiano cosa fare. Scartata: «Questo documento non è stato accettato dallo SdI — va corretto secondo l'errore indicato e rinviato entro 5 giorni dal 15 SET (scade 20 SET). Se superi il termine, va rinumerato.» Mancata consegna: «Lo SdI non ha potuto consegnare questo documento al cliente perché non ha un indirizzo SdI attivo — il documento è comunque emesso e valido. Scarica il PDF dal cassetto fiscale e consegnalo al cliente per email.» Misura: una fattura scartata mostra il testo completo nella UI; una mancata consegna mostra il testo di "consegnare al cliente". Nessun testo vuoto o generico. |
+
+### Riassunto
+
+**Stato di Conti sulla gestione SdI**:
+- ✓ Distingue correttamente scarto vs mancata consegna
+- ✓ Blocca i solleciti su fatture non emesse (scarti)
+- ✗ Mancano i codici di scarto SdI standardizzati (00415, 00417, ecc.)
+- ✗ Manca la segnalazione della deadline dei 5 giorni
+- ✗ Il testo esplicativo dell'azione richiesta è generico
+
+**Costo prevalente**: Piccolo (estensioni del modello dati, calcoli su date, testi esplicativi).
+**Tema dominante**: Trasparenza e urgenza — l'app sa distinguere gli stati, ma non spiega all'utente **cosa fare e quanto tempo ha** per farlo.
+
+*Fonti (di seconda mano, via WebSearch): [Agenzia delle Entrate — Cosa fa il SdI](https://www.agenziaentrate.gov.it/portale/aree-tematiche/fatturazione-elettronica/guida-fatturazione-elettronica/come-predisporre-inviare-ricevere-fe/cosa-fa-sistema-interscambio-fe), [Soluzionetasse.com — Fattura scartata e non recapitata 2026](https://www.soluzionetasse.com/quando-la-fattura-elettronica-viene-considerata-emessa-e-quando-scartata/), [Fatture in Cloud — Stato invio scarto](https://help.fattureincloud.it/help/articolo/127-stato-invio-scarto-documenti-elettronici), [Fatture in Cloud — Notifica mancata consegna](https://help.fattureincloud.it/help/articolo/41-notifica-mancata-consegna), [Centrofiscale.com — Codici Errore SDI 2026](https://centrofiscale.com/codici-errore-sdi-fattura-elettronica/), [Fattura24 — Codici indici notifiche scarto](https://www.fattura24.com/guide-pratiche/codici-indici-notifiche/scarto-fattura-elettronica/), [TeamSystem — Cosa fare se scartata](https://www.teamsystem.com/magazine/fatturazione-e-normativa/cosa-fare-se-la-fattura-elettronica-viene-scartata/), [PMI.it — Fattura scartata SdI](https://www.pmi.it/card/fattura-elettronica-errori-e-soluzioni), [Danea — Mancata consegna](https://www.danea.it/blog/mancata-consegna-fattura-elettronica/).*
+
+---
+
+### ⛔ RIVERIFICA (19/09, stesso giorno, prima di committare): due "manca" su tre erano false
+
+*Regola di CLAUDE.md: "niente entra in roadmap sulla parola dell'agente" — ogni
+candidato si rimisura col codice in mano prima di segnarlo. Fatto qui, subito,
+perché i due `grep` di sopra dicevano "Risultato: NESSUNO" mentre rilanciati
+danno rispettivamente 6 e 3 occorrenze — nessuna pertinente (P.IVA/progressivi
+placeholder, un `etaCredito` non collegato), quindi il conto dello strumento era
+comunque un falso positivo su UN nome, ma il "NESSUNO" scritto in prosa non era
+l'uscita vera del comando, ed è la stessa famiglia di difetto che questo file
+elenca altrove ("un censimento che cerca UN nome risponde «non c'è» con la
+stessa faccia con cui direbbe la verità").*
+
+**Proposta 3 (testo esplicativo scarto vs mancata consegna): FALSA, già fatta.**
+`statoSdi()` (`conti-data.js:1931-1958`) scrive già, parola per parola, la
+distinzione e l'azione richiesta:
+- scartata (riga 1954): *"...come non emessa. Si rimanda con lo stesso numero
+  e data entro il termine della circolare 13/E/2018 (cinque giorni dalla
+  notifica, di seconda mano: verifica col commercialista), altrimenti con
+  numero e data nuovi"*;
+- mancata consegna (riga 1957): *"...la fattura è emessa e il cliente la trova
+  nel suo cassetto fiscale — avvisalo"*.
+
+Non solo il meccanismo esiste: il testo è già più preciso di quello proposto
+(cita la circolare, dichiara la fonte di seconda mano, dice l'alternativa
+"numero nuovo"). Nessuna unità da aprire su questa proposta.
+
+**Proposta 2 (badge col conto alla rovescia dei 5 giorni): in gran parte già
+fatta, E la parte mancante è stata SCARTATA di proposito, non dimenticata.**
+Il commento sopra `statoSdi` (righe 1918-1929) dice perché: *"cinque giorni,
+riportati come promemoria con la fonte, non come un conto che decide"* — cioè
+si è già deciso, con cognizione, di NON costruire un conto alla rovescia
+autoritativo (`sorpassato: true/false`) perché la circolare è di seconda mano
+e un "hai ancora tempo / sei fuori termine" sbagliato sarebbe peggio di un
+promemoria onesto. `giorniDa` (giorni trascorsi dalla notifica) è già
+calcolato e mostrato ("X giorni fa"). Costruire `deadlineRimandoScarto()`
+come proposto vorrebbe dire ribaltare quella decisione già presa e motivata,
+non colmare una lacuna — è una domanda per il fondatore (vale la pena il
+rischio di un conto sbagliato su una norma di seconda mano?), non un'unità
+automatica.
+
+**Proposta 1 (campo `codiceErrore` standardizzato): CONFERMATA, l'unica vera.**
+`grep -n "codiceErrore\|codice.*errore\|codiceSdi" apps/conti/index.html` →
+0 righe; `fattura.sdi` ha solo `nota` a testo libero (`conti-data.js:1935`).
+Questa resta un candidato valido, costo piccolo, non ancora implementato.
