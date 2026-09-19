@@ -3852,6 +3852,24 @@ export function puntoSnapEstremo(candidati, mx, my, tolleranza){
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
+   G49 · SELEZIONE MULTIPLA DEI FORI — LA PRIMA FETTA (19/09, secondo asse
+   CAD confermato dal censimento dopo G48: window/crossing selection è il
+   passo pieno, questo è "Maiusc+clic per aggiungere/togliere" — un
+   modificatore che non tocca il gesto esistente su un click singolo.
+   ══════════════════════════════════════════════════════════════════════════
+   La selezione multipla vive come array di ID (`D2.selMulti`, in
+   genesi.html), non di indici: `splice` sposta tutti gli indici dopo quello
+   tolto, la stessa lezione già scritta per `D2.selPrev`. Questa funzione
+   è la sola parte pura dell'eliminazione batch — filtrare l'array dei fori
+   togliendo quelli il cui id è nella selezione — e vive qui per la stessa
+   ragione di `estremiDisegno`: testabile sotto `node`, la pagina resta un
+   chiamante come un altro. */
+export function foriSenzaId(holes, idsSelezionati){
+  const via=new Set(idsSelezionati||[]);
+  return (holes||[]).filter(h=>h && !via.has(h.id));
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
    G35 · IL PROSSIMO PEZZO DI "GENESI CONTINUA A USCIRE DALLA PAGINA" (13/09)
    ══════════════════════════════════════════════════════════════════════════
    `measureGeom2D` misura la maglia DISEGNATA (non quella di progetto): il

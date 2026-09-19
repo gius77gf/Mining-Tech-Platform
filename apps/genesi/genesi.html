@@ -815,6 +815,7 @@ body.scr-sim #tl{bottom:80px}
     <button type="button" id="d2Undo" class="dt-undo" title="Annulla l'ultima modifica (Ctrl+Z)" disabled>↩</button>
     <button type="button" id="d2Redo" class="dt-undo" title="Ripristina (Ctrl+Y)" disabled>↪</button>
     <button type="button" id="dtTrattoFine" class="dt-reset" hidden>✓ Fine tratto</button>
+    <button type="button" id="dtEliminaSel" class="dt-reset" hidden title="Elimina tutti i fori selezionati con Maiusc+clic">✕ Elimina selezionati</button>
     <button type="button" id="dtReset" class="dt-reset">↺ Reset fronte</button>
   </div>
   <div id="d2-strati">
@@ -1256,7 +1257,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, reliefCls, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino, activeProf, d2HitTest, d2HitTestPt,
-         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfInTratti, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
+         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfInTratti, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -1544,7 +1545,15 @@ const D2 = { B:3.0, S:3.5, file:1, perRow:12, bf:3.0, diam:102, prof:10, kg:60, 
   /* G34 (13/09) — aggancio alla griglia: aiuto opzionale al posizionamento
      manuale, spento di default così un progetto aperto da prima di questa
      unità disegna e si comporta esattamente come prima. */
-  snap:false, snapPasso:0.25 };
+  snap:false, snapPasso:0.25,
+  /* G49 (19/09) — selezione multipla dei fori, la prima fetta piccola del
+     secondo asse CAD confermato dal censimento (window/crossing selection
+     nella ricerca è il passo successivo; questo è "Maiusc+clic" perché non
+     tocca il gesto esistente — click su vuoto crea un foro, click su un
+     foro seleziona/trascina — e un modificatore non lo confonde con
+     nessuno dei due). Array di ID (non indici): `splice` sposta gli indici
+     dopo una cancellazione, la stessa lezione già scritta per `D2.selPrev`. */
+  selMulti:[] };
 /* i valori di partenza degli undici campi non numerici del design: sono quelli
    che rientrano quando una volata salvata porta una scelta che il catalogo non
    riconosce (vedi `designSconosciuti`, all'azione «apri») */
@@ -6326,6 +6335,11 @@ function drawDesign2D(){
       ctx.beginPath(); ctx.arc(cx,cy,13.5,0,7); ctx.stroke(); ctx.restore(); }
     if(D2.incl>0){ const off=D2.prof*Math.sin(D2.incl*Math.PI/180)*scale; ctx.strokeStyle='rgba(255,213,121,.5)'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx,cy-off); ctx.stroke(); ctx.fillStyle='rgba(255,213,121,.85)'; ctx.beginPath(); ctx.arc(cx,cy-off,2.2,0,7); ctx.fill(); }
     if(i===D2.sel){ ctx.save(); ctx.shadowColor='rgba(255,255,255,.55)'; ctx.shadowBlur=15; ctx.beginPath(); ctx.arc(cx,cy,12,0,7); ctx.fillStyle='rgba(255,255,255,.10)'; ctx.fill(); ctx.restore(); }
+    /* G49 — un anello tratteggiato ciano distingue la selezione multipla
+       (destinata a un'azione batch) da quella singola qui sopra (destinata
+       all'ispettore): due stati diversi, due segni diversi, mai lo stesso
+       anello a dire due cose. */
+    if(D2.selMulti.includes(h.id)){ ctx.save(); ctx.strokeStyle='#4dd8e6'; ctx.lineWidth=2; ctx.setLineDash([3,2]); ctx.beginPath(); ctx.arc(cx,cy,14,0,7); ctx.stroke(); ctx.restore(); }
     ctx.save(); ctx.shadowColor='rgba(255,150,30,.5)'; ctx.shadowBlur=9; ctx.beginPath(); ctx.arc(cx,cy,9,0,7); ctx.fillStyle=col; ctx.fill(); ctx.restore();
     ctx.lineWidth=1.5; ctx.strokeStyle=(i===D2.sel)?'#fff':'rgba(20,12,4,.9)'; ctx.beginPath(); ctx.arc(cx,cy,9,0,7); ctx.stroke();
     ctx.fillStyle='#1a140b'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font="700 9px 'Barlow',sans-serif"; ctx.fillText(((h.seq!=null?h.seq:i)+1), cx, cy); ctx.textBaseline='alphabetic';
@@ -6508,6 +6522,19 @@ function d2Down(e){ const p=d2EvtToCanvas(e);
     if(k<0 && D2._m){ d2PushUndo(); d2dragPushed=true; const mx=_snapXY(D2, (p.x-D2._m.startX)/D2._m.scale), my=_snapXY(D2, (p.y-D2._m.faceY)/D2._m.scale); arr.push({x:+mx.toFixed(2),y:+my.toFixed(2)}); k=arr.length-1; }
     D2.selPt=k; d2dragPt=k; e.preventDefault(); drawDesign2D(); renderScheda2D(); return; }
   let i=d2HitTest(D2, p.x,p.y);
+  /* G49 — Maiusc+clic su un foro ESISTENTE lo aggiunge/toglie dalla
+     selezione multipla, senza toccare né il click singolo (D2.sel, sotto)
+     né la creazione di un foro nuovo su spazio vuoto (che resta il gesto
+     di sempre anche con Maiusc premuto: il modificatore vale solo dove
+     c'è già qualcosa da selezionare). Nessun trascinamento qui: spostare
+     PIÙ fori insieme è un passo successivo, non questa fetta. */
+  if(D2.tool==='fori' && e.shiftKey && i>=0){
+    const id=D2.holes[i].id;
+    const k=D2.selMulti.indexOf(id);
+    if(k>=0) D2.selMulti.splice(k,1); else D2.selMulti.push(id);
+    e.preventDefault(); drawDesign2D(); syncSelMultiUI(); return;
+  }
+  if(!e.shiftKey && D2.selMulti.length){ D2.selMulti=[]; syncSelMultiUI(); }
   if(i<0 && D2._m){ const mx=_snapXY(D2, (p.x-D2._m.startX)/D2._m.scale), my=_snapXY(D2, (p.y-D2._m.faceY)/D2._m.scale);
     if(my>0.2 && p.x>20 && p.x<($('d2-canvas').width-20)){ d2PushUndo(); d2dragPushed=true; D2.holes.push({id:idForoNuovo(D2.holes), mx:+mx.toFixed(2), my:+Math.max(0.3,my).toFixed(2)}); i=D2.holes.length-1; computeSeq2D(); } }
   /* G34quinquies (13/09) — memoria dell'ultima selezione, per la misura fra
@@ -7891,7 +7918,7 @@ if($('dKgTot')) $('dKgTot').addEventListener('change', ()=>{
     applyDesign();
   }
 });
-function setTool(t){ D2.tool=t; D2.selPt=-1; [['dtFori','fori'],['dtFronte','fronte'],['dtPiede','piede'],['dtTratto','tratto']].forEach(p=>{ const el=$(p[0]); if(el) el.classList.toggle('on',t===p[1]); }); const rb=$('dtReset'); if(rb) rb.textContent='↺ Reset '+(t==='tratto'?'tratti':(t==='piede'?'piede':'fronte')); drawDesign2D(); renderInspector(); syncTrattoUI(); }
+function setTool(t){ D2.tool=t; D2.selPt=-1; if(t!=='fori' && D2.selMulti.length) D2.selMulti=[]; [['dtFori','fori'],['dtFronte','fronte'],['dtPiede','piede'],['dtTratto','tratto']].forEach(p=>{ const el=$(p[0]); if(el) el.classList.toggle('on',t===p[1]); }); const rb=$('dtReset'); if(rb) rb.textContent='↺ Reset '+(t==='tratto'?'tratti':(t==='piede'?'piede':'fronte')); drawDesign2D(); renderInspector(); syncTrattoUI(); syncSelMultiUI(); }
 if($('dtFori')) $('dtFori').onclick=()=>setTool('fori');
 if($('dtFronte')) $('dtFronte').onclick=()=>setTool('fronte');
 if($('dtPiede')) $('dtPiede').onclick=()=>setTool('piede');
@@ -7917,6 +7944,22 @@ if($('dtTrattoFine')) $('dtTrattoFine').onclick=()=>{
   if(D2.strati.tratti.bloccato){ toast('I tratti sono bloccati — sblocca dal pannello sopra la tela'); return; }
   d2PushUndo(); t.aperto=false; syncTrattoUI(); drawDesign2D();
   toast('Tratto chiuso — '+t.pts.length+' punti');
+};
+/* G49 — il bottone di eliminazione batch compare solo quando c'è
+   qualcosa da eliminare, sullo stesso schema di "Fine tratto". */
+function syncSelMultiUI(){
+  const eb=$('dtEliminaSel');
+  if(eb){ eb.hidden=!(D2.tool==='fori' && D2.selMulti.length>0);
+    eb.textContent='✕ Elimina selezionati ('+D2.selMulti.length+')'; }
+}
+if($('dtEliminaSel')) $('dtEliminaSel').onclick=()=>{
+  if(D2.strati.fori.bloccato){ toast('I fori sono bloccati — sblocca dal pannello sopra la tela'); return; }
+  const n=D2.selMulti.length; if(!n) return;
+  d2PushUndo();
+  D2.holes=foriSenzaId(D2.holes, D2.selMulti);
+  D2.selMulti=[]; D2.sel=-1; D2.selPrev=-1; computeSeq2D();
+  drawDesign2D(); renderScheda2D(); renderInspector(); syncSelMultiUI();
+  toast(n+' '+plurale(n,'foro eliminato','fori eliminati'));
 };
 /* G47b — livelli veri: mostra/nascondi e blocca per entità. Niente
    `d2PushUndo`: `D2.strati` è stato dell'INTERFACCIA (cosa si vede o si

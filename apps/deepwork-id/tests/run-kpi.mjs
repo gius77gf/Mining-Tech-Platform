@@ -45348,6 +45348,33 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
 }
 /* ===== fine snap a un estremo già disegnato (19/09, G48) ===== */
 
+/* ===== GENESI · SELEZIONE MULTIPLA DEI FORI — PRIMA FETTA (19/09, G49) =====
+   La sola parte pura è il filtro che toglie i fori selezionati; il gesto
+   (Maiusc+clic per aggiungere/togliere, l'anello ciano, il bottone
+   "Elimina selezionati") vive in genesi.html e lo verifica il conteggio
+   dei punti di chiamata, come per G48. */
+{
+  test("Genesi · foriSenzaId toglie solo i fori con id nella selezione", () => {
+    const H = [{ id: "a", mx: 1 }, { id: "b", mx: 2 }, { id: "c", mx: 3 }];
+    eq(genesi.foriSenzaId(H, ["b"]), [H[0], H[2]], "un solo id da togliere");
+    eq(genesi.foriSenzaId(H, ["a", "c"]), [H[1]], "più id, in qualunque ordine");
+    eq(genesi.foriSenzaId(H, []), H, "selezione vuota: l'array torna intero");
+    eq(genesi.foriSenzaId(H, ["boh"]), H, "un id che non esiste non toglie niente");
+  });
+  test("Genesi · foriSenzaId con input assenti non rompe (mai un errore su un array vuoto)", () => {
+    eq(genesi.foriSenzaId(null, ["a"]), []);
+    eq(genesi.foriSenzaId([{ id: "a" }, null, { id: "b" }], []), [{ id: "a" }, { id: "b" }],
+      "un foro nullo nell'array si toglie sempre, selezione o no — la stessa difesa di componentiDelMezzo");
+  });
+  test("⛔ Genesi · la selezione multipla dei fori è collegata nella pagina (G49)", () => {
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    eq((pag.match(/foriSenzaId\(/g) || []).length, 1, "un solo punto di eliminazione batch");
+    ok(/e\.shiftKey && i>=0/.test(pag), "il Maiusc+clic guarda un foro ESISTENTE (i>=0), mai lo spazio vuoto");
+    ok(/D2\.selMulti\.includes\(h\.id\)/.test(pag), "l'anello di selezione multipla si disegna per id, non per indice");
+  });
+}
+/* ===== fine selezione multipla dei fori (19/09, G49) ===== */
+
 /* ===== GENESI · misuraGeom2D SALITA DA genesi.html (13/09, G35) =====
    "Genesi continua a uscire dalla pagina": stessa logica, cambia solo che
    legge tre parametri invece di `D2` a mano. Il caso che contava di più —

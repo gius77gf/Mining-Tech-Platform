@@ -479,6 +479,8 @@ const BANCHI = [
   ['tratti liberi 2D · controprova', 'genesi-tratti.mjs', ['--controprova'], true],
   ["lo snap a un estremo già disegnato di Genesi (G48)", 'genesi-snap-estremo.mjs', []],
   ['snap a estremo di Genesi · controprova', 'genesi-snap-estremo.mjs', ['--controprova'], true],
+  ["la selezione multipla dei fori di Genesi (G49)", 'genesi-selezione-multipla.mjs', []],
+  ['selezione multipla di Genesi · controprova', 'genesi-selezione-multipla.mjs', ['--controprova'], true],
   ["Genesi: una volata salvata porta l'identità di chi era collegato", 'genesi-autore-volata.mjs', []],
   ['autore della volata di Genesi · controprova', 'genesi-autore-volata.mjs', ['--controprova'], true],
   [".chg: larghezza minima nel tema del sole (Terra)", 'chg-min-larghezza.mjs', []],
