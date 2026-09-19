@@ -10,6 +10,56 @@ può procedere con l'attuazione.
 
 ---
 
+## 🟡 19/09 — La barra di navigazione in basso: sotto i 44 px di larghezza su tre app, sotto i 60 in tutte tranne il core
+
+*Dalla seconda iterazione UX/estetica su Scudo, misurato con
+`getBoundingClientRect()` sul renderizzato (non dedotto dal CSS) e
+riverificato indipendentemente prima di scrivere questa voce, con lo
+stesso strumento, su Conti e Flotta.*
+
+- [ ] **40. `.nav` (`shared/dw-app-ui.css:641`) garantisce un'altezza minima
+  ai bottoni della barra in basso (`min-height:var(--tap)`, 44px normale/
+  60px nel tema del sole — "con i guanti si colpisce largo, come nel
+  core") ma NESSUNA larghezza minima: `grid-template-columns:repeat(var(
+  --nav-cols),1fr)` divide la pillola (max 520px, `calc(100% - 16px)`
+  sotto) in parti uguali qualunque sia `--nav-cols`. Il core ha 4 voci
+  fisse e non tocca mai la soglia (misurato: 75,5px a 320px, 103px a
+  430px). Le app sono cresciute oltre le 4 voci e la barra si è stretta
+  con loro, in silenzio — nessun errore, nessuna prova rossa, nessuno
+  scorrimento a indicarlo.
+  **Misurato @320px** (`getBoundingClientRect` su ogni `.nav button`,
+  tre app, tema scuro): **Conti** (`--nav-cols:10`) — 10 bottoni, tutti a
+  **31,0px**, il 30% del minimo AA per i bersagli di tocco; **Scudo**
+  (`--nav-cols:8`) — 8 bottoni fra **37,6 e 42,7px**, sempre sotto 44;
+  **Flotta** (`--nav-cols:6`) — fra **48,1 e 58,3px**: sopra i 44 normali,
+  ma sotto i **60px** che il tema del sole richiede a query, quindi
+  **nessuna delle sei app** rispetta il proprio stesso standard "guanti"
+  in outdoor mode, non solo Scudo/Conti. Sentinella e Terra hanno la
+  stessa `--nav-cols:6` di Flotta e quindi la stessa larghezza; Campo
+  (`--nav-cols:5`, ~60px @320) è l'unica app sopra soglia anche nel sole.
+  **Perché serve una decisione, non un'unità automatica**: la cura tocca
+  un componente CONDIVISO (`shared/dw-app-ui.css`, "si serializza solo
+  ciò che tocca `shared/`") usato da tutte e sette le superfici, e non
+  ha una risposta ovvia — introdurre lo scorrimento orizzontale in una
+  barra in basso è un pattern che **non esiste altrove** nell'ecosistema
+  (il core scorre le sue linguette `.atabs`, non la barra), va deciso col
+  metodo del confronto affiancato e almeno tre iterazioni prima di essere
+  chiamato buono, come vuole la direttiva sull'eccellenza.
+  **Le strade**: (a) `grid-auto-flow:column; grid-auto-columns:minmax(
+  var(--tap),1fr); overflow-x:auto` quando `--nav-cols` supera una soglia
+  dichiarata (proposta della QA su Scudo) — barra scorrevole, mai sotto
+  il minimo, ma introduce un pattern nuovo e un indizio di scorrimento
+  (freccia? ombra sul bordo?) da disegnare; (b) consolidare le voci più
+  numerose (Conti 10, Scudo 8) in meno sezioni con sotto-menu, invece di
+  allargare il componente — costo più alto, ma niente scorrimento nuovo;
+  (c) accettare la larghezza ridotta sotto i 44/60px come compromesso
+  dichiarato per le app con più di N voci, documentandolo invece di
+  correggerlo. Nessuna proposta implementata: cambia la struttura
+  condivisa di ogni app, e la direttiva sullo stile la vuole "pelo per
+  pelo" identica finché qualcuno non decide altrimenti.
+
+---
+
 ## 🟡 19/09 — Deepwork ID: nessun audit log sulle azioni sensibili di organizzazione (cambio ruolo, rimozione membro)
 
 *Dalla ricerca continua su Deepwork ID (`docs/RICERCA_CONTINUA_DEEPWORKID.md`,
@@ -800,7 +850,7 @@ cinque elencate qui sotto.
 
 ---
 
-# 📖 Da dove cominciare — le decisioni aperte sono **26**
+# 📖 Da dove cominciare — le decisioni aperte sono **27**
 
 *Erano 19 fino al 07/08. **Nove** sono state chiuse dal **ciclo**, non da te, con
 la regola che avevi concesso il 01/08 (senza risposta entro la settimana si
