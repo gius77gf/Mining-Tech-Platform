@@ -1,14 +1,18 @@
 # Ultimo ciclo
 
-- **Quando**: 2026-09-19T13:15:06Z (letta da `date -u`, non predetta)
-- **Commit di partenza**: 5dbca089 (docs(genesi): QA sui lettori CSV/DXF
-  — tre "difetti" riportati, zero veri)
-- **Cosa sto per fare**: chiusa la quarta ricerca/QA su Genesi in questo
-  blocco. Tutti e tre i "difetti" riportati erano falsi allarmi,
-  verificati e corretti nel documento (uno contraddiceva un test
-  esistente scritto lo stesso giorno). Il giro completo del browser (PID
-  18070) è ancora vivo dopo oltre 3 ore e 20 minuti.
+- **Quando**: 2026-09-19T13:35:43Z (letta da `date -u`, non predetta)
+- **Commit di partenza**: 202798b1 (chore: checkpoint QA CSV/DXF, tre
+  falsi allarmi corretti)
+- **Cosa sto per fare**: il contenitore ha segnalato un riavvio, ma
+  repository e giro completo del browser (PID 18070, oltre 3h e 40m)
+  sono sopravvissuti intatti — verificato `git status` pulito e nessun
+  lavoro perso. Fatta una verifica visiva mai fatta finora su G56 (la
+  guida di allineamento): screenshot vero col trascinamento in corso,
+  la riga tratteggiata compare esattamente come atteso. Lanciata una
+  quinta ricerca in background sui calcoli economici di Genesi (costo
+  perforazione/esplosivo/innesco), con un mandato che nomina
+  esplicitamente il fallimento della ricerca precedente (3 falsi
+  allarmi su 3) per non ripeterlo.
   **Prossimo passo atomico**: controllare `ps -p 18070`; se finito,
-  leggere l'esito con `leggi-giro.mjs`. Valutare se continuare con altre
-  ricerche (il tasso di falsi allarmi sta salendo) o spostarsi su lavoro
-  di costruzione diretto su un'area non ancora toccata di Genesi.
+  leggere l'esito con `leggi-giro.mjs`. Verificare indipendentemente
+  l'esito della ricerca sui calcoli economici prima di agire.
