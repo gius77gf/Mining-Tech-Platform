@@ -98,6 +98,86 @@ _Cercato per MECCANISMO, non per parola: chi conserva il dato dopo lo sparo? Sup
 | Detonatori / ritardi | rapportino: `innesco` per foro (testo); ritardo per foro solo nel PROGETTO (`fori[].ritardo`, PDF colonna «Ritardo») | `INNESCHI` (nonel/elettronico/elettrico), `HoleDelay`/`RowDelay` in `xmlPianoInnesco`, colonna `ritardo_ms` del piano di carico CSV | **in altro modo** (il post-sparo non porta il ritardo per foro) |
 | Carica massima per ritardo | `calcolaCaricaMaxRitardo(v)` sul progetto («Carica max/ritardo») | MIC `esitoMic`/`micSenzaConto` → colonna `kgMaxRitardo` del CSV per Sentinella (`CSV_SENT_HEAD`); Sentinella la conserva sulla volata eseguita e la usa in `refertoDaVolata` (`w`) | **esiste** (dichiarata→usata: il confronto previsto/reale è sui kg totali e per foro via Campo, non per ritardo) |
 | Esito: pezzatura | `v.frammentazione {fine,media,grossa,oversize,foto,dataValutazione,valutatoreId}` + `misureFrammentazione` (shared) | `#ric-x50`, `#ric-ovs` → `riconSave` scrive `real:{x50,ppv,fly,ovs,note}` | **esiste** |
+
+## Ricerca del 2026-09-19 — snap magnetico e guide di allineamento durante il disegno (quarto giro)
+
+_Metà dal mondo (WebSearch), metà dal codice (grep + apertura del sorgente, appena al ramo HEAD `8cd0e46`)._
+
+### Già scritto
+
+**Genesi ha uno snap a oggetti per i tratti, G48 (`puntoSnapEstremo`), ma non per i fori:**
+- G33–G47d sono funzioni CAD completate (selezione, trascinamento, snap, undo/redo, griglie, geometrie)
+- **G48 snap a vertici estremi (`puntoSnapEstremo`)** applica solo durante il disegno di tratti: riga 6631 di `genesi.html` lo chiama entro il blocco `if (D2.tool==='tratto')` di `d2Move`
+- Quando si **trascina un foro già presente** (`d2drag >= 0`), il codice entra nel terzo ramo di `d2Move` (riga 6638) che applica **solo `_snapXY`** (snap a griglia): `puntoSnapEstremo` non viene mai richiamato
+- Non esiste nessun test banco che verifichi il comportamento di trascinamento dei fori su un canvas reale
+
+**Smart guides non sono presenti** in Genesi: il codice non disegna linee di allineamento durante il drag, né calcola distanze da altri fori, né mostra anticipazioni.
+
+Fonte: `genesi.html` righe 6625–6639 (`d2Move`); `genesi-data.js` righe 3880–3900 (`puntoSnapEstremo`).
+
+### Il mondo: come i CAD leggeri implementano le smart guides
+
+**Librerie e pattern comuni:**
+- **Fabric.js** (canvas 2D): quando un oggetto viene trascinato, calcola in tempo reale le distanze dai vicini e disegna **guide rosse tratteggiate** dove gli spigoli si allineano verticalmente o orizzontalmente (tolleranza 5–10 px). La guida scompare appena l'allineamento non regge
+- **LibreCAD** / **QCAD**: durante il drag, scandiscono gli snappable points di tutti gli oggetti (vertici, punti medi, centri) e, entro un raggio di attrazione (~10 px), disegnano una linea sottile che connette il cursore al punto di snap
+- **Adobe Illustrator**: le guide intelligenti compaiono quando due forme raggiungono la stessa coordinata x o y (allineamento centrale, bordi, distribuzione), con una linea blu fine che resta finché il trascinamento continua
+- **Implementazione vanilla**: si crea un `<canvas>` temporaneo o un layer visuale separato dove si disegnano le linee di guida; la logica è: `for each drainable object: for each existing object: if distance(draggable.pos, existing.snapPoint) < tolerance: draw line`
+
+Fonte: [Fabric.js Guides](https://fabricjs.com/) (documentazione widget), [LibreCAD Source](https://github.com/LibreCAD/LibreCAD), [QCAD Feature Overview](https://www.qcad.org/en/features).
+
+### Il delta verificato aprendo il codice
+
+**Domanda: quale sarebbe la fetta più piccola e più sicura da costruire?**
+
+**Risposta: guide di allineamento per fori durante il trascinamento, limitate a un solo asse (spalla / y-axis).**
+
+**Perché questa scelta:**
+- I fori in Genesi vivono su una `spalla` (coordinata y): due fori sulla stessa spalla hanno posizione `[x1, spalla]` e `[x2, spalla]`
+- Una guida orizzontale che dica «questo foro si allinea in Y con altri N fori sulla stessa spalla» è immediata e costa poco
+- Non tocca la **logica di snap** (il foro resta dove lo metti); tocca solo la **visualizzazione** di aiuto
+- Consente di verificare la difesa senza stravolgere `d2Move` o il disegno dei fori
+
+**Cosa si modificherebbe:**
+1. Nella funzione `d2Move`, ramo foro (`d2drag >= 0`, riga 6638):
+   - Dopo il calcolo della nuova posizione con `_snapXY`, scandire tutti gli altri fori in `D2.holes`
+   - Per ogni foro sulla stessa spalla, calcolare `|deltaX|` (distanza orizzontale dal foro trascinato)
+   - Se `deltaX < 50px` (tolleranza ragionevole), marcare il foro come «candidato di guida»
+   - Disegnare una linea **orizzontale leggera** (colore: grigio 60%, spessore 1px, tratteggiata `[5,5]`) dal foro trascinato fino ai punti di intersezione
+
+2. Creare due nuovi test bancos:
+   - `genesi-foro-guida-allineamento.mjs`: verifica che le guide appaiano quando un foro trascinato si avvicina a fori sulla stessa spalla entro tolleranza
+   - `genesi-foro-drag-nessun-snap.mjs`: verifica che trascinando un foro le guide NON cambino il suo punto finale (snap visivo, non snap effettivo)
+
+3. Nessuna modifica a `d2Down`, `d2Up`, `puntoSnapEstremo` o al salvataggio
+
+**Tocca davvero `d2Move`?** Sì, il ramo `d2drag >= 0` (righe 6638+). Tutto il resto della funzione resta inerte.
+
+**Quali banchi vanno rilanciati?** Tutti quelli che simulano un trascinamento di fori su canvas:
+- `genesi-d2-undo.mjs`: contiene `mouse.down()` + `mouse.move()` ma su selezione, non su fori trascinati — la nuova logica non lo interessa
+- `genesi-selezione-multipla.mjs`: idem
+- Tutti i nuovi bancos che verranno scritti per verificare foro drag in generale (attualmente assenti)
+
+**Costo stimato:** Piccolo (30–40 righe di codice, nessun cambiamento di struttura).
+
+### Proposte
+
+**Prima di scrivere la guida (priorità):**
+1. **Verificare che il trascinamento di fori funzioni davvero.** Attualmente nessun banco lo prova. La proposta di guida presuppone che il drag base regga; se rotto, ogni guida aggiunta lo cela.
+   - Test: trascinare un foro da `(200, 150)` a `(300, 150)` su spalla 0, verificare che la posizione finale sia quella attesa, che il foro sia salvato
+   - Test: trascinare su una spalla che non esiste per creare una nuova spalla (se supportato)
+   - Test: drag con collisione (due fori sulla stessa cella di griglia): il secondo scavalca il primo o no?
+
+2. **Misurare la tolleranza giusta.** 50px è un'ipotesi; la scelta giusta dipende dalla scala di disegno e dal DPI. Proposta: lanciare il banco con tolleranze diverse e leggere quale fa sparire il meno di falsi allarmi (guide che compaiono per caso).
+
+### Fonti
+
+- [Fabric.js Smart Guides](https://fabricjs.com/): implementazione in JavaScript vanilla per canvas 2D
+- [LibreCAD Source Code — Snap](https://github.com/LibreCAD/LibreCAD/blob/master/librecad/src/lib/actions/rs_actiondrawline.cpp): come scandia gli snappable point
+- [Adobe Illustrator Guide Behavior](https://helpx.adobe.com/illustrator/using/rulers-guides-grids.html): smart guides durante drag, tolleranze
+
+### Riassunto onesto
+
+Lo snap a oggetti (`G48`) in Genesi copre i tratti, non i fori: durante il trascinamento di un foro, il codice usa solo snap a griglia, non a vertici. Le smart guides (linee di allineamento durante il drag) non esistono. Una proposta minima è aggiungere guide orizzontali per fori che si allineano in Y con altri fori, disegnate durante il trascinamento senza modificare la logica di snap. Tocca `d2Move` (ramo foro), richiede due nuovi bancos, ha costo piccolo, e presuppone che il drag base di fori funzioni — cosa che nessun banco attualmente verifica. Il primo passo è testare il drag di fori senza nessuna guida, per escludere guasti più profondi.
 | Esito: proiezioni | solo testo libero (`note`) | `#ric-fly` «Gittata flyrock» reale vs `k.fly`; Scudo: near-miss con categoria `volata` «Volata e proiezioni» (`NEARMISS_CATEGORIE`, `shared/dw-ponti.js`) | **in altro modo** |
 | Esito: colpi mancati | — | — | **non c'è** (comando sotto) |
 | Conteggio colpi esplosi | «Fori brillati» = fori CARICATI dichiarati, non un conto dopo lo sparo | — | **non c'è** (comando sotto) |
