@@ -8682,11 +8682,11 @@ numero scritto dove non era stato misurato niente**.*
   il lettore non leggeva affatto le tre colonne, non una chiamata che le
   scartava): il registro infortuni esportato e ri-caricato perdeva la
   denuncia INAIL (3097→3109):
-  **3.674 prove girano senza rete** *(ricontato il 19/09, dopo il sesto
+  **3.676 prove girano senza rete** *(ricontato il 19/09, dopo il sesto
   giro di deep-pass QA su Sentinella/Genesi/Conti — `run-kpi` 3172→3177 — e
   il settimo giro — 3177→3178, correzione del refuso di `terra-sequenza-lotto.mjs`
   più il test sulla sezione Personale presente di Campo — le altre otto invariate)*. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3178, `run-stile` 330,
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3180, `run-stile` 330,
   `run-helpers` 83, `run-pointcloud` 34, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **41** e di asserzioni ne esegue di più:
@@ -11910,5 +11910,30 @@ continua su Scudo.
 run-kpi.mjs 3178/3178. sintassi-pagine.mjs 34/34. run-stile.mjs 330/330.
 numeri-nei-documenti.mjs 43/43 (413 banchi, copertura 1051/1051).
 sentinella-bottoni-occupato.mjs 13/13 normale, 5 KO sotto `--controprova`.
-giro-node.mjs completo rilanciato fresco dopo tutte le modifiche: 3.674
+giro-node.mjs completo rilanciato fresco dopo tutte le modifiche: 3.676
 prove, 4155 asserzioni — numeri propagati con lo strumento, non a memoria.
+
+## Ottavo giro di deep-pass QA + ricerca continua Sentinella (19/09, notte)
+
+Tre cantieri in parallelo: QA su Deepwork ID (ridispatchato dopo
+un'interruzione), seconda QA su Terra, ricerca continua su Sentinella.
+
+- [x] **Deepwork ID**: `profilo.html` offriva "Invita nell'organizzazione
+      attiva" sempre attivo a qualunque membro, senza leggere `id.role()`
+      — stessa correzione già fatta in `admin.html` il 18/09, qui mancava
+      del tutto. Il server rifiuta sempre chi non è owner/admin: non una
+      falla di sicurezza, ma una funzione promessa che avrebbe sempre
+      fallito. Stesso pattern di `admin.html`, banco esteso (`8d063397`).
+- [x] **Terra**: `csvRilievi`/`parseRilieviCsv` non portavano affatto
+      `rilevatore` (chi ha eseguito il rilievo, per il verbale) — nessuna
+      colonna per lui nel file, non solo una riga che non lo passava
+      (come `tolleranzaPct` l'11/09). Aggiunta come nona colonna,
+      compatibile all'indietro (`9dfe4277`).
+- [x] **Ricerca su Sentinella**: la copertura/validità retroattiva della
+      taratura è già solida; manca l'incertezza di misura del certificato
+      e uno stato "incerto" sui valori borderline — non implementato,
+      richiede prima il testo primario ISO/IEC 17025 (`4f1d7f3c`).
+
+run-kpi.mjs 3180/3180. copertura-funzioni.mjs 1051/1051 (terra 106/106).
+numeri-nei-documenti.mjs 43/43. id-stati.mjs 36/36 normale, 22 KO sotto
+`--controprova`. Numeri propagati fresco: 3.676 prove.
