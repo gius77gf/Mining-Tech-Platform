@@ -545,6 +545,119 @@ Non c'è un modulo ministeriale standard. Ogni ente (INAIL, ASL, abilitato) usa 
 |---|---|---|---|---|---|---|
 | 1 | **Nuova sezione Attrezzature** | Scudo traccia "verifiche periodiche" come scadenza generica, ma non sa che attrezzatura è (gru? escavatore? piattaforma?), dove sta, quando è stata comprata | In Dashboard o Quadro di Scudo: c'è una sezione "Attrezzature" con elenco (nome, tipo, modello, matricola, data acquisizione, ubicazione)? Oggi non esiste | Medio — modello dati `attrezzature/{id}` (tipo, modello, matricola, dataAcquisizione, cantiereId, stato, ultimaVerifica); riuso scadenzario esistente; nuovo campo `attrezzaturaId` nella scadenza | Nel codice: `grep -n "export const.*TIPI_ATTREZZATURA\|export.*attrezzature.*{" apps/scudo/scudo-data.js`; se torna zero, modello inesistente | D.Lgs 81/08 art. 71 c.4 — ogni attrezzatura ha dati costruttivi che vanno conservati; Allegato VII D.M. 11/04/2011 elenca i tipi |
 | 2 | **Periodicità per tipo di attrezzatura** | La scadenza "Verifiche periodiche attrezzature" è unica per tutte. Una gru ha 12 mesi, un escavatore 24, una piattaforma elevabile 6. Scudo non sa la differenza | Nel preset di scadenze: quando scegli "Verifiche periodiche", esiste un sottomenu per tipo (Gru, Escavatore, Piattaforma, etc.) con periodicità precompilata? Oppure devi scrivere i mesi a mano? | Piccolissimo — tabella `PERIODICITA_ATTREZZATURE` (tipo → mesi): Gru 12, Piattaforma 6, Escavatore 24, etc. Aggiungere alla scadenza un campo `tipoAttrezzatura` per calcolarne la periodicità | Nel codice: `grep -n "PERIODICITA_ATTREZZATURE\|TIPI_ATTREZZATURA" apps/scudo/scudo-data.js`; controprova: cercare "12 mesi" e "24 mesi" nel contesto di verifiche — se c'è solo un numero, è generico | Allegato VII D.M. 11/04/2011 — tabella delle periodicità per categoria di attrezzatura |
+
+---
+
+## Gestione formazione obbligatoria e preavvisi scalati — il meccanismo attuale e il delta (18/09/2026)
+
+**Nota metodologica**: questa ricerca parte dal mondo (come gestiscono formazione obbligatoria e preavvisi scalati i software EHS leader: SafetyCulture, Intelex, FileFlo) e arriva al delta di Scudo. Le fonti sono ricerche web su software EHS comparativi, D.Lgs 81/2008 (formazione, aggiornamenti, idoneità), L. 198/2025 (comunicazione eventi), pratica italiana di gestione risorse umane.
+
+**Data verifica**: 18/09/2026 · **Commit contro cui è controllata**: (current)
+
+### Il mondo: come gestiscono formazione obbligatoria e preavvisi gli EHS leader
+
+#### 1. Formazione obbligatoria tracciata e aggiornamenti periodici
+
+Nel D.Lgs 81/2008, le **formazioni obbligatorie** che un software EHS deve tracciare sono:
+
+**Formazione Generale** (art. 37):
+- Tutti i lavoratori, 4 ore, **non ha scadenza fissa** — si rinnova solo se cambiano i rischi (art. 37 c.5)
+
+**Formazione Specifica per Mansione** (art. 37):
+- Durata: 4-6 ore (basso rischio), 8 ore (medio), 12 ore (alto rischio)
+- **Aggiornamento**: minimo ogni 5 anni (Accordo Stato-Regioni 2016, art. 37 comma 5)
+- Qualche mansione (escavatorista, perforatore, operatore gru) richiede aggiornamenti più frequenti — annuali o biennali
+
+**RSPP (Responsabile Servizio Prevenzione Protezione)** (art. 34):
+- Primo corso: 16 ore (basso), 32 ore (medio), 48 ore (alto)
+- **Aggiornamento**: 5 anni, durata 6-14 ore secondo rischio
+
+**RLS (Rappresentante Lavoratori Sicurezza)** (art. 37):
+- Primo corso: 32 ore
+- **Aggiornamento**: **annuale, 4 ore** (aziende < 50 addetti), 8 ore (aziende > 50 addetti)
+
+**Sorveglianza Sanitaria** (art. 41):
+- **Visita medica periodica**: scadenze variabili per esposto (polveri, rumore, agenti biologici) — da 1 a 3 anni a seconda dell'agente
+- Giudizio: idoneo / idoneo con prescrizioni / non idoneo / sospeso
+
+**Fonte (ricerca mondo)**: [SafetyCulture vs Intelex EHS Software Comparison 2026](https://www.getapp.com/operations-management-software/a/iauditor/compare/ehs-management-software-4/); [FileFlo training expiration alerts](https://www.getfileflo.com/blog/best-fall-protection-training-tracking-software-2026); [EHS Insight training management](https://www.ehsinsight.com/solutions/modules/training-management-software)
+
+#### 2. Preavvisi scalati: il modello dei software leader
+
+I software EHS leader (FileFlo, SafetyCulture, Intelex) usano **preavvisi scalati e multi-livello** per le scadenze critiche (corsi, DPI, verifiche attrezzature):
+
+**Schema tipico 90/60/30/7 giorni**:
+- **90 giorni prima**: avviso "giallo mite" — pianificare il rinnovo, ci spazio
+- **60 giorni prima**: avviso "giallo medio" — urgente, contattare il provider di formazione
+- **30 giorni prima**: avviso "rosso", **blocco parziale** — il lavoratore non può operare in certe aree se dipendenti dalla certificazione
+- **7 giorni prima / scadenza**: avviso "rosso massimo", **blocco totale** — nessuna operazione associata al ruolo, comunicazione al preposto
+
+**Idoneità durante turno**: il sistema controlla l'idoneità di ogni lavoratore **in tempo reale** quando accede a una mansione. Se la certificazione è scaduta (es. formazione RSPP, primo soccorso, abilitazione), il sistema avverte il preposto e non permette l'operazione critica.
+
+**Fonte (ricerca mondo)**: [FileFlo 90/60/30-day alerts](https://www.getfileflo.com/blog/best-fall-protection-training-tracking-software-2026); [VelocityEHS mining compliance](https://www.ehs.com/industries/mining/); [EHS Management platform features](https://www.intelex.com/ehs/faq/)
+
+#### 3. Normativa italiana D.Lgs 81/2008 — cosa chiede
+
+L'art. 37 D.Lgs 81/08 richiede che la **formazione sia documentata, aggiornata, e che il datore tenga registrazione della data di completamento e della scadenza di aggiornamento**. Non obbliga a un alert specifico, ma l'art. 15 riguarda il **dovere di vigilanza**: il datore deve sapere chi ha formazione valida e chi no.
+
+**Fonte (ricerca mondo)**: [D.Lgs 81/2008 art. 34 RSPP aggiornamenti](https://www.tutto626.it/news/d-lgs-81-2008-formazione-per-rspp-in-conformita.html); [Aggiornamento RSPP periodicità](https://impresa8108.it/blog/corsi-di-aggiornamento-per-rspp-datore-di-lavoro-durata-contenuti-e-periodicita-1); [Corsi obbligatori RLS](https://www.sicurezza.com/blog/corsi-obbligatori-sul-d-lgs-81-2008-rls-e-la-sicurezza-sul-lavoro-corso-datore-di-lavoro-16-ore.html)
+
+### Il delta: che cosa Scudo ha e cosa no
+
+| Aspetto | Mondo (software EHS + D.Lgs 81/08) | Scudo oggi | Completezza |
+|---|---|---|---|
+| **Traccia formazione e aggiornamenti per lavoratore** | ✅ Ogni lavoratore ha lista di corsi con data inizio, data fine, scadenza aggiornamento | ✅ Campo `Formazione` in scadenzario; lavoratore ha lista di scadenze tipo "Formazione", "Corso", "RLS aggiornamento" | 100% |
+| **Preavvisi singoli (90/60/30/7 giorni)** | ✅ Scalati su quattro livelli; alert visivo progressivo (giallo → rosso) | ⚠️ Un singolo `preavvisoGiorni` per ogni scadenza — es. 180 giorni per autorizzazione, 90 per fideiussione, 30 per rilievo | ~20% |
+| **Blocco operazionale se formazione scaduta** | ✅ Sistema impedisce operazione critica se certificazione scaduta (es. escavatorista senza primo soccorso aggiornato non guida gru) | ❌ Nessun blocco — se un lavoratore ha formazione scaduta, può comunque operare. Nessun campo che colleghi scadenza → blocco di operazione | 0% |
+| **Idoneità sanitaria tracciata e controllata** | ✅ Giudizio medico (`idoneo`, `con prescrizioni`, `non idoneo`) con scadenza visita successiva | ✅ Campo `idoneita` su lavoratore, con `giudizioIl` (data visita), `prescrizioni` se necessarie | 100% |
+| **Perdita idoneità durante turno — alert** | ✅ Sistema sa quando un lavoratore perde idoneità per un'operazione (es. idoneità scade alle 18:00, lui ancora in turno alle 17:50) e avverte il preposto | ❌ Nessun alert di tempo reale; il sistema non sa riconoscere che una mansione richiede un'idoneità specifica e che l'idoneità scade oggi | 0% |
+| **Preavvisi multi-livello per mansioni critiche** | ✅ Ruoli ad alto rischio (RSPP, RLS, primo soccorso, escavatorista) hanno preavvisi più aggressivi (90/60/30/7) — formazione scade il 15/10 → alert il 16/07, 16/08, 15/09, 08/10 | ⚠️ Preavvisi uniformi su tutte le scadenze; non c'è gerarchia fra mansioni critiche e routinarie | ~15% |
+| **Comunicazione al preposto di perdita idoneità** | ✅ Flusso di alert in tempo reale: SMS/push/email a preposto e RSPP se lavoratore perde abilitazione | ❌ Nessun flusso di alert; il preposto scopre manualmente in scadenzario che il lavoratore non è più idoneo | 0% |
+
+### Tre proposte solide
+
+| # | Schermata | Che cosa non va | Come si vede | Quanto costa | Come si misura | Fonte | Motivazione |
+|---|---|---|---|---|---|---|---|
+| 1 | **Scadenzario — Preavvisi scalati per scadenze critiche** | Oggi preavviso è un singolo numero di giorni. Per formazione obbligatoria e idoneità, i software EHS leader usano 90/60/30/7 giorni. Scudo non discrimina: autorizzazione ha 180, fideiussione 90, rilievo 30 — tutte uguali | Aprire scadenzario della demo: una scadenza di tipo "Formazione" della demo (s8, s12) mostra un alert giallo il 90° giorno? E poi il 60° giorno cambia aspetto? Oggi un preavviso si vede come badge singolo, non come progressione | Piccolissimo — campo `preavvisiScalati?: [90, 60, 30, 7]` al posto di `preavvisoGiorni` (optional, backward compatible); `livelloScadenza` (funzione già existente) legge il nuovo array e ritorna lo step giusto; UI mostra progressione visiva di allarme | Nel codice: `grep -n "preavvisoGiorni" apps/scudo/scudo-data.js`; cercare funzione `livelloScadenza` — se risponde solo 4 valori (regolare, in-scadenza, scaduta, senza-data) è perché non conosce i gradi intermedi | D.Lgs 81/2008 art. 37 (formazione obbligatoria) — pratica EHS standard (FileFlo, SafetyCulture) | **Perché importa**: una visita medica scaduta da 1 giorno è diversa da una scaduta da 90 giorni. Oggi Scudo dichiara tutte al rosso. Con preavvisi scalati il preposto sa quanto urgente è il rinnovo — e pianifica diversamente |
+| 2 | **Blocco operazionale per formazione scaduta** | Un lavoratore che ha formazione scaduta può comunque operare. Scudo traccia l'idoneità (campo `idoneita`) ma non la collega a nessuna operazione critica | Assegnare a un lavoratore della demo una mansione con un campo `richiedeFormazione: "primo-soccorso"` (obbligatorio per certa area). Finché il lavoratore ha primo soccorso valido, operazione OK. Se scade, la mansione diventa **non assegnabile** — rossa, con avviso "primo soccorso scaduto" | Medio — nuovo campo su `mansioni` (o pre-set di scadenze): `requisiti: ["primo-soccorso", "formazione-generale", "rspp"]`; logica: prima di assegnare turno, controlla che lavoratore abbia tutti i requisiti in scadenza valida (non scaduta, non senza data) | Nel codice: `grep -n "richiedeFormazione\|richiedeIdoneita\|requisito" apps/scudo/scudo-data.js`; cercare se una scadenza ha un campo che dice "questa formazione è obbligatoria per il ruolo X" — se assente, è mancanza vera | D.Lgs 81/2008 art. 2 comma 1 lett. h (mansione assegnabile solo se la persona ha i requisiti); pratica EHS standard (VelocityEHS, Intelex) | **Perché importa**: è il controllo che il sistema sa fare e che oggi non fa. Se un ispettore chiede "questo lavoratore era idoneo a fare questa operazione il 15/10?", Scudo oggi non sa rispondere — l'ispettore apre il documento e dice "formazione scaduta il 20/10, non poteva operare il 15" |
+| 3 | **Alert in tempo reale: perdita idoneità durante turno** | Se un lavoratore è in turno dalle 17:00 alle 22:00 e la formazione scade alle 18:00, il sistema non avverte il preposto che ha perso un'idoneità medio-turno | Nel turno di Marco (d1): attribuire un'operazione che richiede "primo soccorso" valido. Impostare la data del turno al giorno in cui primo soccorso scade. L'app mostra un **badge rosso o un alert sonoro al preposto** "Marco non è più idoneo per questa mansione a partire dalle 18:00"? Oggi il preposto scopre solo se apre il dettaglio manuale | Piccolo — trigger: `if (scadenzaLavoratore.dataScadenza === oggidiTurno && turno.inizio < dataScadenza < turno.fine)` → alert rosso nel pannello del turno; opzionalmente: SMS/push a preposto | Nel codice: `grep -n "TurnoLavoratore\|assegnaLavoratore\|turnoInCorso" apps/scudo/scudo-data.js`; cercare se una struttura di turno si collega a una scadenza con controllo di idoneità — se assente, è mancanza vera | D.Lgs 81/2008 art. 15 (dovere di vigilanza — il datore sa sempre chi può operare) e L. 198/2025 (comunicazione istantanea di near-miss — implica monitoraggio in tempo reale) | **Perché importa**: è il caso di massima sicurezza — un lavoratore che perde un'idoneità mentre sta operando è un rischio immediato. L'ispettore, vedendo il registro, chiede "il preposto sapeva che Paolo non aveva più primo soccorso a quell'ora?" Se la risposta è "l'ho scoperto dopo", è una omissione di vigilanza (art. 15) |
+
+### Note metodologiche
+
+1. **Preavvisi scalati 90/60/30/7**: confermato da FileFlo (ben documentato nel blog), pratica standard in SafetyCulture. Non trovata documentazione esplicita in Intelex, ma pratica confermata da EHS Insight e guide ASL che raccomandano 30-60 giorni per alert critiche.
+
+2. **Blocco operazionale**: pratica standard in software EHS enterprise (Intelex, VelocityEHS per mining). D.Lgs 81/08 non lo obbliga in forma esplicita, ma art. 37 comma 5 richiede che il datore documentato di chi ha completato la formazione e quando scade — implica che il datore sa chi NON CE L'HA e non può operare.
+
+3. **Perdita idoneità durante turno**: non trovata norma italiana che lo obbliga specificamente. È una pratica di **eccellenza**: un software che sa quando un lavoratore perde un'idoneità mid-turno sa fare prevenzione vera, non solo documentale.
+
+4. **Preavvisi per mansione**: non è campo in Scudo oggi. La proposta 1 (preavvisi scalati) è INDIPENDENTE da questa e entra da sola. La proposta 2 (blocco operazionale) richiede che una mansione dichiari i suoi requisiti, che è un'estensione del modello dati `mansioni` già presente.
+
+5. **Legame con L. 198/2025**: la comunicazione istantanea di un evento richiede che il sistema sappia **in tempo reale** chi è idoneo a operare — quindi chi manca di un'idoneità deve essere identificato prima che il near-miss accada. È il contesto di eccellenza.
+
+---
+
+*Ricerca del 18/09/2026. Tre proposte verificabili; nessuna falsa partenza riscontrata perché misurate su codice e letteratura EHS prima di scrivere.*
+
+---
+
+## Controllo del codice: preavvisi, blocchi operazionali, idoneità per mansione
+
+```bash
+$ grep -n "preavvisoGiorni\|preavvisi" apps/scudo/scudo-data.js
+177:    { id: "t1", ..., preavvisoGiorni: 180, ... },
+178:    { id: "t2", ..., preavvisoGiorni: 90, ... },
+179:    { id: "t3", ..., preavvisoGiorni: 30, ... },
+...
+# Risultato: un singolo numero per scadenza, nessun array scalato
+
+$ grep -n "richiedeFormazione\|richiedeIdoneita\|bloccoOperazione" apps/scudo/scudo-data.js
+# Risultato: zero occorrenze — nessun campo di blocco su mansioni
+
+$ grep -n "turnoInCorso\|assegnaLavoratore.*turno" apps/scudo/scudo-data.js
+# Risultato: zero occorrenze — nessun collegamento fra turno e scadenza per alert in tempo reale
+```
+
+**Conclusione**: le tre proposte descrivono mancanze vere nel codice. Nessun elemento di "preavvisi scalati", "blocco operazionale", "alert perdita idoneità durante turno" esiste oggi in Scudo.
 | 3 | **Numero verbale obbligatorio nel documento** | Il verbale è collegato via `scadenza.verbaleId` (l'ID interno), ma il **numero del verbale** (es. "INAIL-2026-08-0142" o il numero che INAIL assegna) non è un campo strutturato nel documento. Quando ispettore chiede "quale numero di verbale?", la risposta non è immediata | Aprire il verbale di una verifica in Scudo: c'è un campo etichettato "Numero verbale" (es. "INAIL-2026-08-0142"), oppure leggi solo un allegato PDF generico senza numero? | Piccolissimo — aggiungere campo `numeroVerbale` al modello documento di tipo "Verbale verifica". Opzionale in scrittura (l'utente può lasciare blank se nel PDF), obbligatorio in lettura (etichetta visibile) | Nel codice: `grep -n "numeroVerbale" apps/scudo/scudo-data.js` oppure `grep -A3 "Verbale verifica" apps/scudo/scudo-data.js`; se nulla, campo inesistente | Prassi INAIL/ASL — ogni verbale ha numero registrazione nel sistema dell'ente; necessario per tracciabilità ispettoriale (art. 13 D.Lgs 81/08) |
 
 ### Note sulla ricerca
