@@ -208,6 +208,35 @@ Firestore.*
   perché introduce un logout forzato visibile agli utenti, che merita una
   conferma prima di attivarlo su un prodotto già in mano a clienti.
 
+  **✅ Aggiornamento 19/09 (quinta QA su Deepwork ID): la strada (a) è
+  già stata costruita** — `revocaSessioni()` (`functions/index.js:219`)
+  chiama `revokeRefreshTokens` ed è invocata sia da `updateMemberRole`
+  (riga 258) sia da `removeMember` (riga 282), col commento del codice
+  stesso che dichiara la causa e il limite. **⛔ Ma il limite dichiarato
+  è stato RIPRODOTTO, non solo letto**: sotto l'emulatore, un admin
+  rimosso ha continuato — con lo stesso token, mai rinfrescato — a
+  leggere un documento riservato (200 OK) e a **cancellare una fattura
+  "emessa"** (azione riservata ad admin/owner, `organizations/orgA/apps/
+  conti/fatture/fatt1` → sparita) DOPO che `removeMember` aveva già
+  cancellato la sua membership e chiamato `revokeRefreshTokens`. La causa
+  è quella che il codice descrive: `revokeRefreshTokens` blocca solo il
+  PROSSIMO refresh, mai il token già firmato, e `firestore.rules` (righe
+  21-32, `memberOf`/`isAdmin`/`isOwner`) legge solo il claim nel token,
+  mai la membership viva su Firestore. Quindi la finestra di un'ora resta
+  aperta anche dopo (a) — non è un difetto di (a), è il limite che (a)
+  non poteva chiudere da solo, reso concreto da una SCRITTURA su una
+  risorse admin-only invece che da un'ipotesi.
+  **Nuova strada (d), per chiudere il residuo**: sui controlli più
+  sensibili (update/delete su un documento emesso, update su
+  `organizations/{orgId}`), sostituire la sola lettura del claim con un
+  incrocio anche col documento di membership live (`get(...members/
+  $(request.auth.uid)).data.status == 'active'`) — chiude l'accesso nello
+  stesso istante in cui `removeMember` cancella la membership, invece che
+  alla scadenza naturale del token. Costo: una lettura Firestore in più
+  per ogni controllo su quelle regole (non su tutte: solo dove il rischio
+  è più alto) — un compromesso latenza/costo contro sicurezza che (a) non
+  aveva ancora richiesto e che va pesato dal fondatore, non deciso qui.
+
 ---
 
 ## 🟡 17/09 — Scudo↔Campo: le ore lavorate per gli indici infortunistici sono già misurate altrove, ma nessuno le collega
