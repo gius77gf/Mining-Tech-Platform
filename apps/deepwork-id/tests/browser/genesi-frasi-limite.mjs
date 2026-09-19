@@ -429,7 +429,14 @@ async function base(preludio, atteso, nome) {
   await pg.waitForTimeout(400);
   const csv = String(await pg.evaluate(() => window.__csv) || "");
   frasi++;
-  dice(/;ppv_prev_base\s*$/m.test(csv.split("\n")[0] + "\n") || csv.split("\n")[0].endsWith("ppv_prev_base"),
+  /* G52 (19/09): l'asserzione pretendeva `ppv_prev_base` in FONDO
+     all'intestazione — vero quando è stata scritta, falso da quando
+     `campo_misfire` si è aggiunto dopo di lei (append-only, come dichiara
+     il commento sopra `csvRiconciliazione`: le colonne nuove vanno in
+     coda, non prendono il posto delle vecchie). L'invariante vero non è
+     mai stato "è l'ultima colonna": è che la colonna ESISTE, per nome
+     intero, non come sottostringa di un altro nome. */
+  dice(new RegExp("(^|;)ppv_prev_base(;|$)").test(csv.split("\n")[0]),
        "   e il CSV che esce dall'azienda ha la colonna della base", csv.split("\n")[0]);
   dice(pg.__errori.length === 0, "la pagina non solleva errori", pg.__errori[0]);
   const riga = csv.split("\n")[1] || "";
