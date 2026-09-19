@@ -487,6 +487,8 @@ const BANCHI = [
   ['input relativo/polare di Genesi · controprova', 'genesi-input-relativo.mjs', ['--controprova'], true],
   ["l'esito della detonazione di Genesi (G52)", 'genesi-esito-detonazione.mjs', []],
   ["l'esito della detonazione di Genesi · controprova", 'genesi-esito-detonazione.mjs', ['--controprova'], true],
+  ["il semaforo di sintesi letto prima di esportare (G53)", 'genesi-semaforo-export.mjs', []],
+  ["il semaforo di sintesi prima di esportare · controprova", 'genesi-semaforo-export.mjs', ['--controprova'], true],
   ["Genesi: una volata salvata porta l'identità di chi era collegato", 'genesi-autore-volata.mjs', []],
   ['autore della volata di Genesi · controprova', 'genesi-autore-volata.mjs', ['--controprova'], true],
   [".chg: larghezza minima nel tema del sole (Terra)", 'chg-min-larghezza.mjs', []],

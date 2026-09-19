@@ -17562,6 +17562,23 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     eq(senzaId.foriMisfire, ["foro 5"], "senza id si nomina per numero, mai un foro anonimo in un avviso di sicurezza");
   });
 
+  /* ═══ G53 (19/09) — IL SEMAFORO (G45) LETTO PRIMA DI ESPORTARE, dal delta
+     verificato di docs/RICERCA_CONTINUA_GENESI.md: un MODALE di conferma è
+     stato scritto, provato e SCARTATO lo stesso giorno (24 prove su 91 in
+     sei banchi diversi presumono un download sincrono) — qui un avviso
+     passivo, in coda alla STESSA frase di successo di sempre (mai un
+     secondo `toast()`, che sovrascriverebbe la prima frase — la prima
+     stesura ci è cascata ed è stata corretta prima del commit). */
+  test("⛔ Genesi · il semaforo di sintesi è letto da TUTTI e QUATTRO gli export che portano il piano fuori dall'app (G53)", () => {
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    eq((pag.match(/fraseGraviExport\(\)/g) || []).length, 5,
+      "la funzione dichiarata (1) più un punto di lettura per ciascuno dei quattro bottoni (scheda CSV, piano CSV, piano DXF, innesco XML)");
+    ok(/D2\._sintesi=\{ n:_sintN, fuori:_sintFuori, gravi:_sintGravi \}/.test(pag),
+      "la sintesi si scrive una volta sola, dove viene calcolata (renderScheda2D)");
+    ok(!/toast\([^)]*\);\s*\n\s*avvisoGraviExport\(\)/.test(pag),
+      "⛔ nessun secondo toast() separato: sovrascriverebbe la frase di successo (la prima stesura, corretta prima del commit)");
+  });
+
   test("⛔ Genesi · il CSV dello storico è protetto dalla CSV-injection, con la difesa di casa", () => {
     /* ⛔ IL DIFETTO CHE QUESTA PROVA BLINDAVA, corretto il 03/08 ed era il più
        grave dei cinque: `csvRiconciliazione` si portava dietro dalla pagina una

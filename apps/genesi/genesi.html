@@ -3620,6 +3620,28 @@ async function cmpRender(){
     +(_stessaBase?'':'<div style="margin-top:10px;padding:7px 9px;border:1px solid rgba(255,202,40,.3);border-radius:8px;background:rgba(255,202,40,.06);color:#ffca28;font-size:12px;">Le due PPV <b>non vengono dalla stessa legge</b>: il confronto direbbe che è cambiato il progetto, e invece è cambiata la calibrazione. Nessuno dei due è dichiarato migliore su questa riga.</div>')
     +'<div style="margin-top:10px;color:var(--mut);font-size:12px;">In verde il progetto migliore per ciascun KPI (più basso = meglio per X50/X80/PPV/flyrock). A parità di valore non c’è un migliore, e nessuna delle due colonne va in verde. Stime indicative: valgono i limiti dichiarati nella scheda validatori.</div>';
 }
+/* G53 (19/09) — avviso passivo dopo un export riuscito: legge l'ultima
+   sintesi calcolata (D2._sintesi, scritta da renderScheda2D) e, se ci
+   sono indicatori gravemente fuori fascia, ne aggiunge la frase alla
+   coda dello STESSO toast di successo — mai un secondo `toast()`: la
+   prima stesura chiamava `toast()` due volte, e la seconda chiamata
+   RISCRIVE il testo della prima (`#toast` è un elemento solo): la frase
+   coi numeri del file (fori/parametri esportati) spariva, sostituita
+   da quella con gli indicatori — e un banco che legge quella frase per
+   confrontarne i numeri col file (`genesi-documenti-che-escono.mjs`)
+   accusava un file sano di mentire. Una frase sola, un solo `toast()`
+   per handler: il banco continua a trovarci i suoi numeri.
+   MAI un blocco: non tocca il click sincrono su cui i banchi che
+   premono questi bottoni fanno già affidamento (la via del modale di
+   conferma è stata scritta, provata e scartata lo stesso giorno: 24
+   prove su 91 in sei banchi diversi presumono un download immediato).
+   Se la scheda non è mai stata renderizzata (`D2._sintesi` assente) non
+   si inventa una severità: si tace, come vuole il principio del
+   fondatore sull'assenza di un dato. */
+function fraseGraviExport(){
+  const s=D2._sintesi;
+  return (s && s.gravi>0) ? ' — ⚠️ '+_ricPlur(s.gravi,'indicatore','indicatori')+' fuori fascia grave: verificare prima dello sparo' : '';
+}
 // esporta la scheda della volata (KPI + progetto) in CSV: il fochino la
 // archivia col rapportino. Stesse cifre della Scheda validatori.
 if($('btn-scheda-csv')) $('btn-scheda-csv').onclick=()=>{
@@ -3779,7 +3801,7 @@ if($('btn-scheda-csv')) $('btn-scheda-csv').onclick=()=>{
      (la legge di sito) la frase dichiara le righe VERE del file, così se un
      giorno schermo e file divergessero lo si leggerebbe invece di scoprirlo
      aprendo il CSV. */
-  toast('✓ Scheda volata esportata: '+_ricPlur(rows.length,'parametro','parametri'));
+  toast('✓ Scheda volata esportata: '+_ricPlur(rows.length,'parametro','parametri')+fraseGraviExport());
 };
 /* L'OBIETTIVO DI PEZZATURA (12/09, unità 126): «voglio una pezzatura x50 di
    tot cm — quanto devo caricare?», la domanda al contrario di quella che fa
@@ -5611,7 +5633,8 @@ $('btn-piano-csv').onclick=async()=>{
   occupato('btn-piano-csv', false);
   toast('✓ Piano di carico esportato: '+_ricPlur(D2.holes.length,'foro','fori')
     +(pianoInOrg?(GDB.mode==='live'?' — e scritto nell\'organizzazione: in Campo compare in «Piano di carico → Piani da Genesi»':' — sullo stesso computer Campo lo trova in «Piano di carico → Piani da Genesi»'):'')
-    +(_pcMancanti.length?' — attenzione: '+_pcMancanti.join(', ')+(_pcMancanti.length===1?' non è un numero leggibile e nel file la colonna resta vuota':' non sono numeri leggibili e nel file quelle colonne restano vuote'):''),
+    +(_pcMancanti.length?' — attenzione: '+_pcMancanti.join(', ')+(_pcMancanti.length===1?' non è un numero leggibile e nel file la colonna resta vuota':' non sono numeri leggibili e nel file quelle colonne restano vuote'):'')
+    +fraseGraviExport(),
     _pcMancanti.length?'err':undefined);
 };
 /* G33 (13/09) — Export piano fori in DXF, per aprire in un CAD vero. SOLO
@@ -5629,7 +5652,8 @@ if($('btn-piano-dxf')) $('btn-piano-dxf').onclick=()=>{
      trovando un solo livello invece di due. */
   const haFronte = Array.isArray(D2.profilo) && D2.profilo.filter(p=>p&&Number.isFinite(+p.x)&&Number.isFinite(+p.y)).length>=2;
   if(typeof toast==='function') toast('✓ Piano fori DXF esportato: '+_ricPlur(D2.holes.length,'foro','fori')
-    +(haFronte?' + profilo del fronte':' — nessun profilo del fronte disegnato: esce solo il livello FORI'));
+    +(haFronte?' + profilo del fronte':' — nessun profilo del fronte disegnato: esce solo il livello FORI')
+    +fraseGraviExport());
 };
 /* G47d (14/09) — Import DXF in SOLA LETTURA, come TRATTI (mai come fori/
    fronte/piede): la scelta di sicurezza spiegata sopra `dxfInTratti` in
@@ -5692,7 +5716,8 @@ if($('btn-innesco-xml')) $('btn-innesco-xml').onclick=()=>{
      sta consegnando un piano a cui manca il numero che decide la vibrazione, e
      scoprirlo aprendo l'XML è troppo tardi. */
   if(typeof toast==='function') toast('Piano di innesco XML esportato ('+_ricPlur(rows.length,'foro','fori')+' · '+inn.nome+')'
-    +(_xM.calcolabile?'':' — attenzione: la MIC non è calcolabile, nel file esce dichiarata e senza valore'), _xM.calcolabile?undefined:'err');
+    +(_xM.calcolabile?'':' — attenzione: la MIC non è calcolabile, nel file esce dichiarata e senza valore')
+    +fraseGraviExport(), _xM.calcolabile?undefined:'err');
 };
 /* Import del piano di innesco XML: round-trip con l'export stile IREDES di Genesi.
    Rilegge geometria/esplosivo/sequenza/ritardi nel Progetto 2D. NON è un import
@@ -7513,6 +7538,20 @@ function renderScheda2D(){
   const _sintN=rows.filter(r=>r.cls==='sv-ok'||r.cls==='sv-warn'||r.cls==='sv-bad').length;
   const _sintFuori=rows.filter(r=>r.cls==='sv-warn'||r.cls==='sv-bad').length;
   const _sintGravi=rows.filter(r=>r.cls==='sv-bad').length;
+  /* G53 (19/09, dal delta verificato di docs/RICERCA_CONTINUA_GENESI.md) —
+     il semaforo qui sopra (G45, 14/09) non è mai letto da nessuno dei
+     quattro bottoni che portano il piano fuori dall'app: un piano con
+     indicatori gravemente fuori fascia si esporta oggi in silenzio,
+     identico a uno sano. Un MODALE di conferma è stato scritto, provato
+     e SCARTATO lo stesso giorno (verbale in RICERCA_CONTINUA_GENESI.md):
+     blocca il click sincrono su cui 24 prove di 91, in sei banchi diversi,
+     già facevano affidamento — costo Medio, non Piccolo. Qui invece un
+     canale di lettura passivo: l'ultima sintesi calcolata, esposta su `D2`
+     per chi la vuole leggere DOPO un export riuscito, senza bloccare
+     niente. Se nessuno l'ha ancora letta (`D2._sintesi` assente, scheda
+     mai renderizzata) i quattro bottoni restano muti su questo punto —
+     non si inventa una severità che non si è ancora calcolata. */
+  D2._sintesi={ n:_sintN, fuori:_sintFuori, gravi:_sintGravi };
   const sintesiHtml='<div style="margin:8px 0;padding:7px 10px;border-radius:8px;font-size:11.5px;line-height:1.4;'
     +(_sintGravi>0?'border:1px solid rgba(239,83,80,.35);background:rgba(239,83,80,.07)'
       :(_sintFuori>0?'border:1px solid rgba(255,167,38,.3);background:rgba(255,167,38,.06)'
