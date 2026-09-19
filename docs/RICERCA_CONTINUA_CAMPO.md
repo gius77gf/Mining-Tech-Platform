@@ -2985,3 +2985,70 @@ si produce all'ora.
 ---
 
 *Documento di ricerca — ricerca approssimativa, candidati da approfondire, non diagnosi. Verificato contro WebSearch (fonti di secondo livello, nessuna letta per intero — `WebFetch` bloccato) e codice di Campo (grep riportati sopra, eseguibili di nuovo, commit `877b591`).*
+
+---
+
+## 19/09/2026 — nono giro di ricerca mirata: l'ACCETTAZIONE della consegna da parte del turno entrante non è tracciata
+
+*Tema esatto richiesto dalla ricerca: come gestiscono i sistemi di shift management (best practice) l'accettazione/acknowledgement della consegna da parte di chi entra in turno, e in particolare: come traccia il fatto che è stata LETTA e ACCETTATA, non solo che è stata scritta?*
+
+### Il mondo [tutto di seconda mano: `WebSearch`, tre ricerche mirate su shift handover acceptance, incoming crew acknowledgement, abandoned shifts]
+
+1. **In mining, il protocollo standard è il "sign-off" bilaterale**: outgoing crew e incoming crew devono entrambi firmare/riconoscere il handover, creando un audit trail per l'accountabilità. Questa firma rappresenta l'accettazione esplicita della responsabilità da parte del turno entrante — non una firma pre-compilata da chi scrive la consegna. [seconda mano: oxmaint.com, safetyculture.com, moxo.com]
+
+2. **Sugli isolamenti critici (lockout-tagout, hot work permits, confined spaces), l'incoming crew deve "digitally acknowledge" OGNI isolamento ATTIVO prima di interagire con quell'equipaggiamento** — è un passo separato dalla firma della consegna complessiva, con timestamp proprio. [seconda mano: moxo.com, mangoapps.com]
+
+3. **Il problema dei turni abbandonati**: il protocollo standard prevede che se un turno finisce SENZA firma/chiusura formale della consegna, il sistema deve:
+   - Impedire che sia marcato come "chiuso" senza traccia di chi lo ha accettato;
+   - Generare un allarme/escalation prima che il turno iniziale finisca, perché una consegna non accettata = un'assenza di audit trail = un rischio di sicurezza. [seconda mano: qmihsconference.org.au, redcatsafety.com, thehandovercomau.wordpress.com]
+
+4. **La documentazione dell'accettazione deve includere**: chi ha accettato (nome/id), quando l'ha accettato (timestamp, non solo l'ora della consegna), e — se c'è discrepanza fra la consegna scritta e ciò che il turno entrante trova realmente — una riga di "non conformity" firmata da chi l'ha rilevata. [seconda mano: ICMM guidelines citati in moxo.com, safetyculture.com]
+
+### Il delta, verificato nel codice (commit `877b591`, `apps/campo/campo-data.js` + `apps/campo/index.html`)
+
+**La consegna di turno in Campo ha il nome di chi riceve (`ricevuta`), ma NON ha il tracciamento del momento in cui chi riceve l'ha LETTA e ACCETTATA.** 
+
+Verificato su tre livelli:
+
+1. **Struttura dati della chiusura (riga 30 del modulo)**:
+   ```
+   chiusure/{id}: { data, turno, consegna, ricevuta, note, ora, riaperture: [...] }
+   ```
+   - `consegna` = nome di chi consegna (outgoing)
+   - `ricevuta` = nome di chi riceve (incoming) — **compilato da chi scrive la consegna**
+   - `ora` = orario della chiusura
+   - **MANCA**: timestamp di quando chi riceve ha confermato di aver letto e accettato
+
+2. **Interfaccia della chiusura (righe 1164-1165 di index.html)**:
+   ```html
+   <input class="dw-input" id="fir-consegna" placeholder="Chi consegna (nome e cognome)">
+   <input class="dw-input" id="fir-ricevuta" placeholder="Chi riceve (nome e cognome)">
+   ```
+   - Entrambi i campi si compilano nello **stesso modulo**, dalla stessa persona (il capoturno che sta finendo).
+   - Non c'è un secondo modulo/passaggio dove chi entra in turno possa **confermare attivamente** di aver letto la consegna e di accettarla.
+   - **Verificato**: `grep -n "ricevuta" apps/campo/index.html` → solo i due input e il campo della tabella. Zero step di "accettazione" da parte di chi entra in turno.
+
+3. **Conseguenza pratica**: un turno chiuso con "ricevuta = Mario Rossi" non dice quando Mario l'ha **accettata**. Potrebbe:
+   - Essere stato scritto il suo nome alle 14:00 perché ci si aspetta che entri allora
+   - Ma Mario non potrebbe ancora averlo letto
+   - E se Mario si ammala o non arriva, non c'è traccia della consegna "rifiutata" o "non ritirata"
+
+4. **Non è un buco totale**: Campo SA distinguere fra "non compilato" e "compilato"
+   ```
+   riassuntoChiusura(c): ritorna "Consegnato da X a Y alle HH:MM"
+   ```
+   Ma ritorna sempre la stessa forma; non distingue fra "compilato dall'outgoing" e "confermato dall'incoming".
+
+### Riepilogo per la forma fissa
+
+| Schermata | Che cosa non va | Come si vede | Quanto costa | Come si misura |
+|---|---|---|---|---|
+| Chiusura turno (C3, form di firma) | Il campo `ricevuta` (chi riceve) è un nome compilato dall'outgoing crew, non confermato attivamente da chi entra in turno; non esiste timestamp di quando la consegna è stata LETTA e ACCETTATA dal turno entrante, come richiesto dalle best practice di mining per audit trail | Compilare la consegna inserendo "Mario Rossi" nel campo "chi riceve" e salvare: nessun campo chiede a Mario di confermare di aver letto o di accettare. Un'ora dopo, se Mario non entra, la consegna risulta comunque "accettata" senza traccia dell'assenza di confirmazione. Nessun timestamp segna quando Mario l'ha riconosciuta. | Medio (aggiungere un secondo step dove chi entra in turno preme un bottone "Ho letto la consegna di turno — accetto la responsabilità", che registra nome/id, timestamp e firma digitale nello stesso record; oppure richiedere che `ricevuta` sia compilato SOLO da chi entra, non da chi se ne va) | Creare una chiusura con due nomi (outgoing e incoming), poi controllare `chiusure/{id}` e verificare che contenga SOLO il timestamp della firma dell'outgoing (campo `ora`); non deve contenere un secondo timestamp di confirmazione dall'incoming. Oggi non c'è nemmeno il campo per contenere quel timestamp. |
+
+### Che cosa NON è una mancanza (per chi rilegge questa riga più avanti)
+
+La firma della consegna (chi consegna, chi riceve, ora) **esiste ed è correttamente strutturata** come documento non più modificabile dopo la firma — è la forma corretta di "chiusura documentata". La mancanza reale, più piccola e più specifica, è che il nome di chi riceve NON sia confermato attivamente da chi lo riceve prima che il turno prenda il via. Il delta non è "aggiungere un'altra forma di firma"; è **tracciare il momento in cui il turno entrante ha preso in carico** — separato dal momento in cui è stato scritto il nome.
+
+---
+
+*Documento di ricerca — ricerca approssimativa, candidati da approfondire, non diagnosi. Verificato contro WebSearch (fonti di secondo livello, nessuna letta per intero — `WebFetch` bloccato) e codice di Campo (grep e struttura dati riportati, eseguibili di nuovo, commit `877b591`).*
