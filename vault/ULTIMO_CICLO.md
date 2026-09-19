@@ -1,30 +1,22 @@
 # Ultimo ciclo
 
-- **Quando**: 2026-09-19T22:45:08Z (letta da `date -u`, non predetta)
-- **Commit di partenza**: 9c10c262 (chore(vault): checkpoint di lettura sul batch genesi parziale)
-- **Cosa sto per fare**: letto per intero il batch `tutti.mjs
-  --solo=genesi` (73 a posto, 22 da guardare) — 20 dei 22 erano
-  controprove che funzionano correttamente (escono non-zero apposta),
-  1 era "NON MISURATO" (scena non raggiunta in un banco, da capire),
-  1 era un crash vero: `genesi-snap-estremo.mjs` (G48) andava in timeout
-  perché il secondo clic di un tratto cadeva sulla barra di navigazione
-  fissa invece che sulla tela. Causa isolata per confronto con la
-  baseline pre-G57: i controlli Ruota/Scala tratti (G57/G58) diventavano
-  visibili troppo presto (subito dopo il primo clic, non solo dopo
-  "Fine tratto"), facendo crescere la barra degli strumenti di 40 px —
-  quel tanto che basta a spingere la tela sotto la barra fissa.
-  Corretto in `syncTrattoUI` con una guardia `!inCorso`. Verificato dal
-  vivo con Playwright a 430×900/950 e 390×950 (le combinazioni usate dai
-  banchi reali): il banco che aveva trovato il difetto torna 8/8 pulito,
-  la sua controprova sa ancora fallire, rotate/scale restano funzionanti
-  dopo "Fine tratto". Limite dichiarato e non toccato: a viewport più
-  estremi (320×700) lo stesso schiacciamento esiste ANCHE nella
-  baseline pre-G57 — difetto strutturale preesistente, fuori scopo.
-  1 test nuovo in run-kpi.mjs (3230/0). Giro node completo, due lanci
-  consecutivi identici: 41/41, asserzioni 4282. Checkpoint:
-  `vault/checkpoints/20260919-224508_genesi-fix-syncTrattoUI-tela-coperta.md`.
-- **Prossimo passo atomico**: capire il "NON MISURATO" residuo nel banco
-  `genesi-campi-assenti.mjs` (2 scene su 57 non raggiunte: "la spalla",
-  "la spalla che non decide") — probabile problema di timing del banco,
-  non ancora confermato — prima di continuare con altre unità verificate
-  su Genesi.
+- **Quando**: 2026-09-19T22:51:18Z (letta da `date -u`, non predetta)
+- **Commit di partenza**: 01e641c5 (fix(genesi): Ruota/Scala tratti restavano visibili durante il disegno)
+- **Cosa sto per fare**: chiusa l'indagine sull'ultimo "da guardare"
+  residuo — `genesi-campi-assenti.mjs` dichiara "NON MISURATI (2): la
+  spalla...". Riprodotto in isolamento, poi trovata la spiegazione GIÀ
+  SCRITTA nel file stesso (commento del 14/09, blocco "B0-septies"): con
+  la spalla (B) assente, il prodotto dichiara correttamente "maglia non
+  disegnabile" invece di mostrare una scheda — comportamento CORRETTO,
+  già verificato a parte da un altro banco. Nessuna azione presa: non è
+  un difetto, non è un test da riscrivere (la decisione di lasciarlo
+  "non misurato" era già stata presa e motivata). Nessun codice toccato.
+  Checkpoint:
+  `vault/checkpoints/20260919-225118_genesi-spalla-non-misurato-confermato-non-difetto.md`.
+  Tutti e 22 i "da guardare" del batch dopo G58/G59 sono ora chiusi: 20
+  controprove funzionanti, 1 non-misurato confermato corretto, 1 difetto
+  vero corretto (syncTrattoUI, commit 01e641c5).
+- **Prossimo passo atomico**: proseguire con una nuova unità verificata
+  di persona su Genesi (grep/lettura del codice + Playwright mirato).
+  Nessun batch --solo=genesi da rilanciare subito: rilanciarlo a fine
+  blocco.
