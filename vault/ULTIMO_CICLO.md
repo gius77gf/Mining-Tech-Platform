@@ -1,15 +1,16 @@
 # Ultimo ciclo
 
-- **Quando**: 2026-09-19T07:40:22Z (letta da `date -u`, non predetta)
-- **Commit di partenza**: 42d2a5d6 (feat(genesi): selezione multipla dei
-  fori — prima fetta (G49))
-- **Cosa sto per fare**: terzo cantiere Genesi chiuso (selezione
-  multipla). Prossimo: verificare la sezione "TRASFORMAZIONI" della
-  ricerca CAD contro il codice e costruire una prima fetta piccola
-  (rotate/mirror sui fori in D2.selMulti).
-  **Prossimo passo atomico**: aprire `docs/RICERCA_GENESI_CAD.md`
-  sezione 3 (trasformazioni), verificarla contro `d2Down`/`D2.selMulti`/
-  `D2.holes`, e implementare la prima azione batch di trasformazione
-  (es. mirror rispetto a un asse verticale/orizzontale sui fori
-  selezionati, il più semplice matematicamente e il più immediato da
-  provare nel browser).
+- **Quando**: 2026-09-19T07:53:44Z (letta da `date -u`, non predetta)
+- **Commit di partenza**: 8e66be5f (feat(genesi): rifletti la selezione —
+  prima trasformazione (G50))
+- **Cosa sto per fare**: quarto cantiere Genesi chiuso (mirror sulla
+  selezione). Il vecchio giro completo del browser (14 commit indietro,
+  con modifiche sostanziali a Genesi/Flotta) è stato spento con la
+  disciplina giusta (PID del processo + server orfano sulla porta 8823)
+  e rilanciato da zero sul commit corrente, log
+  `giro-completo-19-0745.log`, ancora in corso.
+  **Prossimo passo atomico**: leggere l'esito del nuovo giro con
+  `leggi-giro.mjs` quando finisce (sezione 0 per prima). Nel frattempo,
+  verificare la sezione 4 della ricerca CAD (blocchi riusabili + input
+  relativo/polare, priorità bassa-media) contro il codice, o considerare
+  un secondo fronte su un'altra superficie di Genesi.
