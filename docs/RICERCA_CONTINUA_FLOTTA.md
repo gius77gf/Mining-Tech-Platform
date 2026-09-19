@@ -2005,3 +2005,186 @@ parametro, `catRank.componente` nell'ordinamento finale). Questa riga
 resta per il metodo — un "non c'è" scritto un'ora prima di essere colmato
 è la stessa trappola descritta in CLAUDE.md ("il non c'è scaduto") — non
 come lavoro ancora da fare.
+
+
+---
+
+## Ricerca del 2026-09-19 — manutenzione preventiva su più segnali insieme, e scorte legate ai tagliandi futuri (non solo allo storico)
+
+*Nota di processo (regola 1): letto per intero questo documento (2008 righe,
+tredici giri precedenti dal 14/08 al 18/09) prima di proporre. Contesto
+ricevuto: nella stessa giornata il "decimo giro" ha già chiuso un secondo
+QA agente su Flotta con "nessun difetto trovato" (`vault/ROADMAP_SETTIMANA.md`,
+19/09) — questa è una ricerca sul MONDO, non un altro giro di QA sul codice
+esistente.*
+
+### Che cosa esiste già su questi due temi (verificato oggi, prima di cercare fuori)
+
+**Segnali multipli per la scadenza di un tagliando** — GIÀ FATTO, non
+riproposto:
+- **ore vs calendario, "il primo dei due"**: `prossimoTagliando` (11/09,
+  `flotta-data.js:2834-2889`) genera ENTRAMBE le scadenze quando un piano ha
+  sia `ogniOre` sia `ogniMesi`, e chi legge (`urgenzaManutenzione`,
+  `tagliandiInScadenza`) prende la peggiore delle due (`da: "entrambi"`).
+  Prima dell'11/09 i due modi erano "mai insieme"; oggi lo sono. **Questo è
+  esattamente "un singolo tagliando su due criteri contemporanei" — la prima
+  metà della domanda del mandato è già risolta e non va rifatta.**
+- **severità del ciclo d'uso come moltiplicatore automatico dell'intervallo**:
+  VALUTATO e SCARTATO come scelta deliberata, non come mancanza dimenticata
+  (11/09, primo giro: "Il suolo polveroso non entra: la ricerca lo cita come
+  fattore dei costruttori, da noi il passo è quello scritto sul piano — è una
+  scelta, non una mancanza"). Il piano (`PIANI_TAGLIANDO`/`pianoTagliando`)
+  non ha un passo fisso di prodotto: è il numero scritto sulla singola
+  manutenzione, quindi una cava con un fronte polveroso può già oggi
+  accorciare il passo a mano. Non riverificato oggi con nuovo rigore: la
+  decisione dell'11/09 resta, e le due cifre trovate stavolta (vedi sotto)
+  non bastano da sole a riaprirla, perché non cambiano il fatto che il passo
+  è già configurabile per singolo piano/mezzo.
+- **manutenzione su condizione (analisi olio)**: DICHIARATA, non fatta
+  (16/09, undicesimo giro — `esitoUltimoCampione`), con la cautela esplicita
+  "solo se un cliente vero fa davvero campionare l'olio — da verificare in
+  cava prima di costruire". Non riproposta qui.
+
+**Scorte e punto di riordino** — verificato con `grep`, due formulazioni
+diverse del termine:
+
+```
+$ grep -rciE "domandaFutura|fabbisognoFuturo|consumoAtteso|richiest[ae]DaPian[oi]|dipendent[ei]|riservaP[ae]rTagliand[oi]" apps/flotta/flotta-data.js apps/flotta/index.html
+apps/flotta/flotta-data.js:1
+apps/flotta/index.html:1
+```
+(entrambi i colpi sono falsi: `grep -inE` sugli stessi termini mostra che
+sono "indipendenti"/"indipendentemente" in due commenti — nessuna occorrenza
+vera del concetto)
+
+```
+$ grep -n "function propostaScorte" apps/flotta/flotta-data.js
+3902:export function propostaScorte(ricambi, interventi, opzioni) {
+```
+
+`propostaScorte(ricambi, interventi, opzioni)` — GIÀ confermata esistente
+(14/08) — calcola il punto di riordino SOLO da `consumoRicambi(interventi,
+finestraGiorni, oggi)`, cioè dai ricambi consumati in interventi GIÀ
+CHIUSI negli ultimi N giorni (`consumoRicambi`, `flotta-data.js:3826-3880`).
+La firma non riceve `manutenzioni`: nessuna versione della funzione guarda
+i tagliandi GIÀ PROGRAMMATI e non ancora fatti, anche quando quei tagliandi
+portano già un `ricambioId` noto (`prossimoTagliando`, `ordineDaManutenzione`
+— quest'ultima trasforma un `ricambioId` in una riga d'ordine da 1 pezzo con
+prezzo di magazzino, ma solo per UNA manutenzione alla volta, mai per il
+riepilogo di tutto il magazzino).
+
+### Il mondo (via WebSearch; nessuna fonte letta per intero — WebFetch non
+disponibile su domini generici)
+
+**Segnali multipli per il quando** [di seconda mano: oxmaint.com,
+mapcon.com, micromain.com, heavyvehicleinspection.com]: i CMMS del 2026
+citano un approccio "multi-trigger" che combina letture di contatore, date
+di calendario e specifiche OEM, dichiarando compliance PM sopra il 90% e
+riduzione dei guasti non pianificati del 30-40% quando applicato. Per il
+fattore di severità: "one severe factor requires 25-50% interval reduction;
+multiple factors require 50-75% reduction" e, per l'attrezzatura pesante,
+"severe duty operations adjust PM intervals to 0.5× base" [di seconda mano:
+heavyvehicleinspection.com]; le tabelle OEM standard presumono per default
+un ciclo "medio" (30-60% di utilizzo), quindi seguirle senza correzione in
+un ciclo severo è descritta come causa comune di guasti fra un tagliando e
+l'altro [di seconda mano: cryotos.com]. Nessuna fonte mining-specifica
+italiana trovata per queste percentuali: sono cifre di settore fleet/heavy
+equipment generico, non di cava.
+
+**Scorte legate alla manutenzione pianificata (MRP applicato ai ricambi)**
+[di seconda mano: oxmaint.com, heavyvehicleinspection.com, community.sap.com,
+arxiv.org/1810.06315]: la pratica descritta va oltre il consumo storico —
+"pre-reserving parts against upcoming PM work orders prevents competing
+demand from draining stock during unplanned events", e i sistemi più
+avanzati "analyze historical consumption patterns, maintenance schedules,
+and real-time work order data" insieme. SAP Plant Maintenance genera
+esplicitamente "dependent requirements" per i ricambi legati a un ordine di
+lavoro pianificato; la formula MRP classica citata è **Net Requirements =
+Gross Requirements − On-Hand Inventory − Scheduled Receipts + Safety
+Stock**, dove i "Gross Requirements" includono la domanda GIÀ NOTA dai
+lavori programmati, non solo la media di consumo passato. Una fonte
+generica dichiara "40% greater forecast accuracy" combinando i segnali
+rispetto al solo calcolo statico storico [di seconda mano, cifra non
+verificabile alla fonte primaria].
+
+**Fiducia**: media sullo scheletro (il principio "usa anche la domanda già
+pianificata, non solo lo storico" è confermato da più fonti indipendenti,
+compreso un riferimento diretto a SAP PM); bassa sulle percentuali isolate
+(25-50%, 50-75%, 0.5×, 40%) perché aggregate da siti di settore, non lette
+sul documento OEM o sullo standard originale.
+
+### Il delta, fatto da chi ha il codice in mano (19/09, verificato contro il commit `aade8904`)
+
+**Sul "quando" (multi-segnale)**: nessun delta nuovo. Le due parti
+verificabili della domanda del mandato sono già chiuse (ore+calendario,
+11/09) o già valutate e scartate con una motivazione scritta (severità come
+moltiplicatore automatico) o già dichiarate come candidato non maturo
+(condizione/olio, 16/09). Riaprirle sulla sola base delle percentuali di
+oggi (25-50%, 0.5×) violerebbe la regola di questo documento sul "non c'è"
+già deciso con la misura: quelle percentuali non cambiano il fatto che il
+passo del tagliando in Flotta è già un dato per singolo piano, non una
+costante di prodotto — la "correzione automatica per severità" resterebbe
+comunque un moltiplicatore su un numero che l'utente può già editare a
+mano.
+
+**Sulle scorte (punto di riordino): mancanza confermata, ed è la parte
+nuova di questo giro.** `propostaScorte`/`puntoDiRiordino` rispondono alla
+domanda "quanto abbiamo consumato finora", mai a "quanto sappiamo già che
+consumeremo, perché ci sono tagliandi già in agenda che useranno questo
+pezzo". Un ricambio con **zero consumo storico** (mai usato in un
+intervento chiuso, magari perché il mezzo è nuovo) ma con **tre tagliandi
+già programmati** che lo richiedono nei prossimi 20 giorni finisce oggi in
+`senzaConsumo` — cioè "non si propone niente per un pezzo che non si sa
+quanto si usi" (commento di `propostaScorte`), anche quando in realtà lo si
+sa benissimo, perché è scritto nei tagliandi stessi (`ricambioId`). È lo
+stesso principio del fondatore ("l'assenza di un dato non è un dato
+favorevole") applicato al contrario: qui il dato **c'è** (il tagliando è già
+in agenda) e il conto delle scorte lo tratta come se non ci fosse.
+
+| schermata | che cosa non va | come si vede | quanto costa | come si misura |
+|---|---|---|---|---|
+| **Magazzino → Proposta scorte** | `propostaScorte` calcola la soglia di riordino solo dal consumo storico (`consumoRicambi` sugli interventi chiusi); non aggiunge la domanda GIÀ NOTA dai tagliandi programmati che portano lo stesso `ricambioId` (`prossimoTagliando`, i piani con `ricambioId` impostato). Un ricambio nuovo o poco usato con più tagliandi già in agenda nei prossimi giorni resta in "senza consumo" (nessuna proposta) o con una soglia calcolata solo sul passato, mai alzata per la domanda che si sa già arrivare. | Aprire "Magazzino" → "Proposta scorte" con un ricambio collegato (via `ricambioId`) a 2-3 tagliandi già programmati nei prossimi `consegnaGiorni + sicurezzaGiorni` giorni ma mai usato in un intervento chiuso: il ricambio compare nell'elenco "senza consumo", con zero segnale che tre pezzi serviranno comunque a breve. | medio (serve contare, per ogni ricambio, quanti tagliandi PROGRAMMATI nel suo `ricambioId` cadono entro l'orizzonte di copertura — non solo sommarli allo storico, perché le due fonti hanno un'affidabilità diversa e vanno dichiarate separate) | Funzione nuova (nome indicativo `domandaProgrammata(manutenzioni, ricambioId, oggi, orizzonteGiorni)`) che conta i tagliandi non ancora chiusi con quel `ricambioId` la cui scadenza (a ore stimate o a data) cade entro l'orizzonte passato; `propostaScorte` la usa per aggiungere questa quantità come "domanda nota" accanto (non sommata ciecamente, per non confondere una certezza con una stima) alla soglia calcolata dallo storico, e sposta un ricambio da `senzaConsumo` a una nuova sezione "solo domanda programmata" quando lo storico è zero ma la domanda nota non lo è. Prova: due ricambi sintetici, uno con 3 tagliandi programmati e zero storico (oggi finisce in `senzaConsumo`, deve smettere di finirci), uno senza tagliandi programmati e senza storico (deve restare `senzaConsumo` come oggi) — il secondo caso è la controprova che la funzione non fallisce, cioè non propone domanda dove non c'è nessun tagliando in agenda. |
+
+### Riassunto
+
+- **1 mancanza confermata** sul punto di riordino: la domanda già nota dai
+  tagliandi programmati (`ricambioId`) non entra nel calcolo delle scorte,
+  che oggi guarda solo lo storico degli interventi chiusi. Verificato con
+  due formulazioni di grep (entrambe a zero occorrenze vere, i due colpi
+  grezzi erano falsi positivi su "indipendente"/"indipendentemente") e
+  leggendo la firma e il corpo di `propostaScorte`/`consumoRicambi`.
+- **0 mancanze nuove** sul "quando" del tagliando multi-segnale: le due
+  parti verificabili della domanda del mandato sono già chiuse (ore+data,
+  11/09) o già dichiarate con una decisione motivata e scritta (severità
+  come scelta manuale, non automatica — 11/09; condizione/olio come
+  candidato non maturo — 16/09). Non tradotte in un nuovo "non c'è" per non
+  ripetere l'errore, già scritto in questo documento, di riproporre col
+  vocabolario del mondo un meccanismo già deciso col codice in mano.
+- Nessun codice toccato in questa unità (solo lettura e ricerca, come da
+  mandato).
+
+*Fonti (di seconda mano, via WebSearch): [oxmaint.com — Preventive
+Maintenance Scheduling Best Practices 2026](https://oxmaint.com/article/preventive-maintenance-scheduling-guide),
+[oxmaint.com — Best CMMS for Mining Operations 2026](https://oxmaint.com/article/cmms-mining-heavy-equipment),
+[mapcon.com — How CMMS Software Tracks Preventive Maintenance
+Scheduling](https://www.mapcon.com/blog/2026/07/how-cmms-keeps-preventive-maintenance-on-schedule),
+[micromain.com — Meter-Based Maintenance: A Complete CMMS
+Guide](https://micromain.com/meter-based-maintenance-cmms/),
+[heavyvehicleinspection.com — Telematics Integration for Fleet Maintenance
+Guide](https://heavyvehicleinspection.com/blog/post/telematics-integration-fleet-maintenance),
+[heavyvehicleinspection.com — Optimize Preventive Maintenance for Severe
+Duty Conditions](https://heavyvehicleinspection.com/maintenance/pm-service-plan/schedule-a/severe-duty-frequency),
+[cryotos.com — What Is Duty Cycle and How It Affects Maintenance
+Intervals](https://www.cryotos.com/blog/duty-cycle-maintenance-intervals),
+[oxmaint.com — Spare Parts Management in CMMS: Avoid Stockouts &
+Overstocking](https://www.oxmaint.com/blog/post/blog-post-spare-parts-management-cmms-guide),
+[heavyvehicleinspection.com — Automated Spare Parts Reorder System for
+Efficiency](https://heavyvehicleinspection.com/maintenance/cmms-workflows/scheduling/spare-parts-reorder),
+[oxmaint.com — Spare Parts Inventory Management: Complete Guide
+2026](https://oxmaint.com/article/spare-parts-inventory-management-cmms),
+[community.sap.com — Spare Parts Management in SAP Plant
+Maintenance](https://community.sap.com/t5/enterprise-resource-planning-blog-posts-by-members/spare-parts-management-in-sap-plant-maintenance/ba-p/13290453),
+[usersolutions.com — Gross Requirements (manufacturing
+glossary)](https://usersolutions.com/blog/glossary/gross-requirements),
+[arxiv.org — Joint Optimization of Opportunistic Predictive Maintenance and
+Multi-location Spare Part Inventories](https://arxiv.org/pdf/1810.06315).*
