@@ -2956,7 +2956,17 @@ textarea.dw-input{
       // soggetto che sta misurando deve leggerlo PRIMA di scriverci, se no al
       // secondo giro accorcia una voce già accorciata.
       const adattaVoci = () => {
-        if (!s || s.tagName !== "SELECT") return;
+        /* ⛔ 19/09, dal deep-pass UX: `requestAnimationFrame(adattaVoci)` qui
+           sotto cattura `s` nella chiusura. Se il modale viene chiuso e
+           riaperto (su un'altra riga) prima che il fotogramma differito
+           scatti, `apriModale` sovrascrive `modal-body.innerHTML` — `chiudi
+           Modale` non lo svuota — e il vecchio `s` resta con `parentNode ===
+           null`. Il tagName non cambia, quindi la guardia sotto lo lasciava
+           passare fino a `s.parentNode.appendChild(cl)`, che lanciava
+           un'eccezione vera in produzione, sul secondo modale premuto di
+           fila. Uno strumento che scrive sul soggetto che misura deve
+           saperlo ancora RAGGIUNGIBILE, non solo dello stesso tipo. */
+        if (!s || !s.isConnected || s.tagName !== "SELECT") return;
         const cs = getComputedStyle(s);
         const righello = document.createElement("span");
         righello.style.cssText = "position:fixed;left:-9999px;top:0;visibility:hidden;white-space:pre";

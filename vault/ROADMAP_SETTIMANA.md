@@ -2929,8 +2929,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
-- `UX Sentinella` *(tap target sotto soglia su un componente condiviso,
-  già corretto — e un'eccezione non gestita nel modale PPV, da verificare)*
 
 ## 🎯 L'obiettivo della settimana
 
@@ -8698,13 +8696,14 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **425 esecuzioni** che
-  aprono le pagine in un browser vero, da **192** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **427 esecuzioni** che
+  aprono le pagine in un browser vero, da **193** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso). *(Ricontato il 19/09 dopo il
-  quattordicesimo giro di deep-pass UX — nuovo banco
-  `dwg-tab-min-tocco.mjs` su un componente condiviso.)*
+  quattordicesimo giro di deep-pass UX — nuovi banchi
+  `dwg-tab-min-tocco.mjs` su un componente condiviso e
+  `sentinella-ppv-modale-race.mjs` sull'eccezione del modale PPV.)*
   *(Al 08/08 pomeriggio 2.326, 703/703 e 153; al 07/08 sera 2.307; al 07/08
   notte 2.193, 662/662 e 120; al 03/08 pomeriggio 2.092, 649/649 e 84; al 02/08
   1.838, 591/591 e 49.)*
@@ -12058,15 +12057,21 @@ copertura 1052/1052).
       `checklistUltimePerTurno`, un posto solo per la stessa regola.
       Verificato anche nel browser (nuovo caso in
       `campo-foglio-turno.mjs`, con controprova).
-- [ ] **UX Sentinella** (agente `abcf767091511907a`, da verificare e
-      implementare): tap target sotto soglia su `.dwg-tab > summary`
-      (componente condiviso in `shared/dw-grafici.css`, 51,7×30px) e
-      un'eccezione non gestita nel modale "Collega la PPV misurata"
-      (`apps/sentinella/index.html`, un `requestAnimationFrame`
-      differito sopravvive alla chiusura del modale).
+- [x] **UX Sentinella** (agente `abcf767091511907a`, entrambi verificati
+      indipendentemente prima di implementare): (`3d605053`) tap target
+      sotto soglia su `.dwg-tab > summary` — componente CONDIVISO in
+      `shared/dw-grafici.css`, 51,7×30px, corretto con `var(--tap)` come
+      già `.chg`/`.nav`; e un'eccezione vera in produzione nel modale
+      "Collega la PPV misurata" (`apps/sentinella/index.html`): un
+      `requestAnimationFrame` differito sopravviveva alla chiusura del
+      modale e, se il modale veniva riaperto su un'altra volata prima
+      che scattasse, tentava `s.parentNode.appendChild` su un elemento
+      ormai staccato dal DOM. Corretto aggiungendo `!s.isConnected`
+      alla guardia. Riprodotto indipendentemente con lo stesso metodo
+      dell'agente prima di correggere.
 - [ ] Ricerca su Scudo (ciclo di vita delle azioni correttive) non
       ancora letta.
 
-run-kpi.mjs 3183/3183. numeri-nei-documenti.mjs 43/43 (423 banchi,
-copertura 1053/1053). iniezioni-fresche.mjs 712/712.
+run-kpi.mjs 3183/3183. numeri-nei-documenti.mjs 43/43 (427 banchi,
+copertura 1053/1053). iniezioni-fresche.mjs 714/714.
 campo-foglio-turno.mjs 54/54 normale, 19 KO sotto --controprova.
