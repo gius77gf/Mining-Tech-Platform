@@ -10,6 +10,50 @@ può procedere con l'attuazione.
 
 ---
 
+## 🟡 19/09 — Deepwork ID: nessun audit log sulle azioni sensibili di organizzazione (cambio ruolo, rimozione membro)
+
+*Dalla ricerca continua su Deepwork ID (`docs/RICERCA_CONTINUA_DEEPWORKID.md`,
+19/09), confrontata con l'audit trail di Slack (2 anni, admin-only),
+Linear (90 giorni, owner-only), Notion (indefinito, owner-only) e Auth0
+(append-only, retention estesa sugli eventi sensibili — tutte fonti di
+seconda mano, WebSearch). Collegata alla decisione 37 (token che resta
+valido fino a un'ora dopo la revoca): se un ex membro con token ancora
+valido rimuove qualcuno o cambia un ruolo in quella finestra, oggi non
+resta traccia di chi l'ha fatto né di quando.*
+
+- [ ] **39. Nessuna collezione di audit log, e le due funzioni più sensibili
+  non registrano nemmeno chi ha agito.** Verificato su
+  `apps/deepwork-id/functions/index.js`:
+  `grep -n "auditLog\|audit_log\|logAzione"` → **0** risultati in tutto il
+  file: nessuna collezione tipo `organizations/{orgId}/auditLog` esiste.
+  `updateMemberRole` (riga 233) fa `tx.update(memRef, { role })` e basta —
+  nessun `changedBy`/`from`/`to`; `removeMember` (riga 264) fa
+  `tx.delete(memRef)` e basta — nessun `removedBy`. Il confronto:
+  `grep -c "createdBy\|changedBy\|actedBy\|removedBy\|modifiedBy"` sull'intero
+  file → **0**. L'unica funzione che registra chi ha agito è `inviteMember`
+  (`invitedBy`) e `revokeInvite` (`revokedBy`) — le due più recenti, non le
+  altre.
+  **Perché serve una decisione, non un'unità automatica**: un audit log
+  tocca com'è strutturato il dato (una collezione nuova, per sempre, in
+  ogni organizzazione), la sua visibilità (chi lo legge: solo owner? anche
+  admin?) e la sua conservazione (90 giorni come Linear? 2 anni come Slack?
+  indefinito come Notion?) — tre scelte di prodotto, nessuna deducibile dal
+  codice.
+  **Le strade**: (a) collezione append-only
+  `organizations/{orgId}/auditLog/{id}` con `{actor, azione, bersaglio,
+  prima, dopo, quando}`, scritta dalla stessa Cloud Function che fa
+  l'azione — costo medio-alto (tocca `updateMemberRole`/`removeMember`/
+  `createOrganization` e serve una policy di lettura/retention); (b) solo
+  sulle due funzioni più sensibili (cambio ruolo, rimozione), rimandando le
+  altre — costo medio, copre il caso peggiore (isolamento fra organizzazioni
+  concorrenti) senza disegnare tutto il sistema subito; (c) rimandare
+  finché non c'è un caso reale che lo richieda (un cliente che contesta
+  un'azione), registrando solo la mancanza. Nessuna proposta implementata:
+  la scelta di che cosa tracciare, chi legge e per quanto tempo è del
+  fondatore.
+
+---
+
 ## 🟡 19/09 — Scudo: la formazione scaduta non blocca un turno, e la perdita di idoneità DURANTE un turno non avvisa nessuno
 
 *Dalla ricerca continua su Scudo (`docs/RICERCA_CONTINUA_SCUDO.md`, 19/09),
@@ -756,7 +800,7 @@ cinque elencate qui sotto.
 
 ---
 
-# 📖 Da dove cominciare — le decisioni aperte sono **25**
+# 📖 Da dove cominciare — le decisioni aperte sono **26**
 
 *Erano 19 fino al 07/08. **Nove** sono state chiuse dal **ciclo**, non da te, con
 la regola che avevi concesso il 01/08 (senza risposta entro la settimana si
