@@ -650,6 +650,8 @@ const BANCHI = [
   ["bottoni occupato di Terra · controprova", 'terra-bottoni-occupato.mjs', ['--controprova'], true],
   ["Conti: il bottone «Emetti» si spegne durante la scrittura, un doppio tocco non duplica il numero", 'conti-bottone-emetti-occupato.mjs', []],
   ["bottone «Emetti» occupato di Conti · controprova", 'conti-bottone-emetti-occupato.mjs', ['--controprova'], true],
+  ["Conti: la nota sull'esito SdI si scrive e si rilegge, il title della pastiglia mostra il testo completo", 'conti-sdi-nota.mjs', []],
+  ["nota sull'esito SdI di Conti · controprova", 'conti-sdi-nota.mjs', ['--controprova'], true],
   ["Campo: i bottoni di scrittura si spengono durante il salvataggio (squadre, attività, firma del turno)", 'campo-bottoni-occupato.mjs', []],
   ["bottoni occupato di Campo · controprova", 'campo-bottoni-occupato.mjs', ['--controprova'], true],
   ["audit occupato: i quattro bottoni residui di Scudo/Sentinella/Conti (infortuni, scadenze, volate, DDT)", 'audit-occupato-residui.mjs', []],

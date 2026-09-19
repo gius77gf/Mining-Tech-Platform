@@ -1079,6 +1079,10 @@ label.item:has(.dw-chk:checked){
       <label for="ft-sdi-il">Data della ricevuta</label>
       <input class="dw-input" id="ft-sdi-il" type="date" title="La data della ricevuta o della notifica dello SdI">
     </div>
+    <div class="fld" style="flex:2 1 220px;">
+      <label for="ft-sdi-nota">Nota sull'esito (facoltativa)</label>
+      <input class="dw-input" id="ft-sdi-nota" type="text" maxlength="200" placeholder="es. codice di scarto dalla ricevuta" title="Un dettaglio letto sulla ricevuta dello SdI (il codice di scarto, il motivo della mancata consegna): compare accanto allo stato.">
+    </div>
     <button class="dw-btn" id="btn-ft">Emetti</button>
   </div>
   <div id="ft-riep"></div>
@@ -2414,7 +2418,7 @@ label.item:has(.dw-chk:checked){
   const PES_CAMPI = ["pes-data","pes-cli","pes-prod","pes-ordine","pes-lordo","pes-tara","pes-mezzo","pes-dest"];
   let ftNumAuto = true;   // finché è vero, il numero lo propone Conti
   const syncCliNuovo = () => { $("fld-ft-cli-nuovo").style.display = $("ft-cli").value === "__nuovo" ? "" : "none"; };
-  const pulisciFat = () => { $("ft-sdi").value = ""; $("ft-sdi-il").value = ""; FT_CAMPI.forEach(i => { $(i).value = ""; puliscoErr(i); });
+  const pulisciFat = () => { $("ft-sdi").value = ""; $("ft-sdi-il").value = ""; $("ft-sdi-nota").value = ""; FT_CAMPI.forEach(i => { $(i).value = ""; puliscoErr(i); });
     ftNumAuto = true; $("ft-iva").value = "22"; $("ft-num").value = numeroProssimaFattura();
     aggiornaRiepFat(); syncCliNuovo(); };
   /* ── SCAGLIONI DEL PRODOTTO IN COMPILAZIONE ─────────────────────────
@@ -3483,7 +3487,10 @@ label.item:has(.dw-chk:checked){
         f.incassata ? "" : statoSdi(f).breve,
       ].filter(Boolean).join(" · ");
       // una scartata NON è emessa: va detto PRIMA del resto, dove la riga non è tagliata
-      const sdiPrima = !f.incassata && statoSdi(f).nonEmessa ? '<span class="badge danger" style="margin-right:6px;">' + esc(statoSdi(f).breve) + "</span>" : "";
+      // ⛔ 19/09: statoSdi().testo — la spiegazione completa (che fare, entro
+      // quando, e la nota letta dalla ricevuta) — non compariva in NESSUN
+      // punto della pagina: solo `.breve`, l'etichetta corta della pastiglia.
+      const sdiPrima = !f.incassata && statoSdi(f).nonEmessa ? '<span class="badge danger" style="margin-right:6px;" title="' + esc(statoSdi(f).testo) + '">' + esc(statoSdi(f).breve) + "</span>" : "";
       return `<div class="item tocca ${st}" data-fat="${f.id}" title="${f.incassata ? "Tocca per vedere gli incassi registrati" : "Tocca per registrare un incasso (anche un acconto)"}">
       <span class="avatar">${IC.fattura}</span>
       <div class="info"><div class="name">${sdiPrima}<span class="num-doc">${esc(f.numero)}</span> · ${esc(nomeCliente(f, CLI))}${clienteDiFattura(f, CLI) ? "" : ' <span class="badge tag" title="Cliente non ancora collegato all\'anagrafica: collegalo dalla scheda Clienti">da collegare</span>'}</div>
@@ -6892,6 +6899,7 @@ label.item:has(.dw-chk:checked){
       $("ft-scad").value = f.scadenza || "";
       $("ft-sdi").value = f.sdi && STATI_SDI.includes(String(f.sdi.stato || "")) ? f.sdi.stato : "";
       $("ft-sdi-il").value = f.sdi && f.sdi.il ? String(f.sdi.il).slice(0, 10) : "";
+      $("ft-sdi-nota").value = f.sdi && f.sdi.nota ? String(f.sdi.nota) : "";
       FT_CAMPI.forEach(puliscoErr);
       $("btn-ft").textContent = "Salva modifica";
       /* ⚠️ L'AVVISO LUNGO NON VA NEL TOAST. `esito()` scrive la nota E alza un
@@ -8260,7 +8268,9 @@ label.item:has(.dw-chk:checked){
       imponibile: t.imponibile, aliquotaIva: aliquota, ivaImporto: t.ivaImporto,
       totale: t.totale, importo: t.totale,
       // l'esito dello SdI (11/09): vuoto = non registrato, mai «consegnata» per difetto
-      sdi: $("ft-sdi").value ? { stato: $("ft-sdi").value, il: $("ft-sdi-il").value || null, nota: "" } : null };
+      // ⛔ 19/09: `nota` era letta e mostrata da statoSdi() ma nessun campo del
+      // form la scriveva mai — un campo del modello senza un modo di compilarlo.
+      sdi: $("ft-sdi").value ? { stato: $("ft-sdi").value, il: $("ft-sdi-il").value || null, nota: $("ft-sdi-nota").value.trim() } : null };
     if (editFat) {
       await db.aggiorna("fatture", editFat, dati);
       // `occupato(false)` PRIMA di riscrivere l'etichetta: se corresse dopo,
