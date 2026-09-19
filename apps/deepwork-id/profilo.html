@@ -151,6 +151,16 @@
     if (id.authState() === 'member') {
       await disegnaOrgs();
       await disegnaApp();
+      /* ⛔ 19/09, dal deep-pass QA su Deepwork ID: stessa correzione già
+         fatta in admin.html il 18/09 ("un bottone che promette un'azione
+         che fallirà sempre") — qui mancava del tutto. Un `member` vedeva
+         il campo email e "Invita" perfettamente normali; il server
+         (`inviteMember`, functions/index.js) rifiuta sempre con
+         permission-denied per chi non è owner/admin, ma il bottone non lo
+         diceva prima di far scrivere l'email e premere. */
+      if (!['owner', 'admin'].includes(id.role())) {
+        for (const i of ['inv-email', 'btn-invite']) $(i).disabled = true;
+      }
       $('orgs-list').addEventListener('click', async (e) => {
         const el = e.target.closest && e.target.closest('[data-org]');
         if (!el) return;

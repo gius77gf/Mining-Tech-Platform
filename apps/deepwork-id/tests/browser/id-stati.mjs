@@ -69,6 +69,7 @@ const DIFETTI = {
     ['const on = !!(e && e.attivo);', 'const on = !!(e && e.active && (!e.validUntil || e.validUntil.toDate() > new Date()));'],
     ["    $('new-org').value = '';\n    await disegnaOrgs();\n    await disegnaApp();", "    $('new-org').value = '';"],
     ['.msg.info  { display: block; background: rgba(199,183,148,.10); border: 1px solid var(--border2); color: var(--muted2); }', ''],
+    ["      if (!['owner', 'admin'].includes(id.role())) {\n        for (const i of ['inv-email', 'btn-invite']) $(i).disabled = true;\n      }\n", ''],
   ],
   'apps/deepwork-id/admin.html': [
     ['if (n < 0) return `scaduto il ${data}`;', ''],
@@ -164,6 +165,18 @@ console.log('\n══ profilo.html');
   prova(`dopo «Crea» l'organizzazione nuova è nell'elenco senza ricaricare (${nomi.join(', ')})`, nomi.includes('org_nuova'), nomi);
   const st = await stileMsg(p);
   prova(`il messaggio ha un fondo e un bordo, non è testo nudo (bg ${st.bg}, bordo ${st.bordo})`, st.h > 0 && st.bg !== 'rgba(0, 0, 0, 0)' && st.bordo !== '0px', st);
+  prova('nessun errore di pagina', errori.length === 0, errori);
+  await ctx.close();
+}
+{
+  /* ⛔ 19/09, dal deep-pass QA su Deepwork ID: stessa correzione già fatta
+     in admin.html il 18/09 — qui mancava del tutto. Un membro semplice
+     vedeva il campo email e «Invita» attivi e normali; il server rifiuta
+     sempre con permission-denied per chi non è owner/admin
+     (`inviteMember`, functions/index.js, provato da run-fns.mjs). */
+  const { ctx, p, errori } = await apri('profilo.html', { stato: 'member', email: 'capocava@cava-alfa.it', orgs: { org_cava_alfa: 'member' }, dati: DATI_ORG() });
+  const spenti = await p.$$eval('#inv-email, #btn-invite', (e) => e.map((x) => x.disabled));
+  prova('⛔ per il membro semplice il modulo d\'invito è spento anche in profilo.html (il server lo rifiuterebbe)', spenti.length === 2 && spenti.every(Boolean), spenti);
   prova('nessun errore di pagina', errori.length === 0, errori);
   await ctx.close();
 }
