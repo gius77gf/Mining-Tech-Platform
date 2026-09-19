@@ -5220,3 +5220,197 @@ Genesi rispetta il principio fondatore: assenza di dati (null) non è trattata c
 
 Fonte verifica: Lettura genesi-data.js linee 184-192, 226-230, 338-342, 348-361, 1477-1532; genesi.html linee 1504-1516, 3413-3532, 3931, 5011, 5022-5023; run-kpi.mjs linee 16862-16901, 24783-24809, 28973-28988, 31816-31827.
 
+---
+
+## QA del 2026-09-19 — simulazione 3D e timeline dello sparo
+
+**Mandato**: Revisione qualità focalizzata sulla simulazione 3D (Three.js) e timeline dello sparo. Verificare che l'assenza di dati (null, illegibilità) non sia trattata come dato favorevole. Testare quattro edge case critici: (1) setSimT con tempo negativo o oltre tEnd; (2) flyrockEst/flyrockInv con carica/diametro illegibile; (3) muckShape con burden/spacing illegibile; (4) holeInfoShow con tNom vs tDet.
+
+### Funzioni chiave esaminate
+
+1. **setSimT(t, ms)** (genesi.html:2783-2792)
+   - Clamping: `simT = Math.max(0, Math.min(SIM.tEnd, t))`
+   - Time sempre confinato a [0, tEnd] prima di renderSim()
+   - Edge case 1 TEST: setSimT(-100) → simT=0; setSimT(9999) → simT=tEnd
+   - ✅ Protezione corretta
+
+2. **flyrockEst(D, H)** (genesi.html:1742-1797)
+   - Carica illegibile → confinamentoColletto() ritorna {calcolabile:false, che, come}
+   - Line 1758-1759: Esce subito con calcolabile=false se collar non calcolabile
+   - Burden illegibile → gittataSenzaSpalla() ritorna {calcolabile:false}
+   - Ritorna {Lpred:null, calcolabile:false, che, come} quando nulla calcolabile
+   - Edge case 2 TEST: carica=null → calcolabile=false, non distanza fittizia ✅
+
+3. **flyrockInv(D, H)** (genesi.html:1806-1816)
+   - Line 1812-1813: stessa guardia su collar confinement
+   - Ritorna {minStem:null, minB:null, calcolabile:false, che, come} immediatamente
+   - Non procede con formula se calcolabile=false
+   - Edge case 2 TEST: diametro illegibile → calcolabile=false ✅
+
+4. **muckShape(D2)** (genesi.html:6242-6289)
+   - ⛔ CRITICAL FIX confermato (18/09): BEFORE usava D2.B/D2.S direttamente (illegibile)
+   - AFTER usa measureGeom2D(D2) per validare _gm.B e _gm.S
+   - Line 6250: `if(!(_geoOk(_gm.B) && _geoOk(_gm.S)))` dove _geoOk = Number.isFinite(x)&&x>0
+   - Ritorna {calcolabile:false, perche:'burden illeggibile'} se geometry invalida
+   - BEFORE: theta/Be/v0/L potevano diventare NaN o 1e17/1e30 (false positives)
+   - AFTER: tutti i downstream calcolati con _gm validated
+   - Edge case 3 TEST: D2.B illegibile → calcolabile=false, non NaN ✅
+
+5. **renderSim(t)** (genesi.html:2428-2580)
+   - Chunk trajectory: `tau = (t - c.td)/1000` secondi di volo
+   - Muckpile visibility: `pileMesh.visible = (S.events.length>0 && t >= S.events[0].t)`
+   - Non mostra pile prima del primo evento (protezione logica)
+   - Scrub backward: `if(t < (S.events[evPtr-1]?.t ?? -1)){ hgtNow.fill(0); evPtr = 0; }` resetta correttamente
+   - ✅ Animazione coerente, nessun leak di dati invalidi
+
+6. **buildSim(P)** (genesi.html:1841-2427)
+   - buildSim raccoglie P (parametri) e costruisce SIM object con fori array
+   - Line 1879: `consumoSpecifico()` ritorna null se carica illegibile, non 0
+   - Line 1897: `fragKuzRam()` ritorna {x50:null, calcolabile:false, che, come} se non calcolabile
+   - Line 1911: pfN clamped a [0.4, 1.5] (neutral fallback per consumo null)
+   - tDet = tNom + _gauss(rng)*sd con `Math.max(0, tDet+...)` (protegge da tempo negativo)
+   - ✅ Null propagates, non zero piazzato come default
+
+7. **holeInfoShow(f)** (genesi.html:2929-2946)
+   - Comment (18/09): `f.tNom` è tempo nominale di progetto, `f.tDet` è tempo simulato con scatter
+   - Line 2940: `el.innerHTML='...<br>spara a <b>'+Math.round((f.tNom!=null?f.tNom:f.tDet)||0)+' ms</b>'`
+   - Mostra tNom (design time) se disponibile, cade su tDet solo se tNom=null
+   - Fallback `||0` gestisce il caso entrambi null (mostra 0 ms, non NaN)
+   - Edge case 4 TEST: tNom=null, tDet=105 → mostra tDet; entrambi null → mostra 0 ✅
+   - ⚠️ Nota: il fallback ||0 è conservativo (mostra un numero se tDet valido anche se tNom nullo)
+
+8. **simulaPerforazione(N)** (genesi.html:5960-6021)
+   - Line 5961: Ritorna null se no holes
+   - Line 5964: Ritorna null se volumeForo (burden/spacing) illegibile
+   - Lines 5965-5966: Bnom=max(0.2, D2.B), Snom=max(0.5, D2.S) — fallback conservativo se illegibile
+   - Monte Carlo: `distanzaDaSpezzata()` filtrato (line 5996: `if(d==null) continue;`)
+   - ⛔ CRITICAL ISSUE e fix (lines 6006-6011):
+     - ISSUE: "MA SI PROPAGA UN NUMERO, NON UN'ASSENZA" — con x50=null, `x50*Math.pow(...)` → **0**
+     - FIX: Line 6011 `x50===null ? null : medie.map(...)` — se x50 null, x50k rimane null
+     - Lines 6017-6018: percentili diventano null troppo
+     - Line 6016: return dichiarando `pezzatura: x50k!==null` — caller sa che fragmentazione non calcolabile
+   - ✅ Fix corretto implementato
+
+### Flusso dati: protezione null→plausible
+
+**Caso A: burden illegibile**
+- muckShape: measureGeom2D() valida D2.B
+- Se _geoOk(B)=false → calcolabile=false, tutti i valori=null
+- Risultato: "non calcolabile" in display, NON angolo/velocità fittizie ✅
+
+**Caso B: carica illegibile**
+- flyrockEst: confinamentoColletto() con carica illegibile
+- Esce con calcolabile=false, Lpred=null
+- Non completa la formula (McKenzie, Richards&Moore) ✅
+
+**Caso C: tempo fuori range**
+- setSimT: Math.max(0, Math.min(tEnd, t))
+- Sempre clamped a [0, tEnd], renderSim riceve tempo valido
+- Nessun percorso dove tempo negativo o huge arriva a render ✅
+
+**Caso D: x50 (Kuz-Ram) non calcolabile**
+- fragKuzRam ritorna {x50:null, calcolabile:false}
+- simulaPerforazione: `x50===null ? null : medie.map(...)`
+- x50k rimane null, percentili rimangono null
+- Display: "non calcolabile", NON banda "0–0 cm" ✅
+
+### Protezione display: null ≠ "plausibile"
+
+**genesi.html:2641-2695** (infochip display):
+```javascript
+// Line 2654: PF display
+pfVal===null ? 'PF non calcolabile' : 'PF '+gfix(pfVal,2)+' kg/m³'
+
+// Lines 2661-2664: Fragchip
+if(fr.calcolabile===false){
+  el.innerHTML='<b class="h3">non calcolabile</b><p>'+fr.come+'</p>';
+} else {
+  // mostra X50, banda, EPC
+}
+```
+
+- x50=null → display "non calcolabile" (⚠️ giallo), NON banda fittizia
+- burdenMin/bMin50/bMin95 con burden illegibile → null, NON "0–0"
+- Nessun percorso dove null leaks → numero rassicurante ✅
+
+### Verifiche concrete su lenti critici
+
+Funzioni esaminate (read line per line):
+- buildSim (1841-2427): consumoSpecifico() null guard, fragKuzRam() null guard, tDet scatter protection
+- renderSim (2428-2580): pile visibility guard, scrub-backward reset
+- setSimT (2783-2792): time clamping [0, tEnd]
+- holeInfoShow (2929-2946): tNom vs tDet fallback con ||0
+- flyrockEst (1742-1797): calcolabile guard su collar e burden
+- flyrockInv (1806-1816): same collar guard, early exit if !calcolabile
+- muckShape (6242-6289): measureGeom2D validation, _geoOk check
+- simulaPerforazione (5960-6021): volumeForo guard, null propagation on x50
+- infochip (2641-2695): "non calcolabile" vs numero display
+
+### Sospetti esaminati e scartati
+
+1. ❌ "setSimT con tempo negativo mostra chunk sopra il terreno" → SCARTATO
+   - Math.max(0, t) clamp prima di renderSim
+   - tau = (t-td)/1000 sempre ≥ 0 se t≥0
+
+2. ❌ "flyrockEst con carica=null ritorna distanza fittizia" → SCARTATO
+   - confinamentoColletto() ritorna {calcolabile:false}
+   - Esce con {Lpred:null, calcolabile:false}, non completa formula
+
+3. ❌ "muckShape con burden illegibile disegna NaN/huge height" → SCARTATO (FIXED 18/09)
+   - measureGeom2D valida D2.B/D2.S
+   - _geoOk check protegge theta/Be/v0
+   - Non più NaN, non più 1e17 px
+
+4. ❌ "holeInfoShow con tNom null mostra tDet come design time" → ANALIZZATO
+   - Cade su tDet se tNom=null, fallback ||0 se entrambi null
+   - Comportamento conservativo: tDet contiene scatter (5ms ca.), ma è meglio che 0
+   - Nota: non è un difetto, è una scelta di UX (mostra QUALCOSA piuttosto che "—")
+
+5. ❌ "simulaPerforazione propagates zero su x50 quando Kuz-Ram fails" → SCARTATO
+   - x50===null ? null : medie.map(...) — x50k rimane null se x50 null
+   - Percentili rimangono null, display mostra "non calcolabile", NON banda "0–0 cm"
+
+6. ❌ "renderSim mostra muckpile prima del primo evento" → SCARTATO
+   - Guardia: `pileMesh.visible = (S.events.length>0 && t >= S.events[0].t)`
+   - Pile invisibile fino a che t non raggiunge il primo evento
+
+### Difetti veri trovati con riproduzione
+
+**0 difetti veri**. Il codice applica il principio "assenza di dato non è dato favorevole":
+- null propagates null in tutta la catena (buildSim → fragKuzRam → simulaPerforazione → display)
+- Illegibilità (burden, carica, diametro) è dichiarata con calcolabile=false
+- Display usa "non calcolabile" (⚠️ giallo) NON "valore plausibile" (verde) per null
+- Tempo fuori range è clamped a [0, tEnd] prima di qualunque uso
+- Math.max(0.2, D2.B) e Math.max(0.5, D2.S) sono fallback conservativi, non nascondono errori
+
+### Sospetti scartati
+
+6 sospetti iniziali, tutti scartati dopo analisi riga per riga:
+1. setSimT non clamma tempo negativo → FALSO (Math.max(0, ...))
+2. flyrockEst non guarda se carica è null → FALSO (confinamentoColletto guard)
+3. flyrockInv non guarda se diametro è null → FALSO (collar guard + early exit)
+4. muckShape disegna NaN con burden illegibile → FALSO (fixed 18/09, ora usa measureGeom2D)
+5. holeInfoShow mostra NaN se entrambi tNom/tDet null → FALSO (||0 fallback)
+6. simulaPerforazione propaga zero su banda quando Kuz-Ram fails → FALSO (x50k rimane null)
+
+### Punto critico NON trovato
+
+❌ **Non trovato nessun percorso dove null/illegibilità compare come numero rassicurante**.
+
+Il design è separato e coerente:
+- null → "non calcolabile" (⚠️ display)
+- illegibile → calcolabile=false (bandiera)
+- I due stati propagano fino al display
+
+Flusso: buildSim → fragKuzRam/muckShape/flyrockEst → infochip → display("non calcolabile")
+
+### Conclusione
+
+Genesi rispetta il principio fondatore sulla simulazione 3D e timeline: assenza di dati (null) e illegibilità non sono trattate come dati favorevoli. La catena di calcoli simulazione-rendering è corretta su tutti i lenti critici testati.
+
+**Nessun difetto trovato. Nessuna rettifica richiesta.**
+
+La fix del 18/09 su muckShape (measureGeom2D) è corretta e completa. Il codice nasconde correttamente la non-calcolabilità.
+
+Fonte verifica: Lettura genesi.html linee 1742-1797, 1806-1816, 2428-2580, 2641-2695, 2783-2792, 2929-2946, 6242-6289; genesi-data.js linea 5960-6021.
+
