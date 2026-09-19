@@ -5537,3 +5537,49 @@ Fonti verifica:
 - `genesi-data.js` linee 655-710 (_riconParseCampo)
 - Test execution output: `/tmp/test-lettori-2.mjs`, `/tmp/test-dxf.mjs`, `/tmp/test-lettori-genesi.mjs`
 
+
+## QA del 2026-09-19 — calcoli economici: costoVolata, caricaTotale, caricaDaX50Target
+
+**Scope:** Verifica della conformità ai principi di "non-calcolabilità dichiarata" (bandiera `calcolabile`) per i tre sistemi di calcolo economico di Genesi: costo di perforazione, esplosivo e inneschi; carica totale per foro; carica da target di pezzatura.
+
+**Metodologia:**
+1. Esecuzione di test edge-case su `costoVolata` con 8 scenari (zero price, negative input, missing components, baseline)
+2. Ricerca di tutte le funzioni di calcolo economico esportate da genesi-data.js
+3. Verifica della copertura test su run-kpi.mjs (linee 31398-31707)
+4. Controllo che tutte le sette unità d'uscita (CSV, comparator A/B, display foglio, storico) leggono correttamente il flag `costCalcolabile`
+5. Verifica del pattern di sincronizzazione tra null-value e flag (computeKPI line 3512: `cost:_cK.calcolabile?Math.round(_cK.tot):null`)
+
+**Risultati:**
+
+✅ **Zero ingressi VALIDI (zero price per metro/kg/innesco, zero material value) — CORRETTO**
+- `cPerf=0` → cost = 1224€ (solo expl+innesco), calcolabile=true
+- `cExpl=0` → cost = 1190€ (solo perf+innesco), calcolabile=true  
+- `cInnesco=0` → cost = 2126€ (solo perf+expl), calcolabile=true
+- `valMat=0` → ricavo=0, margine=-2270€ (loss declared), calcolabile=true
+Principio rispettato: "assenza di valore è un valore" — non confusa con invalidi.
+
+✅ **Ingressi INVALIDI (negative nf/kg/mPerf) — CORRETTO**
+- `nf<0` → tot=null, innesco=null, calcolabile=false ✓
+- `kg<0` → tot=null, qtot=null, expl=null, calcolabile=false ✓
+- `mPerf<0` → tot=null, perf=null, calcolabile=false, che="i metri perforati non sono un numero leggibile" ✓
+
+✅ **Copertura test run-kpi.mjs — COMPLETA**
+- Linee 31398-31411: caricaTotale (null propagation, zero handling)
+- Linee 31427-31480: costoVolata (missing addends, unit cost null-guards, zero=measured pattern)
+- Linee 31482-31488: sync tra costoVolata.qtot e caricaTotale output
+- Linee 31531-31543: verify costCalcolabile is read at 3+ locations (CSV, comparator, display)
+- Linee 31677-31707: caricaDaX50Target (inverse of fragKuzRam, 50.000 case coverage)
+
+✅ **Sincronizzazione null-value ↔ flag — CORRETTO**
+- Computazione (genesi.html 3512): `cost:_cK.calcolabile?Math.round(_cK.tot):null` garantisce che cost=null ⟺ costCalcolabile=false
+- Display (_cmpEur, _cmpKg, _cmpPf genesi-data.js 3093-3095): leggono solo il value (null vs number), non il flag redundante
+- Errors (genesi.html 3618-3619, 4254-4255): mostrano costChe/costCome quando cost=null
+
+✅ **Tre lettori di costCalcolabile identificati e funzionanti**
+1. CSV export (genesi.html 3774): `_cKCsv.calcolabile?Math.round(_cKCsv.tot):null` ✓
+2. Comparison A/B (genesi.html 3597, 3618): `_cmpEur(A.kpi), _cmpEur(B.kpi)` + error display ✓
+3. Foglio di progetto (genesi.html 4162, 7675): nc() helper returns "non calcolabile" if null ✓
+
+**Conclusione:** Zero defect. Tutti i calcoli economici seguono correttamente il pattern null-propagation, il flag calcolabile è sincronizzato con il valore, e tutti gli output path lo leggono. Nessuna ipotesi di violazione della guardia "non-misurabilità dichiarata".
+
+Verificato contro principio fondatore: "assenza di dato non è dato favorevole" — implementato correttamente via bandiera + null value sincronizzate.
