@@ -17579,6 +17579,20 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
       "⛔ nessun secondo toast() separato: sovrascriverebbe la frase di successo (la prima stesura, corretta prima del commit)");
   });
 
+  /* ═══ G54 (19/09) — IL LIMITE DELLO STACK DI ANNULLA, già scritto nel
+     codice dal 14/09 (G33, `D2_UNDO_MAX=40`) e mai provato: il censimento
+     CAD verificato (docs/RICERCA_GENESI_CAD.md, sezione 8) lo segnalava
+     come "presunto sì, ma il limite non è misurato". Il banco vero
+     (genesi-undo-limite.mjs) prova che il limite regge sotto 45
+     modifiche vere e che le voci più vecchie escono per prime (FIFO);
+     qui solo il collegamento — che il canale di lettura per il banco
+     esista davvero. */
+  test("⛔ Genesi · il limite dello stack di annulla è leggibile dal debug hook, per il banco che lo prova (G54)", () => {
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    ok(/get d2UndoLen\(\)\{return d2UndoStack\.length\}/.test(pag), "la lunghezza dello stack si legge dal vivo, non si deduce");
+    ok(/D2_UNDO_MAX,/.test(pag) && /const D2_UNDO_MAX=40;/.test(pag), "il limite dichiarato (40) è quello che il banco confronta, non un numero scritto a mano nel test");
+  });
+
   test("⛔ Genesi · il CSV dello storico è protetto dalla CSV-injection, con la difesa di casa", () => {
     /* ⛔ IL DIFETTO CHE QUESTA PROVA BLINDAVA, corretto il 03/08 ed era il più
        grave dei cinque: `csvRiconciliazione` si portava dietro dalla pagina una
