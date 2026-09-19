@@ -929,6 +929,8 @@ const BANCHI = [
      specifico, `urg` col ramo generico senza deduplica). */
   ['il Quadro di Scudo non mostra due volte la stessa verifica periodica', 'scudo-verifica-doppia.mjs', []],
   ['Quadro di Scudo, verifica doppia · controprova', 'scudo-verifica-doppia.mjs', ['--controprova'], true],
+  ['il Quadro di Scudo mostra la denuncia INAIL scaduta come urgenza', 'scudo-inail-quadro.mjs', []],
+  ['Quadro di Scudo, denuncia INAIL · controprova', 'scudo-inail-quadro.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 06/08, ed è una famiglia TERZA rispetto alle due qui
      intorno: non il numero sbagliato (`terra-numeri-tranquilli`) né il disegno
      che mente (`terra-geometrie`), ma la FRASE — la parola incollata al numero

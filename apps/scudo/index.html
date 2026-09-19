@@ -2389,6 +2389,27 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         <div class="meta">${esc(sintesiCicloDss(r.stato))}</div></div>
         <span class="acts"><span class="badge ${b.cls}">${esc(b.label)}</span><span class="arr">›</span></span></div>`;
     });
+    /* ⛔ 19/09, dal deep-pass QA: LA DENUNCIA INAIL SCADUTA, NEL QUADRO — era
+       l'unico obbligo di legge di questa app che nessuna lista di urgenza
+       consultava. `scadenzaDenunciaInail` esisteva già dal 16/09 e viene
+       letta in due punti per-evento (la riga del registro, il dettaglio), ma
+       né `#urg-list` né `riepilogoInfortuni` la contano: un mortale con la
+       denuncia (termine 24 ore) scaduta da giorni, con tutti gli altri
+       registri a posto, faceva mostrare al Quadro il pannello VERDE
+       "Nessuna urgenza" — proprio sull'obbligo più grave e più urgente
+       dell'intera app, visibile solo aprendo il registro eventi e leggendo
+       una riga tagliata a due righe (`-webkit-line-clamp:2`). */
+    const inailUrg = INF.filter(x => x.tipo === "infortunio").map(x => ({ x, sd: scadenzaDenunciaInail(x, new Date()) }))
+      .filter(({ sd }) => sd.pertinente && sd.calcolabile && !sd.presentata && (sd.stato === "scaduta" || sd.stato === "in-scadenza"))
+      .sort((a, b) => (a.sd.stato === b.sd.stato ? 0 : a.sd.stato === "scaduta" ? -1 : 1))
+      .slice(0, 3).map(({ x, sd }) => {
+        const cls = sd.stato === "scaduta" ? "danger" : "warn";
+        return `<div class="item tocca ${striscia[cls]}" onclick="go('doc')" title="Vai al registro infortuni">
+        <div class="avatar sup">${I.allerta}</div>
+        <div class="info"><div class="name">Denuncia INAIL ${sd.stato === "scaduta" ? "SCADUTA" : "in scadenza"}</div>
+        <div class="meta">${esc(x.descrizione || "Infortunio del " + fmtData(x.data))} · termine ${fmtData(sd.scadenza)}</div></div>
+        <span class="acts"><span class="badge ${cls}">${sd.stato === "scaduta" ? "Scaduta" : "In scadenza"}</span><span class="arr">›</span></span></div>`;
+      });
     /* ⛔ I PERMESSI DI LAVORO, NEL QUADRO — e le due righe dicono due cose
        diverse. La prima è il permesso lasciato APERTO dopo la fine della sua
        finestra: o il lavoro è finito e nessuno l'ha chiuso, o si sta lavorando
@@ -2459,7 +2480,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         + ", e lì «nessuna urgenza» vuol dire <b>«non lo sappiamo»</b>, non «in regola»."
         + `<ul style="margin:8px 0 0 18px;padding:0;">${elenco}</ul>`);
     };
-    $("urg-list").innerHTML = (idonUrg.join("") + manUrg.join("") + mansIgnUrg.join("") + nomUrg.join("") + aziUrg.join("") + anUrg.join("") + appUrg.join("") + dssUrg.join("") + permUrg.join("") + verUrg.join("") + provaUrg.join("") + urg.map(sc => {
+    $("urg-list").innerHTML = (idonUrg.join("") + manUrg.join("") + mansIgnUrg.join("") + nomUrg.join("") + inailUrg.join("") + aziUrg.join("") + anUrg.join("") + appUrg.join("") + dssUrg.join("") + permUrg.join("") + verUrg.join("") + provaUrg.join("") + urg.map(sc => {
       const st = statoScadenza(sc.dataScadenza), l = byId[sc.lavoratoreId];
       return `<div class="item tocca ${striscia[B[st][0]]}" onclick="go('scad')" title="Vai allo scadenzario">
         <div class="avatar">${esc(initials(l && l.nome))}</div>
