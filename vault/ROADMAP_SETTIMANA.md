@@ -12103,7 +12103,7 @@ campo-foglio-turno.mjs 54/54 normale, 19 KO sotto --controprova.
       documento né faceva scattare l'allarme, mentre lo stesso array
       produce il KPI rosso in cima al Quadro. Confermato sulla
       dimostrazione: 3 azioni su 4 scadute, tutte tacitate.
-- [x] **UX Deepwork ID** (due commit): nessuna delle quattro pagine
+- [x] **UX Deepwork ID** (`c4b45edf`): nessuna delle quattro pagine
       caricava `shared/dw-tema.js` (la preferenza di tema "vale per
       tutte le pagine dell'ecosistema", ma senza il caricamento non
       arrivava mai), e `admin.html`/`profilo.html` usavano
