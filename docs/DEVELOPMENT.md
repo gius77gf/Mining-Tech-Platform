@@ -502,7 +502,7 @@ vuota**, e nessuno ha riletto quel messaggio d'errore perché **la spiegazione
 c'era già**. Il segno da riconoscere non è l'errore: è la **rinuncia scritta
 accanto**.
 
-**427 esecuzioni che aprono davvero le pagine** in Chromium *(ricontato il
+**429 esecuzioni che aprono davvero le pagine** in Chromium *(ricontato il
 19/09 con `suite-collegate.mjs`, dopo il fix di Scudo sulla denuncia INAIL nel Quadro)* —
 banchi distinti, ognuno seguito dalla sua **controprova** (Chromium è già
 installato in `/opt/pw-browsers/chromium`, **non** si lancia

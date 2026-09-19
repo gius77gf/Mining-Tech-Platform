@@ -485,6 +485,8 @@ const BANCHI = [
   ['.dwg-tab bersaglio minimo · controprova', 'dwg-tab-min-tocco.mjs', ['--controprova'], true],
   ['Sentinella · modale PPV aperto due volte di fila', 'sentinella-ppv-modale-race.mjs', []],
   ['modale PPV due volte di fila · controprova', 'sentinella-ppv-modale-race.mjs', ['--controprova'], true],
+  ['.dw-senza-rete: contrasto del bordo nei tre temi (Campo)', 'senza-rete-contrasto.mjs', []],
+  ['.dw-senza-rete contrasto · controprova', 'senza-rete-contrasto.mjs', ['--controprova'], true],
   /* AGGIUNTO IL 14/09 (G47b): livelli VERI (mostra/nascondi, blocca) per
      fori/fronte/piede/tratti — non i vecchi interruttori di un calcolo
      (iso/rel/ene/inn). Il caso che conta è il blocco: un'entità bloccata

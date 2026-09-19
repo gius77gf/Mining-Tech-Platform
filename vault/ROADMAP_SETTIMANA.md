@@ -8699,14 +8699,16 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **427 esecuzioni** che
-  aprono le pagine in un browser vero, da **193** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **429 esecuzioni** che
+  aprono le pagine in un browser vero, da **194** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso). *(Ricontato il 19/09 dopo il
   quattordicesimo giro di deep-pass UX — nuovi banchi
-  `dwg-tab-min-tocco.mjs` su un componente condiviso e
-  `sentinella-ppv-modale-race.mjs` sull'eccezione del modale PPV.)*
+  `dwg-tab-min-tocco.mjs` su un componente condiviso,
+  `sentinella-ppv-modale-race.mjs` sull'eccezione del modale PPV, e
+  `senza-rete-contrasto.mjs` sul bordo del banner offline, quindicesimo
+  giro.)*
   *(Al 08/08 pomeriggio 2.326, 703/703 e 153; al 07/08 sera 2.307; al 07/08
   notte 2.193, 662/662 e 120; al 03/08 pomeriggio 2.092, 649/649 e 84; al 02/08
   1.838, 591/591 e 49.)*

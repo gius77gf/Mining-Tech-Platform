@@ -1057,7 +1057,15 @@ body.dw.outdoor-mode .dw-btn{font-size:15px;}
    d'accento — stessa struttura, colore diverso, come vuole la direttiva. */
 .dw-senza-rete{
   background:var(--card2); border:1px solid var(--border);
-  border-left:3px solid var(--warn); border-radius:var(--r-sm);
+  /* ⛔ 19/09, dal deep-pass UX su Campo: usava `--warn` DIRETTO, che non ha
+     mai un override per light-mode/outdoor-mode — a differenza di ogni
+     altro bordo di stato dello stesso foglio (`.kpi.warn`, `.item.st-warn`,
+     `.note.avviso`), che passano tutti da `--bar-wr` (= `--num-wr` se l'app
+     lo scurisce nei temi chiari, altrimenti `--warn` com'era). Misurato:
+     8,52:1 nel buio, ma 1,69:1 nel chiaro e 1,73:1 nel sole — proprio il
+     tema pensato per la leggibilità in pieno cantiere, sul banner che
+     avvisa un capoturno di essere senza rete. */
+  border-left:3px solid var(--bar-wr); border-radius:var(--r-sm);
   color:var(--muted2); font-size:12px; line-height:1.5; padding:10px 13px;
   margin:14px 16px 0; text-align:left; box-shadow:var(--edge);
 }
