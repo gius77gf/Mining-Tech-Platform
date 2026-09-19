@@ -1,16 +1,17 @@
 # Ultimo ciclo
 
-- **Quando**: 2026-09-19T09:14:37Z (letta da `date -u`, non predetta)
-- **Commit di partenza**: 8e49ccf2 (feat(genesi): il semaforo di
-  sintesi letto prima di esportare (G53))
-- **Cosa sto per fare**: chiuso il settimo cantiere Genesi del pivot.
-  Entrambe le proposte rimaste aperte in `docs/RICERCA_CONTINUA_GENESI.md`
-  (l'esito della detonazione G52, il semaforo di sintesi prima di
-  esportare G53) sono ora costruite e provate.
-  **Prossimo passo atomico**: controllare l'esito del giro completo del
-  browser (scratchpad, PID 6815, avviato 07:53:44Z, ~81 minuti) con
-  `leggi-giro.mjs` quando arriva in fondo — verificare che la guardia
-  dell'impronta lo dichiari NON VALIDO (il codice è cambiato più volte
-  mentre girava: G51, G52, G53). Poi rileggere `docs/RICERCA_CONTINUA_GENESI.md`
-  dall'inizio per proposte non ancora processate, o lanciare un nuovo
-  giro di ricerca Haiku in background su un aspetto diverso di Genesi.
+- **Quando**: 2026-09-19T09:51:33Z (letta da `date -u`, non predetta)
+- **Commit di partenza**: 769dd119 (feat(genesi): il misfire nel
+  report stampato — la fetta piccola del delta post-blast (G55))
+- **Cosa sto per fare**: chiuso l'ottavo cantiere Genesi del pivot.
+  Entrambe le ricerche continue in coda a `docs/RICERCA_CONTINUA_GENESI.md`
+  sono ora chiuse (Domanda A dichiarata non azionabile con la ragione,
+  Domanda B azionata in parte con G55, resto lasciato al fondatore).
+  Gestito e rilanciato il giro completo del browser (il vecchio era 11
+  commit indietro, oltre soglia).
+  **Prossimo passo atomico**: controllare l'esito del nuovo giro
+  (`giro-completo-19-0951.log`, PID 18070, avviato 09:51:33Z) con
+  `leggi-giro.mjs` quando arriva in fondo. Poi valutare un nuovo giro
+  di ricerca Haiku in background su un aspetto diverso di Genesi
+  (competitor, un'altra sezione del censimento CAD, o QA mirato), per
+  mantenere ≥3 fronti aperti dentro Genesi.
