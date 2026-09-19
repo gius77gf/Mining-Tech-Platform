@@ -6489,6 +6489,12 @@ function drawDesign2D(){
        perché non è ancora un punto del tratto, è solo dove cadrebbe. */
     if(d2HoverSnap){ const X=mx2(d2HoverSnap.x), Y=my2(d2HoverSnap.y); ctx.beginPath(); ctx.arc(X,Y,9,0,7); ctx.lineWidth=2; ctx.strokeStyle='#5fd97a'; ctx.stroke(); }
   }
+  /* G56 — guida di allineamento in Y mentre si trascina un foro: PURA
+     anteprima, come d2HoverSnap qui sopra — non tocca lo snap effettivo
+     (che resta la griglia), disegna solo la riga se un'altra fila è entro
+     tolleranza. Sparisce da sola: `d2AlignGuide` torna `null` a ogni
+     movimento che non trova nessuna fila vicina, e su mouseup (d2Up). */
+  if(D2.tool==='fori' && d2AlignGuide!=null){ const Y=my2(d2AlignGuide); ctx.save(); ctx.setLineDash([5,4]); ctx.strokeStyle='#5fd9d9'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(padX-12,Y); ctx.lineTo(W-padX+12,Y); ctx.stroke(); ctx.restore(); }
   /* G34quater (13/09) — stessa idea di quota di G34ter (chi modella la
      cresta a mano vuole sapere DOVE ha messo il punto, non solo vederlo
      spostarsi), ma NON accanto al punto: quella zona (fronte + quota
@@ -6520,6 +6526,13 @@ let d2dragPt=-1;
    cursore non è vicino a niente, così il cerchio di anteprima non si disegna
    da solo su un punto vecchio quando ci si allontana. */
 let d2HoverSnap=null;
+/* G56 — il valore di `my` (metri) a cui si allineerebbe il foro in
+   trascinamento, se un'altra fila è entro tolleranza: `null` quando
+   nessuna fila è vicina. Solo anteprima visiva (disegnata in
+   drawDesign2D): a differenza di `_snapXY` non altera il valore salvato
+   del foro, per restare la "prima fetta piccola" — lo snap magnetico vero
+   è un passo successivo, non deciso qui. */
+let d2AlignGuide=null;
 /* G34 — l'aggancio si applica SOLO mentre l'utente posiziona un punto col
    mouse/dito: mai sui dati già salvati, e mai quando la griglia è spenta.
    ⛔ Trasloco B3 (14/09): il legame è uscito in `./genesi-data.js` — `D2`
@@ -6635,8 +6648,15 @@ function d2Move(e){
     drawDesign2D();
   }
   if(d2dragPt>=0 && D2._m){ if(!d2dragPushed){ d2PushUndo(); d2dragPushed=true; } e.preventDefault(); const p=d2EvtToCanvas(e); const arr=activeProf(D2); let mx=(p.x-D2._m.startX)/D2._m.scale, my=(p.y-D2._m.faceY)/D2._m.scale; my=Math.max(-D2.B*1.2,Math.min(D2.B*1.6,my)); mx=_snapXY(D2, mx); my=_snapXY(D2, my); if(arr[d2dragPt]) arr[d2dragPt]={x:+mx.toFixed(2),y:+my.toFixed(2)}; drawDesign2D(); renderScheda2D(); return; }
-  if(d2drag<0||!D2._m) return; if(!d2dragPushed){ d2PushUndo(); d2dragPushed=true; } e.preventDefault(); const p=d2EvtToCanvas(e); let mx=(p.x-D2._m.startX)/D2._m.scale, my=(p.y-D2._m.faceY)/D2._m.scale; my=Math.max(0.3,my); mx=Math.max(-3,Math.min(D2.perRow*D2.S+5,mx)); mx=_snapXY(D2, mx); my=Math.max(0.3,_snapXY(D2, my)); D2.holes[d2drag].mx=+mx.toFixed(2); D2.holes[d2drag].my=+my.toFixed(2); computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector(); }
-function d2Up(){ d2drag=-1; d2dragPt=-1; }
+  if(d2drag<0||!D2._m) return; if(!d2dragPushed){ d2PushUndo(); d2dragPushed=true; } e.preventDefault(); const p=d2EvtToCanvas(e); let mx=(p.x-D2._m.startX)/D2._m.scale, my=(p.y-D2._m.faceY)/D2._m.scale; my=Math.max(0.3,my); mx=Math.max(-3,Math.min(D2.perRow*D2.S+5,mx)); mx=_snapXY(D2, mx); my=Math.max(0.3,_snapXY(D2, my));
+  /* G56 — la guida cerca la fila più vicina fra gli ALTRI fori (mai sé
+     stesso: si trascinerebbe sempre "allineato a sé"), tolleranza in px
+     schermo come G48 (10/scale), qui un po' più stretta perché qui
+     l'allineamento è per righe intere, non per un punto preciso. */
+  d2AlignGuide=null; const tolAY=6/D2._m.scale;
+  for(let k=0;k<D2.holes.length;k++){ if(k===d2drag) continue; const oy=D2.holes[k].my; if(Math.abs(oy-my)<=tolAY){ d2AlignGuide=oy; break; } }
+  D2.holes[d2drag].mx=+mx.toFixed(2); D2.holes[d2drag].my=+my.toFixed(2); computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector(); }
+function d2Up(){ if(d2AlignGuide!=null){ d2AlignGuide=null; drawDesign2D(); } d2drag=-1; d2dragPt=-1; }
 function renderInspector(){
   const el=$('d2-insp'); if(!el) return;
   if(D2.sel<0 || !D2.holes[D2.sel]){ el.style.display='none'; el.innerHTML=''; return; }
@@ -8194,6 +8214,7 @@ if(location.hostname==='localhost'||location.hostname==='127.0.0.1'){
     play:()=>setPlaying(true), pause:()=>setPlaying(false),
     rebuild, renderScheda2D, get SIM(){return SIM}, get P(){return P}, get D2(){return D2}, get simT(){return simT}, get GDB(){return GDB},
     get d2HoverSnap(){return d2HoverSnap},
+    get d2AlignGuide(){return d2AlignGuide},
     get d2UndoLen(){return d2UndoStack.length}, get d2RedoLen(){return d2RedoStack.length}, D2_UNDO_MAX,
     get frontMesh(){return frontMesh},
     get xrayCyls(){return xrayCyls}, holeInfoShow, buildTicks,

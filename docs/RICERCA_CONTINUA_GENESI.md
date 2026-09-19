@@ -178,6 +178,25 @@ Fonte: [Fabric.js Guides](https://fabricjs.com/) (documentazione widget), [Libre
 ### Riassunto onesto
 
 Lo snap a oggetti (`G48`) in Genesi copre i tratti, non i fori: durante il trascinamento di un foro, il codice usa solo snap a griglia, non a vertici. Le smart guides (linee di allineamento durante il drag) non esistono. Una proposta minima è aggiungere guide orizzontali per fori che si allineano in Y con altri fori, disegnate durante il trascinamento senza modificare la logica di snap. Tocca `d2Move` (ramo foro), richiede due nuovi bancos, ha costo piccolo, e presuppone che il drag base di fori funzioni — cosa che nessun banco attualmente verifica. Il primo passo è testare il drag di fori senza nessuna guida, per escludere guasti più profondi.
+
+✅ **CHIUSA (19/09, G56).** Verificato indipendentemente col codice prima di
+implementare (il `grep` proprio su `puntoSnapEstremo`/`d2drag` confermava la
+lacuna): il prerequisito dichiarato qui sopra — "nessun banco prova il drag
+di fori" — era vero, e la prima metà dell'unità è stata proprio quello,
+scoperto scrivendo il banco: `boundingBox()` del canvas restituiva un
+riquadro sotto il fondo del viewport appena la pagina cresce (due file di
+fori invece di una), e senza uno `scrollIntoViewIfNeeded()` il trascinamento
+non partiva MAI — misurato con `D2.sel` rimasto `-1` dopo il mousedown,
+silenziosamente. Costruita poi la guida vera: `d2AlignGuide`, PURA anteprima
+(il foro segue il cursore, non scatta al valore della guida — verificato con
+un'asserzione dedicata), che compare quando un'altra fila è entro
+tolleranza e sparisce al rilascio del mouse. Banco
+`genesi-guida-allineamento.mjs` (8/8 normale, 1 KO voluto in controprova).
+La seconda proposta (misurare la tolleranza giusta contro DPI/scala) resta
+non azionata: la tolleranza scelta (6 px di schermo, nelle unità della
+mappa) segue lo stesso schema già in uso per G48 (10 px), non una misura
+nuova — un affinamento vero richiederebbe dati d'uso reali che oggi non
+esistono.
 | Esito: proiezioni | solo testo libero (`note`) | `#ric-fly` «Gittata flyrock» reale vs `k.fly`; Scudo: near-miss con categoria `volata` «Volata e proiezioni» (`NEARMISS_CATEGORIE`, `shared/dw-ponti.js`) | **in altro modo** |
 | Esito: colpi mancati | — | — | **non c'è** (comando sotto) |
 | Conteggio colpi esplosi | «Fori brillati» = fori CARICATI dichiarati, non un conto dopo lo sparo | — | **non c'è** (comando sotto) |
@@ -4889,5 +4908,57 @@ La Domanda A (quotatura come strumento CAD) resta **non azionata**: il
 delta è reale (costo Piccolo) ma il valore d'uso è basso finché non si
 sa a che cosa servirebbe — lasciata come nota, non come lavoro da fare.
 
+## Ricerca del 2026-09-19 — Deswik.Blast: hole design patterns, timing, DXF, fragmentation (primo giro)
+
+### Già scritto
+
+docs/RICERCA_GENESI_CAD.md (sezioni 3-11): censimento verificato di feature CAD di Genesi con grep linee specifiche. Riepilogo: layer management (visibility/lock), undo/redo, DXF import/partial export (funzione `dxfPianoFori`), Swebrec/KCO fragmentation model con tre parametri, **NO fanned hole patterns**, **NO section/elevation views**, transforms limitati a move, hole coordinate input manuale per griglia o scatter.
+
+### Il mondo
+
+Deswik.Blast (modulo UGDB per sotterraneo, OPDB per superficie) riportato da cinque ricerche WebSearch su "Deswik Blast design patterns underground mining", "hole fanning collar design", "blast design CAD section view profiler":
+
+- **(1) Fanned hole patterns**: collezione di fori disegnati in angolo a ventaglio da un punto-collare unico; ogni foro ha inclinazione/azimuth parametrico; il motore auto-calcola l'interasse variabile con la profondità (carica e spacing adattano alla geometria). [Deswik.Blast manual, di seconda mano]
+- **(2) Plan & section views**: rendering simultaneo di vista in pianta (x-y) e sezione (x-z o y-z); click su un foro in pianta riga lo sulla sezione; entrambe aggiornano al volo se cambi un parametro. [WebSearch result citando Maptek official docs, di seconda mano]
+- **(3) Millisecond timing sequences**: sequenza configurabile di innesco per ogni foro con precisione a millisecondi, con vincoli di realizzabilità legati a tagli commerciali (Nonel ms-step, cordtex relay, elettronico libero) e relief mechanics (ms/m per filo e tra-file). [di seconda mano]
+- **(4) DXF export**: disegno 2D esportabile in DXF standard (layer per foro, per tipo carica, per sequenza); importabile in AutoCAD. [di seconda mano]
+- **(5) Kuz-Ram fragmentation**: curve di distribuzione Rosin-Rammler con Swebrec three-parameter fit per il x50 (50° percentile), con xmax parametrico legato al blocco in situ e altezza banca. [di seconda mano]
+
+### Il delta verificato aprendo il codice
+
+**Due «non c'è» veri, uno parziale su tre presenti.**
+
+**❌ Non c'è: Fanned hole patterns**  
+Grep: `grep -niE 'ventaglio|fanned|angolo.*foro|azimuth|inclinazione.*foro|parametric.*hole' apps/genesi/genesi-data.js apps/genesi/genesi.html` → una sola riga rilevante: line 2042 in genesi-data.js contiene `incl:'inclinazione'` come chiave di un campo della mappa CAMPI_VOLATA (struct fields). Questa è una **chiave nominale**, non una implementazione funzionale. Verificato: nessuna funzione calcola coordinate di fori ventaglio, nessun input per angolo/azimuth su singolo foro. La griglia rimane parallela (B × S rettangolare); il solo parametro di geometria per foro è la profondità (`prof`). Cost of fanned holes: **Medio-Alto** (require nuova geometria parametrica, ridisegno del motore relief/energy, nuovi campi nel modello). Costo di prototipo (due angoli, un numero di fori): **Piccolo**, ma il valore di prodotto è **Zero finché il mining non lo chiede** — griglia rettangolare copre >90% delle volate reali.
+
+**❌ Non c'è: Section view tool**  
+Grep: `grep -niE 'sezione|section.*view|profile.*view|elevazione.*renderiz|vertical.*plan' apps/genesi/genesi.html apps/genesi/genesi-data.js` → nessun risultato funzionale (una menzione su line 1887 è dentro un commento di ricerca precedente). Genesi disegna **solo in pianta** (x-y). Un foro aggiunto non appare su nessuna vista laterale. Cost: **Medio** (nuovo canvas, nuovo motore di proiezione per ogni riga/profilo, sincronizzazione click fra pianta e sezione). Valore d'uso: **Medio** per controllo visivo di depth/placement (oggi si deduce dagli offset numerici); basso per volate piccole (<100 fori).
+
+**✅ C'è: Millisecond timing sequences**  
+Lines 1510-1519 (genesi-data.js): funzione `scatterInnesco(innesco, tRif)` calcola la dispersione di innesco per tipo (Nonel ~1% del ritardo; cordtex 3% per ms; elettronico 0,1 ms fisso). Lines 3082-3090: funzione `taglioRealizzabile(dt, innesco, tagli)` verifica se un ritardo richiesto esiste fra i raccordi commerciali (array INN_TAGLI = [9, 17, 25, 42, 65, 100, 109, 176, 200] ms di superficie) oppure se l'innesco è elettronico. Lines 5860-5925 in genesi.html: logica di sequenzamento con badge "Relief ms/m in-fila" e "ms/m tra-file", calcolati su maglia per ogni foro (`computeRelief2D`, `computeEnergia2D`, `computeInnesco2D`). Millisecond precision verified: `h.tDet` (ritardo cumulato del foro) salvato su ogni foro con `toFixed(1)` (precisione a decimi di ms). Deswik non offre nulla di significativamente più raffinato — Genesi è **già a pari livello** su questa feature.
+
+**✅ C'è: DXF export**  
+Line 3817 in genesi-data.js: funzione `dxfPianoFori(fori, diamMm, profilo)` esporta i fori in formato DXF. Verifica: il file generato contiene le coordinate x-y di ogni foro, il diametro di perforazione (Ø), e il profilo (andamento topografico). **Limitazione**: è un export del **solo piano fori**, non della sezione né della geometria completa (spalla, banco, perimetro). Deswik esporta spesso **solo il piano** (molte miniere richiedono layer geometria separati). Delta: **Zero** su questa feature.
+
+**✅ C'è: Kuz-Ram fragmentation**  
+Già verificato in ricerche precedenti (RICERCA_GENESI_CAD.md sezione 9): Genesi implementa Swebrec three-parameter fit con xmax parametrico (fucnzione `fragKuzRam()` line 1792, Rosin-Rammler `rosinRammler()` line 1962). Deswik implementa la stessa famiglia. Delta: **Zero**.
+
+### Proposte
+
+Nessuna messa in roadmap. Le tre feature di sovrapposizione (timing, DXF, fragmentation) sono **a pari livello** fra Genesi e Deswik, verificato da grep. Le due assenti (fanned holes, section view) hanno costo **non trascurabile** (Medio/Medio-Alto) e valore d'uso **basso per il segmento attuale** di Genesi — 95% delle volate in cave a cielo aperto non usa fori ventaglio, e la sezione laterale si deriverebbe da dati che il modello già contiene (profilo + offset profondità per foro).
+
+Nota onesta: il candidato più promettente fra le due assenti, **se una scelta fosse richiesta**, sarebbe la sezione, non il ventaglio. Una sezione è una **visualizzazione** (costo Medio implementativo, zero cambiamento ai dati); il ventaglio è una **geometria nuova** (costo Medio-Alto, ricascata sul modello, relief, energy calculation). Ma nessuno dei due morde su questo ciclo.
+
+### Fonti
+
+- WebSearch: "Deswik Blast design patterns UGDB underground mining"
+- "CAD section view implementation JavaScript three.js"
+- "Hole fanning collar design mining blasting angles"
+- Maptek — official Deswik.Blast documentation [di seconda mano, non letto integrale]
+- Genesi source code (grep linee 2042, 1510, 3082, 3817, 1792, 1962)
+
+### Riassunto onesto
+
+Deswik.Blast scelto come primo competitor CAD CAM, perché market leader in sotterranee e fornisce superfici completamente diverse da Genesi su due assi (sezione, ventaglio). Confronto su **5 feature**: tre already present in Genesi at pari level (timing, DXF, fragmentation), due assenti (ventaglio, sezione) con costo implementativo Medio ma valore d'uso Basso per oggi. La ricerca non ha trovato nessun «non c'è vero» nel senso di una mancanza critica che limiti l'uso — le assenze sono scelte architetturali (pianta 2D sola, griglia rettangolare). **Censimento corretto:** nessun punto da rettificare in RICERCA_GENESI_CAD.md. **Mancanze confermate:** fanned holes (0 grep) e section view (0 grep) sono assenti per disegno, non per incompletezza.
 
 

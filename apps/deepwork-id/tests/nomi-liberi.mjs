@@ -318,8 +318,29 @@ function nomiLegati(codice, conDichiarazioni = true) {
      chiamata — ma al lettore di chiamate somiglia in tutto. Erano i nove
      «sospetti» dell'SDK alla prima passata sui moduli: nove falsi allarmi su
      nove, e un allarme che sbaglia nove volte su nove insegna a non guardarlo.
-     Si riconoscono dalla graffa che segue la parentesi. */
-  agg(/(?:^|\n)\s*(?:static\s+)?(?:async\s+)?\*?\s*([\w$]+)\s*\([^()]*\)\s*\{/g);
+     Si riconoscono dalla graffa che segue la parentesi.
+     ⛔ E MANCAVANO `get`/`set`, trovato il 19/09 (G56): `get d2UndoLen(){return
+     d2UndoStack.length}` (il debug hook di Genesi, da G54) non veniva legato —
+     `get`/`set` non erano fra i prefissi opzionali, quindi il nome del metodo
+     restava fuori dal match e la CHIAMATA `d2UndoLen()` risultava un nome
+     libero mai dichiarato. Passava inosservato per ogni ALTRA getter dello
+     stesso oggetto (`d2HoverSnap`, `SIM`, `D2`...) solo perché quei nomi sono
+     ANCHE variabili vere dichiarate altrove nel file: `d2UndoLen`/`d2RedoLen`
+     non lo sono, esistono solo come nome della getter. `get`/`set` sono
+     inequivocabili in questa posizione (un vero identificatore `get` chiamato
+     come funzione non può essere seguito da un secondo identificatore senza
+     un operatore in mezzo), quindi si aggiungono come alternativa a `async`,
+     non come nuovo gruppo `\s*` separato (la stessa ambiguità esponenziale
+     già pagata e corretta qui sotto).
+     ⛔ E NON BASTAVA: `d2UndoLen` risultava legato ma `d2RedoLen`, la SECONDA
+     getter sulla stessa riga, no — l'ancora `(?:^|\n)` pretende l'inizio di
+     riga, e dopo il primo match il motore riparte da dentro la riga, non da
+     un a capo. Più getter separate da virgola sulla stessa riga (esattamente
+     la forma di questo hook di debug) sono legittime in JS quanto una per
+     riga: la virgola si aggiunge come terza ancora, non come nuovo gruppo
+     `\s*` (un solo carattere in un'alternanza, stesso costo dell'ancora
+     originale). */
+  agg(/(?:^|\n|,)\s*(?:static\s+)?(?:async\s+|get\s+|set\s+)?\*?\s*([\w$]+)\s*\([^()]*\)\s*\{/g);
   /* ⛔ E I LORO PARAMETRI, che la riga qui sopra non lega: lì il gruppo è il
      NOME del metodo. Un metodo abbreviato non ha la parola `function`, quindi
      `agg(/\bfunction[^(]*\(([^)]*)\)/)` non lo incontra e i suoi parametri
@@ -338,7 +359,7 @@ function nomiLegati(codice, conDichiarazioni = true) {
      sempre — il motore li prova tutti. Con `[ \t]` gli a capo non entrano
      nell'ambiguità e il conto torna lineare. Misurato: da «non finisce» a
      pochi secondi. */
-  agg(/(?:^|\n)[ \t]*(?:static[ \t]+)?(?:async[ \t]+)?(?!(?:if|for|while|switch|catch|with|function|return|do|else|new|typeof|await|yield)\b)[\w$]+[ \t]*\(((?:[^()]|\([^()]*\))*)\)[ \t]*\{/g);
+  agg(/(?:^|\n|,)[ \t]*(?:static[ \t]+)?(?:async[ \t]+|get[ \t]+|set[ \t]+)?(?!(?:if|for|while|switch|catch|with|function|return|do|else|new|typeof|await|yield)\b)[\w$]+[ \t]*\(((?:[^()]|\([^()]*\))*)\)[ \t]*\{/g);
   return legati;
 }
 
@@ -957,6 +978,27 @@ test("la controprova del buco vero — un nome libero dentro un `const` viene vi
     for (const n of (m[1] || "").split(/[^\w$]+/)) if (n) larga.add(n);
   ok(larga.has("conta"),
     "la regola larga DOVEVA nascondere `conta`: se non lo nasconde, il racconto di questo file è sbagliato");
+});
+
+/* ⛔ LA CONTROPROVA DI `get`/`set` E DELLA VIRGOLA COME ANCORA, il buco vero
+   trovato il 19/09 (G56) su `d2UndoLen`/`d2RedoLen` — due getter del debug
+   hook di Genesi (da G54), scritte sulla STESSA riga separate da virgola:
+   `get d2UndoLen(){...}, get d2RedoLen(){...}, D2_UNDO_MAX,`. Prima della
+   correzione: `get`/`set` non erano fra i prefissi opzionali (il match
+   falliva su "get" scambiato per il nome del metodo), e anche aggiungendoli
+   l'ancora `(?:^|\n)` legava solo la PRIMA getter della riga, perché dopo il
+   primo match il motore riparte da dentro la riga, non da un a capo. */
+test("⛔ `get nome(){...}` e `set nome(v){...}` sono legati, ANCHE quando più d'uno sta sulla stessa riga separato da virgola (G56)", () => {
+  const codice = `
+    window.__x = {
+      get d2UndoLen(){return d2UndoStack.length}, get d2RedoLen(){return d2RedoStack.length}, D2_UNDO_MAX,
+      set soglia(v){ _soglia = v; },
+    };
+  `;
+  const legati = nomiLegati(codice);
+  ok(legati.has("d2UndoLen"), "la PRIMA getter della riga dev'essere legata");
+  ok(legati.has("d2RedoLen"), "⛔ la SECONDA getter della riga (dopo la virgola) dev'essere legata anche lei");
+  ok(legati.has("soglia"), "un setter si riconosce con la stessa regola");
 });
 
 /* ── LA SECONDA DOMANDA, sulle stesse pagine ─────────────────────────────── */

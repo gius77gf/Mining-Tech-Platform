@@ -17608,6 +17608,29 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     eq((pag.match(/\+_repEsito\n\s*\+firma/g) || []).length, 1, "inserita nel documento, prima della firma");
   });
 
+  /* ═══ G56 (19/09) — LA GUIDA DI ALLINEAMENTO IN Y SUL TRASCINAMENTO DI UN
+     FORO, dalla ricerca in background su snap magnetico/tracking dinamico:
+     G48 aggancia a un estremo esistente ma SOLO nel ramo "tratto" di
+     `d2Move` — trascinando un foro non c'era nessun aiuto visivo, e
+     (verificato con un grep proprio) nessun banco di questa suite faceva
+     mai un trascinamento vero (down→move→up) su un foro, solo click.
+     "Prima fetta piccola" dichiarata nel codice: PURA anteprima, non
+     tocca lo snap effettivo — il foro segue il cursore, la guida segue
+     solo se stessa. Qui solo il collegamento; il comportamento vero
+     (guida che compare/sparisce, valore del foro che NON scatta alla
+     guida) lo prova genesi-guida-allineamento.mjs con un trascinamento
+     reale del mouse. */
+  test("⛔ Genesi · la guida di allineamento in Y è PURA anteprima, non altera lo snap effettivo (G56)", () => {
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    ok(/let d2AlignGuide=null;/.test(pag), "la guida è dichiarata accanto a d2HoverSnap, stesso pattern");
+    ok(/if\(D2\.tool==='fori' && d2AlignGuide!=null\)/.test(pag), "si disegna solo in modalità fori, mai su fronte/piede/tratto");
+    ok(/for\(let k=0;k<D2\.holes\.length;k\+\+\)\{ if\(k===d2drag\) continue;/.test(pag),
+      "la ricerca esclude il foro che si sta trascinando (mai 'allineato a sé stesso')");
+    ok(/function d2Up\(\)\{ if\(d2AlignGuide!=null\)\{ d2AlignGuide=null; drawDesign2D\(\); \}/.test(pag),
+      "la guida sparisce al rilascio del mouse, con un ridisegno solo se era davvero visibile");
+    ok(/get d2AlignGuide\(\)\{return d2AlignGuide\}/.test(pag), "leggibile dal debug hook per il banco che la prova");
+  });
+
   test("⛔ Genesi · il CSV dello storico è protetto dalla CSV-injection, con la difesa di casa", () => {
     /* ⛔ IL DIFETTO CHE QUESTA PROVA BLINDAVA, corretto il 03/08 ed era il più
        grave dei cinque: `csvRiconciliazione` si portava dietro dalla pagina una

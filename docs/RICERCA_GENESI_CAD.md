@@ -285,15 +285,26 @@ Basato su: AutoCAD, BricsCAD, LibreCAD, FreeCAD. I feature universali che distin
   - Checkpoint 20260919-023026: "LWPOLYLINE — l'entità polilinea di DEFAULT di AutoCAD/LibreCAD/QCAD"
   - **Limite:** importa solo geometria 2D (linee/polilinee), non attributi layer/colore
 
-- ❌ **DXF export:** NON TROVATO
-  - Cercato: `toDxf`, `exportDxf`, `writeDxf` → zero match
-  - Genesi esporta CSV (documentazione) e JSON (formato interno), non DXF
-  - Non rilegge il disegno in DXF da nessun'altra app
+- ❌ ⛔ **CORREZIONE (19/09, G56): «DXF export: NON TROVATO» ERA FALSO —
+  cercato UN nome (`toDxf`/`exportDxf`/`writeDxf`), non il meccanismo.** La
+  funzione si chiama `dxfPianoFori` (`apps/genesi/genesi-data.js`, da prima
+  del 13/09: il commento di G34 la cita già come "l'interoperabilità DXF"
+  compiuta): esporta i fori come cerchi+etichetta e il fronte come
+  polilinea, in una vera sezione `ENTITIES` DXF, dal bottone «Piano DXF»
+  (`genesi.html`, `dxf=dxfPianoFori(D2.holes, D2.diam, D2.profilo)`,
+  scaricato come `genesi_piano_fori.dxf`). Verificato con `grep -n
+  dxfPianoFori apps/genesi/genesi.html apps/genesi/genesi-data.js`: tre
+  occorrenze (import, chiamata, definizione). L'export DXF **esiste ed è
+  bidirezionale** (import per il rilievo, export per il piano fori):
+  bottleneck di interoperabilità chiuso, non aperto.
 
 - ❌ **DWG:** NON SUPPORTATO (nemmeno import)
   - DWG è proprietario, richiede libreria speciale (o come DXF riscrittura da altre app)
 
-**DELTA:** Importa DXF (profilo della cava da rilievo/CAD), non lo esporta. Bottleneck per interoperabilità.
+**DELTA (corretto):** Importa E esporta DXF (profilo dal rilievo, piano fori
+verso il rilievo/topografia). Manca solo DWG, che è un formato proprietario
+— fuori portata per un'app browser senza libreria a pagamento (vedi
+"nessuna spesa" in CLAUDE.md).
 
 ---
 
@@ -311,7 +322,9 @@ Basato su: AutoCAD, BricsCAD, LibreCAD, FreeCAD. I feature universali che distin
 3. **Trasformazioni di selezione (rotate, scale, mirror su fori singoli)** - editing localizzato
 4. **Selezione multipla (window/crossing)** - operazioni batch
 5. **Blocchi/simboli** - riuso di pattern comuni (es. gallerie, pozzi, pilastri di cava)
-6. **Export DXF** - scambio bidirezionale con rilievo/topografia
+6. ~~**Export DXF**~~ — ⛔ **falso, corretto il 19/09 (G56): `dxfPianoFori`
+   esiste da prima del 13/09, lo scambio con rilievo/topografia è già
+   bidirezionale.**
 
 **Punti di forza da mantenere:**
 - Snap a griglia della maglia (specializzato, non generale)

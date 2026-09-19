@@ -493,6 +493,8 @@ const BANCHI = [
   ["il limite dello stack di annulla di Genesi · controprova", 'genesi-undo-limite.mjs', ['--controprova'], true],
   ["il misfire nel report stampato di Genesi (G55)", 'genesi-report-misfire.mjs', []],
   ["il misfire nel report stampato di Genesi · controprova", 'genesi-report-misfire.mjs', ['--controprova'], true],
+  ["la guida di allineamento sul trascinamento di un foro (G56)", 'genesi-guida-allineamento.mjs', []],
+  ["la guida di allineamento sul trascinamento di un foro · controprova", 'genesi-guida-allineamento.mjs', ['--controprova'], true],
   ["Genesi: una volata salvata porta l'identità di chi era collegato", 'genesi-autore-volata.mjs', []],
   ['autore della volata di Genesi · controprova', 'genesi-autore-volata.mjs', ['--controprova'], true],
   [".chg: larghezza minima nel tema del sole (Terra)", 'chg-min-larghezza.mjs', []],
