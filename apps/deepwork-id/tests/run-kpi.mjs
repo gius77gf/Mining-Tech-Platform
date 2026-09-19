@@ -43494,6 +43494,11 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(mezzi, mezzi.slice().sort((a, b) => a.localeCompare(b, "it")), "i mezzi in ordine di nome");
     const e1 = righe.find((r) => /^mezzo;.*Escavatore E1/.test(r));
     ok(e1 && /5\.870 h/.test(e1), "⛔ le ore raggruppate come sullo schermo (5.870, non 5870) — " + e1);
+    for (const m of D.mezzi) {
+      const r = righe.find((x) => x.startsWith("mezzo;") && x.includes(m.nome));
+      ok(r && r.split(";")[2].replace(/^"|"$/g, "") === (flotta.ETICHETTA_STATO_MEZZO[m.stato] || flotta.ETICHETTA_STATO_MEZZO.operativo),
+        "⛔ 19/09, dal deep-pass QA: lo stato del mezzo è l'etichetta dello schermo (ETICHETTA_STATO_MEZZO), mai la chiave grezza — " + r);
+    }
     for (const n of D.manutenzioni) {
       const r = righe.find((x) => x.startsWith("manutenzione;") && x.includes(n.titolo));
       ok(r && r.split(";")[2].replace(/^"|"$/g, "") === flotta.statoOrdine(n).breve, "⛔ lo stato dell'ordine è quello di statoOrdine, mai una parola fissa — " + r);

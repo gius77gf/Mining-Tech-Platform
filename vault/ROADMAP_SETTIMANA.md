@@ -2911,6 +2911,8 @@ nome. Un nome si cerca con `grep`; una riga si sposta.
 grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 ```
 
+- `F1. \`vitaComponenti\` non distingue un componente sostituito da`
+- `F2. La rampa sequenziale dei grafici (\`--dwg-s1\`) non raggiunge`
 - `Una passata in profondità su un'app`
 - `D-ter. Le otto verdi che vogliono un cantiere`
 - `D. Le 24 decisioni ancora aperte`
@@ -12184,3 +12186,70 @@ cantieri sulle sue superfici), non più a rotazione fra le sei app.*
   disciplina di sempre — niente entra sulla parola dell'agente), poi
   tradurlo in unità di lavoro concrete o in decisioni per il fondatore
   se il costo/la scelta di prodotto lo richiede.
+
+## Chiusura dei due cantieri Flotta pre-direttiva (19/09)
+
+I due cantieri su Flotta dispatchati PRIMA della direttiva "solo Genesi"
+sono arrivati e sono stati processati (nessun nuovo lavoro Flotta aperto
+dopo la direttiva — solo quanto già pagato).
+
+**QA deep-pass Flotta** (`a372e9a0632e13de9`) — 4 findings, tutti
+verificati indipendentemente contro il codice prima di agire:
+- Corretti (commit successivo): 4 comandi one-click senza guardia di
+  rientranza (`data-sco-usa`, `data-odl-stato`, `data-odl-mano-del`,
+  `data-odl-ric-del` in `apps/flotta/index.html`) — stessa famiglia già
+  chiusa altrove in questa sessione (bottoni senza `occupato()`), qui in
+  forma di Set/booleano perché sono comandi delegati senza un id DOM
+  fisso; e `csvSituazione` che scriveva la chiave grezza dello stato
+  mezzo (`operativo`/`fermo`/`verifica`) invece dell'etichetta
+  (`ETICHETTA_STATO_MEZZO`, già usata identica a schermo) — stessa
+  incoerenza già corretta altrove nella stessa colonna del foglio
+  (`statoOrdine(n).breve`, `s.label`). Test aggiunto in `run-kpi.mjs`.
+- [ ] **F1. `vitaComponenti` non distingue un componente sostituito da
+  uno montato (Flotta)** — verificato riga per riga
+  (`apps/flotta/flotta-data.js:3032` e `:3080`): due eventi di montaggio
+  con lo stesso `tipo` sullo stesso mezzo, il vecchio resta "attivo" e
+  la sua vita si ricalcola per sempre contro le ore ATTUALI del mezzo
+  invece di fermarsi a quando è stato tolto. **Dormiente**: non esiste
+  ancora nessun percorso di scrittura per `m.componenti` (né bottone né
+  import CSV, verificato con `grep -c "componenti" apps/flotta/index.html`
+  → 3 righe, tutte di sola lettura) — il modulo di registrazione da
+  giro macchina, già dichiarato "prossimo passo" nel checkpoint
+  `20260916-032617`, farà scattare questo difetto al primo uso reale.
+  Da risolvere CONTESTUALMENTE a quel modulo, non prima e non a metà.
+- Non azionati per costo/visibilità sotto soglia: bottoni magazzino
+  etichettati sempre "pezzo" anche per ricambi a peso/volume (nessun
+  ricambio del genere nella demo oggi, cosmetico).
+
+**UX/estetica Flotta** (`ae2e145b7f346de61`) — zero difetti sopra soglia
+su contrasto testo, bersagli di tocco, overflow di pagina (misurato, non
+dedotto: `getComputedStyle`/`getBoundingClientRect` su centinaia di
+elementi, 3 temi × più larghezze). Un finding reale è emerso ed è stato
+**verificato e allargato** (non è solo di Flotta):
+- [ ] **F2. La rampa sequenziale dei grafici (`--dwg-s1`) non raggiunge
+  mai 3:1 nei temi chiaro/sole, in NESSUNA delle sei app** —
+  `shared/dw-grafici.css` dichiara nel proprio commento (riga 74) che
+  «le luminosità sono scelte perché ogni riempimento resti ≥3:1»: falso,
+  verificato ricalcolando la luminanza WCAG a mano
+  (`color-mix(in srgb, var(--app-accent) 55%, #ffffff)` contro
+  `--card:#fff`) per tutte le sei app:
+  scudo 1.93 · campo 2.00 · flotta 1.99 · conti 1.91 · sentinella 1.93 ·
+  terra 1.85 — **nessuna sopra 2.00, la soglia dichiarata è 3:1**. Non è
+  un difetto di Flotta (dove è stato notato per primo, sul grafico
+  "Costo di officina per mezzo"): è la formula condivisa, sbagliata per
+  costruzione per qualunque accent dell'ecosistema. Severità bassa
+  (WCAG 1.4.11, non-testo: l'informazione resta leggibile — lunghezza
+  barra + valore numerico stampato accanto — nessuno screenshot mostra
+  un dato illeggibile), ma la dichiarazione nel commento va o corretta o
+  onorata. **Non risolto in questa unità di proposito**: la correzione
+  tocca una formula condivisa da sei app e tutti e cinque i gradini
+  della rampa (non solo s1), e richiede la stessa disciplina già scritta
+  in CLAUDE.md per `contrasto.mjs` — misurare, non aggiustare a metà —
+  che qui vuol dire riverificare tutti e 5×6 = 30 combinazioni gradino×
+  app dopo qualunque cambio di percentuale. Rimandato apposta invece di
+  farlo a metà mentre la direttiva del fondatore chiede tutti gli sforzi
+  su Genesi.
+
+Verifica prima del commit dei due fix Flotta: `run-kpi.mjs` 3184/3184
+(nuova asserzione aggiunta dentro un test esistente, non un nuovo test:
+il totale dei blocchi `test()` resta lo stesso).

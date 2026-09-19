@@ -1202,7 +1202,13 @@ export function csvSituazione(mezzi, manutenzioni, ricambi, letture) {
   const codaContatore = (n) => codaContatoreTesto(n, letture);
   let csv = CSV_SITUAZIONE_INTESTAZIONE + "\n";
   for (const m of (mezzi || []).filter(Boolean).slice().sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "it")))
-    csv += `mezzo;${csvCell(m.nome)};${m.stato};${csvCell((numeroDichiarato(m.ore) != null ? it(m.ore) + " h" : "ore non registrate") + (m.area ? " · " + m.area : ""))}\n`;
+    /* ⛔ 19/09, dal deep-pass QA: qui usciva la chiave grezza (`operativo`/
+       `fermo`/`verifica`), mentre le righe "manutenzione" e "ricambio"
+       della STESSA colonna scrivono già un'etichetta leggibile
+       (`statoOrdine(n).breve`, `s.label`) — la stessa incoerenza già
+       corretta altrove per lo schermo (`ETICHETTA_STATO_MEZZO`, usata
+       identica in index.html:1425 e riga 1091 qui sotto). */
+    csv += `mezzo;${csvCell(m.nome)};${csvCell(ETICHETTA_STATO_MEZZO[m.stato] || ETICHETTA_STATO_MEZZO.operativo)};${csvCell((numeroDichiarato(m.ore) != null ? it(m.ore) + " h" : "ore non registrate") + (m.area ? " · " + m.area : ""))}\n`;
   for (const n of (manutenzioni || []).filter(Boolean).slice().sort((a, b) => (a.dataPrevista || "9999") < (b.dataPrevista || "9999") ? -1 : 1))
     csv += `manutenzione;${csvCell(n.titolo + " — " + n.mezzo)};${csvCell(statoOrdine(n).breve)};${csvCell(n.orePreviste ? "a " + it(n.orePreviste) + " h motore" + codaContatore(n) : "previsto " + dataIt(n.dataPrevista))}\n`;
   for (const r of (ricambi || []).filter(Boolean).slice().sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "it"))) {

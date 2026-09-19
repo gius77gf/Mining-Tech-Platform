@@ -1789,6 +1789,11 @@ body.dw b.bad{color:var(--ink-dg)}
   // ORDINE DI LAVORO (L5): id della manutenzione aperta come ordine, e il
   // filtro per stato della lavorazione nell'Officina.
   let odlId = null;
+  // Guardia di rientranza per le scritture dirette sull'ordine aperto
+  // (togli riga manodopera/ricambio, cambia stato): un solo ordine è
+  // aperto alla volta, quindi basta un booleano (stessa famiglia di
+  // `ricInVolo` più sotto, qui più semplice perché il soggetto è unico).
+  let odlScritturaInVolo = false;
   let filtroMan = "tutti";
   // FERMI (L6): la finestra di giorni su cui si misura l'affidabilità. La
   // scelta resta ricordata sul dispositivo, come le altre di Flotta.
@@ -4197,18 +4202,22 @@ body.dw b.bad{color:var(--ink-dg)}
     // righe della lavorazione: si tolgono per posizione, perché due righe
     // possono essere identiche (due volte la stessa persona in due giorni)
     const manoDel = attr(e, "data-odl-mano-del");
-    if (manoDel != null) { const n = MAN.find(x => x.id === odlId); if (!n) return;
+    if (manoDel != null) { if (odlScritturaInVolo) return; const n = MAN.find(x => x.id === odlId); if (!n) return;
       const o = ordineDaManutenzione(n, RIC);
       const i = +manoDel; const via = o.manodopera[i]; if (!via) return;
-      await salvaOrdine(n, { manodopera: o.manodopera.filter((_, k) => k !== i) },
-        "Riga tolta: " + (via.chi || "senza nome") + ", " + oreTx(via.ore) + ".");
+      odlScritturaInVolo = true;
+      try { await salvaOrdine(n, { manodopera: o.manodopera.filter((_, k) => k !== i) },
+        "Riga tolta: " + (via.chi || "senza nome") + ", " + oreTx(via.ore) + "."); }
+      finally { odlScritturaInVolo = false; }
       return; }
     const ricDelOdl = attr(e, "data-odl-ric-del");
-    if (ricDelOdl != null) { const n = MAN.find(x => x.id === odlId); if (!n) return;
+    if (ricDelOdl != null) { if (odlScritturaInVolo) return; const n = MAN.find(x => x.id === odlId); if (!n) return;
       const o = ordineDaManutenzione(n, RIC);
       const i = +ricDelOdl; const via = o.ricambi[i]; if (!via) return;
-      await salvaOrdine(n, { ricambiUsati: o.ricambi.filter((_, k) => k !== i) },
-        "Ricambio tolto dall'ordine: " + (via.nome || "senza nome") + ".");
+      odlScritturaInVolo = true;
+      try { await salvaOrdine(n, { ricambiUsati: o.ricambi.filter((_, k) => k !== i) },
+        "Ricambio tolto dall'ordine: " + (via.nome || "senza nome") + "."); }
+      finally { odlScritturaInVolo = false; }
       return; }
     // «Riscrivi sul contatore nuovo» (04/09): il bottone sta nella testa
     // dell'ordine e passa dalla stessa delega degli altri comandi dell'ordine
@@ -4218,23 +4227,29 @@ body.dw b.bad{color:var(--ink-dg)}
       await riscriviSulNuovo(n);
       return; }
     const odlStato = attr(e, "data-odl-stato");
-    if (odlStato) { const n = MAN.find(x => x.id === odlId); if (!n) return;
+    if (odlStato) { if (odlScritturaInVolo) return; const n = MAN.find(x => x.id === odlId); if (!n) return;
       if (statoOrdine(n).chiave === odlStato) return;
       const s = STATI_ORDINE.find(x => x.chiave === odlStato); if (!s) return;
-      await salvaOrdine(n, { stato: odlStato }, "Ora questo lavoro è « " + s.etichetta.toLowerCase() + " ».");
+      odlScritturaInVolo = true;
+      try { await salvaOrdine(n, { stato: odlStato }, "Ora questo lavoro è « " + s.etichetta.toLowerCase() + " »."); }
+      finally { odlScritturaInVolo = false; }
       return; }
     // L7: «usa questa soglia» porta la soglia minima del ricambio al punto di
     // riordino calcolato. È l'utente a decidere, un pezzo alla volta: l'app
     // non riscrive da sola i numeri che qualcuno ha messo a mano.
     const scoUsa = attr(e, "data-sco-usa");
-    if (scoUsa) { const r = RIC.find(x => x.id === scoUsa); if (!r) return;
+    if (scoUsa) { if (ricInVolo.has(scoUsa)) return; const r = RIC.find(x => x.id === scoUsa); if (!r) return;
       const p = propostaScorte(RIC, INT, { consegnaGiorni: Math.round(+$("sco-consegna").value || 0),
         sicurezzaGiorni: Math.max(0, Math.round(+$("sco-sicurezza").value || 0)), finestraGiorni: 180 });
       const riga = p.righe.find(x => x.id === scoUsa); if (!riga) return;
-      await db.aggiorna("ricambi", r.id, { sogliaMin: riga.sogliaProposta });
-      esito("ric-esito", "Soglia di " + r.nome + ": da " + (riga.sogliaAttuale == null ? "nessuna soglia impostata" : riga.sogliaAttuale) + " a " + riga.sogliaProposta
-        + " (" + riga.alGiorno.toLocaleString("it-IT", { maximumFractionDigits: 3 }) + " pezzi al giorno × " + riga.copertura + " " + plurale(riga.copertura, "giorno", "giorni") + ").", "success");
-      await refresh(); return; }
+      ricInVolo.add(scoUsa);
+      try {
+        await db.aggiorna("ricambi", r.id, { sogliaMin: riga.sogliaProposta });
+        esito("ric-esito", "Soglia di " + r.nome + ": da " + (riga.sogliaAttuale == null ? "nessuna soglia impostata" : riga.sogliaAttuale) + " a " + riga.sogliaProposta
+          + " (" + riga.alGiorno.toLocaleString("it-IT", { maximumFractionDigits: 3 }) + " pezzi al giorno × " + riga.copertura + " " + plurale(riga.copertura, "giorno", "giorni") + ").", "success");
+        await refresh();
+      } finally { ricInVolo.delete(scoUsa); }
+      return; }
     // FERMI MACCHINA (L6): «è ripartito» chiude il fermo di oggi e propone di
     // rimettere la macchina operativa; la croce lo toglie del tutto.
     const ferFine = attr(e, "data-fer-fine");
