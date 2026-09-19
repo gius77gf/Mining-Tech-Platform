@@ -12041,3 +12041,29 @@ Lanciato in background il giro completo del browser su una worktree di
 
 run-kpi.mjs 3181/3181. numeri-nei-documenti.mjs 43/43 (423 banchi,
 copertura 1052/1052).
+
+## Quattordicesimo giro: Campo, ricerca Scudo, UX Sentinella (19/09)
+
+- [x] **Campo** (`232e9b5a`): `csvAttivita` non portava mai
+      squadra/operatore, già mostrati a schermo e nel rapporto
+      stampato. Aggiunte due colonne, aggiornato il censimento derivato
+      delle intestazioni (regola B8).
+- [x] **Campo** (`5ad55b4a`): `rapportoGiornata`/`testoConsegnaTurno`
+      duplicavano una checklist quando due record esistevano per lo
+      stesso (turno, squadra) — lo schermo (`checklistDi`) ne mostra
+      uno solo, i documenti li elencavano entrambi. Corretto con
+      `checklistUltimePerTurno`, un posto solo per la stessa regola.
+      Verificato anche nel browser (nuovo caso in
+      `campo-foglio-turno.mjs`, con controprova).
+- [ ] **UX Sentinella** (agente `abcf767091511907a`, da verificare e
+      implementare): tap target sotto soglia su `.dwg-tab > summary`
+      (componente condiviso in `shared/dw-grafici.css`, 51,7×30px) e
+      un'eccezione non gestita nel modale "Collega la PPV misurata"
+      (`apps/sentinella/index.html`, un `requestAnimationFrame`
+      differito sopravvive alla chiusura del modale).
+- [ ] Ricerca su Scudo (ciclo di vita delle azioni correttive) non
+      ancora letta.
+
+run-kpi.mjs 3183/3183. numeri-nei-documenti.mjs 43/43 (423 banchi,
+copertura 1053/1053). iniezioni-fresche.mjs 712/712.
+campo-foglio-turno.mjs 54/54 normale, 19 KO sotto --controprova.
