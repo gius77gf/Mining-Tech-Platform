@@ -2090,6 +2090,17 @@ letta), riusando `livelloScadenza`.
 contatore "non lette" persistente al primo accesso, non solo la lista già
 filtrata di sempre.
 
+✅ **CHIUSA la prova qui sopra sul primo passo piccolo (16/09, verificato 19/09)** — la seconda metà (invio email/SMS reale) resta aperta.
+`notificheScadenzeNonLette` (`apps/scudo/scudo-data.js:850`) e
+il badge persistente `aggiornaBadgeNotifiche` (`apps/scudo/index.html:2217`)
+esistono e sono collegati al bottone «Scadenze», verificato il 19/09:
+    $ grep -ciE 'notific|push notif|invia.{0,3}email|invia.{0,3}sms' apps/scudo/scudo-data.js apps/scudo/index.html
+    apps/scudo/scudo-data.js:5
+    apps/scudo/index.html:8
+Nessuna delle 13 occorrenze è invio email/SMS reale (sono tutte
+`notific*` del contatore in-app): quella metà del delta resta grande e
+aperta, non è cambiato niente lì.
+
 ### 5. Barriere mancate nell'analisi causa (ICAM)
 **Come si vede (il mondo, di seconda mano):** l'ICAM (standard citato per
 il settore minerario) mappa le difese assenti o fallite — non "perché è
@@ -2648,6 +2659,15 @@ apps/scudo/index.html:0
 
 Non è un difetto isolato di Scudo da colmare qui: è un limite architetturale
 condiviso, già dichiarato.
+
+✅ **CHIUSA la prova numerica qui sopra (16/09, verificato 19/09) — il VERDETTO resta invariato.**
+Il comando rilanciato oggi dà `apps/scudo/scudo-data.js:5` e
+`apps/scudo/index.html:8`, non più 0/0: il "primo passo piccolo" di §4
+(badge di notifica in-app persistente, `notificheScadenzeNonLette`) ha
+introdotto la PAROLA "notific" nel codice, e il grep la trova. Il limite
+architetturale che questo paragrafo dichiara — nessun invio automatico
+email/SMS/push da nessuna delle sei app — resta vero: nessuna delle
+occorrenze nuove è un canale d'invio, sono tutte il contatore in-app.
 
 ### Rimisura della mancanza #1 del 15/09: verifica di efficacia — ANCORA VERA
 
