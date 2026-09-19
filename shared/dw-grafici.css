@@ -323,8 +323,12 @@ body.dw.light-mode, body.dw.outdoor-mode {
 /* ─────────────── tabella dei dati (il tooltip aiuta, non fa da cancello) ─────────────── */
 .dwg-tab { margin-top: 9px; }
 .dwg-tab > summary {
+  /* ⛔ 19/09, dal deep-pass UX su Sentinella: 30px fisso restava sotto i
+     44px minimi anche fuori dal tema del sole (60px lì), su un componente
+     CONDIVISO montato da ogni grafico con la tabella dati di ogni app —
+     var(--tap), come già .chg e .nav, così il sole lo alza da solo. */
   list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
-  min-height: 30px; padding: 4px 10px; border: 1px solid var(--border2);
+  min-height: var(--tap); min-width: var(--tap); padding: 4px 10px; border: 1px solid var(--border2);
   border-radius: var(--r-sm); background: var(--card);
   font-family: 'Barlow Condensed', sans-serif; font-size: 10.5px; font-weight: 700;
   letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted2);

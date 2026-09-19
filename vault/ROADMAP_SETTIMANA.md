@@ -2929,6 +2929,8 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
+- `UX Sentinella` *(tap target sotto soglia su un componente condiviso,
+  già corretto — e un'eccezione non gestita nel modale PPV, da verificare)*
 
 ## 🎯 L'obiettivo della settimana
 
@@ -8696,12 +8698,13 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **423 esecuzioni** che
-  aprono le pagine in un browser vero, da **191** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **425 esecuzioni** che
+  aprono le pagine in un browser vero, da **192** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
-  `impronta.mjs`, il runner stesso). *(Ricontato il 18/09 con
-  `suite-collegate.mjs`, dopo il sesto giro di deep-pass QA.)*
+  `impronta.mjs`, il runner stesso). *(Ricontato il 19/09 dopo il
+  quattordicesimo giro di deep-pass UX — nuovo banco
+  `dwg-tab-min-tocco.mjs` su un componente condiviso.)*
   *(Al 08/08 pomeriggio 2.326, 703/703 e 153; al 07/08 sera 2.307; al 07/08
   notte 2.193, 662/662 e 120; al 03/08 pomeriggio 2.092, 649/649 e 84; al 02/08
   1.838, 591/591 e 49.)*
