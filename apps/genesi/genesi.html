@@ -7290,10 +7290,17 @@ function renderScheda2D(){
           : 'Il rischio che un foro scenda sotto il 70% del burden di progetto resta sotto il 5%: la maglia regge la precisione dichiarata.')
         +' Attenzione a cosa <b>non</b> c\'è dentro: qui si propaga solo la geometria della perforazione. La variabilità della roccia è di solito più grande, e per quella serve la riconciliazione col dato reale.'});
   })();
-  /* G4 — la rete di innesco: si può davvero collegare così in cava? */
+  /* G4 — la rete di innesco: si può davvero collegare così in cava?
+     G56d (19/09) — `HH` filtra su `innFrom>=0`, e un foro con
+     `innFuoriFascia` (un vicino ha già sparato ma nessun raccordo lo
+     raggiunge) usciva da questo filtro con la stessa faccia del vero
+     primo foro della volata: spariva dal conteggio dei collegamenti
+     senza che nessuna riga lo dicesse. Si conta a parte, come per il
+     relief. */
   (function(){
     const HH=(D2.holes||[]).filter(h=>h.innFrom!=null && h.innFrom>=0 && h.innDt!=null);
-    if(HH.length<1){ rows.push({lab:'Rete di innesco',valStr:'—',cls:'sv-info',
+    const nGap=(D2.holes||[]).filter(h=>h.innFuoriFascia).length;
+    if(HH.length<1 && !nGap){ rows.push({lab:'Rete di innesco',valStr:'—',cls:'sv-info',
       why:'con un foro solo, o con tutti i fori sullo stesso istante, non c\'è una rete da collegare.'}); return; }
     const elettr=(D2.innesco||'')==='elettronico';
     const fuori=HH.filter(h=>!innTaglioOk(D2, h.innDt));
@@ -7304,16 +7311,18 @@ function renderScheda2D(){
     const vicino=(dt)=>INN_TAGLI.reduce((a,v)=>Math.abs(v-dt)<Math.abs(a-dt)?v:a, INN_TAGLI[0]);
     const dtFuori=[...new Set(fuori.map(h=>h.innDt))].sort((a,b)=>a-b);
     const suggerimenti=dtFuori.map(dt=>fmtMs(dt)+' → '+vicino(dt)).join(', ');
-    rows.push({lab:'Rete di innesco',valStr:gnum(HH.length,0)+' <span>collegamenti · '+gnum(tagli.length,0)+(tagli.length===1?' taglio':' tagli')+'</span>',
-      cls: (elettr||!fuori.length)? 'sv-ok' : 'sv-warn',
-      why:'la sequenza dice a che millisecondo spara ogni foro, ma in cava si collegano i fori uno all\'altro: il ritardo è la differenza fra due fori collegati. Qui servono raccordi da '+tagli.join(', ')+' ms. '
+    rows.push({lab:'Rete di innesco',valStr:gnum(HH.length,0)+' <span>collegamenti · '+gnum(tagli.length,0)+(tagli.length===1?' taglio':' tagli')+(nGap?' / '+nGap+' irraggiungibile':'')+'</span>',
+      cls: nGap ? 'sv-bad' : ((elettr||!fuori.length)? 'sv-ok' : 'sv-warn'),
+      why:'la sequenza dice a che millisecondo spara ogni foro, ma in cava si collegano i fori uno all\'altro: il ritardo è la differenza fra due fori collegati. '
+        +(HH.length? 'Qui servono raccordi da '+tagli.join(', ')+' ms. ':'')
         +(elettr
           ? 'Coi detonatori elettronici qualunque valore si programma esattamente: nessun vincolo di magazzino.'
           : (fuori.length
              ? 'Col <b>Nonel</b> i raccordi di superficie esistono solo in certi tagli ('+INN_TAGLI.join(', ')+' ms): '+(dtFuori.length===1?'un valore qui non c\'è':dtFuori.length+' valori qui non ci sono')+'. Il più vicino disponibile: <b>'+suggerimenti+'</b> ms. Sulla pianta il livello <b>Innesco</b> li disegna in rosso tratteggiato. '
                +(D2.stagger?'Il valore dimezzato viene dalle <b>file sfalsate</b>: con lo sfalsamento i fori della fila dietro cadono a mezzo interasse, e la diagonale li tempa a metà del ritardo inter-foro. ':'')
                +'Non è un errore di progetto: è che il tempo va scelto fra quelli che si comprano. Si sistema portando il ritardo inter-foro o inter-fila su un valore disponibile, oppure passando ai detonatori elettronici, che li programmano esatti.'
-             : 'Tutti i ritardi corrispondono a raccordi di superficie esistenti: la rete è collegabile con quello che si compra.'))
+             : (HH.length ? 'Tutti i ritardi corrispondono a raccordi di superficie esistenti: la rete è collegabile con quello che si compra.' : '')))
+        +(nGap?' ⚠️ '+_ricPlur(nGap,'foro','fori')+' NON raggiungibile da nessun raccordo: un vicino ha già sparato ma è troppo lontano — quasi sempre un foro mancante o tolto nella maglia. Non è "a posto": senza un raccordo che arrivi fin lì, quel foro non ha modo di innescarsi. Da controllare sulla pianta prima dello sparo.':'')
         +(aMano?' Attenzione: '+aMano+(aMano===1?' foro ha':' fori hanno')+' il ritardo messo a mano, quindi la rete non segue più solo lo schema.':'')
         +' Il verso della freccia dice da dove arriva il fuoco. È una <b>ricostruzione</b> dai tempi: il collegamento vero resta decisione del responsabile del tiro.'});
   })();

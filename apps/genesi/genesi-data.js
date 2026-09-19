@@ -3256,18 +3256,30 @@ export function reliefSuMaglia(H, S, B, dtMin){
    `computeRelief2D` diventa una composizione diretta, senza wrapper, come
    già `computeEnergia2D`/`isoPasso`. */
 export function computeRelief2D(D2){ reliefSuMaglia(D2.holes, D2.S, D2.B, scatterMs(D2)); }
+/* ⛔ G56d (19/09) — STESSA CAUSA DI G56c, IN UN POSTO PIÙ PERICOLOSO: un
+   `innFrom=-1` diceva sia «è il primo della volata, non serve un raccordo»
+   sia «un foro ha già sparato prima di lui, ma è troppo lontano per tirarci
+   un raccordo» — e il Validatore («Rete di innesco», genesi.html) filtra
+   proprio su `innFrom>=0`, quindi un foro nel secondo caso SPARISCE dal
+   conteggio dei collegamenti senza che nessuna riga lo dica: il piano può
+   dichiararsi «collegabile con quello che si compra» mentre un foro reale
+   non ha nessun raccordo che lo raggiunga. Misurato togliendo due fori
+   adiacenti dalla maglia di demo (drag+Canc): il foro rimasto col buco di
+   10,5 m attorno (soglia `dMax`=7,7 m) usciva identico al vero primo foro
+   della volata. Stessa cura di `reliefSuMaglia`: si dichiara la causa. */
 export function innescoSuMaglia(H, S, B){
   if(!H||!H.length) return;
   const dMax=2.2*Math.max(S||3.5, B||3.0, spaziaturaTipica(H, Math.max(S||3.5, B||3)));
   for(let i=0;i<H.length;i++){
     const h=H[i]; h.innFrom=-1; h.innDt=null;
-    let best=null;
+    let best=null, fuoriFascia=false;
     for(let j=0;j<H.length;j++){
       if(j===i) continue;
       const dt=+(h.tDet-H[j].tDet).toFixed(1);
       if(dt<=0) continue;                                  // solo fori che sparano PRIMA: da lì può arrivare l'accensione
       const d=Math.hypot(H[j].mx-h.mx, H[j].my-h.my);
-      if(d<0.05 || d>dMax) continue;                       // troppo lontano: nessuno tira un raccordo così
+      if(d<0.05) continue;
+      if(d>dMax){ fuoriFascia=true; continue; }            // un foro ha già sparato, ma troppo lontano: nessuno tira un raccordo così
       /* il fuoco arriva da chi ha sparato POCO PRIMA, non da chi sta più
          vicino: si sceglie il ritardo più piccolo, e a parità il foro più
          vicino. È anche il collegamento più economico — meno raccordi lunghi
@@ -3275,6 +3287,7 @@ export function innescoSuMaglia(H, S, B){
       if(!best || dt<best.dt-0.05 || (Math.abs(dt-best.dt)<=0.05 && d<best.d)) best={j:j,d:d,dt:dt};
     }
     if(best){ h.innFrom=best.j; h.innDt=best.dt; }
+    h.innFuoriFascia = !best && fuoriFascia;               // un foro ha già sparato prima di lui, ma nessun raccordo lo raggiunge
   }
 }
 /* Trasloco B3 (15/09): il G39 del 14/09 aveva estratto `innescoSuMaglia` ma

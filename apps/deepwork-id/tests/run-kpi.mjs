@@ -27937,16 +27937,18 @@ console.log("\n— Campo: i file che escono —");
       const dMax = 2.2 * Math.max(S || 3.5, B || 3.0, genesi.spaziaturaTipica(H, Math.max(S || 3.5, B || 3)));
       for (let i = 0; i < H.length; i++) {
         const h = H[i]; h.innFrom = -1; h.innDt = null;
-        let best = null;
+        let best = null, fuoriFascia = false;
         for (let j = 0; j < H.length; j++) {
           if (j === i) continue;
           const dt = +(h.tDet - H[j].tDet).toFixed(1);
           if (dt <= 0) continue;
           const d = Math.hypot(H[j].mx - h.mx, H[j].my - h.my);
-          if (d < 0.05 || d > dMax) continue;
+          if (d < 0.05) continue;
+          if (d > dMax) { fuoriFascia = true; continue; }
           if (!best || dt < best.dt - 0.05 || (Math.abs(dt - best.dt) <= 0.05 && d < best.d)) best = { j, d, dt };
         }
         if (best) { h.innFrom = best.j; h.innDt = best.dt; }
+        h.innFuoriFascia = !best && fuoriFascia;
       }
     };
     const casi = [
@@ -27968,6 +27970,30 @@ console.log("\n— Campo: i file che escono —");
     genesi.innescoSuMaglia(null, 3, 3.5);
     genesi.innescoSuMaglia(undefined, 3, 3.5);
     const vuoto = []; genesi.innescoSuMaglia(vuoto, 3, 3.5); eq(vuoto, []);
+  });
+  test("⛔ Genesi · G56d: due fori tolti dalla fila distinguono il primo VERO dal foro irraggiungibile da un raccordo", () => {
+    /* Stessa causa di G56c (reliefSuMaglia), stessa maglia a 12 fori/1 fila,
+       ma qui serve un buco più grande (dMax=2,2*3,5=7,7 m contro 5,25 di
+       relief): tolti DUE fori adiacenti (f1-5 e f1-6), verificato dal vivo con
+       Playwright il 19/09 — è il caso che ha trovato il difetto. `f1-7` ha un
+       vicino che ha GIÀ sparato (f1-4, 126 ms prima) ma a 10,5 m — oltre
+       dMax — quindi non è il primo della volata: è un foro senza nessun
+       raccordo che lo raggiunga. */
+    const H = [
+      { id: "f1-2", mx: 3.5, my: 3, tDet: 0 },
+      { id: "f1-3", mx: 7, my: 3, tDet: 42 },
+      { id: "f1-4", mx: 10.5, my: 3, tDet: 84 },
+      { id: "f1-7", mx: 21, my: 3, tDet: 210 },  // f1-5 (14,3,126) e f1-6 (17.5,3,168) tolti: buco di 10,5 m invece di 3,5
+      { id: "f1-8", mx: 24.5, my: 3, tDet: 252 },
+    ];
+    genesi.innescoSuMaglia(H, 3.5, 3);
+    const f = Object.fromEntries(H.map((h) => [h.id, h]));
+    eq(f["f1-2"].innFrom, -1, "f1-2 è il vero primo della fila: nessun foro ha ancora sparato");
+    eq(f["f1-2"].innFuoriFascia, false, "e non è per un buco: è la partenza della sequenza");
+    eq(f["f1-7"].innFrom, -1, "f1-7 non trova un raccordo (il vicino più vicino già sparato, f1-4, è a 10,5 m)");
+    eq(f["f1-7"].innFuoriFascia, true, "⛔ MA f1-7 NON è il primo della volata: f1-4 ha già sparato 126 ms prima, solo troppo lontano — prima di questa unità le due cause erano indistinguibili (entrambe innFrom=-1)");
+    ok(f["f1-3"].innFrom >= 0 && f["f1-4"].innFrom >= 0 && f["f1-8"].innFrom >= 0,
+      "i fori con un predecessore entro la distanza di adiacenza continuano a trovare un raccordo, invariato dal buco altrove");
   });
   test("⛔ Genesi · computeInnesco2D (B3, trasloco con cambio di firma, 15/09)", () => {
     /* ⚠️ NON uno scambio S/B come difetto iniettato: `innescoSuMaglia` li usa
