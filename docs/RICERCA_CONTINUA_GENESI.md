@@ -5700,3 +5700,13 @@ titolo di una sezione precedente dello stesso file.
   — mostrata nel pannello di import del rilievo. Verificato dal vivo con Playwright (CSV iniettato,
   numeri di media/massima ricalcolati a mano e confrontati). 2 test in `run-kpi.mjs`.
 - Visualizzazione di **timing timeline** (sequenza ritardi su una linea del tempo, non contour plot 3D) — utilità media. Costo: **Medio**, valore **Medio**.
+  ⛔ **GIÀ PRESENTE — verificato il 19/09, non entra in roadmap.** `buildTicks()`
+  (genesi.html, sezione "UI: timeline") disegna un `.tick` per foro dentro
+  `#ticks`, sovrapposto alla barra di scorrimento (`#track`) della simulazione
+  3D, posizionato per `f.tDet/SIM.tEnd*100%` — cioè esattamente una linea del
+  tempo con la sequenza dei ritardi, non uno spatial contour plot come le
+  isocrone (già trovate presenti nella correzione qui sopra). Il tooltip di
+  ogni tacca mostra «foro N · X ms» col tempo di PROGETTO, non lo scatter
+  sorteggiato (G16). È la quarta mancanza di questa ricerca che si rivela
+  falsa cercando il MECCANISMO invece del nome — la stessa lezione già scritta
+  in CLAUDE.md a proposito di questa stessa ricerca sulle isocrone.
