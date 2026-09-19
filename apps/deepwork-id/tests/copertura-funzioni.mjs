@@ -673,7 +673,7 @@ const CONDIVISI = [
      spaziatura si ricalcola dalle posizioni, stessa famiglia di
      `_spazTipico`/`computeInnesco2D`), catturato dal test dedicato
      con `holes: []`. */
-  { file: "apps/genesi/genesi-data.js", fondo: 168,
+  { file: "apps/genesi/genesi-data.js", fondo: 175,
     perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o

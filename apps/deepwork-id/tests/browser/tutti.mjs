@@ -483,6 +483,8 @@ const BANCHI = [
   ['selezione multipla di Genesi · controprova', 'genesi-selezione-multipla.mjs', ['--controprova'], true],
   ["rifletti la selezione dei fori di Genesi (G50)", 'genesi-rifletti-selezione.mjs', []],
   ['rifletti selezione di Genesi · controprova', 'genesi-rifletti-selezione.mjs', ['--controprova'], true],
+  ["input relativo/polare delle coordinate di Genesi (G51)", 'genesi-input-relativo.mjs', []],
+  ['input relativo/polare di Genesi · controprova', 'genesi-input-relativo.mjs', ['--controprova'], true],
   ["Genesi: una volata salvata porta l'identità di chi era collegato", 'genesi-autore-volata.mjs', []],
   ['autore della volata di Genesi · controprova', 'genesi-autore-volata.mjs', ['--controprova'], true],
   [".chg: larghezza minima nel tema del sole (Terra)", 'chg-min-larghezza.mjs', []],

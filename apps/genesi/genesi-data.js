@@ -3895,6 +3895,62 @@ export function foriRiflessi(holes, idsSelezionati){
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
+   G51 · INPUT RELATIVO/POLARE PER LE COORDINATE ESATTE (19/09)
+   ══════════════════════════════════════════════════════════════════════════
+   Sezione 4 del censimento CAD verificato (docs/RICERCA_GENESI_CAD.md):
+   il pezzo a basso costo, isolato nella Decisione #43 come NON bloccato
+   dalla parte grande (i blocchi riusabili, filata al fondatore). G47a
+   aveva già i due campi esatti (x/spalla) ma solo assoluti: chi disegna
+   una fila di fori uguali fra loro deve ancora calcolare a mente ogni x
+   successivo. Qui si aggiunge, SOPRA l'input assoluto già esistente
+   (invariato: un numero senza «@» funziona come prima), una sintassi in
+   stile CAD applicata a entrambe le coordinate insieme, col punto di
+   riferimento che è lo stesso già tracciato da G34quinquies/G47a per
+   l'allineamento e la distanza fra due fori (`D2.selPrev`) — non un
+   concetto nuovo.
+   ⛔ Il prototipo in scratchpad (prima di scrivere qui, come vuole
+   CLAUDE.md) ha bocciato la sintassi annunciata nella decisione
+   (`@dx,dy`): la virgola come separatore fra dx e dy COLLIDE con la
+   virgola decimale italiana che ogni altro campo di quest'app accetta.
+   "@1,5" da solo sarebbe letto come dx=1,dy=5 (due interi), non come un
+   singolo decimale con dy mancante — un'ambiguità silenziosa, non un
+   errore. Il separatore qui è «;» (`@dx;dy`), che lascia la virgola
+   libera di essere decimale in entrambi i numeri come ovunque nell'app;
+   il polare non ha questa collisione (`<` non compare mai in un numero)
+   e resta `@distanza<angolo`, gradi, 0°=lungo la fila positiva.
+   Tre uscite dichiarate, non due — la stessa disciplina di
+   `puntoSnapEstremo`: `null` (il testo non inizia per «@», il chiamante
+   tratta il valore come assoluto: il comportamento di sempre), un
+   oggetto con `errore` (sintassi «@…» tentata ma non valida, o nessun
+   punto di riferimento selezionato — un caso che l'utente DEVE vedere,
+   non un ripiego muto sullo zero), un oggetto con `mx`/`my` (successo).
+   La classe di caratteri `[\d.,]` esclude di proposito il segno «-»
+   dalla distanza polare: non serve un controllo `dist<0` a valle,
+   perché quella forma non può mai combaciare la sintassi — un controllo
+   su un caso che il testo stesso non può produrre sarebbe un ramo morto
+   (CLAUDE.md: non si valida ciò che non può accadere). */
+export function coordinataRelativa(testo, rif){
+  const t = String(testo==null?'':testo).trim();
+  if(!t.startsWith('@')) return null;
+  if(!rif) return { errore:'serve un punto di riferimento: seleziona prima un altro foro' };
+  const corpo = t.slice(1).trim();
+  const cart = corpo.match(/^(-?[\d.,]+)\s*;\s*(-?[\d.,]+)$/);
+  if(cart){
+    const dx=+cart[1].replace(',','.'), dy=+cart[2].replace(',','.');
+    if(!isFinite(dx)||!isFinite(dy)) return { errore:'sintassi non valida: usa @dx;dy con due numeri' };
+    return { mx: rif.mx+dx, my: rif.my+dy };
+  }
+  const polar = corpo.match(/^([\d.,]+)\s*<\s*(-?[\d.,]+)$/);
+  if(polar){
+    const dist=+polar[1].replace(',','.'), ang=+polar[2].replace(',','.');
+    if(!isFinite(dist)||!isFinite(ang)) return { errore:'sintassi non valida: usa @distanza<angolo, due numeri' };
+    const rad=ang*Math.PI/180;
+    return { mx: rif.mx+dist*Math.cos(rad), my: rif.my+dist*Math.sin(rad) };
+  }
+  return { errore:'sintassi non riconosciuta: usa @dx;dy oppure @distanza<angolo' };
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
    G35 · IL PROSSIMO PEZZO DI "GENESI CONTINUA A USCIRE DALLA PAGINA" (13/09)
    ══════════════════════════════════════════════════════════════════════════
    `measureGeom2D` misura la maglia DISEGNATA (non quella di progetto): il

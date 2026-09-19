@@ -1258,7 +1258,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, reliefCls, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino, activeProf, d2HitTest, d2HitTestPt,
-         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfInTratti, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, foriRiflessi, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
+         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfInTratti, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, foriRiflessi, coordinataRelativa, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -6632,9 +6632,9 @@ function renderInspector(){
      disegna col mouse. */
   const posTx='<div style="margin-top:5px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">'
     +'<span style="color:var(--mut2);font-size:12px">x</span>'
-    +'<input id="diX" type="text" inputmode="decimal" value="'+gfix(h.mx,2)+'" style="width:66px" title="Posizione lungo la fila, in metri, dal primo foro">'
+    +'<input id="diX" type="text" inputmode="decimal" value="'+gfix(h.mx,2)+'" style="width:66px" title="Posizione lungo la fila, in metri, dal primo foro. Oppure relativo al foro precedente: @dx;dy oppure @distanza<angolo">'
     +'<span style="color:var(--mut2);font-size:12px">spalla</span>'
-    +'<input id="diY" type="text" inputmode="decimal" value="'+gfix(h.my,2)+'" style="width:66px" title="Distanza dal fronte, in metri">'
+    +'<input id="diY" type="text" inputmode="decimal" value="'+gfix(h.my,2)+'" style="width:66px" title="Distanza dal fronte, in metri. Oppure relativo al foro precedente: @dx;dy oppure @distanza<angolo">'
     +'<span style="color:var(--mut2);font-size:12px">m</span>'
     +(D2.selPrev>=0 && D2.holes[D2.selPrev] && D2.selPrev!==D2.sel
       ? '<button class="btn sm" id="diAllinea" style="padding:2px 8px" title="Porta la spalla di questo foro alla stessa distanza dal fronte del foro '+((D2.holes[D2.selPrev].seq!=null?D2.holes[D2.selPrev].seq:D2.selPrev)+1)+', senza toccare la posizione lungo la fila">⊥ allinea al '+((D2.holes[D2.selPrev].seq!=null?D2.holes[D2.selPrev].seq:D2.selPrev)+1)+'</button>'
@@ -6681,9 +6681,27 @@ function renderInspector(){
      vincolo più permissivo del primo. Ogni scrittura valida passa da
      `d2PushUndo` (G47c-1): un numero sbagliato scritto a tastiera è
      esattamente il caso che un annulla deve coprire. */
+  /* G51 (19/09) — input relativo/polare sopra l'assoluto di G47a, invariato:
+     `coordinataRelativa` restituisce `null` se il testo non inizia per «@»
+     (si scende al parsing di sempre), un `errore` da mostrare com'è (testo
+     «@…» tentato ma non valido, o nessun foro precedente da usare come
+     riferimento), o `{mx,my}` da applicare a ENTRAMBE le coordinate — anche
+     scrivendo solo nel campo x si può spostare anche la spalla, perché il
+     riferimento è un punto, non un asse solo. La guardia sulla spalla
+     (>=0.3 m) resta la stessa di sempre, applicata anche qui: un secondo
+     modo di scrivere il punto non può avere un vincolo più permesso. */
+  const rifPrecedente=()=>(D2.selPrev>=0 && D2.holes[D2.selPrev] && D2.selPrev!==D2.sel) ? D2.holes[D2.selPrev] : null;
   const dx=$('diX');
   if(dx) dx.onchange=()=>{
     if(foriBloccati()){ dx.value=gfix(h.mx,2); return; }
+    const rel=coordinataRelativa(dx.value, rifPrecedente());
+    if(rel){
+      if(rel.errore){ toast(rel.errore); dx.value=gfix(h.mx,2); return; }
+      if(!(rel.my>=0.3)){ toast('La spalla è la distanza dal fronte: un numero da 0,3 m in su'); dx.value=gfix(h.mx,2); return; }
+      d2PushUndo(); h.mx=+rel.mx.toFixed(2); h.my=+rel.my.toFixed(2); computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector();
+      toast('Foro spostato a x '+gfix(h.mx,2)+' m, spalla '+gfix(h.my,2)+' m');
+      return;
+    }
     const v=+String(dx.value).replace(',','.');
     if(!isFinite(v)){ toast('La posizione lungo la fila è un numero, in metri'); dx.value=gfix(h.mx,2); return; }
     d2PushUndo(); h.mx=+v.toFixed(2); computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector();
@@ -6692,6 +6710,14 @@ function renderInspector(){
   const dy=$('diY');
   if(dy) dy.onchange=()=>{
     if(foriBloccati()){ dy.value=gfix(h.my,2); return; }
+    const rel=coordinataRelativa(dy.value, rifPrecedente());
+    if(rel){
+      if(rel.errore){ toast(rel.errore); dy.value=gfix(h.my,2); return; }
+      if(!(rel.my>=0.3)){ toast('La spalla è la distanza dal fronte: un numero da 0,3 m in su'); dy.value=gfix(h.my,2); return; }
+      d2PushUndo(); h.mx=+rel.mx.toFixed(2); h.my=+rel.my.toFixed(2); computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector();
+      toast('Foro spostato a x '+gfix(h.mx,2)+' m, spalla '+gfix(h.my,2)+' m');
+      return;
+    }
     const v=+String(dy.value).replace(',','.');
     if(!isFinite(v)||v<0.3){ toast('La spalla è la distanza dal fronte: un numero da 0,3 m in su'); dy.value=gfix(h.my,2); return; }
     d2PushUndo(); h.my=+v.toFixed(2); computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector();

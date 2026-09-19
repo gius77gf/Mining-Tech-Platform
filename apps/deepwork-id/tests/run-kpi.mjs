@@ -45408,6 +45408,57 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
 }
 /* ===== fine rifletti la selezione (19/09, G50) ===== */
 
+/* ===== GENESI · INPUT RELATIVO/POLARE PER LE COORDINATE (19/09, G51) =====
+   Tre uscite dichiarate: null (assoluto, comportamento di sempre), un
+   oggetto con errore (sintassi "@…" tentata ma non valida, o riferimento
+   assente), un oggetto {mx,my} (successo). Il separatore cartesiano è
+   «;», non «,»: il prototipo in scratchpad ha bocciato la virgola perché
+   collide con la virgola decimale italiana che il resto dell'app accetta
+   ovunque — è il caso che la prova qui sotto pretende esplicitamente. */
+{
+  test("Genesi · coordinataRelativa: testo senza @ è sempre null (si scende all'assoluto)", () => {
+    eq(genesi.coordinataRelativa("3.5", { mx: 10, my: 5 }), null);
+    eq(genesi.coordinataRelativa("", { mx: 10, my: 5 }), null);
+    eq(genesi.coordinataRelativa(null, { mx: 10, my: 5 }), null);
+  });
+  test("Genesi · coordinataRelativa cartesiano: @dx;dy sposta ENTRAMBE le coordinate dal riferimento", () => {
+    eq(genesi.coordinataRelativa("@2;1", { mx: 10, my: 5 }), { mx: 12, my: 6 });
+    eq(genesi.coordinataRelativa("@-2;-1", { mx: 10, my: 5 }), { mx: 8, my: 4 });
+    eq(genesi.coordinataRelativa("  @2;1  ", { mx: 10, my: 5 }), { mx: 12, my: 6 }, "spazi attorno ignorati");
+  });
+  test("⛔ Genesi · coordinataRelativa: la virgola decimale italiana non collide col separatore (usa ';', non ',')", () => {
+    eq(genesi.coordinataRelativa("@1,5;2,25", { mx: 0, my: 0 }), { mx: 1.5, my: 2.25 },
+      "col separatore ',' questo sarebbe ambiguo con dx=1,dy=5 — la ragione per cui il separatore è ';'");
+  });
+  test("Genesi · coordinataRelativa polare: @distanza<angolo, gradi, 0°=lungo x, 90°=lungo spalla", () => {
+    const r = { mx: 10, my: 5 };
+    const vicino = (a, b) => Math.abs(a - b) < 1e-9;
+    const p0 = genesi.coordinataRelativa("@5<0", r);
+    ok(vicino(p0.mx, 15) && vicino(p0.my, 5), "0° = tutto sull'asse x");
+    const p90 = genesi.coordinataRelativa("@5<90", r);
+    ok(vicino(p90.mx, 10) && vicino(p90.my, 10), "90° = tutto sulla spalla");
+    const pDec = genesi.coordinataRelativa("@2,5<90", r);
+    ok(vicino(pDec.mx, 10) && vicino(pDec.my, 7.5), "la distanza polare accetta la virgola decimale (qui non c'è ambiguità: '<' non compare mai in un numero)");
+  });
+  test("Genesi · coordinataRelativa senza un punto di riferimento dichiara l'errore, non lo ignora in silenzio", () => {
+    eq(genesi.coordinataRelativa("@2;1", null), { errore: "serve un punto di riferimento: seleziona prima un altro foro" });
+    eq(genesi.coordinataRelativa("@2;1", undefined), { errore: "serve un punto di riferimento: seleziona prima un altro foro" });
+  });
+  test("Genesi · coordinataRelativa: sintassi malformata dichiara l'errore invece di produrre NaN silenzioso", () => {
+    eq(genesi.coordinataRelativa("@1.2.3;1", { mx: 0, my: 0 }), { errore: "sintassi non valida: usa @dx;dy con due numeri" });
+    eq(genesi.coordinataRelativa("@1.2.3<0", { mx: 0, my: 0 }), { errore: "sintassi non valida: usa @distanza<angolo, due numeri" });
+    eq(genesi.coordinataRelativa("@qualcosa", { mx: 0, my: 0 }), { errore: "sintassi non riconosciuta: usa @dx;dy oppure @distanza<angolo" });
+    eq(genesi.coordinataRelativa("@-5<0", { mx: 0, my: 0 }), { errore: "sintassi non riconosciuta: usa @dx;dy oppure @distanza<angolo" },
+      "una distanza negativa non combacia nemmeno la classe di caratteri: nessun controllo dist<0 a valle, sarebbe un ramo morto");
+  });
+  test("⛔ Genesi · l'input relativo/polare è collegato in ENTRAMBI i campi della pagina (G51)", () => {
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    eq((pag.match(/coordinataRelativa\(/g) || []).length, 2, "un punto per il campo x, uno per il campo spalla");
+    ok(/rel\.my>=0\.3/.test(pag), "la guardia sulla spalla (>=0.3 m) si applica anche al risultato dell'input relativo, non solo all'assoluto");
+  });
+}
+/* ===== fine input relativo/polare (19/09, G51) ===== */
+
 /* ===== GENESI · misuraGeom2D SALITA DA genesi.html (13/09, G35) =====
    "Genesi continua a uscire dalla pagina": stessa logica, cambia solo che
    legge tre parametri invece di `D2` a mano. Il caso che contava di più —
