@@ -1,13 +1,13 @@
 # Ultimo ciclo
 
-- **Quando**: 2026-09-19T12:45:48Z (letta da `date -u`, non predetta)
-- **Commit di partenza**: fe936af4 (chore: checkpoint fix annulla a metà
-  trascinamento G56b)
-- **Cosa sto per fare**: direttiva del fondatore ancora attiva
-  (concentrarsi solo su Genesi). Controllare l'esito del giro completo
-  del browser (PID 18070, avviato 09:51:33Z) e lanciare un nuovo fronte
-  di ricerca su Genesi per mantenere ≥3 fronti aperti, poi proseguire con
-  una nuova unità piccola.
-  **Prossimo passo atomico**: `ps -p 18070` per vedere se il giro è
-  ancora vivo o finito; se finito, leggerlo con `leggi-giro.mjs` partendo
-  dalla sezione 0 (staleness).
+- **Quando**: 2026-09-19T12:57:42Z (letta da `date -u`, non predetta)
+- **Commit di partenza**: 1cf0cbbf (docs(genesi): due ricerche in
+  background + correzione di un falso "non c'è")
+- **Cosa sto per fare**: chiuse due ricerche in background su Genesi
+  (O-Pitblast, QA vibrazione/PPV), corretto un falso "non c'è"
+  sull'analytics dashboard (confrontoPerForo esiste già). Il giro
+  completo del browser (PID 18070) è ancora vivo dopo oltre 3 ore.
+  **Prossimo passo atomico**: controllare `ps -p 18070` e, se finito,
+  leggere l'esito con `leggi-giro.mjs`. Poi lanciare un nuovo fronte di
+  ricerca su Genesi (un quarto concorrente, o QA sulla parte 3D mai
+  toccata) e proseguire con una nuova unità piccola.
