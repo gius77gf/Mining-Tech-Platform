@@ -2039,6 +2039,20 @@ export const STATI_TARATURA = {
   "senza data":     { cls: "warn",   label: "Taratura senza data" },
   "non-dichiarata": { cls: "warn",   label: "Taratura non dichiarata" },
 };
+/* ⛔ 19/09, dal quinto giro di deep-pass QA: `statoTaraturaStrumento` guarda
+   solo se la taratura è valida OGGI, e risponde «regolare» anche quando la
+   lettura che ha causato un superamento fu presa in un buco senza nessun
+   certificato attivo (uno scaduto anni fa, uno nuovo aperto dopo). Il file
+   per l'ARPA la vede già (`cellaTaratura`/`coperturaTaratura`, "scoperta"):
+   mancava il badge sullo schermo — un superamento poteva apparire senza
+   nessuna riserva sulla taratura mentre il documento che esce la scrive.
+   NON entra in `STATI_TARATURA`: quella mappa è il codominio dichiarato di
+   `statoTaraturaStrumento` (regola 18 di run-stile — la lunghezza è provata
+   uguale al numero dei suoi stati possibili), e "letture-scoperte" non è
+   uno di quegli stati: è una domanda diversa (copertura storica delle
+   letture, non calendario di oggi), che si somma al badge del calendario
+   invece di sostituirlo nella stessa mappa. */
+export const BADGE_LETTURE_SCOPERTE = { cls: "danger", label: "Letture senza taratura" };
 
 // Quello che il report dichiara all'ente sulle tarature.
 // ⛔ NON tocca l'esito sulle soglie, ed è voluto: sono due domande diverse
@@ -2620,10 +2634,20 @@ export function allerteTaratura(monitoraggi, oggi = new Date()) {
   const out = [];
   for (const m of monitoraggi || []) {
     const t = statoTaraturaStrumento(m, oggi);
-    if (t.stato !== "scaduta" && t.stato !== "in-scadenza") continue;
+    /* ⛔ 19/09, dal quinto giro di deep-pass QA: `t.stato` guarda solo la
+       taratura di OGGI, e resta «regolare» anche quando una lettura fu presa
+       in un buco senza nessun certificato attivo (uno scaduto anni fa, uno
+       nuovo aperto dopo) — il caso che `coperturaTaratura`/`cellaTaratura`
+       già scrivono nel file per l'ARPA. Le due domande sono indipendenti
+       (calendario di oggi contro copertura storica delle letture), quindi
+       non si sostituiscono: si aggiunge l'allerta, non si cambia quella
+       esistente. */
+    const scoperte = contaCoperture(m.tarature, m.letture).scoperta;
+    if (t.stato !== "scaduta" && t.stato !== "in-scadenza" && !scoperte) continue;
     const scaduta = t.stato === "scaduta";
+    const inScadenza = t.stato === "in-scadenza";
     const g = giorni(t.scadenza, oggi);
-    out.push({
+    if (scaduta || inScadenza) out.push({
       gravita: scaduta ? "danger" : "warn",
       categoria: "taratura",
       titolo: (m || {}).nome || "Strumento",
@@ -2643,6 +2667,14 @@ export function allerteTaratura(monitoraggi, oggi = new Date()) {
         ? "taratura scaduta il " + dataIt(t.scadenza) + " · letture non più coperte"
         : "taratura valida fino al " + dataIt(t.scadenza) + " · poi non copre più",
       badge: scaduta ? "scaduta da " + (-g) + " gg" : g + " gg",
+    });
+    if (scoperte) out.push({
+      gravita: "danger",
+      categoria: "taratura",
+      titolo: (m || {}).nome || "Strumento",
+      puntoId: (m || {}).id || "",
+      dettaglio: conta(scoperte, "lettura", "letture") + " senza nessuna taratura che la copra, anche se quella di oggi è valida",
+      badge: conta(scoperte, "lettura", "letture"),
     });
   }
   return out;

@@ -16096,6 +16096,9 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
        "e la mappa dei badge copre tutti gli stati che la funzione sa dire (regola 18)");
     for (const k of ["regolare", "in-scadenza", "scaduta", "senza data", "non-dichiarata"])
       ok(sentinella.STATI_TARATURA[k], `manca il badge per «${k}»: la pagina morirebbe al disegno`);
+    eq(sentinella.BADGE_LETTURE_SCOPERTE.cls, "danger",
+       "BADGE_LETTURE_SCOPERTE resta FUORI da STATI_TARATURA: parla della copertura storica delle letture, non del calendario di oggi");
+    ok(sentinella.BADGE_LETTURE_SCOPERTE.label, "e ha un'etichetta, non solo la classe");
   });
 
   test("Sentinella: il riepilogo delle tarature del report, caso per caso", () => {
@@ -16615,12 +16618,40 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
        "l'allerta però c'è: sono due frasi affiancate, non una che decide dell'altra");
   });
 
-  test("Sentinella · allerte: sulla dimostrazione, oggi, nessuna taratura è in scadenza", () => {
+  test("⛔ Sentinella · allerte: una lettura scoperta allerta anche quando la taratura di OGGI è regolare", () => {
+    /* Dal quinto giro di deep-pass QA (19/09): `statoTaraturaStrumento`
+       guarda solo il calendario di oggi. Uno strumento con un certificato
+       scaduto nel 2020 e uno nuovo aperto nel 2026 risponde «regolare»
+       anche se una lettura fu presa nel 2025, in un buco senza nessun
+       certificato attivo — esattamente il caso che il file per l'ARPA
+       (`coperturaTaratura`) già segnala come "scoperta". */
+    const m = { id: "m9", nome: "Vibrazioni V9", tarature: [
+      { data: "2020-01-01", scadenza: "2020-06-30", certificato: "C1" },
+      { data: "2026-01-01", scadenza: "2027-01-01", certificato: "C2" }],
+      letture: [{ data: "2025-06-01", valore: 9 }] };
+    eq(sentinella.statoTaraturaStrumento(m, OGGI_I).stato, "regolare", "premessa: oggi la taratura è a posto");
+    eq(sentinella.contaCoperture(m.tarature, m.letture).scoperta, 1, "premessa: la lettura non è coperta da nessun certificato");
+    const a = sentinella.allerteTaratura([m], OGGI_I);
+    eq(a.length, 1, "⛔ l'allerta c'è comunque, anche col calendario di oggi regolare");
+    eq(a[0].gravita, "danger", "e non è un avviso mite: una misura senza taratura è come una misura di cui non si sa niente");
+    ok(/senza nessuna taratura/.test(a[0].dettaglio), "e il testo spiega perché, non solo un'etichetta");
+    eq(sentinella.allerteTaratura([{ ...m, letture: [{ data: "2026-06-01", valore: 9 }] }], OGGI_I).length, 0,
+       "controprova: la stessa lettura, presa dentro C2, non allerta niente");
+  });
+  test("Sentinella · allerte: sulla dimostrazione, oggi, nessuna taratura è in scadenza (ma una lettura è scoperta)", () => {
     /* Il numero non è deciso a mente: se un giorno la demo cambia, questa
        riga lo dice invece di lasciare che una schermata si svuoti in
-       silenzio. */
+       silenzio.
+       ⛔ 19/09, dal quinto giro di deep-pass QA: V2 ha due certificati
+       (2025-07-01→2026-06-30 e 2026-07-10→2027-07-09) con un buco di dieci
+       giorni fra i due, e la lettura del 2026-07-06 ci cade dentro — un
+       caso VERO, già presente nella dimostrazione, che la copia debole
+       (calendario di oggi) non vedeva perché oggi il secondo certificato è
+       valido. È esattamente il caso per cui `allerteTaratura` ora guarda
+       anche `contaCoperture`, non solo `statoTaraturaStrumento`. */
     const a = sentinella.allerteTaratura(sentinella.DEMO.monitoraggi, OGGI_I);
-    eq(a.length, 0, "i due strumenti con certificato sono in regola, gli altri tre non ne hanno nessuno");
+    eq(a.length, 1, "i due strumenti con certificato sono in regola OGGI, ma V2 ha una lettura scoperta da un buco fra due certificati");
+    eq(a[0].titolo, "Vibrazioni V2 — confine Nord", "è proprio V2, non un altro strumento");
     eq(sentinella.DEMO.monitoraggi.filter(m => (m.tarature || []).length).length, 2,
        "e quanti strumenti hanno almeno un certificato, contati: 2 su " + sentinella.DEMO.monitoraggi.length);
   });

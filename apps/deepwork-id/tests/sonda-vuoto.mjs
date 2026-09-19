@@ -340,6 +340,20 @@ const VOCABOLARIO_MANCANTE = [
      esistesse, e il punto della funzione è proprio che NON si ripiega su
      «a mano»: l'assenza del dato non è un dato favorevole. */
   [/^Provenienza non dichiarata$/, "di una MISURA non risulta la strada d'ingresso (file dello strumento o inserimento a mano): diverso da «Mai misurato» (parla del punto) e da «Taratura non dichiarata» (parla dello strumento) — qui il dato c'è, manca la sua custodia"],
+  /* ⛔ 19/09, dal quinto giro di deep-pass QA: LA QUARTA PORTATA SULLO STESSO
+     STRUMENTO, e ancora un soggetto diverso dalle tre qui sopra. «Taratura
+     non dichiarata» dice che lo strumento NON HA nessun certificato;
+     «Letture senza taratura» dice il contrario — i certificati CI SONO, il
+     calendario di OGGI è persino regolare — ma una lettura specifica fu
+     presa in un buco fra due certificati che non si toccano (uno scaduto,
+     l'altro non ancora partito). Schiacciarla su «Taratura non dichiarata»
+     direbbe una cosa falsa (che lo strumento non ha certificati, quando ne
+     ha due); schiacciarla su «Provenienza non dichiarata» direbbe un'altra
+     cosa falsa (che non si sa come la misura sia entrata, quando si sa
+     benissimo, manca solo chi la copre). Il file per l'ARPA la chiama già
+     "scoperta" (`coperturaTaratura`): qui è la stessa idea scritta per lo
+     schermo. */
+  [/^Letture senza taratura$/, "una o più LETTURE furono prese in un buco fra due certificati di taratura, anche se il calendario di OGGI è regolare: diverso da «Taratura non dichiarata» (lì lo strumento non ha NESSUN certificato) e da «Provenienza non dichiarata» (lì non si sa come la misura sia entrata) — qui i certificati ci sono, manca solo quello che copriva QUEL giorno"],
 ];
 /* ⚠️ IL FILTRO È IL PUNTO DEBOLE, e lo si è scoperto con la controprova. La
    prima versione cercava `manca|senza dat|mai misur|non misur|n.d.` — cioè

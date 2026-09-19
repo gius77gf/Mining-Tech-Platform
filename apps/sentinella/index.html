@@ -1889,7 +1889,7 @@ textarea.dw-input{
            volateOrdinate, firmaVolata, csvRegistroVolate, CSV_VOLATE_INTESTAZIONE, descriviComunicazione, campiComunicazioneVolata, fogliaVolata,
            dopoVolata, statoDopoVolata, campiDopoVolata, riepilogoDopoVolata, bozzaAzioneDopoVolata, ORIGINE_DOPO_VOLATA,
            attesaDopoSparo, attesaDichiarata,
-           coperturaTaratura, statoTaraturaStrumento, STATI_TARATURA, DICHIARAZIONI_TARATURA,
+           coperturaTaratura, statoTaraturaStrumento, STATI_TARATURA, DICHIARAZIONI_TARATURA, BADGE_LETTURE_SCOPERTE,
            parseTaratureCsv, abbinaTarature, csvTarature, allerteTaratura, CSV_TARATURE_INTESTAZIONE,
            csvAmbiente, csvRicettori, CSV_RICETTORI_INTESTAZIONE, contaCoperture,
            distanzaDelRicettore, sogliaDelRicettore,
@@ -4630,11 +4630,21 @@ textarea.dw-input{
          sezione delle tarature, che è dove lo si va a cercare. */
       const tar = statoTaraturaStrumento(m);
       const bt = STATI_TARATURA[tar.stato] || STATI_TARATURA["non-dichiarata"];
+      /* ⛔ 19/09, dal quinto giro di deep-pass QA: `tar.stato` guarda solo il
+         calendario di OGGI e resta «regolare» anche quando una lettura fu
+         presa in un buco senza nessun certificato attivo — il caso che il
+         file per l'ARPA già scrive (`coperturaTaratura`/`cellaTaratura`,
+         "scoperta"). Le due domande sono indipendenti (non entra nella
+         stessa mappa, vedi il commento su `BADGE_LETTURE_SCOPERTE`): quando
+         il calendario è già a posto, si guarda anche la copertura storica. */
+      const scopBadge = tar.stato === "regolare" && contaCoperture(m.tarature, m.letture).scoperta
+        ? BADGE_LETTURE_SCOPERTE : null;
       return `<div class="item ${striscia[st.cls] || "st-accent"}${aperto ? " aperto" : ""}">
       <div class="avatar ${st.cls === "danger" ? "danger" : st.cls === "warn" ? "warn" : ""}">${I.sensore}</div>
       <div class="info"><div class="name">${esc(m.nome)}</div>
       <div class="riga"><span class="badge ${st.cls}">${st.label}</span>${
-        tar.stato === "regolare" ? "" : `<span class="badge ${bt.cls}" title="${esc(bt.label)}: la riferibilità delle misure di questo strumento non è dimostrata">${esc(bt.label)}</span>`}
+        tar.stato === "regolare" ? "" : `<span class="badge ${bt.cls}" title="${esc(bt.label)}: la riferibilità delle misure di questo strumento non è dimostrata">${esc(bt.label)}</span>`}${
+        scopBadge ? `<span class="badge ${scopBadge.cls}" title="${esc(scopBadge.label)}: una lettura fu presa in un buco senza nessun certificato attivo">${esc(scopBadge.label)}</span>` : ""}
       <span class="meta">${st.stato === "mai"
         ? `<b>nessuna misura</b> / soglia ${esc(numeroIt(m.soglia))}${um ? " " + esc(um) : ""}${sogliaDaRicettore(m)}`
         /* ⛔ E NEMMENO LA PERCENTUALE, se non c'è nessuna soglia (decisione 16).

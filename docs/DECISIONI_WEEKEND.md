@@ -2328,7 +2328,7 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.678** *(ricontate il 19/09, dopo il decimo giro — 34→36 sull'addendo `run-pointcloud`: `genesi.pointcloud parseXYZ`/`dxfInTratti`; erano 3.676 il 18/09, dopo il
+**Le prove automatiche sono passate a 3.679** *(ricontate il 19/09, dopo il dodicesimo giro — Sentinella, `allerteTaratura`/badge; erano 3.676 il 18/09, dopo il
 sesto giro di deep-pass QA in parallelo su Sentinella/Genesi/Conti —
 `superamentiAperti` scriveva un valore fabbricato su un superamento vero,
 `muckShape`/il pannello Decking di Genesi stimavano un baricentro del
@@ -2606,7 +2606,7 @@ lettura dell'etichetta di gravità dal vocabolario invece del campo grezzo,
 e il bottone «Scadenze» al posto di «Adempimenti» nella barra in basso di
 Sentinella (bersagli di tocco a 320px saliti da 41,4 a 45,61–46,86 px),
 lanciando le suite)*, più **141** che girano con l'emulatore Firestore (**93** sulle regole
-di sicurezza, 19 sull'SDK, 24 sulle funzioni, 8 sul primo avvio) e **421
+di sicurezza, 19 sull'SDK, 24 sulle funzioni, 8 sul primo avvio) e **423
 esecuzioni** che aprono davvero le pagine in un browser *(ricontato il 19/09
 con `suite-collegate.mjs`, dopo il fix di Scudo sulla denuncia INAIL nel Quadro)*.
 

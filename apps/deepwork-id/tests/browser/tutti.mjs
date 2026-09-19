@@ -1090,6 +1090,8 @@ const BANCHI = [
      scheda scriva davvero quella frase, `node` non lo può vedere. */
   ['i numeri tranquilli che escono da Sentinella', 'sentinella-numeri-tranquilli.mjs', []],
   ['numeri tranquilli di Sentinella · controprova', 'sentinella-numeri-tranquilli.mjs', ['--controprova'], true],
+  ["Sentinella: il badge «letture senza taratura» sul superamento con calendario regolare", 'sentinella-badge-scoperta.mjs', []],
+  ['badge letture senza taratura di Sentinella · controprova', 'sentinella-badge-scoperta.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 03/08, terza passata sul documento che va all'ente: non più
      «che numero scrive» ma «che cosa dichiara di NON sapere», e se lo dichiara
      dove qualcuno lo legge. Tre cose che solo il browser vede, perché il
