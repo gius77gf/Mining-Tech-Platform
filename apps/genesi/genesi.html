@@ -1263,7 +1263,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
    illeggibile e 0,9 m di perforazione al posto di un banco illeggibile. */
          foriDiProgetto, metriPerforati, genesiData, portaNellOrganizzazione, designSconosciuti, riepilogoPontiGenesi,
          fattoreRoccia, x50DaMisure, ondaDaCsv, _sitoParseCsv, tempiDetonazione, sommaRitardata,
-         ppvDaSd, caricaDaX50Target, rwsEffettiva, PENALITA_ACQUA, deviazioneForiDaCsv, burdenVeroDaRilievo, burdenPerForo,
+         ppvDaSd, caricaDaX50Target, rwsEffettiva, PENALITA_ACQUA, deviazioneForiDaCsv, deviazioneStatistiche, burdenVeroDaRilievo, burdenPerForo,
          quotaCresta, distanzaDaSpezzata, spaziaturaTipica, _spazTipico, tempoInPunto, passoIsocrone, isoPasso,
          fileDeiFori, INN_TAGLI, taglioRealizzabile, innTaglioOk, _cmpNum, _cmpKg, _cmpEur, _cmpPf, _cmpCm, _cmpFly,
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, reliefCls, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
@@ -4009,10 +4009,17 @@ if($('rilievoDevFile')) $('rilievoDevFile').onchange=async(e)=>{
       +'<div class="r">'+(bp!=null?gfix(bp,2):'—')+' → '+gfix(bv,2)+' m'
         +(scarto!=null?'<span style="color:'+colore+';margin-left:6px;">'+(scarto>=0?'+':'')+gfix(scarto,2)+' m</span>':'')+'</div>';
   }).join('');
+  /* G59 — media/massima della deviazione RADIALE (Math.hypot(dx,dy)), non del
+     burden con segno qui sopra: a differenza di `r`, non dipende dalla
+     convenzione di assi ancora da confermare (vedi l'avviso rosso sotto), e
+     quindi si può mostrare da subito — dice "di quanto ha sbagliato la
+     perforazione", non "in quale direzione". */
+  const dstat=deviazioneStatistiche(csv.righe);
   box.innerHTML='<div style="margin-top:8px;">'
     +'<div style="margin-bottom:8px;padding:8px 10px;border:1px solid rgba(239,83,80,.4);border-radius:8px;background:rgba(239,83,80,.08);color:#ef5350;font-size:12px;"><b>⚠️ Da verificare prima dell\'uso in cava.</b> La corrispondenza fra gli assi dx/dy del tuo rilievo boretrack e gli assi di Genesi non è ancora stata confermata su un caso reale: se non coincidono, il verso del confronto qui sotto (più o meno roccia davanti al foro) può risultare invertito. Non usare questo pannello da solo per decidere le distanze di sgombero: verifica prima con un tecnico, confrontando un rilievo vero con quanto costruito.</div>'
     +'<div style="color:var(--mut);font-size:12px;margin-bottom:6px;">Rilievo importato: '+_ricPlur(csv.righe.length,'foro','fori')+' misurati'
       +(csv.scartate?' · '+csv.scartate+' righe scartate':'')+(r.orfane.length?' · '+r.orfane.length+' senza foro nel progetto':'')+'</div>'
+    +(dstat?'<div style="margin-bottom:8px;padding:6px 10px;border:1px solid rgba(255,255,255,.1);border-radius:8px;background:rgba(255,255,255,.03);font-size:12px;"><b style="color:var(--cu)">Deviazione dal punto di progetto</b><span style="color:var(--mut2)"> — media '+gfix(dstat.media,2)+' m · massima '+gfix(dstat.massima,2)+' m su '+_ricPlur(dstat.n,'foro','fori')+'</span></div>':'')
     +'<div style="display:grid;grid-template-columns:1fr auto;gap:2px 8px;font-size:13px;">'+righeHtml+'</div>'
     +(r.misurabile?'':'<div style="margin-top:6px;color:var(--mut);font-size:12px;">Nessun foro del rilievo trova un foro nel progetto aperto: controlla che i numeri o gli id corrispondano.</div>')
     +'<div style="margin-top:8px;color:var(--mut);font-size:11px;">Burden di progetto → burden vero (perpendicolare alla faccia, sulla posizione REALE del piede, NELLA CONVENZIONE DI ASSI DI GENESI — vedi l\'avviso sopra). Rosso: sotto l\'85% del progetto — il caso classico delle proiezioni.</div>'

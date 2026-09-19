@@ -42932,6 +42932,28 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(v.deviazioneForiDaCsv("foro;dx_m;dy_m\n1;abc;0\n2;0.1;0.1\n").righe.length, 1, "una deviazione illeggibile scarta SOLO quella riga");
     eq(v.deviazioneForiDaCsv("foro;dx_m;dy_m\n").errore, "Il file ha solo l’intestazione: dentro non c’è nessun foro.");
   });
+  test("⛔ Genesi · deviazioneStatistiche (G59): media e massima della deviazione RADIALE, non del dx/dy con segno", () => {
+    const v = genesi;
+    /* 3-4-5 e 6-8-10: hypot esatti, per non litigare con gli arrotondamenti */
+    eq(v.deviazioneStatistiche([{ dx: 3, dy: 4 }, { dx: 0, dy: 0 }, { dx: 6, dy: 8 }]),
+      { n: 3, media: 5, massima: 10 }, "hypot(3,4)=5, hypot(0,0)=0, hypot(6,8)=10 → media 5, massima 10");
+    eq(v.deviazioneStatistiche([{ dx: -3, dy: -4 }]), { n: 1, media: 5, massima: 5 },
+      "⛔ è una DISTANZA: il segno di dx/dy (che dipende dalla convenzione di assi, non confermata — vedi burdenVeroDaRilievo) non deve cambiare il risultato");
+    eq(v.deviazioneStatistiche([]), null, "nessuna riga: non misurabile, non zero");
+    eq(v.deviazioneStatistiche(null), null, "input non valido: non misurabile, non un crash");
+    /* integrazione vera con deviazioneForiDaCsv, stesso fixture del test qui sopra */
+    const s = v.deviazioneStatistiche(v.deviazioneForiDaCsv("foro;dx_m;dy_m\n1;0.12;-0.30\n2;-0.05;0.10\n").righe);
+    eq(s.n, 2); eq(s.media, 0.217, "hypot(0.12,0.3)=0.3231…, hypot(0.05,0.1)=0.1118… → media 0.217");
+    eq(s.massima, 0.323, "il più grande dei due, non il primo");
+  });
+  test("⛔ Genesi · deviazioneStatistiche è collegata nella pagina, sul rilievo importato (G59)", () => {
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    const elenco = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map(s2 => s2.trim());
+    ok(elenco.includes("deviazioneStatistiche"), "la pagina importa la funzione dal modulo");
+    const corpo = pag.match(/\$\('rilievoDevFile'\)\.onchange=async\(e\)=>\{[\s\S]*?\n\};/)[0];
+    ok(/deviazioneStatistiche\(csv\.righe\)/.test(corpo), "legge dalle righe già validate da deviazioneForiDaCsv, non dal testo grezzo del file");
+    ok(/dstat\.media/.test(corpo) && /dstat\.massima/.test(corpo), "media e massima arrivano entrambe a schermo");
+  });
   test("⛔ Genesi · burdenVeroDaRilievo: il burden vero sulle posizioni MISURATE, non su quelle di progetto", () => {
     /* fila 0 (davanti alla faccia, my=3) e fila 1 (dietro, my=6.5): la
        geometria è quella di `fileDeiFori`, la stessa che usa la pagina */

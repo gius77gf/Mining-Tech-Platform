@@ -810,6 +810,34 @@ export function deviazioneForiDaCsv(testo){
   return { righe, scartate, colonneDaNome: haIntestazione };
 }
 
+/* G59 (19/09) — statistica di QC sulla deviazione di perforazione, dalle
+   righe già lette da `deviazioneForiDaCsv`. Segnalato dalla ricerca del
+   19/09 (docs/RICERCA_CONTINUA_GENESI.md, confronto con Blastatistics di
+   JKSimBlast) come mancanza REALE — verificata di persona aprendo questa
+   funzione e il pannello che la mostra (genesi.html, `rilievoDevFile`):
+   la pagina elenca lo scostamento foro per foro ma non ha mai un
+   riepilogo (media, massimo). La ricerca stessa aveva già sbagliato
+   "non c'è" tre volte su sei in questo stesso confronto — verificato
+   qui con `grep -n "deviazioneStatistiche\|scartoMedio\|scarto.*massim"
+   apps/genesi/` prima di scriverla: zero righe, la mancanza è vera.
+
+   Usa DELIBERATAMENTE la distanza radiale `Math.hypot(dx,dy)`, non
+   `dx`/`dy` col segno: quelli dipendono dalla convenzione di assi del
+   rilievo boretrack rispetto agli assi di Genesi, che il blocco sopra
+   `burdenVeroDaRilievo` dichiara ancora NON confermata su un caso reale.
+   Una distanza è invariante per rotazione/riflessione degli assi — è
+   sicura da mostrare anche prima che quella conferma arrivi, perché non
+   inverte niente: dice solo "di quanto il foro è finito fuori posto",
+   non "in quale direzione". */
+export function deviazioneStatistiche(righe){
+  const R = Array.isArray(righe) ? righe : [];
+  if (!R.length) return null;
+  const dist = R.map(r => Math.hypot(r.dx, r.dy));
+  const media = dist.reduce((s, d) => s + d, 0) / dist.length;
+  const massima = Math.max(...dist);
+  return { n: dist.length, media: +media.toFixed(3), massima: +massima.toFixed(3) };
+}
+
 /* Il burden VERO ricalcolato sulle posizioni MISURATE (non simulate): stessa
    geometria di `simulaPerforazione` (fila per fila, la fila davanti nelle
    posizioni vere, non di progetto) ma con UNA realizzazione sola — quella

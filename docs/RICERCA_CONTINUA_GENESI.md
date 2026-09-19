@@ -5693,4 +5693,10 @@ titolo di una sezione precedente dello stesso file.
 
 **«Proposto da ricerca, non verificato» prima di entrare in roadmap:**
 - Aggiungere calcolo dello **scarto medio e massimo della deviazione dei fori** partendo da CSV (leggi `deviazioneForiDaCsv`) — una funzione con tre numeri (media, min, max), usabile in report. Costo: **Piccolo**, valore **Alto**.
+  ✅ **FATTO il 19/09 (G59)**: `deviazioneStatistiche(righe)` in `genesi-data.js`, media e massima
+  (non il minimo: un minimo di deviazione non serve a decidere niente, il rischio sta nel massimo)
+  della distanza RADIALE `Math.hypot(dx,dy)` — non dx/dy col segno, che dipende dalla convenzione di
+  assi del rilievo boretrack ancora non confermata (vedi il blocco rosso sopra `burdenVeroDaRilievo`)
+  — mostrata nel pannello di import del rilievo. Verificato dal vivo con Playwright (CSV iniettato,
+  numeri di media/massima ricalcolati a mano e confrontati). 2 test in `run-kpi.mjs`.
 - Visualizzazione di **timing timeline** (sequenza ritardi su una linea del tempo, non contour plot 3D) — utilità media. Costo: **Medio**, valore **Medio**.
