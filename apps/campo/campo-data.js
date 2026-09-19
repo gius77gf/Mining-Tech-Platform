@@ -2079,6 +2079,39 @@ export function orariDiTurno(operatori, presenze, data, turno, squadra) {
   };
 }
 
+/* CHI C'ERA IN UN TURNO — appello, riposo dal turno precedente (D.Lgs
+   66/2003, art. 7) e orari veri, in un solo oggetto. Fattorizzata il 19/09,
+   dal deep-pass QA su Campo: `rapportoGiornata` e `testoConsegnaTurno` (i
+   due documenti GEMELLI, già sincronizzati più volte oggi su idoneità,
+   checklist, near-miss, volate) rifacevano la stessa costruzione ognuno
+   per conto suo — la copia debole che CLAUDE.md descrive: una regola
+   scritta due volte diverge alla prima modifica di una sola delle due, e
+   qui la seconda copia mancava del tutto (`testoConsegnaTurno` non
+   chiamava mai `appelloTurno`/`riposoDiTurno`). Pura. */
+export function personaleTurno(operatori, presenze, durate, data, turno) {
+  const rip = riposoDiTurno(operatori, presenze, durate, data, turno, "");
+  const per = {}; rip.righe.forEach((r) => { per[r.operatore.id] = r; });
+  const ori = {}; (presenze || []).filter((p) => String(p.data || "") === data && String(p.turno || "") === turno)
+    .forEach((p) => { ori[p.operatoreId] = { rec: p, or: orariPresenza(p) }; });
+  return { turno, app: appelloTurno(operatori, presenze, data, turno, ""), rip, per, ori, qOra: orariDiTurno(operatori, presenze, data, turno, "") };
+}
+
+// LA FRASE DA METTERE IN UN DOCUMENTO per il personale di un turno — presa
+// da `personaleTurno` qui sopra, stessa ragione di `testoRiposo`: una frase
+// che compare in due documenti si scrive una volta sola. Pura.
+export function introPersonaleTurno(x) {
+  const q = x.qOra, mancano = q.parziali + q.senza;
+  return "**Turno " + x.turno + "**: " + x.app.presenti + " " + (x.app.presenti === 1 ? "presente" : "presenti") + " su " + x.app.totale
+    + (x.app.daFare ? ", " + x.app.daFare + " " + (x.app.daFare === 1 ? "non spuntato" : "non spuntati") : "") + "."
+    + (x.rip.sotto ? " **" + x.rip.sotto + " " + (x.rip.sotto === 1 ? "persona ha" : "persone hanno") + " meno di " + RIPOSO_MINIMO_ORE + " ore di riposo dal turno precedente** (D.Lgs 66/2003, art. 7)." : "")
+    + (x.rip.nonMisurabili ? " Per " + x.rip.nonMisurabili + " il riposo non è misurabile." : "")
+    + (q.totale ? (mancano
+        ? " Per **" + mancano + "** " + (mancano === 1 ? "presente" : "presenti") + " su " + q.totale + " manca l'ora di entrata o quella di uscita"
+          + (q.minuti !== null ? "; le ore lavorate note sono **almeno " + oreMinuti(q.minuti) + "**" : "") + "."
+        : " Orari dichiarati per tutti i presenti: **" + oreMinuti(q.minuti) + "** lavorate in totale.") : "")
+    + (q.daControllare ? " **" + q.daControllare + " " + (q.daControllare === 1 ? "riga ha" : "righe hanno") + " orari da controllare.**" : "");
+}
+
 // I turni che vengono PRIMA di uno dato, dal più recente indietro, coprendo
 // `giorni` giorni di calendario (quindi `giorni × 3` turni). Serve a camminare
 // all'indietro nell'appello senza inventare un calendario nuovo: i turni sono
@@ -3676,25 +3709,12 @@ export function rapportoGiornata(d, opts) {
      (D.Lgs 66/2003, art. 7) e gli orari veri. Dove non si può misurare il
      rapporto lo DICHIARA invece di lasciare la cella vuota: una casella bianca
      su un documento firmato si legge come «niente da segnalare». */
-  const preOggi = TURNI.map((t) => {
-    const rip = riposoDiTurno(OPER, PRE, DUR, OGGI, t, "");
-    const per = {}; rip.righe.forEach((r) => { per[r.operatore.id] = r; });
-    const ori = {}; PRE.filter((p) => String(p.data || "") === OGGI && String(p.turno || "") === t)
-      .forEach((p) => { ori[p.operatoreId] = { rec: p, or: orariPresenza(p) }; });
-    return { turno: t, app: appelloTurno(OPER, PRE, OGGI, t, ""), rip, per, ori, qOra: orariDiTurno(OPER, PRE, OGGI, t, "") };
-  }).filter((x) => x.app.presenti || x.app.assenti);
+  const preOggi = TURNI.map((t) => personaleTurno(OPER, PRE, DUR, OGGI, t))
+    .filter((x) => x.app.presenti || x.app.assenti);
   const personale = sez("Personale presente", preOggi.length ? "" : "Nessun appello registrato oggi.",
     preOggi.map((x) => {
-      const q = x.qOra, mancano = q.parziali + q.senza;
-      const intro = "**Turno " + x.turno + "**: " + x.app.presenti + " " + (x.app.presenti === 1 ? "presente" : "presenti") + " su " + x.app.totale
-        + (x.app.daFare ? ", " + x.app.daFare + " " + (x.app.daFare === 1 ? "non spuntato" : "non spuntati") : "") + "."
-        + (x.rip.sotto ? " **" + x.rip.sotto + " " + (x.rip.sotto === 1 ? "persona ha" : "persone hanno") + " meno di " + RIPOSO_MINIMO_ORE + " ore di riposo dal turno precedente** (D.Lgs 66/2003, art. 7)." : "")
-        + (x.rip.nonMisurabili ? " Per " + x.rip.nonMisurabili + " il riposo non è misurabile." : "")
-        + (q.totale ? (mancano
-            ? " Per **" + mancano + "** " + (mancano === 1 ? "presente" : "presenti") + " su " + q.totale + " manca l'ora di entrata o quella di uscita"
-              + (q.minuti !== null ? "; le ore lavorate note sono **almeno " + oreMinuti(q.minuti) + "**" : "") + "."
-            : " Orari dichiarati per tutti i presenti: **" + oreMinuti(q.minuti) + "** lavorate in totale.") : "")
-        + (q.daControllare ? " **" + q.daControllare + " " + (q.daControllare === 1 ? "riga ha" : "righe hanno") + " orari da controllare.**" : "");
+      const q = x.qOra;
+      const intro = introPersonaleTurno(x);
       const righe = x.app.righe.map((r) => {
         const v = x.ori[r.operatore.id] || {}; const rec = v.rec || {}, o = v.or || {};
         const presente = r.stato === "presente";
@@ -3830,6 +3850,7 @@ export function testoConsegnaTurno(d = {}, opts = {}) {
   const dmy = opts.dmy || ((iso) => dataIt(iso, "senza data"));
   const RAP_OGGI = d.rapportini || [], ATT_OGGI = d.attivita || [];
   const OBIE = d.obiettivi || [], CHK = d.checklist || [], MET = d.meteo || [], CHI = d.chiusure || [];
+  const OPER_C = d.operatori || [], PRE_C = d.presenze || [], DUR_C = d.durate || [];
   // ⛔ 18/09, dal deep-pass QA su Campo: il documento GEMELLO
   // (rapportoGiornata, qui sopra) già dice se una voce non a posto ha
   // un'azione correttiva aperta in Scudo — questo la nominava e basta.
@@ -3877,6 +3898,28 @@ export function testoConsegnaTurno(d = {}, opts = {}) {
     return "- " + (b.squadra || "—") + " (turno " + (b.turno || "—") + "): " + r.argomento + " — tenuto da " + r.tenutoDa
       + " — presenti: " + r.presentiTesto + (b.ora ? " — alle " + b.ora : ""); }).join("\n")
     : "- nessun briefing registrato") + "\n\n";
+  /* ⛔ 19/09, dal deep-pass QA su Campo: il documento GEMELLO
+     (rapportoGiornata, qui sopra) ha una sezione "Personale presente" —
+     l'appello e il riposo dal turno precedente (D.Lgs 66/2003, art. 7) —
+     che questa consegna, nata apposta per "le due cose che il turno
+     entrante legge per prime" (vedi più sotto), non aveva MAI avuto:
+     `appelloTurno`/`riposoDiTurno` non comparivano da nessuna parte in
+     questa funzione. Chi entrava in turno non sapeva chi non era ancora
+     stato spuntato né chi aveva meno delle ore di riposo dovute — proprio
+     le due domande che un turno entrante fa per prime sulle persone.
+     Riusa `personaleTurno`/`introPersonaleTurno`, non li ricalcola. */
+  const preOggi_C = TURNI.map(t => personaleTurno(OPER_C, PRE_C, DUR_C, OGGI, t))
+    .filter(x => x.app.presenti || x.app.assenti);
+  txt += "PERSONALE PRESENTE\n";
+  txt += (preOggi_C.length ? preOggi_C.map(x => {
+    const nonSpuntati = x.app.righe.filter(r => r.stato !== "presente" && r.stato !== "assente")
+      .map(r => String(r.operatore.nome || "")).filter(Boolean);
+    const sottoRiposo = x.rip.righe.filter(r => r.stato === "sotto")
+      .map(r => String(r.operatore.nome || "")).filter(Boolean);
+    return "- " + introPersonaleTurno(x).replace(/\*\*/g, "")
+      + (nonSpuntati.length ? " Non spuntati: " + nonSpuntati.join(", ") + "." : "")
+      + (sottoRiposo.length ? " Sotto le ore di riposo: " + sottoRiposo.join(", ") + "." : "");
+  }).join("\n") : "- nessun appello registrato oggi") + "\n\n";
   const metT = TURNI.map(t => meteoDi(MET, OGGI, t)).filter(m => m && riassuntoMeteo(m));
   txt += "METEO E CONDIZIONI DEL SITO\n";
   txt += (metT.length ? metT.map(m => "- turno " + m.turno + ": " + riassuntoMeteo(m)

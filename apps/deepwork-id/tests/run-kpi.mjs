@@ -43178,16 +43178,16 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
   const D = campo.DEMO;
   const OGGI = D.attivita[0].data;   // la dimostrazione vive «oggi»
   const RAP = campo.diGiorno(D.rapportini, OGGI), ATT = campo.diGiorno(D.attivita, OGGI);
-  const TITOLI = ["RAPPORTINI", "PRODUZIONE", "OBIETTIVO DEL TURNO", "CHECKLIST DI INIZIO TURNO", "METEO E CONDIZIONI DEL SITO",
+  const TITOLI = ["RAPPORTINI", "PRODUZIONE", "OBIETTIVO DEL TURNO", "CHECKLIST DI INIZIO TURNO", "PERSONALE PRESENTE", "METEO E CONDIZIONI DEL SITO",
     "VOLATE DEL GIORNO (registro di Sentinella)", "LAVORI NON CONCLUSI", "SEGNALAZIONI DEL TURNO", "CHIUSURA DEL TURNO", "ANOMALIE / FERMI"];
   const sezione = (txt, titolo) => { const i = txt.indexOf(titolo + "\n"); if (i < 0) return null; const resto = txt.slice(i + titolo.length + 1); const j = resto.indexOf("\n\n"); return (j < 0 ? resto : resto.slice(0, j)).trim(); };
-  test("Campo · testoConsegnaTurno: la consegna sulla dimostrazione — le dieci sezioni, in ordine, nessuna vuota", () => {
+  test("Campo · testoConsegnaTurno: la consegna sulla dimostrazione — le undici sezioni, in ordine, nessuna vuota", () => {
     const txt = campo.testoConsegnaTurno({ oggi: OGGI, rapportini: RAP, attivita: ATT, obiettivi: D.obiettivi, checklist: D.checklist, meteo: D.meteo,
       chiusure: D.chiusure, volateSentinella: D.volateSentinella, infortuniScudo: D.infortuniScudo }, { avviso: "[ESEMPIO]\n\n" });
     eq(txt.split("\n")[0], "CONSEGNA DI TURNO — " + shell.dataIt(OGGI), "la testata con la data in italiano");
     eq(txt.split("\n")[2], "[ESEMPIO]", "⛔ la riga dei dati di esempio, decisa dalla pagina, sta in cima prima di qualunque dato");
     const pos = TITOLI.map((t) => txt.indexOf(t + "\n"));
-    ok(pos.every((p) => p >= 0), "tutte e dieci le sezioni ci sono: " + TITOLI.filter((t, i) => pos[i] < 0).join(", "));
+    ok(pos.every((p) => p >= 0), "tutte e undici le sezioni ci sono: " + TITOLI.filter((t, i) => pos[i] < 0).join(", "));
     eq(pos.slice().sort((a, b) => a - b), pos, "⛔ nell'ordine dello schermo");
     for (const t of TITOLI) ok(/^- /.test(sezione(txt, t) || ""), "⛔ la sezione «" + t + "» ha almeno una riga: un'assenza si dice a parole, non con un vuoto — " + JSON.stringify((sezione(txt, t) || "").slice(0, 60)));
     eq((sezione(txt, "RAPPORTINI").match(/^- /gm) || []).length, RAP.length, "un rapportino per riga");
@@ -44307,6 +44307,36 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(tuttiOk.attenzione, "", "con tutti idonei nessun avviso di attenzione");
     ok(campo.testoConsegnaTurno({ ...base, lavoratoriHSE: [{ id: "d1", idoneita: "idoneo" }] }, {}).includes("nessuna persona in turno oggi risulta non idonea"),
       "e la consegna lo dice esplicitamente, invece di tacere la sezione");
+  });
+  test("⛔ 19/09, dal deep-pass QA su Campo: testoConsegnaTurno aveva PERSONALE PRESENTE assente — il documento gemello (rapportoGiornata) ce l'ha da sempre", () => {
+    /* caso riprodotto dall'agente: sulla dimostrazione, oggi, la Mattina ha
+       o4 (Paolo Gallo) non ancora spuntato e o1 (Mario Rossi) sotto le 11 ore
+       di riposo (D.Lgs 66/2003, art. 7) — prima di questo cantiere la
+       consegna non chiamava mai `appelloTurno`/`riposoDiTurno`, quindi non
+       diceva né l'uno né l'altro, mentre il rapporto stampato/firmato sì. */
+    const D = campo.DEMO, oggi = campo.oggiISO();
+    const base = { oggi, operatori: D.operatori, presenze: D.presenze, durate: D.durate };
+    const txt = campo.testoConsegnaTurno(base, {});
+    const sezPers = txt.slice(txt.indexOf("PERSONALE PRESENTE\n"), txt.indexOf("METEO E CONDIZIONI DEL SITO\n"));
+    ok(/Turno Mattina.*Non spuntati: Paolo Gallo/.test(sezPers.replace(/\n/g, " ")),
+      "chi non è ancora stato spuntato si nomina, come già nella tabella del rapporto stampato: " + sezPers);
+    ok(/Turno Mattina.*Sotto le ore di riposo: Mario Rossi/.test(sezPers.replace(/\n/g, " ")),
+      "e chi ha meno delle ore di riposo dovute pure: " + sezPers);
+    // gli STESSI conti aggregati del documento gemello, non una copia debole
+    const R = campo.rapportoGiornata(base, {});
+    const persR = R.sezioni.find((s) => s.titolo === "Personale presente");
+    eq(sezPers.split("\n")[1].replace(/^- /, "").replace(/\*\*/g, "").replace(/ Non spuntati:.*$/, "").trim(),
+       persR.blocchi[0].intro.replace(/\*\*/g, "").trim(),
+       "⛔ la frase aggregata è la STESSA `introPersonaleTurno` in entrambi i documenti, non due copie che possono divergere");
+    // senza operatori/presenze la sezione dichiara l'assenza a parole, non un vuoto
+    ok(campo.testoConsegnaTurno({ oggi }, {}).includes("PERSONALE PRESENTE\n- nessun appello registrato oggi"),
+      "senza dati la sezione c'è comunque, e dice che non c'è stato appello");
+    // le due funzioni fattorizzate, chiamate direttamente: stesso oggetto
+    // di prima (`app`/`rip`/`ori`/`qOra`), stessa frase di prima
+    const x = campo.personaleTurno(D.operatori, D.presenze, D.durate, oggi, "Mattina");
+    eq(x.turno, "Mattina", "personaleTurno porta il turno chiesto");
+    ok(x.app && x.rip && x.ori && x.qOra, "personaleTurno porta appello, riposo, orari e il quadro orario: " + JSON.stringify(Object.keys(x)));
+    eq(campo.introPersonaleTurno(x), persR.blocchi[0].intro, "introPersonaleTurno(x) è la stessa frase che rapportoGiornata mostra in tabella");
   });
   test("⛔ 18/09, dal quinto giro di deep-pass: l'idoneità nei documenti dice ANCHE i documenti scaduti/in scadenza, non solo chi è NON idoneo", () => {
     /* caso riprodotto dall'agente: 5 schierati, 1 non-idoneo, 3 con un
