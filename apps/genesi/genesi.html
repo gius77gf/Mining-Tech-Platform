@@ -4160,6 +4160,29 @@ if($('btn-report')) $('btn-report').onclick=()=>{
       ricavo come margine**. Adesso il margine lo decide `costoVolata`, che su
       un costo assente risponde `null`, e la riga dice perché. */
    +sec('Stima economica (ordine di grandezza)',[['Metri perforati',gnum(mPerf,0)+' m → '+nc(cP,eur(cP))],['Esplosivo',nc(kgTot,gnum(kgTot,0)+' kg → '+eur(cE))],['Inneschi',gnum(nf,0)+' → '+nc(cI,eur(cI))],['Costo totale volata',nc(cTot,'<b>'+eur(cTot)+'</b>')],['Volume / tonnellaggio',gnum(vol,0)+' m³ / '+gnum(ton,0)+' t'],['Costo unitario',_cR.perM3===null?(cTot===null?'non calcolabile':'—'):gfix(_cR.perM3,2)+' €/m³ · '+gfix(_cR.perT,2)+' €/t']].concat(cTot===null?[['Perché il costo non è calcolabile',esc(_cR.che)+'. '+esc(_cR.come)]]:[]).concat((D2.valMat||0)>0?[['Margine (materiale '+gnum(D2.valMat,2)+' €/t)',nc(_cR.margine,eur(_cR.margine))]]:[]));
+  /* G55 (19/09, dal delta verificato di docs/RICERCA_CONTINUA_GENESI.md,
+     terzo giro, Domanda B) — il rapporto stampa sei sezioni tutte
+     PRE-sparo (geometria, carica, roccia, previsioni, economia, firma):
+     nessuna dice che cosa è successo davvero. Costruire un intero
+     rapporto post-sparo (esito per foro, macigni, rumore, danni) è
+     "Medio" e chiede al fondatore di decidere SU QUALE APP vive — non
+     lo si decide qui. Ma un pezzo era già in casa e non richiede
+     nessuna decisione: il misfire di G52 (`_ricCampo`, importato nella
+     Riconciliazione) può già essere noto nel momento in cui questo
+     foglio si stampa — se il fochino ha importato il consuntivo prima
+     di ristampare il rapporto per l'archivio. Non lo mostrare sarebbe
+     esattamente il principio del fondatore violato nel documento che si
+     conserva: un rapporto ristampato DOPO aver saputo di un colpo cieco
+     non può tacerlo perché la sezione non esisteva ancora.
+     ⚠️ Silenzioso quando `_ricCampo` non c'è: è il caso normale, il
+     rapporto stampato PRIMA dello sparo, e non è un'omissione — non
+     c'è ancora niente da sapere. */
+  const _repEsito = !_ricCampo ? '' : sec('Esito della detonazione (da Campo)',
+    !_ricCampo.colonnaEsito
+      ? [['Tracciato', 'Il consuntivo importato non porta la colonna «esito»: non si sa se ci sono stati colpi ciechi (misfire).']]
+      : _ricCampo.nMisfire
+        ? [['<b style="color:#c0392b">Misfire dichiarati</b>', '<b style="color:#c0392b">'+_ricPlur(_ricCampo.nMisfire,'foro','fori')+'</b>: '+_ricCampo.foriMisfire.map(esc).join(', ')+'. Prima di avvicinarsi, seguire la procedura di sicurezza per un colpo inesploso.']]
+        : [['Misfire dichiarati', 'Nessuno (consuntivo tracciato, '+gnum(_ricCampo.foriReg,0)+'/'+gnum(_ricCampo.foriTot,0)+' fori registrati).']]);
   /* LA FIRMA (G8, prima fetta — 14/09, da docs/RICERCA_CONTINUA_GENESI.md,
      "che cosa contiene davvero un rapporto di volata", 13/09): il modulo
      Pennsylvania ("Blaster's Report") e AS 2187-2 chiedono entrambi nome e
@@ -4182,6 +4205,7 @@ if($('btn-report')) $('btn-report').onclick=()=>{
     +'.foot{margin-top:20px;font-size:10.5px;color:#888;border-top:1px solid #ddd;padding-top:8px}@media print{body{margin:0}}</style></head><body>'
     +'<h1>Report volata — Genesi</h1><div class="sub">Generato il '+esc(now)+' · progetto/stima, non misura di campo</div>'
     +body
+    +_repEsito
     +firma
     +'<div class="foot">Genesi è un simulatore di progettazione. Le previsioni (frammentazione, vibrazioni, flyrock) derivano da modelli empirici (Kuz-Ram/Swebrec, scaled-distance) e sono STIME, non misure certificate: vanno verificate sul campo. Per la frammentazione la letteratura indica un errore atteso dell\'ordine del ±50% per i modelli di questa famiglia senza calibrazione di sito (Sanchidrián & Ouchterlony 2017): usa la Riconciliazione per calibrare sulla tua cava. La stima economica è un ordine di grandezza (non include manodopera, ammortamenti, oneri).</div>'
     +'</body></html>';

@@ -2435,7 +2435,7 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.706** *(stesso giro — Genesi, il limite dello stack di annulla G54, dopo il semaforo di sintesi letto prima di esportare G53, l'esito della detonazione G52, `coordinataRelativa`/input relativo-polare G51, `foriRiflessi`/rifletti la selezione G50, `foriSenzaId`/selezione multipla G49 e `puntoSnapEstremo`/`estremiDisegno` di G48)* *(ricontate il 19/09, dopo il dodicesimo giro — Sentinella, `allerteTaratura`/badge; erano 3.676 il 18/09, dopo il
+**Le prove automatiche sono passate a 3.707** *(stesso giro — Genesi, il misfire nel report stampato G55, dopo il limite dello stack di annulla G54, il semaforo di sintesi letto prima di esportare G53, l'esito della detonazione G52, `coordinataRelativa`/input relativo-polare G51, `foriRiflessi`/rifletti la selezione G50, `foriSenzaId`/selezione multipla G49 e `puntoSnapEstremo`/`estremiDisegno` di G48)* *(ricontate il 19/09, dopo il dodicesimo giro — Sentinella, `allerteTaratura`/badge; erano 3.676 il 18/09, dopo il
 sesto giro di deep-pass QA in parallelo su Sentinella/Genesi/Conti —
 `superamentiAperti` scriveva un valore fabbricato su un superamento vero,
 `muckShape`/il pannello Decking di Genesi stimavano un baricentro del
@@ -2713,9 +2713,9 @@ lettura dell'etichetta di gravità dal vocabolario invece del campo grezzo,
 e il bottone «Scadenze» al posto di «Adempimenti» nella barra in basso di
 Sentinella (bersagli di tocco a 320px saliti da 41,4 a 45,61–46,86 px),
 lanciando le suite)*, più **141** che girano con l'emulatore Firestore (**93** sulle regole
-di sicurezza, 19 sull'SDK, 24 sulle funzioni, 8 sul primo avvio) e **445
+di sicurezza, 19 sull'SDK, 24 sulle funzioni, 8 sul primo avvio) e **447
 esecuzioni** che aprono davvero le pagine in un browser *(ricontato il 19/09,
-dopo il limite dello stack di annulla, G54)*.
+dopo il misfire nel report stampato, G55)*.
 
 Nella sola giornata del 31/07 le prove sulle funzioni delle app sono passate da
 **433 a 971**, e hanno fatto emergere **otto difetti veri**. I tre che pesano di

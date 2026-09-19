@@ -17593,6 +17593,21 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     ok(/D2_UNDO_MAX,/.test(pag) && /const D2_UNDO_MAX=40;/.test(pag), "il limite dichiarato (40) è quello che il banco confronta, non un numero scritto a mano nel test");
   });
 
+  /* ═══ G55 (19/09) — IL MISFIRE NEL REPORT STAMPATO, dal delta verificato
+     di docs/RICERCA_CONTINUA_GENESI.md (terzo giro, Domanda B): il
+     "Report volata" ha sei sezioni tutte pre-sparo; G52 aveva insegnato a
+     Genesi a riconoscere un misfire solo nella Riconciliazione a schermo.
+     Qui solo il collegamento (`_repEsito` composto e inserito nel
+     documento); il comportamento vero — silenzio prima di importare,
+     allarme col misfire, calma con lo zero vero — lo prova
+     genesi-report-misfire.mjs premendo davvero il bottone. */
+  test("⛔ Genesi · il report stampato compone la sezione sull'esito della detonazione (G55)", () => {
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    ok(/const _repEsito = !_ricCampo \? '' : sec\('Esito della detonazione/.test(pag),
+      "silenziosa se non è mai stato importato nessun consuntivo — non un'omissione, non c'è ancora niente da sapere");
+    eq((pag.match(/\+_repEsito\n\s*\+firma/g) || []).length, 1, "inserita nel documento, prima della firma");
+  });
+
   test("⛔ Genesi · il CSV dello storico è protetto dalla CSV-injection, con la difesa di casa", () => {
     /* ⛔ IL DIFETTO CHE QUESTA PROVA BLINDAVA, corretto il 03/08 ed era il più
        grave dei cinque: `csvRiconciliazione` si portava dietro dalla pagina una

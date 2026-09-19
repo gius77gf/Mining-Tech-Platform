@@ -4742,3 +4742,72 @@ proposto solo perché tre fonti indipendenti lo trattano come il primo passo
 operativo dopo ogni sospetto, e Genesi già stampa promemoria normativi
 analoghi (l'errore ±50% di Kuz-Ram) nello stesso foglio.
 
+## Ricerca del 2026-09-19 — DOMANDA A: Quotatura come strumento CAD (terzo giro)
+
+### Già scritto
+`grep -ciE 'quotaLineare|toolQuota|strumentoQuota|quotaDimensione' apps/genesi/genesi.html apps/genesi/genesi-data.js` → **0**
+
+La ricerca RICERCA_GENESI_CAD.md (sezione 7, line 207) dichiara già che "la quotatura è visualizzazione di testo sulle linee; non esiste uno strumento d'input per creare una quota cliccando due punti". Grep conferma: zero funzioni nel codice di Genesi per "disegna una dimensione prendendo due coordinate da click dell'utente".
+
+### Il mondo
+Tre ricerche WebSearch su "dimension tool drawing dimension line canvas JavaScript CAD" e "how CAD dimensioning tool works point selection" hanno restituito: un dimensioning tool vero richiede **(1) click su due punti**, **(2) calcolo offset parallelo della linea quota** (spostamento perpendicolare per leggibilità), **(3) posizionamento automatico del testo della misura** accanto alla linea, **(4) gestione di unità e arrotondamenti** (mm/cm/m a seconda della scala). Fonti di seconda mano citate descrivono il dimensioning come parte standard di ogni CAD 2D (`<svg>`, canvas 2D, WebGL), con tre varianti: quota lineare (distanza fra due punti), quota angolare (angolo fra due linee), quota diametrale (cerchio). [di seconda mano]
+
+### Il delta verificato aprendo il codice
+**Non esiste.** Leggendo il sorgente di Genesi (genesi.html, funzione di disegno dalla line 380 in poi; genesi-data.js, modello geometria): Genesi disegna già i fori del progetto sullo schermo, calcolando coordinate x-y per ogni foro in griglia (funzioni `posizioniPali`, `disegnaPlan` linea ≈500). Un strumento "quota due punti" avrebbe costo **Piccolo** — è una funzione pura di geometria (calcolo distanza, offset linea) + un renderer SVG per il testo. **Misura:** il caso più semplice (quota lineare con due handle, offset fisso) è circa 40-60 righe di JavaScript + 20 di CSS/SVG. Non richiede cambio del modello dati di Genesi (rimane una visualizzazione).
+
+### Proposte
+Nessuna. Il delta non è misurabile come mancanza d'uso dell'utente; è una feature di comodo non essenziale. Quando la si aggiungerà, il banco da mettere aprirà un disegno di test, cliccherà due fori, e chiederà che la linea quota appaia con testo leggibile e unità giuste — misura in pixel su canvas.
+
+### Fonti
+- WebSearch: "CAD dimensioning tool JavaScript implementation"
+- "How to calculate dimension line offset for readability"
+- Standard ISO 3098 (dimensioning conventions in technical drawing) [di seconda mano, citato dai risultati]
+
+### Riassunto onesto
+La quotatura come strumento CAD non è mai stata costruita in Genesi, zero dubbi. Il delta è: costo implementativo piccolo, valore d'uso basso (non serve al flusso). Non entra in roadmap non perché sia difficile, ma perché il disegno tecnico di un progetto volata rimane nel file vivo del progettista, non nel consuntivo. Se il fondatore la vuole per "controllare le distanze fra fori disegnati" allora il costo scende a zero (Genesi conta già le coordinate per ogni foro, `<tspan>` appiccicata accanto al disegno è una riga). Se la vuole per "allegare un documento con le quote al report ufficiale", il costo sfiora il Medio — perché allora serve un nuovo canvas, un nuovo modello di "quote salvate", un'esportazione PDF. Quel delta lo sa decidere solo chi usa Genesi. Quel che sa dirlo è la misura: senza sapere come la quota va **usata**, il resto è indovinare.
+
+## Ricerca del 2026-09-19 — DOMANDA B: Rapporto di fine volata verso ispettore (terzo giro)
+
+### Già scritto
+Genesi stampa un rapporto di volata (genesi.html line 4037-4192): sei sezioni — Geometria, Carica & sequenza, Roccia, Previsioni, Stima economica, firma. Nessuna sezione contiene **dati post-detonazione**: non raccoglie dall'utente l'esito (sparato/misfire), il numero di frammenti raccolti, il drift, il rumore misurato, i danni.
+
+Il consuntivo Campo→Genesi (genesi-data.js line 700) **già accetta il campo `esito`** (sparato/misfire): il codice c'è, ma il rapporto stampato non lo legge né lo mostra.
+
+### Il mondo
+Tre ricerche WebSearch su "mining blast final report inspector requirements", "post-blast inspection documentation MSHA mining", "detonation report blaster-in-charge" hanno restituito: l'ispettore (autorità locale, ARPA, ASL in Italia; MSHA/GSA negli USA) richiede nel "rapporto di fine volata":
+- **Pre-blast**: piano di carica, numero fori, tonnellate esplosivo, sequenza temporale [da Genesi, già presente]
+- **Post-blast**: (1) ora di inizio/fine detonazione, (2) esito per ogni foro (sparato/misfire/interrato), (3) conteggio macigni/frammenti grossi vs sabbia, (4) deriva (drift) verticale/orizzontale della nuvola, (5) livello di rumore (decibel dB a punto fisso), (6) danni dichiarati (finestre rotte, crepe, distacco intonaco con indirizzo), (7) firma di chi ha fatto la carica (blaster-in-charge) e testimone. [di seconda mano]
+- **Retention**: 5 anni in Italia (decreto 231/2002), archiviato presso la cava.
+
+Genesi oggi non ha **nessun campo di raccolta** per i dati post-blast, né una sezione nel report per dichiararli.
+
+### Il delta verificato aprendo il codice
+**Misurabile e preciso.** Il modello genesi-data.js accetta `esito` per foro (line 700: "sparato" o "misfire" o vuoto); il report non lo legge. Leggendo genesi.html (section "Carica & sequenza", line 4137-4140): stampa solo il numero di fori e la sequenza di ms. Zero righe per "quanti hanno sparato, quanti no". Il delta è una riga di sezione nuova (post-detonazione) nel rapporto che raccoglie: ora inizio/fine, esito-per-foro (scordata automatica dal consuntivo se arriva), conteggio macigni (input campo numero), rumore (campo numero + unità dB), danni (campo testo). Costo: **Piccolo** per il modello (cinque campi), **Medio** per il rendering (una sezione PDF nuova, stile coerente con il resto).
+
+### Proposte
+1. **Rapporto pre-stampa** · mancano raccolti i dati post-detonazione · la sezione "Carica & sequenza" dice cosa **s'è progettato** ma non cosa **è successo** · costo piccolo, si vede in una riga di disegno · si testa caricando un consuntivo con esito e verificando che il rapporto PDF dica "Esito: X fori sparati, Y misfires"
+2. **Firma dell'ispettore** · il rapporto ha firma della blaster-in-charge (riga bianca manuale), assente firma di raccolta-dati o testimone · costo minimo (due righe di firma bianche come la prima, nella sezione post-detonazione) · si testa aprendo il PDF e contando quattro righe di firma (oggi ce ne sono due)
+
+### Fonti
+- WebSearch: "MSHA mining blast final report requirements post-detonation"
+- "Italian mining inspection post-blast documentation D.Lgs 231/2002"
+- "Misfire blaster-in-charge record keeping mining"
+- Sentinella app di Deepwork (già legge post-volata da ispettore: giorni di scadenza lavori, numero litri carburante bruciati — fa parte del modello di Deepwork, non della ricerca)
+
+### Riassunto onesto
+Genesi pubblica il **piano** di una volata, non il **consuntivo**. Il rapporto che stampa è pre-detonazione: per questo sei sezioni descrivono cosa si prevede (Kuz-Ram, fragmentation, airblast) e niente post-scatto. Il delta è **reale ma di scope**: se il rapporto deve servire all'ispettore, serve la **seconda metà** — quello che è successo davvero. Un ispettore riceve insieme (1) il pre-blast (Genesi oggi, sei sezioni), (2) il post-blast (zero righe), (3) il log di misurazioni (rumore, foto della pila, deriva) — normalmente su tre documenti separati, uno pre e due post. Renderli uno solo (rapporto unico Genesi) avrebbe costo Medio perché il PDF va ricomposto. Renderli due rapporti separati (rapporto pre in Genesi oggi, rapporto post creato dopo il disegno manualmente) ha costo zero — e finché il modello consuntivo non raccoglie gli **input** per il post, un rapporto post vuoto non serve a nessuno. **Che sia il delta è indubbio. Che sia in roadmap dipende dal fondatore — serve il rapporto post, e su quale app vivrebbe (Genesi, Sentinella, una nuova)?**
+
+✅ **CHIUSA IN PARTE (19/09, G55).** Isolata la fetta piccola che non
+chiedeva nessuna decisione: il misfire di G52 (`_ricCampo`), se già noto
+al momento di ristampare il foglio per l'archivio, ora compare in una
+sezione dedicata («Esito della detonazione»), con la stessa disciplina
+a tre stati di G52/G53. Verificato con un banco vero
+(`genesi-report-misfire.mjs`) che preme davvero il bottone. Resta
+aperta, e resta del fondatore, la parte grande: un rapporto post-sparo
+completo (macigni, rumore, danni) e su quale app dovrebbe vivere.
+La Domanda A (quotatura come strumento CAD) resta **non azionata**: il
+delta è reale (costo Piccolo) ma il valore d'uso è basso finché non si
+sa a che cosa servirebbe — lasciata come nota, non come lavoro da fare.
+
+
+
