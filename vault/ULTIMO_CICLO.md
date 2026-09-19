@@ -1,16 +1,15 @@
 # Ultimo ciclo
 
-- **Quando**: 2026-09-19T07:53:44Z (letta da `date -u`, non predetta)
-- **Commit di partenza**: 8e66be5f (feat(genesi): rifletti la selezione —
-  prima trasformazione (G50))
-- **Cosa sto per fare**: quarto cantiere Genesi chiuso (mirror sulla
-  selezione). Il vecchio giro completo del browser (14 commit indietro,
-  con modifiche sostanziali a Genesi/Flotta) è stato spento con la
-  disciplina giusta (PID del processo + server orfano sulla porta 8823)
-  e rilanciato da zero sul commit corrente, log
-  `giro-completo-19-0745.log`, ancora in corso.
-  **Prossimo passo atomico**: leggere l'esito del nuovo giro con
-  `leggi-giro.mjs` quando finisce (sezione 0 per prima). Nel frattempo,
-  verificare la sezione 4 della ricerca CAD (blocchi riusabili + input
-  relativo/polare, priorità bassa-media) contro il codice, o considerare
-  un secondo fronte su un'altra superficie di Genesi.
+- **Quando**: 2026-09-19T08:02:17Z (letta da `date -u`, non predetta)
+- **Commit di partenza**: a9f344db (docs: Decisione #43 — blocchi/simboli
+  riusabili per Genesi (fondatore))
+- **Cosa sto per fare**: chiusa la Decisione #43 (blocchi riusabili
+  filati al fondatore, non implementati). Prossimo: verificare l'esito
+  del giro completo del browser (`giro-completo-19-0745.log`, PID
+  6814), poi implementare il pezzo piccolo isolato nella stessa
+  decisione — input di coordinate relativo/polare (`@dx,dy` /
+  `@dist<angolo`) per i campi `#diX`/`#diY` di G47a in Genesi.
+  **Prossimo passo atomico**: controllare se il giro è finito/vivo, poi
+  prototipare in scratchpad il parser relativo/polare prima di
+  scriverlo nel modulo (CLAUDE.md: funzione nuova si prova fuori dal
+  modulo prima).
