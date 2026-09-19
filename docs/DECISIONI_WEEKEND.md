@@ -10,6 +10,50 @@ può procedere con l'attuazione.
 
 ---
 
+## 🟡 19/09 — Scudo: la formazione scaduta non blocca un turno, e la perdita di idoneità DURANTE un turno non avvisa nessuno
+
+*Dalla ricerca continua su Scudo (`docs/RICERCA_CONTINUA_SCUDO.md`, 19/09),
+confrontata con le best practice EHS (SafetyCulture, Intelex, Cority,
+FileFlo, Enablon — di seconda mano, WebSearch) e col D.Lgs 81/08. Non è un
+difetto: Scudo traccia già `idoneita` e le scadenze di formazione, e le
+mostra correttamente a schermo, nel Quadro e nei documenti che escono
+(decisione 17 e i fix di oggi su `prognosiAperta`/`riepilogoInfortuni`).
+La domanda è se debba fare qualcosa di PIÙ — bloccare, o avvisare in tempo
+reale — che oggi non fa per scelta implicita, non per un bug.*
+
+- [ ] **38. Due mancanze collegate, entrambe verificate col codice, nessuna
+  delle due implementata**: (1) **nessun blocco operazionale** — un
+  lavoratore con formazione/idoneità scaduta può comunque essere assegnato
+  a un turno o a una mansione: Scudo lo segnala (badge, riepilogo, Quadro)
+  ma non impedisce nulla, e non esiste un campo tipo `richiedeFormazione`/
+  `bloccoOperazione` sul modello mansioni/turni; (2) **nessun avviso in
+  tempo reale** — se un'idoneità scade DURANTE un turno già in corso (es.
+  alle 14:00 su un turno che finisce alle 18:00), nessuno riceve un avviso:
+  la scadenza si vede solo alla prossima apertura della pagina.
+  **Perché serve una decisione, non un'unità automatica**: (1) è un
+  cambiamento di comportamento del prodotto con implicazioni legali e
+  operative dirette — impedire un'assegnazione è una scelta che tocca la
+  responsabilità del datore di lavoro (D.Lgs 81/08, artt. 15/37), non un
+  ritocco silenzioso; un blocco troppo rigido potrebbe anche impedire
+  un'operazione realmente necessaria in un'emergenza. (2) un avviso in
+  tempo reale su un turno in corso presuppone una decisione su COME
+  avvisare (in-app? notifica push, non ancora costruita nell'ecosistema?)
+  e chi lo riceve (il lavoratore, il preposto, entrambi).
+  **Le strade**: (a) costruire il blocco come AVVISO rafforzato (impossibile
+  confermare l'assegnazione senza un secondo tocco esplicito, ma non un
+  divieto assoluto) — costo medio, nessun rischio di bloccare un'emergenza;
+  (b) costruire un vero blocco (l'assegnazione non si salva) — costo medio,
+  ma richiede una via di eccezione dichiarata per i casi limite; (c)
+  lasciare solo la segnalazione attuale, e aggiungere semmai un contatore
+  più visibile nel Quadro. Per l'avviso in tempo reale: (d) rimandarlo
+  finché non esiste un canale di notifica push nell'ecosistema (nessuna
+  app ce l'ha oggi); (e) costruire solo un ricalcolo più frequente dentro
+  la pagina già aperta (nessun avviso fuori dall'app). Nessuna proposta è
+  implementata: sono candidati da rimisurare col codice in mano, non presi
+  sulla parola della ricerca.
+
+---
+
 ## 🟡 17/09 — Deepwork ID: un membro rimosso o declassato resta operativo fino a un'ora, e lo stato "disabled" dichiarato non lo scrive nessuna funzione
 
 *Dalla ricerca continua su Deepwork ID (`docs/RICERCA_CONTINUA_DEEPWORKID.md`,
@@ -712,7 +756,7 @@ cinque elencate qui sotto.
 
 ---
 
-# 📖 Da dove cominciare — le decisioni aperte sono **24**
+# 📖 Da dove cominciare — le decisioni aperte sono **25**
 
 *Erano 19 fino al 07/08. **Nove** sono state chiuse dal **ciclo**, non da te, con
 la regola che avevi concesso il 01/08 (senza risposta entro la settimana si
@@ -2161,7 +2205,7 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.673** *(ricontate il 18/09, dopo il
+**Le prove automatiche sono passate a 3.674** *(ricontate il 18/09, dopo il
 sesto giro di deep-pass QA in parallelo su Sentinella/Genesi/Conti —
 `superamentiAperti` scriveva un valore fabbricato su un superamento vero,
 `muckShape`/il pannello Decking di Genesi stimavano un baricentro del
