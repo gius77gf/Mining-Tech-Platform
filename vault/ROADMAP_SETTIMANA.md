@@ -2929,9 +2929,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
-- `UX Campo` *(seconda iterazione UX, ricerca su Scudo sul ciclo di vita
-  delle azioni correttive, seconda UX su Deepwork ID — tutti dispatchati,
-  in attesa dei report)*
 
 ## 🎯 L'obiettivo della settimana
 
@@ -8699,16 +8696,17 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **429 esecuzioni** che
-  aprono le pagine in un browser vero, da **194** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **431 esecuzioni** che
+  aprono le pagine in un browser vero, da **195** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso). *(Ricontato il 19/09 dopo il
   quattordicesimo giro di deep-pass UX — nuovi banchi
   `dwg-tab-min-tocco.mjs` su un componente condiviso,
   `sentinella-ppv-modale-race.mjs` sull'eccezione del modale PPV, e
-  `senza-rete-contrasto.mjs` sul bordo del banner offline, quindicesimo
-  giro.)*
+  `senza-rete-contrasto.mjs` sul bordo del banner offline; e dopo il
+  quindicesimo — `deepworkid-tema-e-input.mjs` sul tema mai caricato e
+  il bordo dei campi.)*
   *(Al 08/08 pomeriggio 2.326, 703/703 e 153; al 07/08 sera 2.307; al 07/08
   notte 2.193, 662/662 e 120; al 03/08 pomeriggio 2.092, 649/649 e 84; al 02/08
   1.838, 591/591 e 49.)*
@@ -12094,8 +12092,39 @@ campo-foglio-turno.mjs 54/54 normale, 19 KO sotto --controprova.
       distingue un foro sparato da un misfire — stessa colonna
       numerica per due esiti opposti per sicurezza. Filato come
       Decisione 41 (attraversa due app), non implementato direttamente.
-- [ ] **UX Campo**, **QA Scudo** (ciclo di vita azioni correttive) e
-      **UX Deepwork ID**: dispatchati, in attesa dei report.
+- [x] **UX Campo** (`40169dec`): `.dw-senza-rete` (componente CONDIVISO)
+      usava `var(--warn)` diretto invece di `var(--bar-wr)`, quindi non
+      riceveva mai la calibrazione per i temi chiari — 1,69:1 nel chiaro,
+      1,73:1 nel sole, proprio il tema per leggere in cantiere, sul
+      banner che avvisa di essere senza rete.
+- [x] **QA Scudo** (`8378bcb2`): `fascicoloIspezione` (il "Fascicolo per
+      l'ispettore") non chiamava mai `riepilogoAzioni` — un'azione
+      correttiva scaduta da mesi non compariva in nessuna riga del
+      documento né faceva scattare l'allarme, mentre lo stesso array
+      produce il KPI rosso in cima al Quadro. Confermato sulla
+      dimostrazione: 3 azioni su 4 scadute, tutte tacitate.
+- [x] **UX Deepwork ID** (due commit): nessuna delle quattro pagine
+      caricava `shared/dw-tema.js` (la preferenza di tema "vale per
+      tutte le pagine dell'ecosistema", ma senza il caricamento non
+      arrivava mai), e `admin.html`/`profilo.html` usavano
+      `<div class="top">` invece di `<header class="top">` (che
+      `dw-tema.js` cerca per montare il bottone) — corretto. `.dw-input`
+      usava il bordo DECORATIVO (`--border`) invece di quello per i
+      controlli (`--border-hi`, mai dichiarato da Deepwork ID): 1,19–
+      1,56:1 su ogni campo, in ogni tema — corretto con un
+      `--border-hi` proprio, più un secondo per light/outdoor-mode su
+      admin.html (l'unica delle quattro che, caricando `dw-app-ui.css`,
+      fa davvero cambiare colore ai temi chiari: le formule condivise
+      derivano dall'accento pallido "sistema" di Deepwork ID e da sole
+      scendevano comunque sotto soglia). Restano non implementati, per
+      lo stesso motivo (identità visiva, non bug): il bottone primario
+      ancora ambra del core (**Decisione 42**) e l'alone del mouse
+      assente in `profilo.html` (presente in `admin.html` con lo stesso
+      componente `.item`) — quest'ultimo rimandato perché aggiungere
+      `dw-app-ui.js` a una pagina che oggi implementa a mano
+      `occupato()`/toast rischia di duplicare quella logica, non è un
+      cambio a costo zero.
 
-run-kpi.mjs 3183/3183. numeri-nei-documenti.mjs 43/43 (427 banchi,
-copertura 1053/1053, decisioni aperte 28).
+run-kpi.mjs 3184/3184. numeri-nei-documenti.mjs 43/43 (431 banchi,
+copertura 1053/1053, decisioni aperte 29). iniezioni-fresche.mjs
+728/728.

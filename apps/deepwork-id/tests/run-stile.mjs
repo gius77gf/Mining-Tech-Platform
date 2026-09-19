@@ -3607,12 +3607,14 @@ const SENZA_TEMI = {
     "vetrina di presentazione: e' scura di suo per scelta, e MOSTRA i due temi delle app "
     + "nelle schermate che scorre (scuro e chiaro si alternano). Darle un interruttore "
     + "del tema vorrebbe dire far cambiare veste alla vetrina, non alle app.",
-  "apps/deepwork-id/index.html": "schermata d'accesso del servizio comune, non una verticale.",
-  "apps/deepwork-id/admin.html": "amministrazione del servizio comune, si usa da scrivania.",
-  "apps/deepwork-id/profilo.html": "profilo del servizio comune, si usa da scrivania.",
-  /* ⚠️ questa riga l ha aggiunta la regola stessa: la mia prima stesura dell
-     elenco se n era dimenticata una, e il controllo l ha detto al primo giro. */
-  "apps/deepwork-id/non-autorizzato.html": "pagina di errore del servizio comune: una frase e un bottone, nessuna schermata.",
+  /* ⛔ 19/09, dal deep-pass UX: le quattro righe di Deepwork ID che stavano
+     qui sono state TOLTE, non svuotate — erano esattamente il difetto che
+     questa regola esiste per prendere. La preferenza di tema scelta in una
+     qualunque delle sei app "vale per tutte le pagine dell'ecosistema" (è
+     scritto nel commento di dw-tema.js stesso): un servizio comune che
+     nessuno raggiunge da un'app con un tema diverso da quello scuro non è
+     una scelta di prodotto, è un buco. Le quattro pagine caricano
+     dw-tema.js da oggi. */
   "apps/genesi/login.html": "schermata d accesso di Genesi: segue la sua app, che i temi non li ha (vedi la riga sopra).",
   "apps/genesi/nuvola-poc.html": "visore della nuvola di punti: una tela 3D a tutto schermo, dove il tema non dipinge niente.",
   "index.html":

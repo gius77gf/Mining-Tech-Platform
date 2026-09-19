@@ -10,6 +10,38 @@ può procedere con l'attuazione.
 
 ---
 
+## 🟡 19/09 — Deepwork ID: bottone primario ancora ambra del core, e la sua identità cromatica va decisa
+
+*Dalla seconda iterazione UX su Deepwork ID (quindicesimo giro), verificata
+indipendentemente: `--app-accent`/`--app-accent2` di Deepwork ID
+(`#c7b794`/`#e8dcc0`, la "sabbia") sono deliberatamente pallidi — sono
+l'unica coppia di variabili di colore che le quattro pagine ridefiniscono,
+a differenza delle sei app che ridefiniscono l'intera palette
+(`--bg`,`--card`,`--grad`,`--text`…). Effetto confermato:
+`.dw-btn` (il bottone "Accedi"/"Crea profilo"/"Invita"/eccetera, il più
+premuto di ogni pagina) usa ancora il gradiente ambra ORIGINALE del core
+(`linear-gradient(135deg, rgb(255,171,0), rgb(255,109,0))`, identico byte
+per byte), mentre lo stesso `admin.html` dichiara nel proprio commento
+"il colore resta quello di Deepwork ID: la sabbia, non l'ambra del core" —
+vero per bordi/testo/aloni, non per l'elemento che l'utente tocca di più.
+
+- [ ] **42. Decidere se Deepwork ID debba restare vicino al core (è la
+  Fase 0, "di sistema", quindi un'identità minima potrebbe essere una
+  scelta voluta) oppure ricevere una palette propria e completa come le
+  sei app verticali (secondo `docs/PALETTE_APP.md`). Non risulta deciso
+  in nessun checkpoint. Se la risposta è "palette propria": va ridefinito
+  almeno `--grad` (oggi letterale nel foglio condiviso, non derivato da
+  `--app-accent`) per le quattro pagine, con lo stesso metodo di
+  confronto e misura di contrasto già usato per le sei app — non è un
+  problema di leggibilità (il testo sul bottone regge 6,6–9,8:1 su
+  entrambe le fermate del gradiente attuale), è una questione di identità
+  visiva. **Nessuna riga cambiata**: la scelta è del fondatore.
+  ⚠️ Nota collaterale trovata nella stessa passata, già corretta senza
+  bisogno di questa decisione (`8378bcb2`… vedi sotto): la mancata
+  attivazione dei temi chiaro/sole su tutt'e quattro le pagine e il bordo
+  dei campi sotto soglia WCAG erano BUG (nessuna scelta di prodotto li
+  giustificava), non decisioni — corretti direttamente.
+
 ## 🟡 19/09 — Genesi↔Campo: il consuntivo di carico non distingue un foro sparato da uno caricato e MAI detonato (misfire)
 
 *Dalla ricerca continua su Genesi (quattordicesimo giro), verificata
@@ -921,7 +953,7 @@ cinque elencate qui sotto.
 
 ---
 
-# 📖 Da dove cominciare — le decisioni aperte sono **28**
+# 📖 Da dove cominciare — le decisioni aperte sono **29**
 
 *Erano 19 fino al 07/08. **Nove** sono state chiuse dal **ciclo**, non da te, con
 la regola che avevi concesso il 01/08 (senza risposta entro la settimana si
@@ -2648,7 +2680,7 @@ lettura dell'etichetta di gravità dal vocabolario invece del campo grezzo,
 e il bottone «Scadenze» al posto di «Adempimenti» nella barra in basso di
 Sentinella (bersagli di tocco a 320px saliti da 41,4 a 45,61–46,86 px),
 lanciando le suite)*, più **141** che girano con l'emulatore Firestore (**93** sulle regole
-di sicurezza, 19 sull'SDK, 24 sulle funzioni, 8 sul primo avvio) e **429
+di sicurezza, 19 sull'SDK, 24 sulle funzioni, 8 sul primo avvio) e **431
 esecuzioni** che aprono davvero le pagine in un browser *(ricontato il 19/09
 con `suite-collegate.mjs`, dopo il fix di Scudo sulla denuncia INAIL nel Quadro)*.
 

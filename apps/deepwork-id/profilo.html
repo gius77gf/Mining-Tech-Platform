@@ -7,8 +7,11 @@
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../shared/deepwork-style.css">
 <link rel="stylesheet" href="../../shared/dw-app-shell.css">
+<!-- ⛔ 19/09, dal deep-pass UX: mancava su tutt'e quattro le pagine di Deepwork
+     ID — vedi index.html per il perché. -->
+<script src="../../shared/dw-tema.js" defer></script>
 <style>
-  :root { --app-accent:#c7b794; --app-accent2:#e8dcc0; }
+  :root { --app-accent:#c7b794; --app-accent2:#e8dcc0; --border-hi:#847760; }
   .profile-head { display: flex; align-items: center; gap: 14px; padding: 20px 16px 6px; }
   .avatar-big {
     width: 54px; height: 54px; border-radius: 50%;
@@ -52,11 +55,13 @@
 </head>
 <body class="dw">
 
-<div class="top">
+<!-- ⛔ 19/09, dal deep-pass UX: era <div>, non <header> — vedi admin.html per
+     il perché (dw-tema.js cerca `header.top`). -->
+<header class="top">
   <a class="dw-home" href="../index.html">⌂ ecosistema</a>
   <h1>DEEPWORK <span style="color:var(--amber);">ID</span> <span class="accent">·</span> <span style="font-size:14px;color:var(--muted2);">PROFILO</span></h1>
   <div class="sub">Ecosistema Deepwork</div>
-</div>
+</header>
 
 <!-- profilo neutro: niente nome/foto Google (decisione fondatore) -->
 <div class="profile-head">

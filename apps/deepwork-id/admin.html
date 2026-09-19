@@ -7,9 +7,23 @@
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../shared/deepwork-style.css">
 <link rel="stylesheet" href="../../shared/dw-app-ui.css">
+<!-- ⛔ 19/09, dal deep-pass UX: mancava su tutt'e quattro le pagine di Deepwork
+     ID — vedi index.html per il perché. -->
+<script src="../../shared/dw-tema.js" defer></script>
 <script src="../../shared/dw-app-ui.js" defer></script>
 <style>
-  :root { --app-accent:#c7b794; --app-accent2:#e8dcc0; }
+  :root { --app-accent:#c7b794; --app-accent2:#e8dcc0; --border-hi:#847760; }
+  /* ⛔ 19/09: `--app-accent` di Deepwork ID è deliberatamente pallido (l'accento
+     "sistema", non di categoria) — e con questa pagina che ora carica DAVVERO
+     i temi (vedi sopra), le formule condivise di `shared/dw-app-ui.css` per
+     light-mode/outdoor-mode (che ricalcolano `--border-hi` da `--app-accent`/
+     `--app-accent-deep`) ereditano quella pallidezza e scendono sotto 3:1
+     contro il bianco pieno del sole (misurato 2,86:1). Le sei app non lo
+     vedono perché il loro `--app-accent` è sempre un colore di categoria,
+     saturo. Qui si fissa lo stesso bordo scuro di sempre anche sotto quei due
+     temi, invece di lasciarlo ricalcolare da un accento troppo chiaro per
+     quella formula. */
+  body.dw.light-mode, body.dw.outdoor-mode { --border-hi:#8a6f3f; }
   .role-sel { width: auto; min-width: 96px; padding: 6px 8px; font-size: 12px; }
   /* «Rimuovi» e «Revoca» erano alti 39px (min-height 34 + bordi), misurati il
      04/09 a 320/390/900: sotto i 44 di `--tap` che vale per ogni altro
@@ -70,13 +84,17 @@
      solo, `flex:1; min-width:0`, col nome sopra e il ruolo sotto — e `.role-sm`
      porta già `text-overflow: ellipsis`: se il testo non ci sta si accorcia,
      non spinge fuori la pagina. -->
-<div class="top">
+<!-- ⛔ 19/09, dal deep-pass UX: era <div>, non <header>. dw-tema.js (che
+     monta il bottone tema e legge la preferenza salvata) cerca
+     `header.top`, come fanno le sei app e il core: senza questo tag il
+     tema restava sempre al buio, indipendentemente dallo script caricato. -->
+<header class="top">
   <a class="dw-home" href="./profilo.html">← profilo</a>
   <div class="top-brand">
     <div class="logo-sm">Deepwork <span style="color:var(--amber);">ID</span></div>
     <div class="role-sm">Amministrazione &middot; organizzazione attiva</div>
   </div>
-</div>
+</header>
 
 <div class="page active">
   <div class="sec">Membri</div>
