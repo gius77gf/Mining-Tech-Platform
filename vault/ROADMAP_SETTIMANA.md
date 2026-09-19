@@ -12128,3 +12128,12 @@ campo-foglio-turno.mjs 54/54 normale, 19 KO sotto --controprova.
 run-kpi.mjs 3184/3184. numeri-nei-documenti.mjs 43/43 (431 banchi,
 copertura 1053/1053, decisioni aperte 29). iniezioni-fresche.mjs
 728/728.
+
+Il vecchio giro completo del browser (base `aade8904`) è stato letto
+per intero prima di fidarsi: 17 commit di distanza, 8 sulle superfici
+misurate. Un solo segnale reale, 4 KO (2 distinti): una prova SCADUTA
+in `scudo-versioni-documenti.mjs` (pretendeva `!tocca` su un documento
+sostituito, mentre la decisione di tenere sempre la classe `tocca` è
+nella storia da `5ad3c864`, 17/09 — corretta, `71acaee6`). Il vecchio
+giro spento con `kill -TERM` sul PID e porta verificata libera; nuovo
+giro rilanciato sul commit corrente, log `giro-completo-19-0552.log`.
