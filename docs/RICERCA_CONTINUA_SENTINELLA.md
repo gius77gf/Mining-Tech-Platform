@@ -1818,3 +1818,80 @@ dedotto dal nome. Costo stimato medio, non verificato da un'implementazione;
 nessun numero di legge proposto per l'inserimento diretto — solo un campo
 libero, sul principio già adottato in questo file per ogni cifra di seconda
 mano.
+
+---
+
+## Ricerca del 2026-09-19 — taratura degli strumenti: gestione della scadenza retroattiva e incertezza di misura
+
+**Nessuna pagina primaria è stata letta. Le soglie, i criteri e i processi dichiarati qui vengono da risultati di ricerca (`WebSearch`), UNI CEI EN ISO/IEC 17025 citata di seconda mano, e descrizioni commerciali di software. Nel prodotto nulla di quanto segue entra senza la lettura del testo primario (ISO/IEC 17025:2017, norme tecniche UNI 9916).**
+
+### Il mondo: come gestiscono i software di monitoraggio ambientale la taratura
+
+#### 1. Validità retroattiva delle misure quando la taratura scade
+
+**ISO/IEC 17025:2017** [seconda mano, da Quality Magazine, Lab Manager]: richiede ai laboratori accreditati di documentare l'incertezza di misura per ogni calibrazione e di mantenerla entro tolleranze dichiarate. Un certificato di taratura ha una **data di validità** (data inizio: quando lo strumento è stato tarato; data di scadenza: quando la taratura perde validità). Una volta scaduta la taratura, i dati precedenti (misurati mentre lo strumento era tarato) **restano validi nella loro forma storica**: sono stati presi con uno strumento certificato al momento della misura. Ciò che cambia è la **fonte di errore del nuovo dato**: se si continua a usare uno strumento con taratura scaduta per misure nuove, quelle nuove non possono essere dichiarate come "riferibili" finché non si ri-taratura.
+
+**Implicazione pratica** [da pratica di laboratori accreditati citata di seconda mano]: Il report di conformità dichiara separatamente (1) la conformità ai limiti normativi (il dato in sé), e (2) la riferibilità metrologia del dato (chi l'ha misurato e con quale strumento certificato). Le misure vecchie rimangono conformi/non-conformi nel primo senso; nel secondo senso escono una dichiarazione di copertura metrologia: "misurato con strumento tarato" (sì/no), "misura coperta da certificato valido alla data" (sì/no), "prima della prima taratura registrata" (sì/no).
+
+#### 2. Incertezza di misura e confronto con soglia
+
+**ISO/IEC 17025:2017 / GUM (Guide to the Expression of Uncertainty in Measurement)** [seconda mano, da ISOBudgets, Lab Manager]: ogni certificato di taratura riporta una **expanded uncertainty** (U), calcolata applicando un coverage factor (solitamente k=2 per 95% di confidenza). Esempio: un sismografo taraturato ha una expanded uncertainty di ±0,5 mm/s sul valore misurato.
+
+**Test Uncertainty Ratio (TUR)** [seconda mano, da Fluke]: il confronto fra il valore misurato e la soglia normativa deve tenere conto dell'incertezza — il rapporto TUR = (tolleranza della soglia) / (incertezza dello strumento). Se TUR < 4, il margine è stretto e il controllo richiede una revisione; se TUR < 1, il controllo non è affidabile. Esempio: se la soglia è 5 mm/s (tolleranza ±0) e l'incertezza è ±0,5 mm/s, il valore misurato "4,8 mm/s" **potrebbe essere conforme (4,8+0,5=5,3 > 5) o non conforme (4,8-0,5=4,3 < 5)** a seconda di dove cade il valore vero entro la banda di incertezza — il giudizio è "incerto", non "sicuro".
+
+**Pratica in software commerciali** [da descrizioni di Instantel/Blastware, Syscom SCS, Sigicom INFRA]: i sistemi dichiarano la measured value ± uncertainty nel file esportato (es. `4.8 ± 0.5 mm/s`). Il software può colorare il risultato in tre modi: (a) **verde conforme** se anche il limite inferiore (valore - incertezza) è sotto soglia; (b) **rosso non conforme** se anche il limite superiore (valore + incertezza) è sopra soglia; (c) **giallo incerto** se l'intervallo di incertezza attraversa la soglia.
+
+### Che cosa esiste già in Sentinella
+
+#### Validità retroattiva della taratura
+
+✅ **Esiste e è solido**: la funzione `coperturaTaratura(tarature, dataISO)` [riga 1998 di sentinella-data.js] controlla se la data di una singola lettura cade nell'intervallo di validità del certificato (fra `t.data` e `t.scadenza`). I certificati hanno la struttura:
+```
+{ data: "2026-02-10", scadenza: "2027-02-09", ente: "Centro LAT n. 118", certificato: "LAT 118-2026/441", nota: "..." }
+```
+
+La funzione ritorna uno stato fra: **"coperta"** (lettura entro il certificato valido), **"scoperta"** (lettura dopo scadenza / fra due certificati), **"prima-dello-storico"** (lettura prima del primo certificato registrato), **"non-dichiarata"** (nessun certificato registrato).
+
+Il report contiene una sezione «Riferibilità delle misure» che dichiara il conto: coperte, scoperte, non dichiarate — per il report all'ente. `contaCoperture(tarature, letture)` [riga 2059] fa questo conto.
+
+✅ **Gestione della retroattività**: una lettera **non viene invalidata** se il certificato scade dopo che è stata registrata. Il report dichiara il suo stato di copertura al momento della misura (coperta/scoperta). Il dato rimane nel database e nel report — non viene cancellato o marcato come "non confidabile" retroattivamente — ma il suo status metrologia passa da "coperta" a "scoperta" se la taratura scade nel frattempo.
+
+#### Incertezza di misura
+
+❌ **Non esiste**: il certificato di taratura **non contiene un campo per l'incertezza di misura** (expanded uncertainty, coverage factor k). Il CSV di import/export ha colonne: strumento, data, scadenza, ente, certificato, nota — punto. [Grep: `grep -oE "^\s*const \[.*\] = parseCsvLine\(.*taratura" apps/sentinella/sentinella-data.js | head -1` → `const [strumento, dataRaw, scadRaw, ente, certificato, nota] = parseCsvLine(x.testo);` riga 2171 — sei campi, niente incertezza.]
+
+```bash
+grep -oE "incertezza|uncertainty|expanded|coverage\s*factor" apps/sentinella/sentinella-data.js
+```
+→ **0 occorrenze**.
+
+❌ **Nessun confronto fra incertezza e soglia**: non esiste una funzione che dichiari "la soglia è dentro / fuori / incerta rispetto all'incertezza dello strumento". Il report dichiara "conforme / non conforme" senza annotare se il valore è sufficientemente distante dalla soglia per renderlo sicuro o "borderline".
+
+### Il delta concreto (verificato per meccanismo)
+
+| Schermata | Che cosa non va | Come si vede | Quanto costa | Come si misura |
+|---|---|---|---|---|
+| **Import / Anagrafica tarature** | Il certificato di taratura non registra l'incertezza dichiarata nel documento cartaceo o PDF del laboratorio accreditato. Il tecnico ambientale ha davanti il certificato con scritto "Incertezza: ± 0,3 mm/s" ma non ha un posto dove registrarlo nell'app — né come numero, né come nota a testo libero. | CSV import (T1): colonne attuali sono `strumento;data;scadenza;ente;certificato;nota` — niente di incertezza. Anagrafica manuale della taratura: campi `data`, `scadenza`, `ente`, `certificato`, `nota` — niente incertezza. | Piccolo (aggiungere un campo facoltativo al CSV e alla form, riesportare nel CSV di conformità) | (1) Contare i campi del CSV e della form della taratura in sentinella-data.js e index.html. `grep "data.*scadenza.*ente" apps/sentinella/sentinella-data.js` → trovare `parseTaratureCsv` e contare gli elementi di `parseCsvLine(x.testo)`: sei oggi, sette se si aggiunge incertezza. (2) Aggiungere un campo testuale `incertezza` (es. "±0,3 mm/s" come testo, NON come numero — il laboratorio lo dichiara in unità miste) e riesportare con `csvTarature`. |
+| **Report di conformità / Esito borderline** | Una lettura con valore `5,2 mm/s ± 0,3` e soglia `5 mm/s` è tecnicamen‌te "non conforme" (5,2 > 5), ma entro l'incertezza potrebbe essere conforme (5,2 - 0,3 = 4,9 < 5). Il report dichiara "non conforme" senza avvertire che il valore è "borderline" — è una misura che merita revisione del limite o del metodo, non una condanna sicura. | Report per l'ente: una riga dice `Valore: 5,2 mm/s · Soglia: 5 mm/s · Stato: Non conforme`. Non è detto "Incertezza: ± 0,3 mm/s", e se il tecnico che legge il report non ha il certificato in mano non sa che il margine è di 0,2 mm/s (stretto). | Medio (aggiungere una funzione `statoConIncertezza(valore, incertezza, soglia)` che ritorni conforme/incerto/non-conforme; aggiornare il CSV di conformità e il report) | (1) Nel modulo, trovare la funzione che giudica conforme/non-conforme (es. `reportConformita`, riga ~). `grep -n "conforme\|non-conforme" apps/sentinella/sentinella-data.js | head -10` → trovare i punti di giudizio. (2) Aggiungere un caso intermedio "incerto" quando `valore - incertezza < soglia < valore + incertezza` e dichiararlo nel testo del report (non solo nel colore, anche verbale). |
+
+### Note sulla fonte e sulla non-implementazione
+
+**Normative non lette**: ISO/IEC 17025:2017, UNI 9916:2004 (taratura sismografi e scelta della frequenza). La ricerca ha trovato (di seconda mano) che:
+- La norma ISO richiede la dichiarazione di incertezza; 
+- La pratica commerciale (software Instantel, Syscom) include expanded uncertainty negli export;
+- La legge italiana sulla riferibilità metrologia (catena metrologica verso INRIM/NIST) esiste e la usa ARPA nei laboratori LAT, ma il testo normativo non è stato letto qui.
+
+**Decisione**: i campi `incertezza` e `statoConIncertezza` non entrano nel prodotto finché:
+1. Non si legge il testo primario di ISO/IEC 17025 e UNI 9916 per capire se l'incertezza della taratura si applica alle soglie normative (oppure è un dato informativo, o richiede conversione);
+2. Non si decide se il tecnico ambientale ha il certificato scansionato in app per leggerlo, o se scrive manualmente il numero — il CSV potrebbe leggerlo male e la forma libera potrebbe leggere "±0,3 mm/s" come un numero solo.
+3. Non si verifica su un caso reale se un laboratorio accreditato ARPA-convenzionato fornisce il dato di incertezza in forma coerente (tutti dicono "incertezza", "expanded uncertainty", "UMS"? C'è un formato?).
+
+**Fonti (tutte [seconda mano])**
+
+- https://www.labmanager.com/uncertainty-in-measurement-training-program-16756 — ISO/IEC 17025 e incertezza di misura
+- https://www.fluke.com/en-us/learn/blog/calibration-software/uncertainty-analysis — Test Uncertainty Ratio (TUR)
+- https://www.qualitymag.com/articles/98235-how-to-read-and-interpret-iso-iec-17025-calibration-certificates — lettura di certificati accreditati
+- https://www.isobudgets.com/how-to-report-uncertainty-in-measurement/ — extended uncertainty k=2
+- https://www.marposs.com/eng/news/calibration-center-accredited-according-to-uni-cei-en-iso-iec-17025-2018 — accreditamento UNI CEI EN ISO/IEC 17025:2018 (variante italiana)
+
+**Riassunto** — 1 mancanza **confermata**: Sentinella gestisce bene la scadenza della taratura e la validità retroattiva delle misure (ogni lettura sa se era coperta da un certificato valido al suo momento), **ma non registra l'incertezza dichiarata dal certificato, e non la usa per marccare risultati "borderline" fra conforme e non conforme**. Il delta è verificato per meccanismo (`grep` su `parseTaratureCsv`, sul CSV export, su `reportConformita` — nessuna funzione con "incertezza" nel nome) e non dedotto dal nome. I due candidati (aggiungere campo incertezza, aggiungere stato "incerto") hanno costi piccolo e medio; l'implementazione richiede la lettura del testo di ISO/IEC 17025 e un caso reale da testare — non numeri di seconda mano.
