@@ -625,7 +625,7 @@ export const CSV_TABELLE = [
     col: "titolo;ente;scadenza;periodoMesi;giorniConsegna" },
   // ── Terra ───────────────────────────────────────────────────────────
   { id: "terra.rilievi", app: "Terra", etichetta: "l'export dei rilievi di Terra",
-    fonte: "terra.csvRilievi", col: "data;volumeM3;metodo;gsd;fronte;provenienza;tolleranzaPct;stato" },
+    fonte: "terra.csvRilievi", col: "data;volumeM3;metodo;gsd;fronte;provenienza;tolleranzaPct;stato;rilevatore" },
   { id: "terra.inventari", app: "Terra", etichetta: "l'export degli inventari dei cumuli di Terra",
     fonte: "terra.csvInventari", col: "data;metodo;materiale;volumeM3;nota;inventarioId" },
   { id: "terra.fronti", app: "Terra", etichetta: "l'elenco dei fronti di Terra",

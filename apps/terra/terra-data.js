@@ -2405,13 +2405,16 @@ export function scartiFrontiCsv(text) {
 // chi importa (così il rilievo conta nel volume di quel fronte). La colonna
 // `provenienza` (facoltativa, 6ª) vale «cumulo» solo se scritta così: ogni
 // altro valore, e la colonna assente, valgono SCAVO — i file già usati per
-// gli import continuano a comportarsi esattamente come prima. Pura e
-// testabile.
+// gli import continuano a comportarsi esattamente come prima. `rilevatore`
+// (facoltativa, 9ª — la 8ª, `stato`, è solo dichiarativa e non si rilegge)
+// è chi ha eseguito il rilievo, per il verbale. Pura e testabile.
 export function parseRilieviCsv(text) {
   return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
     .filter(r => !isIntestazione(r, "data"))
     .map(r => {
-      const [data, volumeM3, metodo, gsd, fronte, provenienza, tolleranzaPct] = parseCsvLine(r);
+      // l'ottava colonna (`stato`) è solo dichiarativa in scrittura, non si
+      // rilegge: il binario misurato/mai-misurato lo dice già `volumeM3`
+      const [data, volumeM3, metodo, gsd, fronte, provenienza, tolleranzaPct, , rilevatore] = parseCsvLine(r);
       const out = {
         data: (data || "").trim(),
         volumeM3: numIt(volumeM3),
@@ -2425,6 +2428,10 @@ export function parseRilieviCsv(text) {
       // una cella vuota o storta NON diventa una chiave, e vale la tipica della classe
       const t = numIt(tolleranzaPct);
       if (Number.isFinite(t) && t > 0) out.tolleranzaPct = t;
+      // chi ha eseguito il rilievo (19/09): solo se presente, righe più corte
+      // (senza la nona colonna) restano invariate, come già `fronte`
+      const rl = (rilevatore || "").trim();
+      if (rl) out.rilevatore = rl;
       return out;
     })
     // un rilievo con una data impossibile finirebbe nell'anno sbagliato del
@@ -2506,7 +2513,13 @@ export function csvRilievi(rilievi, fronti) {
      posizionale). Qui il modello non distingue ancora PERCHÉ il volume manchi
      (illeggibile? non applicabile?), quindi il binario è lo stesso già usato
      da Flotta: misurato o mai-misurato, non tutto il vocabolario. */
-  const righe = ["data;volumeM3;metodo;gsd;fronte;provenienza;tolleranzaPct;stato"];
+  // la nona colonna (19/09, dal deep-pass QA su Terra): chi ha eseguito il
+  // rilievo, già scritto da sempre sull'inserimento manuale e mostrato nel
+  // verbale ("Eseguito da") — mancava dal file, quindi un rilievo esportato
+  // e re-importato (es. cambio dispositivo) tornava "non indicato" e il
+  // verbale per l'ente perdeva il nome vero, stessa famiglia già corretta
+  // qui l'11/09 per `tolleranzaPct`.
+  const righe = ["data;volumeM3;metodo;gsd;fronte;provenienza;tolleranzaPct;stato;rilevatore"];
   const nomeFronte = new Map((fronti || []).filter(f => f && f.id != null)
     .map(f => [String(f.id), String(f.nome || "").trim()]));
   for (const r of (rilievi || [])) {
@@ -2534,6 +2547,7 @@ export function csvRilievi(rilievi, fronti) {
       csvCell(provenienzaDi(r)),
       (() => { const t = numeroDichiarato(r.tolleranzaPct); return t != null && t > 0 ? String(t) : ""; })(),
       vol == null ? STATO_CELLA_MAI_MISURATO : STATO_CELLA_MISURATO,
+      csvCell(r.rilevatore || ""),
     ].join(";"));
   }
   return righe.join("\n") + "\n";

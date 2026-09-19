@@ -29398,8 +29398,8 @@ test("csvRilievi → parseRilieviCsv: la tolleranza del rilevatore fa il giro, e
   ];
   const testo = terra.csvRilievi(dentro);
   const righe = testo.split("\n").filter(Boolean);
-  ok(/;3\.5;misurato$/.test(righe[1]), "la riga con la tolleranza la scrive in coda, col punto (poi lo stato, ottava colonna): " + righe[1]);
-  ok(/;;misurato$/.test(righe[2]) && /;;misurato$/.test(righe[3]), "senza (o con una parola) la cella tolleranza esce vuota, non «0» né «abc» — e lo stato segue subito dopo");
+  ok(/;3\.5;misurato;$/.test(righe[1]), "la riga con la tolleranza la scrive in coda, col punto (poi lo stato, ottava colonna, e il rilevatore, nona, vuoto qui): " + righe[1]);
+  ok(/;;misurato;$/.test(righe[2]) && /;;misurato;$/.test(righe[3]), "senza (o con una parola) la cella tolleranza esce vuota, non «0» né «abc» — e lo stato segue subito dopo");
   const fuori = terra.parseRilieviCsv(testo);
   eq(fuori.length, 3);
   eq(fuori[0].tolleranzaPct, 3.5, "rientra come numero");
@@ -29430,6 +29430,41 @@ test("⛔ Terra · il ponte tolleranzaPct è wired ANCHE sull'import CSV, non so
   // stesso valore che la registrazione manuale scrive già.
   ok(/db\.aggiungi\("rilievi", \{ titolo: \(prov === "cumulo"[^}]*tolleranzaPct: r\.tolleranzaPct \?\? null,/.test(pagina),
     "e ANCHE l'import da CSV la passa, normalizzata a null — il difetto trovato il 16/09, corretto nello stesso commit");
+});
+test("⛔ Terra · csvRilievi/parseRilieviCsv non portavano affatto `rilevatore` — un rilievo esportato e re-importato perdeva chi l'ha eseguito (19/09, dal deep-pass QA)", () => {
+  /* `rilevatore` esiste da sempre sulla registrazione manuale ed è mostrato
+     nel verbale ("Eseguito da"), ma mancava dal formato del file: non una
+     riga che non lo passava (come tolleranzaPct l'11/09), ma NESSUNA colonna
+     per lui. Un rilievo scaricato come copia di sicurezza (decisione 12a) e
+     ri-caricato (cambio dispositivo, o un test) tornava con "Eseguito da:
+     non indicato" nel verbale che va all'ente. */
+  const dentro = [
+    { data: "2026-03-01", volumeM3: 1234.5, metodo: "RTK+GCP", gsd: "2", provenienza: "scavo", rilevatore: "Ing. Mario Rossi" },
+    { data: "2026-04-02", volumeM3: 10, provenienza: "scavo" },
+  ];
+  const testo = terra.csvRilievi(dentro);
+  const righe = testo.split("\n").filter(Boolean);
+  ok(righe[1].endsWith(";misurato;Ing. Mario Rossi"), "la nona colonna porta il nome, in coda: " + righe[1]);
+  ok(righe[2].endsWith(";misurato;"), "senza rilevatore la cella esce vuota, non «undefined» né «null»: " + righe[2]);
+  const fuori = terra.parseRilieviCsv(testo);
+  eq(fuori[0].rilevatore, "Ing. Mario Rossi", "rientra come testo");
+  eq(verbaleRilievoRigheDi(fuori[0]), ["Eseguito da", "Ing. Mario Rossi", false],
+    "e il verbale lo mostra, non «non indicato»");
+  eq("rilevatore" in fuori[1], false, "senza rilevatore NON nasce la chiave: il verbale dice «non indicato», non una stringa vuota");
+  // compatibilità all'indietro: un file a otto colonne (senza la nona) resta leggibile
+  const vecchio = "data;volumeM3;metodo;gsd;fronte;provenienza;tolleranzaPct;stato\n2026-03-01;100;RTK;2;;scavo;3,5;misurato\n";
+  eq("rilevatore" in terra.parseRilieviCsv(vecchio)[0], false, "file a otto colonne: nessun rilevatore inventato");
+  function verbaleRilievoRigheDi(r) {
+    const v = terra.verbaleRilievo(r, {});
+    return v.righe.find((x) => x[0] === "Eseguito da");
+  }
+});
+test("⛔ Terra · rilevatore è wired ANCHE sull'import CSV, non solo sulla registrazione manuale (19/09)", () => {
+  const pagina = readFileSync(join(HERE, "../../terra/index.html"), "utf8");
+  ok(/db\.aggiungi\("rilievi", \{ titolo: \(prov === "cumulo"[^}]*, rilevatore,/.test(pagina),
+    "la registrazione manuale passa rilevatore (era già vero: qui si fissa che resti tale)");
+  ok(/db\.aggiungi\("rilievi", \{ titolo: \(prov === "cumulo"[^}]*rilevatore: r\.rilevatore \?\? null/.test(pagina),
+    "e ANCHE l'import da CSV lo passa, normalizzato a null — stessa famiglia già chiusa qui per tolleranzaPct il 16/09");
 });
 
 test("Conti · avvisoFidoPesata: la pesata dice se il cliente è oltre fido o ha dello scaduto, e non ferma niente (11/09)", () => {
@@ -29780,7 +29815,7 @@ test("csvRilievi: i numeri escono col PUNTO, non con la virgola", () => {
 });
 test("csvRilievi: l'intestazione è quella che l'importatore salta", () => {
   const t = terra.csvRilievi([]);
-  eq(t.split("\n")[0], "data;volumeM3;metodo;gsd;fronte;provenienza;tolleranzaPct;stato");
+  eq(t.split("\n")[0], "data;volumeM3;metodo;gsd;fronte;provenienza;tolleranzaPct;stato;rilevatore");
   eq(terra.parseRilieviCsv(t).length, 0, "un file di sola intestazione non porta dentro righe finte");
 });
 test("csvRilievi: una riga senza volume non torna dentro invece di tornarci come zero", () => {
@@ -29806,12 +29841,12 @@ test("shared · P2 (secondo scrittore, 16/09): csvRilievi porta l'ottava colonna
   // ⛔ prima fetta come csvRicambi di Flotta: solo lo scrittore, parseRilieviCsv
   // non rilegge ancora questa colonna (l'intestazione a 7 campi resta leggibile)
   const misurato = terra.csvRilievi([{ data: "2026-03-01", volumeM3: 12.5, provenienza: "scavo" }]).split("\n")[1];
-  ok(misurato.endsWith(";" + ponti.STATO_CELLA_MISURATO), "misurato: usa la costante condivisa, non una parola scritta a mano — " + misurato);
+  ok(misurato.endsWith(";" + ponti.STATO_CELLA_MISURATO + ";"), "misurato: usa la costante condivisa, non una parola scritta a mano (poi la nona colonna, il rilevatore, vuota qui) — " + misurato);
   const zeroMisurato = terra.csvRilievi([{ data: "2026-03-01", volumeM3: 0, provenienza: "scavo" }]).split("\n")[1];
-  ok(zeroMisurato.endsWith(";" + ponti.STATO_CELLA_MISURATO), "⛔ lo zero CONTATO davvero è misurato, non mai-misurato — " + zeroMisurato);
+  ok(zeroMisurato.endsWith(";" + ponti.STATO_CELLA_MISURATO + ";"), "⛔ lo zero CONTATO davvero è misurato, non mai-misurato — " + zeroMisurato);
   const maiMisurato = terra.csvRilievi([{ data: "2026-03-01", volumeM3: null, provenienza: "scavo" }]).split("\n")[1];
-  ok(maiMisurato.endsWith(";" + ponti.STATO_CELLA_MAI_MISURATO), "senza volume: mai-misurato — " + maiMisurato);
-  eq(terra.csvRilievi([]).split("\n")[0], "data;volumeM3;metodo;gsd;fronte;provenienza;tolleranzaPct;stato");
+  ok(maiMisurato.endsWith(";" + ponti.STATO_CELLA_MAI_MISURATO + ";"), "senza volume: mai-misurato — " + maiMisurato);
+  eq(terra.csvRilievi([]).split("\n")[0], "data;volumeM3;metodo;gsd;fronte;provenienza;tolleranzaPct;stato;rilevatore");
   // un file vecchio a sette colonne (senza `stato`) resta leggibile: nessuna riga si perde
   const vecchio = "data;volumeM3;metodo;gsd;fronte;provenienza;tolleranzaPct\n2026-03-01;100;RTK;2;;scavo;3,5\n";
   eq(terra.parseRilieviCsv(vecchio).length, 1, "compatibilità all'indietro: un file senza l'ottava colonna rientra lo stesso");
