@@ -3493,8 +3493,20 @@ textarea.dw-input{
   $("vol-previste").addEventListener("click", async (e) => {
     const b = e.target.closest && e.target.closest("[data-accogli-prev]"); if (!b) return;
     e.preventDefault();
+    /* ⛔ 19/09, dal deep-pass QA su Sentinella: unico bottone di scrittura
+       dell'app rimasto senza guardia — è per-riga, senza un id fisso, quindi
+       non passa da `occupato()` (che vuole un id). La deduplicazione di
+       `previsteNuove` (firma contro VOL) protegge solo DOPO che `refresh()`
+       è tornato: un doppio tocco quasi simultaneo, frequente su touchscreen
+       in cava, legge PREV/VOL due volte prima che il primo aggiornamento
+       arrivi e scrive due righe identiche — la stessa famiglia già chiusa
+       oggi su Conti/Flotta, qui sul bottone ESATTO che l'agente ha
+       riprodotto. Si disabilita l'elemento cliccato, non un id statico. */
+    if (b.disabled) return;
+    b.disabled = true;
     const k = b.getAttribute("data-accogli-prev");
-    const v = previsteNuove(PREV, VOL).nuove.find(x => (x.codiceVolata || x.ponteId) === k); if (!v) return;
+    const v = previsteNuove(PREV, VOL).nuove.find(x => (x.codiceVolata || x.ponteId) === k);
+    if (!v) { b.disabled = false; return; }
     const { ponteId, ...rec } = v;
     await db.aggiungi("volate", rec);
     esito("vol-esito-msg", "Volata prevista del " + fmtD(rec.data) + (rec.fronte ? " (" + rec.fronte + ")" : "") + " accolta nel registro da Genesi: è un progetto, non una volata sparata. Dopo lo sparo confermala.", "success", "Volata prevista accolta.");

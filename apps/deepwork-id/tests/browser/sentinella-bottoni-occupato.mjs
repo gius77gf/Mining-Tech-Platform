@@ -1,5 +1,5 @@
-/* SENTINELLA: RECLAMI, ADEMPIMENTI, PUNTI DI MISURA E RICETTORI SENZA
-   GUARDIA CONTRO IL DOPPIO TOCCO
+/* SENTINELLA: RECLAMI, ADEMPIMENTI, PUNTI DI MISURA, RICETTORI E L'ACCOGLI
+   DI UNA PREVISTA DI GENESI, SENZA GUARDIA CONTRO IL DOPPIO TOCCO
    ────────────────────────────────────────────────────────────────────────
    Uso:
      node sentinella-bottoni-occupato.mjs                 (porta effimera)
@@ -15,7 +15,15 @@
    reclami (`btn-rec`), scadenze/adempimenti (`btn-ade`), punti di misura sul
    percorso "aggiungi" (`btn-sen`) e ricettori sul percorso "aggiungi"
    (`btn-ric`). Gli ultimi due hanno anche la trappola dell'etichetta
-   (Aggiungi/Salva modifica), già vista su Terra/Flotta/Scudo. */
+   (Aggiungi/Salva modifica), già vista su Terra/Flotta/Scudo.
+   ⛔ 19/09, dal deep-pass QA su Sentinella (terzo giro): un QUINTO bottone,
+   sfuggito ai primi due giri perché è per-riga e senza un id fisso — "Accogli
+   nel registro" su una volata prevista da Genesi (ponte 3e). La sua
+   deduplicazione (`previsteNuove` confronta la firma contro `VOL`) protegge
+   solo DOPO che `refresh()` è tornato dal server: un doppio tocco quasi
+   simultaneo legge la stessa prevista due volte prima che il primo
+   aggiornamento arrivi, e scrive due volate identiche nel registro — kg e
+   numero di volate del mese, e il report di conformità, ne escono gonfiati. */
 import { createServer } from "node:http";
 import { readFileSync, existsSync, statSync } from "node:fs";
 import { join, extname, dirname, resolve } from "node:path";
@@ -103,6 +111,29 @@ const DIFETTI = [
    + "    else await db.aggiungi(\"ricettori\", dati);\n"
    + "    const modificato = !!editRic;\n"
    + "    svuotaFormRic();"],
+  ["apps/sentinella/index.html",
+   "    e.preventDefault();\n"
+   + "    /* ⛔ 19/09, dal deep-pass QA su Sentinella: unico bottone di scrittura\n"
+   + "       dell'app rimasto senza guardia — è per-riga, senza un id fisso, quindi\n"
+   + "       non passa da `occupato()` (che vuole un id). La deduplicazione di\n"
+   + "       `previsteNuove` (firma contro VOL) protegge solo DOPO che `refresh()`\n"
+   + "       è tornato: un doppio tocco quasi simultaneo, frequente su touchscreen\n"
+   + "       in cava, legge PREV/VOL due volte prima che il primo aggiornamento\n"
+   + "       arrivi e scrive due righe identiche — la stessa famiglia già chiusa\n"
+   + "       oggi su Conti/Flotta, qui sul bottone ESATTO che l'agente ha\n"
+   + "       riprodotto. Si disabilita l'elemento cliccato, non un id statico. */\n"
+   + "    if (b.disabled) return;\n"
+   + "    b.disabled = true;\n"
+   + "    const k = b.getAttribute(\"data-accogli-prev\");\n"
+   + "    const v = previsteNuove(PREV, VOL).nuove.find(x => (x.codiceVolata || x.ponteId) === k);\n"
+   + "    if (!v) { b.disabled = false; return; }\n"
+   + "    const { ponteId, ...rec } = v;\n"
+   + "    await db.aggiungi(\"volate\", rec);",
+   "    e.preventDefault();\n"
+   + "    const k = b.getAttribute(\"data-accogli-prev\");\n"
+   + "    const v = previsteNuove(PREV, VOL).nuove.find(x => (x.codiceVolata || x.ponteId) === k); if (!v) return;\n"
+   + "    const { ponteId, ...rec } = v;\n"
+   + "    await db.aggiungi(\"volate\", rec);"],
 ];
 const difettiRimessi = new Set();
 
@@ -135,6 +166,13 @@ const b = await chromium.launch({ executablePath: CHROMIUM });
 const pg = await b.newPage({ viewport: { width: 390, height: 844 }, locale: "it-IT" });
 const errori = [];
 pg.on("pageerror", (e) => errori.push(e.message));
+// una prevista di Genesi, per il ponte 3e (chiave del browser: `genesiPreviste`),
+// per il test 5 qui sotto — nessuno dei quattro test sopra la tocca
+await pg.addInitScript(() => {
+  localStorage.setItem("genesiPreviste", JSON.stringify([
+    { id: "gp1", data: "2026-09-15", fronte: "Fronte Prova", codiceVolata: "TEST-DOPPIO-1", nFori: 10, kgTotali: 500 },
+  ]));
+});
 await pg.goto(`http://127.0.0.1:${porta}/apps/sentinella/index.html`);
 let pronto = false;
 for (let i = 0; i < 80 && !pronto; i++) { await pg.waitForTimeout(250); pronto = await pg.evaluate(() => document.body.textContent.length > 500); }
@@ -188,6 +226,38 @@ dice(await dueVolte("btn-ric"), "trovato «Aggiungi» ricettore e cliccato due v
 await pg.waitForTimeout(500);
 const nRicDopo = await pg.evaluate(() => document.querySelectorAll("#ric-list .item").length || 0);
 dice(nRicDopo === nRicPrima + 1, `⛔ Ricettori: due tocchi registrano UN ricettore, non due (${nRicPrima} -> ${nRicDopo})`, { nRicPrima, nRicDopo });
+
+/* ── 5. Accogli una prevista di Genesi (ponte 3e) — bottone per-riga, senza id fisso ──
+   ⚠️ MISURATO PRIMA DI SCRIVERE QUESTA PROVA (regola di CLAUDE.md): il doppio
+   `.click()` sincrono che smaschera il doppione sugli altri quattro bottoni
+   QUI non lo smaschera — non perché il difetto non ci sia, ma perché in
+   demo `db.volate()` restituisce la STESSA istanza di `mem.volate` (nessuna
+   copia): il `.push()` del primo click muta l'array che `VOL` referenzia
+   già, quindi il secondo click, letto PRIMA di qualunque `refresh()`, trova
+   la sua prevista già "gia" e si ferma da solo — un'autodifesa accidentale
+   della demo che in produzione (Firestore, una lettura per ogni `refresh()`)
+   NON esiste. Contare le righe di `#vol-list` dopo un doppio click qui
+   misurerebbe l'accidente della demo, non il difetto. La prova che regge è
+   sulla guardia stessa: il bottone si disabilita in modo SINCRONO, prima di
+   qualunque `await` — la stessa proprietà provata negli altri quattro casi
+   per accumulo (qui isolata, perché è l'unica che il doppio click smaschera
+   davvero su questo bottone). */
+await vaiA(pg, "sentinella", "nav-reg");
+await pg.waitForTimeout(300);
+const nVolPrima = await pg.evaluate(() => document.querySelectorAll("#vol-list .item").length || 0);
+const rAccogli = await pg.evaluate(() => {
+  const btn = document.querySelector("[data-accogli-prev]");
+  if (!btn) return { trovato: false };
+  btn.click();
+  // subito dopo il click, ancora nello stesso turno sincrono: la guardia
+  // deve aver già disabilitato il bottone, prima di qualunque `await`
+  return { trovato: true, disabilitatoSubito: btn.disabled === true };
+});
+dice(rAccogli.trovato, "trovato «Accogli nel registro» sulla prevista di Genesi");
+dice(rAccogli.disabilitatoSubito, "⛔ il bottone si disabilita SUBITO al click, prima di ogni `await`: un secondo tocco non riparte");
+await pg.waitForTimeout(500);
+const nVolDopo = await pg.evaluate(() => document.querySelectorAll("#vol-list .item").length || 0);
+dice(nVolDopo === nVolPrima + 1, `la volata prevista è stata accolta nel registro (${nVolPrima} -> ${nVolDopo})`, { nVolPrima, nVolDopo });
 
 dice(errori.length === 0, "nessun errore di pagina", errori.slice(0, 3));
 
