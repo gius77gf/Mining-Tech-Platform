@@ -78,7 +78,16 @@ for (const W of [390, 320]) {
 
   // 1 · la dimostrazione: il DVR in vigore e l'edizione 2025 sostituita
   const r0 = await riga(pg, "c0"), r1 = await riga(pg, "c1");
-  dice(!!r0 && r0.badge === "Sostituito" && !r0.tocca && /non si cambia/.test(r0.title || ""), "⛔ l'edizione 2025 è «Sostituito», senza il tocco che cambia stato", JSON.stringify(r0));
+  /* ⛔ 19/09, dal giro completo del browser: questa asserzione pretendeva
+     `!r0.tocca`, e la prova è SCADUTA da `5ad3c864` (17/09, ancestor di
+     questo stesso giro) — «MA IL TOCCO C'È ANCORA», commento sopra la riga
+     in apps/scudo/index.html: la classe `tocca` governa la promessa del
+     CURSORE, non se lo stato cambia davvero. Un documento sostituito
+     risponde al tocco con un toast che spiega perché non cambia, quindi
+     la manina resta — toglierla farebbe credere "qui non succede niente"
+     mentre invece succede (un toast). La riga corretta pretende `r0.tocca`
+     come per ogni altra riga, non il suo contrario. */
+  dice(!!r0 && r0.badge === "Sostituito" && r0.tocca && /non si cambia/.test(r0.title || ""), "⛔ l'edizione 2025 è «Sostituito», il tocco resta (spiega perché non cambia stato)", JSON.stringify(r0));
   dice(!!r1 && r1.badge === "Valido" && r1.tocca, "il DVR in vigore è valido e si tocca", JSON.stringify(r1));
   dice((await versioni(pg, "c1")) === "2ª versione: sostituisce la precedente (l'ultima il 10/03/2026)", "⛔ sotto il DVR in vigore: «2ª versione: sostituisce la precedente»", await versioni(pg, "c1"));
   dice((await versioni(pg, "c0")) === "sostituito da «DVR — Documento Valutazione Rischi»", "e sotto l'edizione 2025: da chi è stata sostituita", await versioni(pg, "c0"));
