@@ -479,6 +479,8 @@ const BANCHI = [
   ['tratti liberi 2D · controprova', 'genesi-tratti.mjs', ['--controprova'], true],
   ["Genesi: una volata salvata porta l'identità di chi era collegato", 'genesi-autore-volata.mjs', []],
   ['autore della volata di Genesi · controprova', 'genesi-autore-volata.mjs', ['--controprova'], true],
+  [".chg: larghezza minima nel tema del sole (Terra)", 'chg-min-larghezza.mjs', []],
+  ['.chg larghezza minima · controprova', 'chg-min-larghezza.mjs', ['--controprova'], true],
   /* AGGIUNTO IL 14/09 (G47b): livelli VERI (mostra/nascondi, blocca) per
      fori/fronte/piede/tratti — non i vecchi interruttori di un calcolo
      (iso/rel/ene/inn). Il caso che conta è il blocco: un'entità bloccata

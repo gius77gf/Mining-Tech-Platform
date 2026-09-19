@@ -39,16 +39,23 @@ const R = join(QUI, "..", "..", "..");
 
 /* I file che un banco può servire trasformati. Elenco DERIVATO dal disco per le
    app (una app nuova entra da sola), più il core e i moduli condivisi. */
+/* ⛔ 19/09, dalla verifica prima di committare un banco su shared/dw-app-ui.css:
+   il `.css` non c'era in nessuna delle tre raccolte, quindi un'iniezione che
+   morde un foglio di stile veniva dichiarata «scaduta» per sempre — non
+   perché il codice si fosse mosso, ma perché il righello non guardava quel
+   tipo di file. Lo stesso difetto di famiglia già preso su `.js`/`.html`:
+   un'estensione mancante nel filtro è indistinguibile, da fuori, da un
+   codice davvero sparito. */
 const SORGENTI = [];
 for (const p of ["index.html", "sw.js"]) SORGENTI.push(p);
-for (const f of readdirSync(join(R, "shared"))) if (f.endsWith(".js")) SORGENTI.push("shared/" + f);
+for (const f of readdirSync(join(R, "shared"))) if (f.endsWith(".js") || f.endsWith(".css")) SORGENTI.push("shared/" + f);
 for (const f of readdirSync(join(R, "shared", "deepwork-id-client"))) {
   if (f.endsWith(".js")) SORGENTI.push("shared/deepwork-id-client/" + f);
 }
 for (const app of readdirSync(join(R, "apps"), { withFileTypes: true })) {
   if (!app.isDirectory()) continue;
   for (const f of readdirSync(join(R, "apps", app.name))) {
-    if (f.endsWith(".html") || f.endsWith(".js")) SORGENTI.push(`apps/${app.name}/${f}`);
+    if (f.endsWith(".html") || f.endsWith(".js") || f.endsWith(".css")) SORGENTI.push(`apps/${app.name}/${f}`);
   }
 }
 const testi = SORGENTI.map((p) => {
