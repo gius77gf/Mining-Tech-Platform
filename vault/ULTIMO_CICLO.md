@@ -1,17 +1,14 @@
 # Ultimo ciclo
 
-- **Quando**: 2026-09-19T09:51:33Z (letta da `date -u`, non predetta)
-- **Commit di partenza**: 769dd119 (feat(genesi): il misfire nel
-  report stampato — la fetta piccola del delta post-blast (G55))
-- **Cosa sto per fare**: chiuso l'ottavo cantiere Genesi del pivot.
-  Entrambe le ricerche continue in coda a `docs/RICERCA_CONTINUA_GENESI.md`
-  sono ora chiuse (Domanda A dichiarata non azionabile con la ragione,
-  Domanda B azionata in parte con G55, resto lasciato al fondatore).
-  Gestito e rilanciato il giro completo del browser (il vecchio era 11
-  commit indietro, oltre soglia).
-  **Prossimo passo atomico**: controllare l'esito del nuovo giro
-  (`giro-completo-19-0951.log`, PID 18070, avviato 09:51:33Z) con
-  `leggi-giro.mjs` quando arriva in fondo. Poi valutare un nuovo giro
-  di ricerca Haiku in background su un aspetto diverso di Genesi
-  (competitor, un'altra sezione del censimento CAD, o QA mirato), per
-  mantenere ≥3 fronti aperti dentro Genesi.
+- **Quando**: 2026-09-19T09:59:58Z (letta da `date -u`, non predetta)
+- **Commit di partenza**: 789ce3fc (Ricerca: snap magnetico e guide di
+  allineamento durante il disegno in Genesi)
+- **Cosa sto per fare**: letta la ricerca in background sullo snap
+  magnetico/guide di allineamento (appena consegnata), verificarla
+  indipendentemente col codice prima di agire (niente entra sulla
+  parola dell'agente), poi controllare l'esito del giro completo del
+  browser lanciato alle 09:51:33Z (PID 18070) con `leggi-giro.mjs`.
+  **Prossimo passo atomico**: `grep -n "puntoSnapEstremo\|d2drag" apps/genesi/genesi.html`
+  per confermare la lacuna riportata (lo snap a estremi non entra nel
+  ramo di trascinamento dei fori), poi decidere la fetta piccola da
+  costruire (guide di allineamento in Y durante il drag) o scartarla.
