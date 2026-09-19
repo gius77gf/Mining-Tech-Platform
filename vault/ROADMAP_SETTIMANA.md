@@ -8696,8 +8696,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **413 esecuzioni** che
-  aprono le pagine in un browser vero, da **186** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **415 esecuzioni** che
+  aprono le pagine in un browser vero, da **187** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso). *(Ricontato il 18/09 con
@@ -11937,3 +11937,28 @@ un'interruzione), seconda QA su Terra, ricerca continua su Sentinella.
 run-kpi.mjs 3180/3180. copertura-funzioni.mjs 1051/1051 (terra 106/106).
 numeri-nei-documenti.mjs 43/43. id-stati.mjs 36/36 normale, 22 KO sotto
 `--controprova`. Numeri propagati fresco: 3.676 prove.
+
+## Nono giro di deep-pass QA + ricerca continua Campo/Deepwork ID (19/09, notte)
+
+Tre cantieri in parallelo: seconda QA su Scudo, ricerca su Campo, ricerca
+su Deepwork ID.
+
+- [x] **Scudo**: `scadenzaDenunciaInail` (16/09) era letta solo per-evento
+      (registro, dettaglio) — nessuna delle undici liste di urgenza del
+      Quadro la consultava. Un mortale con la denuncia INAIL scaduta, con
+      tutti gli altri registri a posto, mostrava il pannello VERDE
+      "Nessuna urgenza" — l'obbligo di legge più grave dell'app.
+      Aggiunta una lista di urgenza dedicata, banco con controprova
+      (`acc2df56`).
+- [x] **Ricerca su Campo**: manca l'accettazione ATTIVA della consegna di
+      turno (timestamp di chi entra, non solo il nome scritto da chi
+      consegna) — richiesta dalle best practice di shift handover
+      minerario. Non implementato (`7373e3d6`).
+- [x] **Ricerca su Deepwork ID**: nessun audit log sulle azioni sensibili
+      di organizzazione (`updateMemberRole`/`removeMember` non
+      registrano chi ha agito). Scelta di prodotto/sicurezza multi-tenant:
+      decisione 39 (`ee1c8689`).
+
+run-kpi.mjs 3180/3180. numeri-nei-documenti.mjs 43/43 (415 banchi, 187
+file distinti). scudo-inail-quadro.mjs 4/4 normale, 1 KO sotto
+`--controprova`.

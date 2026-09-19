@@ -219,7 +219,7 @@ claims, 9 sul manifesto, 8 sulla demo, 7 sulle rivendicazioni del
 primo avvio, 3 sulle superfici che stampano e su chi le preme — più **144** che
 girano con l'emulatore Firestore (**93** sulle
 **regole di sicurezza**, 19 sull'SDK, 24 sulle funzioni, 8 sul primo avvio) e
-**413 esecuzioni** che aprono davvero le pagine in un browser *(ricontato il 18/09 con `suite-collegate.mjs`, dopo il sesto giro di deep-pass QA)*.
+**415 esecuzioni** che aprono davvero le pagine in un browser *(ricontato il 19/09 con `suite-collegate.mjs`, dopo il fix di Scudo sulla denuncia INAIL nel Quadro)*.
 ⚠️ *Il primo avvio è tornato da 10 a **8** l'08/08, e non è un passo indietro:
 le due prove aggiunte quel giorno chiedevano lo* stato finale *delle
 rivendicazioni, che dove le Cloud Functions girano è di* `rebuildClaims` *e non
