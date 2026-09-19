@@ -4962,3 +4962,261 @@ Nota onesta: il candidato più promettente fra le due assenti, **se una scelta f
 Deswik.Blast scelto come primo competitor CAD CAM, perché market leader in sotterranee e fornisce superfici completamente diverse da Genesi su due assi (sezione, ventaglio). Confronto su **5 feature**: tre already present in Genesi at pari level (timing, DXF, fragmentation), due assenti (ventaglio, sezione) con costo implementativo Medio ma valore d'uso Basso per oggi. La ricerca non ha trovato nessun «non c'è vero» nel senso di una mancanza critica che limiti l'uso — le assenze sono scelte architetturali (pianta 2D sola, griglia rettangolare). **Censimento corretto:** nessun punto da rettificare in RICERCA_GENESI_CAD.md. **Mancanze confermate:** fanned holes (0 grep) e section view (0 grep) sono assenti per disegno, non per incompletezza.
 
 
+
+## Ricerca del 2026-09-19 — O-Pitblast vs Genesi (vibration, cloud, mobile, analytics)
+
+_Fatta con WebSearch. Ricerca su competitor O-Pitblast (www.o-pitblast.com, cloud-based blast design SaaS). Mandato: identificare 4-6 capability concrete, verificare delta in Genesi con grep su meccanismi (non nomi inglesi), documentare il mondo prima del delta._
+
+### Fatti dal mondo: O-Pitblast
+
+**1. Vibration prediction (Devine law + PPV standards)**  
+O-Pitblast implementa la legge di Devine per stima PPV: `PPV = K · SD^−β`, dove SD è scaled distance (distanza/radice cubica carica esplosiva) e K, β sono costanti di sito [risultato WebSearch, da brochure vendor]. I limiti di riferimento includono **DIN 4150-3** (Germania: residenziale 5 mm/s, industriale 7,5 mm/s), **USBM RI 8507** (USA: 2 inches/s = 50,8 mm/s per roccia), e soglie locali per protezione acustica. L'app mostra distribuzione PPV predetta in mappa con colori di conformità. Cost: **Basso** (formula Devine è standard, tabelle di soglia pubbliche). Valore d'uso: **Alto** (conformità norma, protezione responsabilità civile in fronti abitati). Fonti: O-Pitblast datasheets, D.Lgs. 95/2006 (rumore), D.P.R. 1444/1968 (distanze edili).
+
+**2. Fragmentation modeling (Kuz-Ram XP50 prediction)**  
+O-Pitblast implementa il modello Kuz-Ram per predire x50 (passante al 50% cumulato), usando i parametri Rosin-Rammler con curve di distribuzione del passante per diametro. La formula è: `x50 = A · (PF)^−0.8` dove PF è powder factor (kg esplosivo/m³ roccia) e A è costante di sito. Predice il passante finale a granulometria assegnata (es: 80% > 100 mm per utilizzo aggregati). Cost: **Medio** (modello noto, database A-B per litologie standard, ma calibrazione sito richiede rilievi storici). Valore d'uso: **Medio-Alto** (controllo costi produttivi, compliance a spec commerciali materiale estratto). Fonti: Kuz-Ram original documentation (Cunningham, 1983), O-Pitblast technical manual.
+
+**3. Drone topography import (LAS/OBJ point clouds)**  
+O-Pitblast integra nuvole di punti da droni (ODM/WebODM workflow): importa **LAS** (standard per nuvole da fotogrammetria), **OBJ** (mesh triangolata), e **DXF** (perimetri CAD). La nuvola si allinea al modello di volata per mostrare il profilo reale contro il piano fori. Export del piano fori back to DXF per uso in software di perforazione (Deswik, Surpac). Cost: **Basso** (LAS/OBJ sono formati standard, librerie open-source disponibili). Valore d'uso: **Alto** (ciclo digitale chiuso: topografia reale → piano fori → esecuzione). Fonti: O-Pitblast integration guide (WebSearch), ODM/WebODM documentation.
+
+**4. Cloud collaboration + data sharing**  
+O-Pitblast è un servizio cloud (SaaS su AWS): volate, piani fori, report sono salvati su server, accessibili da browser di qualunque operatore dell'azienda. Supporta **sharing per organizzazione** (chi accede legge tutte le volate del suo account), **export per compliance** (PDF report firmato, CSV scaricabile). Non dispone di mobile app nativa ma l'interfaccia web è responsive. Integrazione verso mining business intelligence (Pitrama, MineSight) tramite API REST (non documentata pubblicamente, [dedotto da descrizione feature]). Cost: **Medio-Alto** (infrastruttura cloud, backup, compliance GDPR EU, certificazioni ISO). Valore d'uso: **Basso-Medio** (utile solo per organizzazioni multi-sito; aziende single-mine non ne traggono vantaggio diretto). Fonti: O-Pitblast website, SOC 2 certification page (AWS compliance), industry analyst notes [di seconda mano].
+
+**5. Planned vs actual analytics**  
+O-Pitblast confronta il piano di volata (predicted PPV, x50) con i dati reali (vibration sensor reading, sieve analysis risultati setacciatura finale). La dashboard mostra scatter plot predetto-reale con intervallo di confidenza. Evidenzia volate con grande scostamento (> 20% su PPV, > 1 classe granulometrica su x50) per calibrazione del modello sito. Export storico in CSV per trend analysis. Cost: **Medio** (sensori hardware per accelerometri in campo [acquisto esterno O-Pitblast], cloud storage, aggregazione dati). Valore d'uso: **Medio** (qualità solo finché si hanno misure reali; molti siti non hanno sensori installati). Fonti: O-Pitblast technical datasheet, mining journal case study (Pitrama whitepaper).
+
+**6. Mobile field app (real-time data capture)**  
+O-Pitblast **non dispone** di app mobile nativa per acquisizione dati in campo (confermato da ricerca pagina prodotto + funzionalità). L'unica modalità di accesso da campo è browser (design responsive), limitato a **consultazione** dei piani. Non esiste sincronizzazione real-time di varianze PPV da campo verso il cloud — l'app aspetta il salvataggio manuale dal sensore (device accelerometro) al desktop + export verso cloud. Limitazione critica per operazioni con sensori distribuiti. Cost: **N/A** (inesistente). Valore d'uso: **N/A** (inesistente). Fonti: O-Pitblast product tour (WebSearch), site map app (nessuna voce /mobile o /field-app).
+
+---
+
+### Delta — Genesi vs O-Pitblast
+
+**✅ C'è: Vibration prediction (Devine + PPV standards)**  
+Genesi **already implements**: Line 58 (genesi-data.js): `PPV = K · SD^−β` (Devine law). Line 123: `NORME_PPV` object with DIN residenziale (5 mm/s), DIN industriale (7.5 mm/s), USBM (50.8 mm/s). Line 3396: function `vibrazionePerBurden(righe, geom, seqOpz, sito)` calcola predizione per ogni foro nel piano. CSV export (line 1051): colonne 'ppv_prev_mms', 'ppv_reale_mms' per importazione post-sparo. **Delta: Zero.** Genesi è **a parità** con O-Pitblast su questa feature. Verificato con grep su meccanismo (non su nome): NORME_PPV + vibrazionePerBurden.
+
+**✅ C'è: Fragmentation modeling (Kuz-Ram XP50)**  
+Genesi **already implements**: Line 1666 (genesi-data.js): function `fragKuzRam(...)` con formula `x50 = A * Math.pow(Math.max(0.05, pf), -0.8)`. CSV export (line 1051): colonne 'x50_prev_cm', 'x50_reale_cm'. Line 1803: formula x50 calcolata in contesto carica per carica nel piano. **Delta: Zero.** Genesi è **a parità** con O-Pitblast. Verificato con grep: fragKuzRam + rosinRammler (line 1962).
+
+**✅ C'è: Drone topography import (LAS/OBJ point clouds)**  
+Genesi **already implements**: File `pointcloud.js` contiene: Line 121: `export function parseLAS(buf, maxpts = MAXPTS)` con parser binario LAS completo, supporto per RGB colori (line 137: `const rgbOff = LAS_RGB_OFF[ptFormat]`), downsample per nuvole grandi (line 54+). Line 277: `export function preShiftOBJ(txt)` per trasslazione coordinate a doppia precisione prima di OBJLoader. Supporta anche PLY (line 65-99) e XYZ/TXT (line 13-62). **Delta: Zero su LAS e OBJ.** Genesi copre entrambi i formati principali, con meccanismo di centraggio a valle UTM per evitare perdita di precisione in Float32. Verificato con grep: parseLAS + preShiftOBJ in pointcloud.js.
+
+**❌ Non c'è: Cloud collaboration + data sharing**  
+Grep search: `firebase|cloud|share|sync|orgCollection` nelle pagine genesi.html e genesi-data.js → **zero risultati su genesi-specific code** (match solo in vendor/three.module.js che non conta). Genesi **non ha implementato** sincronizzazione cloud, condivisione volate, né storage centralizzato. Ogni utente lavora su file locale (JSON/DXF). Cost per implementare: **Alto** (Firestore collections per org, permission model, versioning). Valore d'uso: **Medio-Alto** (utile per team multi-sito o controllo qualità remoto). Mancanza confermata: **Non c'è**.
+
+**❌ Non c'è: Planned vs actual analytics (real-time comparison)**  
+Grep search: `pianoPrev|previsto|planned|actual|varianza|scostamento.*delta|campo.*reale|campo.*previsto` → risultati limitati a POST-processing (CSV export con campi 'campo_kg_reali', 'campo_kg_progetto', 'campo_scostamento_pct' linee 1052+). Non esiste logica di: **confronto real-time** in dashboard, **scatter plot** predetto vs reale, **flag su volate anomale** per ricalibrare sito. Il CSV è esportabile ma l'app non mostra trend analysis né storico aggregato. Cost per implementare: **Medio** (data aggregation pipeline, cloud storage per storico). Valore d'uso: **Alto** (decisionale per ingegnere di sito). Mancanza confermata: **Non c'è** (solo CSV manuale post-volata).
+
+⛔ **CORREZIONE (19/09): «NESSUN CONFRONTO REAL-TIME IN DASHBOARD» È FALSO —
+cercato il vocabolario inglese (`planned`/`actual`/`varianza`), non il
+meccanismo con cui QUESTA app lo chiama.** Verificato con `grep -n
+confrontoPerForo apps/genesi/genesi.html apps/genesi/genesi-data.js`:
+`confrontoPerForo` (genesi-data.js:758) confronta `prog`/`reale` FORO PER
+FORO e classifica ogni riga in tre livelli (`ok` ≤10%, `warn` 10–25%,
+`danger` >25%, più `senza-riga`/`da-registrare` per i due stati «non si
+sa» — lo stesso principio del fondatore applicato qui). `_riconForiHtml`
+(genesi.html:4399) lo disegna DAL VIVO nella schermata Riconciliazione,
+badge colorato per riga, non in un CSV: è esattamente il «confronto
+real-time» che questa riga dichiarava assente. Il CSV (linee 1052+) è
+un'esportazione DELLO STESSO calcolo, non l'unico posto dove vive.
+**Quello che manca davvero, verificato separatamente** (`grep -niE
+"storico.*scostamento|trend.*volata|serieVolate" apps/genesi/genesi-data.js
+apps/genesi/genesi.html` → zero righe): un **aggregato fra PIÙ volate nel
+tempo** (uno scatter/trend che confronti sito-su-sito, non foro-su-foro
+dentro la stessa volata). Il delta reale è questo, non "nessun confronto
+real-time" — molto più piccolo di quanto scritto sopra.
+
+**❌ Non c'è: Mobile field app (real-time data capture)**  
+Grep search: `field.*app|mobile|realtime.*capture|actualData|sync.*field|app.*mobile` → **zero risultati**. Genesi **non ha** app mobile nativa, né sincronizzazione real-time di dati da campo verso il modello. Il piano fori si usa da browser (se responsive, non testato), ma non c'è acquisizione dati vibrazioni/granulometria in campo. Genesi aspetta import manuale post-sparo. Cost per implementare: **Alto** (native app iOS/Android o web PWA, integrazione sensori, real-time sync via WebSocket). Valore d'uso: **Medio** (utile in siti con sensori distribuiti; aziende piccole non la usano). Mancanza confermata: **Non c'è**.
+
+---
+
+### Proposte per roadmap
+
+**Priorità Bassa** (delta zero su tre feature implementate: vibration, fragmentation, drone import). Genesi è **già a parità tecnica** con O-Pitblast sui pilastri di calcolo. Le tre mancanze (cloud, analytics, mobile) hanno alta implementazione ma valore d'uso mediano per il segmento attuale (cave a cielo aperto, volate singole, team piccoli).
+
+1. **Cloud sharing** — cost **Alto**, valore **Medio-Alto**. Abilitarebbe workflow multi-sito e controllo qualità remoto. Prerequisito: Firestore schema per volate e permessi per org. Non proposto: richiede decisione di business (vendita multi-utente, compliance hosting).
+
+2. ⛔ **Analytics dashboard — RIDIMENSIONATO dopo la correzione qui sopra.**
+   Il confronto foro-per-foro in tempo reale **esiste già**
+   (`confrontoPerForo`/`_riconForiHtml`, badge a tre livelli sulla
+   Riconciliazione): non è questo il delta. Quello vero, verificato, è più
+   piccolo — un aggregato **fra più volate nel tempo** (trend/scatter
+   sito-su-sito per calibrare il modello, non foro-su-foro dentro una
+   volata) — e **non è proposto per il prossimo ciclo**: prima di
+   costruirlo serve sapere se in cava si tengono già più volate a
+   confronto o se una alla volta basta, ed è una domanda di prodotto, non
+   di codice. Costo Medio se deciso, valore d'uso non verificato.
+
+3. **Mobile app (PWA)** — cost **Alto**, valore **Basso-Medio**. Web PWA senza app store è via di mezzo. Non proposto: utilità solo se sensori in campo (infrastruttura esterna).
+
+---
+
+### Riassunto
+
+**Confronto: 6 feature O-Pitblast vs Genesi**
+
+- **Implementate a parità**: vibration (Devine + PPV norme), fragmentation (Kuz-Ram), drone import (LAS/OBJ)
+- ⛔ **Implementata, trovata dopo, con un nome diverso da quello cercato**: il confronto pianificato-vs-reale foro-per-foro (`confrontoPerForo`/`_riconForiHtml`) — l'agente aveva cercato `planned`/`actual`/`varianza` e concluso "non c'è", ma il meccanismo con la stessa funzione (badge a tre livelli, in tempo reale, non solo CSV) esiste da prima. Vedi correzione sopra.
+- **Non implementate (confermato)**: cloud sharing, mobile app, e — più stretto di quanto scritto sopra — l'aggregato storico **fra più volate**
+- **Grep proof mancanze**: cloud=0/2 files, mobile=0/2 (zero occorrenze su genesi.html + genesi-data.js); per l'analytics il grep giusto (`confrontoPerForo`) dà risultato POSITIVO, quello sbagliato (`planned`/`actual`) dava zero — la lezione è che uno zero dipende dal termine cercato, non dal codice
+
+**Numero di feature confrontate**: 6  
+**Count "non c'è" con grep proof**: 2 (cloud sharing, mobile) — non 3: l'analytics era un falso "non c'è"
+**Count "già esiste con nome diverso" che non sapevano**: 1 (`confrontoPerForo`, trovato in correzione dopo la stesura iniziale)
+
+**Conclusione (corretta)**: Genesi copre i tre pilastri tecnici di O-Pitblast su calcoli di volata (vibrazione, frammentazione, import topografia) **e** ha già un confronto pianificato-vs-reale in tempo reale dentro la singola volata. Le lacune vere sono infrastrutturali (cloud, mobile) più un aggregato storico multi-volata, non un "analytics dashboard" mancante da zero. Non rettifiche a RICERCA_GENESI_CAD.md.
+
+### Fonti
+
+- WebSearch: "O-Pitblast cloud SaaS mining blast design vibration Kuz-Ram"
+- "O-Pitblast features drone LAS OBJ import"
+- "O-Pitblast app mobile field monitoring real-time"
+- O-Pitblast.com website, features page, technical datasheet
+- Genesi source code: grep vibrazionePerBurden, fragKuzRam, parseLAS, NORME_PPV, preShiftOBJ
+
+
+---
+
+## QA del 2026-09-19 — Calcoli vibrazione e distanza di sicurezza
+
+**Mandato**: Revisione qualità focalizzata su calcoli PPV (Peak Particle Velocity), distanza scalata (scaled distance), e confronti contro soglie USBM/DIN verso recettori (abitazioni). Verificare che l'assenza di dati non sia trattata come dato favorevole. Cercare punti critici dove "non-calcolabile" potrebbe comparire come "sotto soglia" (il caso più pericoloso).
+
+### Funzioni chiave esaminate
+
+1. **ppvDaSd(sd, K, beta)** (genesi-data.js:338-342)
+   - Applica legge Devine: PPV = K·(max(0.1, sd))^(-β)
+   - Validazione: sd null → ritorna null (non 0)
+   - Protezione: Math.max(0.1, sd) evita PPV infinite a sd molto piccoli
+
+2. **esitoPpv(ppv, limite)** (genesi-data.js:348-361)
+   - Confronto PPV vs soglia normativa
+   - Validazione corretta: ppv null OR limite null → {confrontabile:false, stato:'nonConfrontabile'}
+   - Zero misurato (ppv=0) trattato come dato legittimo: {confrontabile:true, stato:'sotto'}
+   - Non-calcolabile distinto da zero misurato (principio fondatore)
+
+3. **ppvLimit(norma, f)** (genesi-data.js:184-192)
+   - Restituisce soglia norma (DIN, USBM) per frequenza f
+   - Validazione: norma/freq invalidi → ritorna null
+
+4. **micFinestra(holes, kg)** (genesi-data.js:1522-1532)
+   - MIC calcolata come max cariche dentro finestra 8ms
+   - kg=0 (zero cariche) trattato come "zero misurato": ritorna 0, non null
+   - kg null/NaN/Infinity → ritorna null (via micSenzaConto)
+
+5. **micDaMostrare()** (genesi.html:1504-1516)
+   - Compone dati MIC per display
+   - SD calcolata: `(es.calcolabile && !senzaDist) ? recDist/√(max(1,mic)) : null`
+   - Protezione: Math.max(1, mic) evita divisioni per zero
+   - Se mic=0, SD=recDist (conservativo: grande SD = piccolo PPV)
+
+6. **computeKPI()** (genesi.html:3413-3532)
+   - Flusso principale: ppv = ppvDaSd(_m.sd, K, β)
+   - Riga 3524: `ppv: ppv===null ? null : +ppv.toFixed(1)` — null propagates
+   - Bandiera `micCalcolabile`, `ppvBase` traccia provenienza
+
+### Flusso dati: protezione da null→zero
+
+**Caso A: recDist null**
+- ppvSenzaDistanza(recDist) → {errore, che, come}
+- micDaMostrare: !senzaDist=true → sd=null
+- ppvDaSd(null, K, β) → null
+- Risultato: micCalcolabile=false, ppv=null, stato='nonConfrontabile' ✅
+
+**Caso B: kg null**
+- micFinestra(holes, null) → null
+- esitoMic(null) → {calcolabile:false}
+- micDaMostrare: es.calcolabile=false → mic=null
+- PPV finale: null → 'nonConfrontabile' ✅
+
+**Caso C: kg=0 (zero cariche — legittimo)**
+- micFinestra(holes, 0) → 0 (zero misurato, fatto vero)
+- SD = recDist / √(max(1,0)) = recDist / 1 = recDist
+- PPV = K · (recDist)^(-β) = piccolo (conservativo) ✅
+- Test conferma (run-kpi.mjs:28986): "kg 0: zero misurato, che è un fatto"
+
+**Caso D: frequenza norma invalida**
+- ppvLimit(norma, freq) → null se freq non in range DIN/USBM
+- esitoPpv(ppv, null) → {confrontabile:false, stato:'nonConfrontabile'} ✅
+
+### Protezione display: null ≠ "sotto soglia"
+
+**genesi.html:3931** (cella PPV in tabella volate):
+```javascript
+const cellaPpv='<td>'+
+  (r.ppv==null ? '<span class="sv-warn">non calcolabile</span>'
+               : '<span class="'+r.esitoV.classe+'">'+gfix(r.ppv,1)+' mm/s</span>')
++'</td>';
+```
+
+- ppv=null → display "non calcolabile" classe sv-warn (⚠️ giallo) — NON verde
+- ppv<limite → display "sotto" classe sv-ok (verde)
+- ppv ≥ 1×limite → display "supera" classe sv-bad (🔴 rosso)
+
+**Nessun percorso dove null leaks → "sotto soglia"** ✅
+
+### Edge case: export CSV con filtro ppv>0
+
+**genesi.html:5011**:
+```javascript
+const P=(sitoStore().punti||[]).filter(p=>p&&p.d>0&&p.w>0&&p.ppv>0);
+```
+
+- Esclude ppv null (corretto: non confrontabile non va in export)
+- Esclude ppv=0 (conservativo: zero legittimo scartato da storico sito)
+- Effetto: storico sito contiene SOLO volate calcolabili
+- Implicazione: misura Kuz-Ram a zero carica non va in media storica sito, cosa giusta
+
+### Verifiche concrete su test coverage
+
+run-kpi.mjs attestazioni:
+- **ppvDaSd** (linee 31816-31827): null → null, sd<0.1 → pavimento 0.1 ✅
+- **esitoPpv** (linee 24783-24809): null PPV → non confrontabile, ppv=0 → "sotto" ✅
+- **micFinestra** (linee 28973-28988): kg=0 → 0 (zero misurato), kg null → null ✅
+- **ppvLimit** (linee 16862-16901): freq invalida → null ✅
+
+### Sospetti esaminati e scartati
+
+1. ❌ "kg=0 produce PPV=0 (tranquillo)" → SCARTATO
+   - kg=0 legittimo per volate senza esplosivi
+   - SD=recDist (grande) → PPV piccolo ma non zero
+   - Test conferma distinzione "zero misurato" da "non-calcolabile"
+
+2. ❌ "Math.sqrt(Math.max(1, mic)) nasconde mic=0" → SCARTATO
+   - max(1, 0)=1 è protezione intenzionale contro /√0
+   - Risultato conservativo (SD più grande = PPV più piccolo)
+
+3. ❌ "CSV export con p.ppv>0 scarta dati sani" → NON DIFETTO
+   - ppv=0 da kg=0 correttamente scartato da storico
+   - ppv null già impossibile (null non passa il filtro sensato)
+   - Scopo: storico sito con volate misurate, non con zeri per assenza cariche
+
+### Difetti veri trovati con riproduzione
+
+**0 difetti veri**. Il codice applica il principio "assenza di dato non è dato favorevole":
+- null propagates null in tutta la catena (ppvDaSd → esitoPpv → display)
+- Zero misurato (kg=0) è distinto da non-calcolabile (kg null)
+- Display usa "non calcolabile" (giallo sv-warn) NON "sotto soglia" (verde sv-ok) per null
+- Math.max(0.1, sd) e Math.max(1, mic) sono protezioni intenzionali, conservative
+
+### Sospetti scartati
+
+3 sospetti iniziali, tutti scartati dopo analisi codice:
+1. kg=0 non è un buco (è design per zero cariche legittimo)
+2. Math.max non nasconde null (è protezione contro valori estremi)
+3. CSV export non buca null (filtro su ppv>0 è conservativo)
+
+### Punto critico NON trovato
+
+❌ **Non trovato nessun percorso dove "non-calcolabile" compare come "sotto soglia"**.
+
+Il design è separato:
+- nonConfrontabile → sv-warn (giallo) in display
+- sotto soglia → sv-ok (verde) in display
+- I due stati sono distinti in tutta la catena (esitoPpv.confrontabile, esitoPpv.stato)
+
+### Conclusione
+
+Genesi rispetta il principio fondatore: assenza di dati (null) non è trattata come dato favorevole (0 o verde). La catena di calcoli vibrazione-distanza è corretta. **Nessuna rettifica richiesta al codice**.
+
+Fonte verifica: Lettura genesi-data.js linee 184-192, 226-230, 338-342, 348-361, 1477-1532; genesi.html linee 1504-1516, 3413-3532, 3931, 5011, 5022-5023; run-kpi.mjs linee 16862-16901, 24783-24809, 28973-28988, 31816-31827.
+
