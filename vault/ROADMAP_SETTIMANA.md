@@ -12004,3 +12004,22 @@ normale, 19 KO / 8 iniezioni sotto `--controprova`.
 
 run-kpi.mjs 3180/3180. run-pointcloud.mjs 36/36. numeri-nei-documenti.mjs
 43/43 (3678 prove, decisioni aperte 27).
+
+## Dodicesimo giro: Deepwork ID, Genesi, Terra (19/09)
+
+- [x] **Deepwork ID → decisione 37 aggiornata** (`6a017bb8`): `revoke
+      RefreshTokens` è già costruito, ma la QA ha riprodotto sotto
+      l'emulatore un admin rimosso che cancella ancora una fattura
+      emessa con lo stesso token. Nuova strada (d) per il residuo,
+      non implementata.
+- [x] **Genesi** (`61da46dc`): `GDB.utente` non veniva mai scritto su una
+      volata salvata — corretto. L'altra proposta (avviso export con
+      indicatori gravi) è stata scritta, provata e scartata: costo
+      reale Medio (rompe 24/91 prove esistenti), non Piccolo.
+- [x] **Terra → shared/dw-app-ui.css** (`93cf308e`): `.chg` senza
+      larghezza minima, stessa famiglia della decisione 40. Corretto
+      (`min-width:var(--tap)`), verificato nessun overflow su tutte le
+      app. Estesa `iniezioni-fresche.mjs` ai file `.css` (mancavano).
+
+run-kpi.mjs 3180/3180. numeri-nei-documenti.mjs 43/43 (421 banchi,
+copertura 1051/1051). iniezioni-fresche.mjs 709/709.
