@@ -5261,6 +5261,14 @@ function volSnapshot(nome){
         +' · '+(k.fragCalcolabile?'X50 '+gnum(k.x50,0)+' cm':'X50 non calcolabile'); }catch(e){}
   return { id:'v'+Date.now(), nome:nome,
     data:timbroLocale(),
+    /* ⛔ 19/09, dalla ricerca continua: GDB.utente (uid+email di chi è
+       collegato) è già disponibile in modalità organizzazione ma non
+       veniva mai scritto su una volata salvata — in un'organizzazione
+       dove più persone condividono lo stesso ambiente, due volate
+       omonime salvate da persone diverse erano indistinguibili per
+       autore. `null` sul dispositivo locale, dove non c'è nessuno da
+       firmare (stesso principio di GDB.utente stesso). */
+    autore: (GDB.utente && GDB.utente.uid) ? { uid: GDB.utente.uid, email: GDB.utente.email || null } : null,
     design:JSON.parse(JSON.stringify({B:D2.B,S:D2.S,file:D2.file,perRow:D2.perRow,diam:D2.diam,prof:D2.prof,kg:D2.kg,kgAuto:D2.kgAuto,ritardo:D2.ritardo,ritardoFila:D2.ritardoFila,stem:D2.stem,sub:D2.sub,incl:D2.incl,
       /* ⛔ 18/09, dal secondo giro di deep-pass: `dir` (direzione d'innesco,
          decide `cd` in sequenzaSuMaglia e quindi il tDet di OGNI foro con
@@ -5312,7 +5320,7 @@ async function renderHome(){
   if($('hgVolN')) $('hgVolN').textContent=arr.length? _ricPlur(arr.length,'salvata','salvate'):'';
   const list=$('hgVolate');
   if(list) list.innerHTML = arr.length
-    ? arr.slice().reverse().map(v=>'<div class="hg-item" data-id="'+v.id+'"><div class="t"><b>'+_rEsc(v.nome)+'</b><small>'+_rEsc(dataISOEsiste(v.data)?gdata(v.data):'senza data')+' · '+_rEsc(v.sintesi||'')+'</small></div><button data-act="apri">Apri</button><button data-act="dup">Duplica</button><button data-act="del" title="Elimina">✕</button></div>').join('')
+    ? arr.slice().reverse().map(v=>'<div class="hg-item" data-id="'+v.id+'"><div class="t"><b>'+_rEsc(v.nome)+'</b><small>'+_rEsc(dataISOEsiste(v.data)?gdata(v.data):'senza data')+(v.autore&&v.autore.email?' · '+_rEsc(v.autore.email):'')+' · '+_rEsc(v.sintesi||'')+'</small></div><button data-act="apri">Apri</button><button data-act="dup">Duplica</button><button data-act="del" title="Elimina">✕</button></div>').join('')
     : '<div class="hg-empty">Nessuna volata salvata. Progetta nel 2D e premi «Salva la volata attuale»: la ritroverai qui.</div>';
   const nv=await GDB.nuvole();
   if($('hgNuvN')) $('hgNuvN').textContent=nv.length? _ricPlur(nv.length,'lavorazione','lavorazioni'):'';
@@ -7979,7 +7987,7 @@ if(location.hostname==='localhost'||location.hostname==='127.0.0.1'){
     seek:(ms)=>{ setPlaying(false); setSimT(ms, true); return simT; },
     look:(name)=>applyLook(name),
     play:()=>setPlaying(true), pause:()=>setPlaying(false),
-    rebuild, renderScheda2D, get SIM(){return SIM}, get P(){return P}, get D2(){return D2}, get simT(){return simT},
+    rebuild, renderScheda2D, get SIM(){return SIM}, get P(){return P}, get D2(){return D2}, get simT(){return simT}, get GDB(){return GDB},
     get frontMesh(){return frontMesh},
     get xrayCyls(){return xrayCyls}, holeInfoShow, buildTicks,
     loadFrontUrl: async (url)=>{ const t=await (await fetch(url)).text(); loadFrontMeshObject(new OBJLoader().parse(t)); return P.fori; },

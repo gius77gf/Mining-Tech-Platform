@@ -477,6 +477,8 @@ const BANCHI = [
      deve aprire un SECONDO tratto, non allungare quello appena chiuso. */
   ["i tratti liberi dell'editor 2D di Genesi (G47c-2)", 'genesi-tratti.mjs', []],
   ['tratti liberi 2D · controprova', 'genesi-tratti.mjs', ['--controprova'], true],
+  ["Genesi: una volata salvata porta l'identità di chi era collegato", 'genesi-autore-volata.mjs', []],
+  ['autore della volata di Genesi · controprova', 'genesi-autore-volata.mjs', ['--controprova'], true],
   /* AGGIUNTO IL 14/09 (G47b): livelli VERI (mostra/nascondi, blocca) per
      fori/fronte/piede/tratti — non i vecchi interruttori di un calcolo
      (iso/rel/ene/inn). Il caso che conta è il blocco: un'entità bloccata
