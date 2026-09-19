@@ -4470,3 +4470,275 @@ non solo il prodotto — o rischia di rompere la copertura che già esiste
 per proteggere quegli stessi quattro export. Lasciata come candidato per
 un cantiere dedicato, non implementata.
 
+---
+
+## Ricerca del 2026-09-19 — secondo giro: oltre Kuz-Ram, validazione pre-sparo e tracciabilità sparato-vs-caricato (metà sul mondo)
+
+_Timestamp: 2026-09-19T04:45:56Z_
+
+_Strumento: `WebSearch` soltanto, come impone il mandato — `WebFetch` non è
+stato ritentato (`EGRESS_BLOCKED`, confermato più volte da ricerche
+precedenti di questo file, l'ultima poche ore fa alle 02:39Z). Ogni fatto sul
+mondo è marcato [di seconda mano]: nessuna pagina è stata letta per intero,
+solo risultati di ricerca._
+
+### Già scritto (per non ripeterlo) — letto PRIMA di cercare nel mondo
+
+Letto per intero, prima di proporre, con `grep -n "^## " docs/RICERCA_CONTINUA_GENESI.md`
+(35 sezioni) e le sezioni pertinenti riaperte una per una, più
+`vault/ROADMAP_SETTIMANA.md` (righe con "Genesi") e gli ultimi checkpoint di
+Genesi in `vault/checkpoints/` (fino a `20260919-031635_dodicesimo-giro-...md`).
+Tre "non c'è" evitati:
+
+- **La sezione di POCHE ORE FA nello stesso file (righe 4184-4472,
+  timestamp 02:39Z)** copre già a fondo (b) validazione pre-sparo e (c)
+  tracciabilità: il semaforo di sintesi G45 (badge 🔴/🟡/🟢), il consuntivo
+  carico progetto-vs-reale foro per foro già esistente (`_riconParseCampo`),
+  i tre anelli 3D della zona di sgombero (flyrock), e l'autore/marca
+  temporale di ogni volata salvata (implementato lo stesso giro,
+  `61da46dc`). Non ripropongo nessuno di questi. **Quello che quella
+  ricerca non ha guardato** (l'ho verificato leggendo tutta la sezione, non
+  solo il titolo): il consuntivo Campo→Genesi tratta la carica come
+  "caricata correttamente" o "non ancora riletta" — mai come "caricata ma
+  MAI DETONATA" (misfire/colpo cieco). È un asse diverso da quello che
+  quella sezione ha misurato (severità del semaforo, identità di chi
+  salva), ed è il cuore di questa ricerca, sezione 3 sotto.
+- **14/09 (righe 2995-3095), "Controlli automatici di validazione"**: aveva
+  già trovato che Genesi non valida sovrapposizione fori/distanza dal
+  confine cava (`assente`, non ricontrollato oggi perché nessun commit dal
+  14/09 tocca quel punto — verificato: `git log --oneline -20 --
+  apps/genesi/genesi-data.js apps/genesi/genesi.html` non contiene nessun
+  commit con "confine"/"boundary" nel messaggio). Non riproposto qui per non
+  duplicare un "non c'è" già scritto e ancora valido; solo confermato con
+  `grep -niE "overlap|sovrappos|boundary|confine.*cava|distConfine"
+  apps/genesi/genesi-data.js apps/genesi/genesi.html` → nessuna riga di
+  codice di validazione (solo commenti su tutt'altro, coordinate del
+  disegno e sovrapposizione grafica di etichette).
+- **09-12 (righe 811-1006), limiti di Kuz-Ram**: aveva lasciato aperta la
+  domanda "il modello sottostima le fini, serve un modello successivo
+  (KCO/Swebrec)?" senza controllare se fosse già stato costruito.
+  **È stato costruito nel frattempo**: `grep -c "Swebrec"
+  apps/genesi/genesi.html apps/genesi/genesi-data.js` → **13 e 1**
+  occorrenze. Verificato leggendo il codice (`genesi.html:7144-7159`): un
+  secondo modello di frammentazione KCO/Swebrec (Ouchterlony 2005) affianca
+  Kuz-Ram nella scheda validatori, con la formula `P(x)=1/(1+[ln(xmax/x)/
+  ln(xmax/x50)]^b)` (riga 2711) e un parametro di undulazione `b` calcolato
+  da x50 e xmax (riga 7155), più un `xmax` limitato dal blocco in situ. È
+  **esattamente** la funzione a tre parametri (x50, xmax, b) della sezione
+  1 sotto — questa parte della mia domanda guida (a) è quindi **già
+  risolta** nel codice, e lo dichiaro come tale invece di riproporla.
+- **09-14, sequenza/timing anti-flyrock**: i badge "Timing inter-foro" (3-7
+  ms/m) e "Timing inter-fila" (8-15 ms/m) in `renderScheda2D`
+  (`genesi.html:6978-6994`) implementano già la regola pratica del "relief"
+  (millisecondi per metro di burden da liberare prima dello sparo del foro
+  successivo) che è **esattamente** il meccanismo con cui l'industria
+  previene flyrock e sovrappressione da confinamento eccessivo (sezione 2
+  sotto). Non riproposto: è la parte (b) della mia domanda guida già
+  coperta, con doppia guardia (in-fila e tra-file) e persino una mappa per
+  singolo foro (`G2 — relief foro per foro`, `genesi.html:6985+`).
+
+### Il mondo [tutte le fonti di seconda mano, solo risultati di ricerca]
+
+**1. Oltre Kuz-Ram: la funzione Swebrec (Ouchterlony 2005) — confermata, non proposta**
+
+- La funzione Swebrec è a **tre parametri**: la taglia mediana x50, la
+  taglia massima xmax e un parametro di "ondulazione" b, che è dimostrato
+  essere in pratica funzione degli altri due. Dà fit eccellenti (r²>0,995,
+  spesso 0,997+) su centinaia di set di dati di vagliatura, su un range di
+  taglie di 2-3 ordini di grandezza. [di seconda mano: Ouchterlony 2005,
+  "The Swebrec function: linking fragmentation by blasting and crushing",
+  Mining Technology 114(1), via sagepub.com/tandfonline.com; diva-portal.org,
+  "A new three-parameter fragment size distribution function"]
+- **Usata dentro il modello Kuz-Ram**, la Swebrec "rimuove due dei suoi
+  difetti — la scarsa capacità predittiva nella gamma delle fini e il
+  taglio superiore sulla taglia dei blocchi" [di seconda mano: stessa
+  fonte]. È la conferma diretta, dalla fonte primaria del modello, che
+  l'approccio già scelto da Genesi (Kuz-Ram + Swebrec/KCO come secondo
+  modello, con xmax legato al blocco in situ) è la via che la letteratura
+  raccomanda, non un'invenzione interna.
+- Proprietà del "fragmentation-energy fan": se i dati seguono la funzione,
+  alcune rette convergono in un punto focale che dipende dal materiale
+  sparato — un risultato più avanzato (energia specifica ↔ curva completa,
+  non solo x50) che **non risulta implementato** in nessuna fonte come
+  parte standard dei software commerciali generalisti; è materiale di
+  ricerca più che di prodotto. [di seconda mano: stessa fonte; Springer
+  2018, "The Fragmentation-Energy Fan Concept... in Modeling Drop Weight
+  Testing"]
+
+**2. Validazione pre-sparo: distanze minime e tempi di attesa per misfire (nuovo rispetto alla ricerca di poche ore fa, che copriva la checklist generale ma non i tempi di attesa normativi)**
+
+- **MSHA (USA, 30 CFR 56/57)**: quando si sospetta un colpo cieco (misfire),
+  l'accesso alla zona di sparo è vietato per **almeno 30 minuti** se si
+  usano miccia di sicurezza e detonatori a miccia, o **15 minuti** con
+  altri tipi di detonatori; con detonatori **elettronici** l'attesa
+  raccomandata è **almeno 30 minuti**, per dare tempo di analizzare le
+  circostanze e pianificare un rientro sicuro. Un misfire è definito come
+  "il fallimento completo o parziale di una carica di sparare come
+  progettato". [di seconda mano: regulations.gov (MSHA-2019-0007-0001,
+  "Electronic Detonators"); msha.gov, "Blasting Safety"]
+- **OSHA 1926.911** tratta gli stessi misfire nel settore costruzioni: mai
+  maneggiare un colpo cieco senza essere un fochino addestrato; tutti i
+  cavi vanno tracciati con cura e va condotta una ricerca delle cariche non
+  esplose. [di seconda mano: osha.gov, 1926.911]
+- **Italia, D.Lgs 624/1996** (la norma di settore per le cave, già citata
+  altrove in questo file per altri articoli): se si sospetta o si ha dubbio
+  che una o più mine o colpi non siano esplosi, l'accesso al luogo
+  pericoloso deve essere vietato **per almeno un'ora** dal momento dello
+  sparo del primo colpo. [di seconda mano: risultato di ricerca aggregato
+  su reteambiente.it/regione.toscana.it, testo D.Lgs 624/1996 — **non letto
+  il testo primario dell'articolo esatto**, solo lo snippet di ricerca: chi
+  vuole citarlo in un documento verso l'ispettore deve aprire il testo
+  vero, non questo snippet]
+- **Il software commerciale documenta il misfire come dato distinto, non
+  come "carica in ritardo di lettura"**: i report post-sparo di
+  BlastLogic (Maptek) includono "documentazione dei misfire, riepilogo
+  cariche, powder factor e dati di sparo"; l'analisi per singolo foro
+  permette di isolare "quei fori che hanno avuto problemi" — cioè il
+  misfire è un **esito per foro**, non una media di volata. [di seconda
+  mano: maptek.com, "How to speed up incident reporting using BlastLogic";
+  ricerca aggregata "blast design software misfire post-blast report"]
+- Un incidente reale documentato dall'autorità australiana: detonazione
+  **ritardata** scoperta durante l'ispezione post-sparo da parte dei
+  fochini stessi — cioè il caso concreto per cui l'ispezione per-foro
+  esiste, non un'astrazione da manuale. [di seconda mano: worksafe.wa.gov.au,
+  "Mines Safety Significant Incident Report No. 219 — Delayed detonation
+  of explosives in a blast hole during post-blast inspection"]
+
+### Il delta, verificato aprendo il codice (non dedotto dal nome)
+
+**Il consuntivo Campo→Genesi (unico canale che oggi collega "progettato" a
+"quello che è successo davvero in cava") non distingue un foro non
+detonato da un foro il cui dato non è ancora arrivato — e non può, perché
+nel formato non esiste un campo per l'esito.**
+
+```
+grep -n "carica_prog_kg;carica_reale_kg" apps/genesi/genesi-data.js
+→ 625:     data;turno;foro;carica_prog_kg;carica_reale_kg;scarto_pct[;scarto_kg;squadra;operatore]
+
+grep -niE "misfire|colpo cieco|mancata.?accens|mancata.?esplos|mine inesplos|carica inesplos" \
+  apps/genesi/genesi-data.js apps/genesi/genesi.html
+→ (nessuna riga)
+
+grep -n "\.reale" apps/genesi/genesi-data.js
+→ 746: const reale = r && r.reale!=null && ... ? +r.reale : null;
+  868: const reg=p.righe.filter(r=>r.reale!=null);
+  889-891: medioKg/medioPct/peggio — tutti calcolati SOLO sullo scostamento
+           kg progetto vs kg reale, mai su un esito di sparo
+```
+
+`_riconParseCampo` (genesi-data.js:640-676) legge `carica_reale_kg` e ne fa
+`reale = null` quando il campo è vuoto o non numerico — trattato allo stesso
+modo sia che il foro **non sia ancora stato caricato** (il fochino non è
+arrivato a quella riga) sia che sia stato **caricato e poi non abbia
+sparato** (misfire): nel formato attuale queste due situazioni, radicalmente
+diverse per sicurezza, non sono nemmeno rappresentabili come due valori
+distinti, perché la colonna che il consuntivo esporta è una sola
+(`carica_reale_kg`, un numero) e non porta un secondo campo per l'esito
+della detonazione. Un foro con `carica_reale_kg=45` (caricato secondo
+progetto) e mai sparato oggi produce, nella riconciliazione di Genesi,
+esattamente lo stesso `scarto_pct` di un foro sparato regolarmente — **il
+caso più pericoloso (esplosivo vivo nel terreno) è quello che il conto
+`medioPct`/`peggio` (righe 889-891, "il foro più fuori scostamento") ha
+meno probabilità di segnalare**, perché uno scarto vicino a zero kg è
+esattamente il segno di "tutto bene" in quella tabella. È la stessa
+famiglia di difetto già raccolta altrove in questo repository — «l'assenza
+di un dato non è un dato favorevole» — applicata a un campo che non è mai
+stato progettato per portare quel dato, non a un campo che lo perde per un
+bug.
+
+Questo non è lo stesso buco della «firma del direttore» già dichiarato
+fuori perimetro (09/11, 14/09): quella è un atto legale su carta che
+richiede un'anagrafica che Genesi non ha; questa è un **dato tecnico per
+foro** (sparato / non sparato / caricato-non-sparato) che il canale
+Campo→Genesi già esiste per portare (lo stesso file, la stessa riga per
+foro) e che oggi semplicemente non ha una colonna per contenerlo.
+
+### Proposte
+
+`schermata · che cosa non va · come si vede · quanto costa · come si misura`
+
+1. **Formato del consuntivo Campo→Genesi (`_riconParseCampo`,
+   genesi-data.js:640) e sezione Riconciliazione (genesi.html:4300+) ·
+   nessun campo distingue "caricato e sparato" da "caricato e MAI sparato
+   (misfire)" da "non ancora caricato" · si vede coi grep sopra: la sola
+   colonna disponibile è `carica_reale_kg`, un numero, `null` quando manca
+   — usato per due situazioni opposte per sicurezza · costo: piccolo per il
+   formato (una colonna opzionale in coda, es. `esito` con valori
+   `sparato`/`misfire`/vuoto, letta per nome come le altre — la stessa
+   difesa già usata per `idForo`, "chi cancella la riga dei titoli non
+   resta a piedi"), MEDIO per l'effetto a cascata: il campo va scritto da
+   Campo (non è lavoro di questa ricerca, che non tocca prodotto, ma
+   segnala che l'altra metà del ponte vive nell'app Campo, non in Genesi) e
+   letto qui aggiungendo una riga distinta nella sezione Riconciliazione
+   ("N fori caricati ma senza sparo confermato" con verdetto SEMPRE
+   visibile anche a zero, mai un silenzio quando la colonna manca del
+   tutto — che oggi sarebbe il caso di ogni file esistente, per cui la
+   funzione deve dichiarare "esito non disponibile in questo file", non
+   "zero misfire", altrimenti si ricade nello stesso principio violato al
+   contrario) · si misura: costruire un CSV di consuntivo con una riga
+   `esito=misfire` per un foro con `carica_reale_kg` pari al progetto, e
+   verificare che la Riconciliazione lo segnali distintamente da un foro
+   con lo stesso identico scarto ma `esito=sparato`; poi rileggere un
+   consuntivo VECCHIO (senza la colonna `esito`, quelli reali di oggi) e
+   verificare che la sezione dichiari "esito non tracciato in questo file"
+   invece di dare un silenzioso "tutto sparato".
+
+2. **Report stampabile "Report volata — Genesi" (genesi.html:4124-4145,
+   sezione firma G8) · non cita in nessun punto il tempo minimo di attesa
+   prima del rientro dopo un sospetto misfire, che tre fonti indipendenti
+   (MSHA, OSHA, D.Lgs 624/1996 italiano) trattano come il primo passo
+   operativo dopo qualunque colpo sospetto · si vede: `grep -niE
+   "rientr.*minut|attesa.*sparo|un'ora.*sparo"
+   apps/genesi/genesi.html` → nessuna riga; il blocco firma (righe
+   4134-4135) ha solo "Responsabile del tiro / Firma / Data e ora dello
+   sparo" · costo: piccolo — una riga di testo fissa nel foglio stampato,
+   accanto alla firma (non un calcolo: un promemoria normativo, come già
+   fa il footer con l'errore ±50% di Kuz-Ram/Swebrec), es. "In caso di
+   sospetto colpo cieco: accesso vietato per almeno 1 ora (D.Lgs 624/1996)
+   — verificare il testo vigente prima di ogni applicazione operativa" ·
+   si misura: aprire il report stampato e verificare che la frase compaia
+   sempre, indipendentemente dai valori della volata (non è condizionale a
+   nessun KPI, quindi non serve un banco che inietti dati: basta un banco
+   che apra il documento e cerchi la frase, come fa già
+   `documenti-dimostrazione.mjs` per le altre celle fisse del foglio).
+   ⚠️ **Nota di onestà**, per non ripetere l'errore già raccolto in questo
+   file sui numeri di legge riportati di seconda mano: il valore "un'ora"
+   viene da uno snippet di ricerca aggregato sul D.Lgs 624/1996, non dal
+   testo dell'articolo letto per intero — chi implementa questa proposta
+   deve **prima verificare il testo vigente** (l'articolo esatto e
+   l'eventuale aggiornamento), non copiare il numero da questa riga.
+
+### Fonti (risultati di ricerca, nessuna letta per intero)
+
+- [Ouchterlony 2005 — The Swebrec function: linking fragmentation by blasting and crushing (Mining Technology 114(1))](https://journals.sagepub.com/doi/abs/10.1179/037178405X44539)
+- [Diva-portal — A new three-parameter fragment size distribution function](https://www.diva-portal.org/smash/get/diva2:983449/FULLTEXT01.pdf)
+- [Springer 2018 — The Fragmentation-Energy Fan Concept and the Swebrec Function in Modeling Drop Weight Testing](https://link.springer.com/article/10.1007/s00603-018-1458-5)
+- [Regulations.gov — MSHA-2019-0007-0001, Electronic Detonators](https://www.regulations.gov/document/MSHA-2019-0007-0001)
+- [MSHA — Blasting Safety](https://www.msha.gov/safety-health/safety-health/safety-health-materials/safety-topics/blasting-safety)
+- [OSHA 1926.911 — Misfires](https://www.osha.gov/laws-regs/regulations/standardnumber/1926/1926.911)
+- [ReteAmbiente — D.Lgs 25 novembre 1996, n. 624](https://reteambiente.it/normativa/19137/)
+- [Regione Toscana — Testo D.Lgs 624/1996 (PDF)](https://www.regione.toscana.it/documents/10180/11241969/Dlgs+624+1996.pdf/65dcd0e1-7213-4049-b43d-c572f420cd79)
+- [Maptek — How to speed up incident reporting using BlastLogic](https://www.maptek.com/blogs/drill-and-blast-how-to-speed-up-incident-reporting-using-blastlogic/)
+- [WorkSafe WA — Mines Safety Significant Incident Report No. 219, Delayed detonation of explosives in a blast hole](https://www.worksafe.wa.gov.au/publications/mines-safety-significant-incident-report-no-219-delayed-detonation-explosives-blast)
+
+### Riassunto onesto
+
+Due delle tre domande della mia guida risultano, aprendo il codice invece
+di fidarsi del nome, **già chiuse**: la curva di frammentazione oltre
+Kuz-Ram (Swebrec/KCO, formula a tre parametri, xmax legato al blocco in
+situ) e la sequenza di innesco anti-flyrock (badge di relief ms/m in-fila e
+tra-file, con mappa per singolo foro) sono implementate e coerenti con
+quello che la letteratura primaria (Ouchterlony 2005) e la pratica
+industriale descrivono — non ho trovato nessun raffinamento del mondo che
+manchi in modo concreto e misurabile su questi due assi, oltre a quanto già
+scritto nelle ricerche precedenti. Quello che resta, verificato col codice
+e non con la parola del mondo, è **un solo buco reale ma preciso**: il
+canale che già collega "progettato" a "quello che è successo in cava" (il
+consuntivo Campo→Genesi) porta la carica in chili ma non l'esito della
+detonazione, quindi non può mai distinguere il caso più pericoloso — una
+carica viva rimasta nel foro — da uno sparo riuscito con lo stesso peso.
+Il secondo punto (il promemoria sui tempi di attesa) è un contorno minore,
+proposto solo perché tre fonti indipendenti lo trattano come il primo passo
+operativo dopo ogni sospetto, e Genesi già stampa promemoria normativi
+analoghi (l'errore ±50% di Kuz-Ram) nello stesso foglio.
+

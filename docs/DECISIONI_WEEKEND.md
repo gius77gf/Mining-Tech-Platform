@@ -10,6 +10,48 @@ può procedere con l'attuazione.
 
 ---
 
+## 🟡 19/09 — Genesi↔Campo: il consuntivo di carico non distingue un foro sparato da uno caricato e MAI detonato (misfire)
+
+*Dalla ricerca continua su Genesi (quattordicesimo giro), verificata
+indipendentemente prima di scrivere questa voce con gli stessi comandi
+citati nel documento — vedi `docs/RICERCA_CONTINUA_GENESI.md`, sezione
+"secondo giro" del 19/09.*
+
+- [ ] **41. Il consuntivo Campo→Genesi (`_riconParseCampo`,
+  `apps/genesi/genesi-data.js:640-676`) legge una sola colonna numerica,
+  `carica_reale_kg` (intestazione confermata:
+  `data;turno;foro;carica_prog_kg;carica_reale_kg;scarto_pct[...]`,
+  riga 625). Un foro **caricato secondo progetto e poi sparato** e un
+  foro **caricato secondo progetto e MAI detonato** (misfire/colpo
+  cieco) producono esattamente lo stesso numero in quella colonna e
+  quindi esattamente lo stesso `scarto_pct` — il caso più pericoloso
+  (esplosivo vivo nel foro) è quello che il riepilogo "il foro più fuori
+  scostamento" (`genesi-data.js:889-891`) ha meno probabilità di
+  segnalare, perché uno scarto vicino a zero è lì il segno di "tutto
+  bene". Confermato: nessuna occorrenza di
+  `misfire|colpo cieco|mancata accensione|mancata esplosione` in tutto
+  `apps/genesi/`.
+  **Perché serve una decisione e non un'unità automatica**: la
+  correzione minima nel formato (una colonna opzionale `esito` con
+  valori `sparato`/`misfire`/vuoto) è a basso costo da sola, ma
+  l'altra metà del canale — chi SCRIVE quella colonna — vive
+  nell'app **Campo**, non in Genesi: è una modifica che attraversa due
+  app e il loro formato di scambio, non un bug in una funzione sola.
+  Serve anche decidere **come si giudica un file vecchio** (quelli
+  reali di oggi, senza la colonna): la riconciliazione deve dichiarare
+  "esito non tracciato in questo file", mai un silenzioso "zero
+  misfire" — è lo stesso principio già applicato altrove in questa
+  casa (l'assenza di un dato non è un dato favorevole), qui su un dato
+  che tocca la sicurezza in cava.
+  **Nota separata, minore**: la stessa ricerca propone anche un
+  promemoria fisso sul report stampato di Genesi sul tempo minimo di
+  attesa dopo un sospetto misfire — **non aggiunto**: il numero citato
+  (un'ora, dal D.Lgs 624/1996) viene da uno snippet di ricerca
+  aggregato, non dal testo dell'articolo letto per intero, e questa
+  casa non scrive in un documento un numero di legge di seconda mano
+  (peggio di un numero assente). Se questa decisione procede, il primo
+  passo è verificare il testo vigente dell'articolo esatto.
+
 ## 🟡 19/09 — La barra di navigazione in basso: sotto i 44 px di larghezza su tre app, sotto i 60 in tutte tranne il core
 
 *Dalla seconda iterazione UX/estetica su Scudo, misurato con
@@ -879,7 +921,7 @@ cinque elencate qui sotto.
 
 ---
 
-# 📖 Da dove cominciare — le decisioni aperte sono **27**
+# 📖 Da dove cominciare — le decisioni aperte sono **28**
 
 *Erano 19 fino al 07/08. **Nove** sono state chiuse dal **ciclo**, non da te, con
 la regola che avevi concesso il 01/08 (senza risposta entro la settimana si
