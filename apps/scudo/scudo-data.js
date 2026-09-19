@@ -4897,6 +4897,20 @@ export function fascicoloIspezione(dati, oggi = new Date()) {
     ["Near-miss nell'ultimo anno", rnm.totale + " (" + rnm.totaleStorico + " in tutto) · con azione " + rnm.conAzione + " · " + (rnm.senzaAzione ? G("senza azione " + rnm.senzaAzione) : "senza azione 0")],
   ] : [];
 
+  // 6b · azioni correttive — lo stesso array che alimenta il KPI rosso del
+  // Quadro ("Azioni correttive scadute") e lo scadenzario, letto qui per la
+  // prima volta con `riepilogoAzioni` invece che solo attraverso il filtro
+  // dei near-miss senza azione: senza questa sezione un'azione scaduta da
+  // mesi non compariva in nessuna riga del fascicolo, mentre lo stesso dato
+  // produceva un allarme rosso in cima allo schermo — il documento pensato
+  // per l'ispettore era l'unico a tacerne (⛔ 19/09, dal deep-pass QA).
+  const ra = riepilogoAzioni(azioni, oggi);
+  if (!azioni.length) nonMisurati.push("nessuna azione correttiva registrata: non vuol dire che non ce ne siano");
+  else if (ra.scadute || ra.inScadenza) daSistemare.push("azioni correttive: " + [ra.scadute ? conta(ra.scadute, "scaduta", "scadute") : "", ra.inScadenza ? conta(ra.inScadenza, "in scadenza", "in scadenza") : ""].filter(Boolean).join(", "));
+  const righeAzioni = azioni.length ? [["Azioni correttive", ra.totale + " totali · aperte " + ra.aperte + " · in corso " + ra.inCorso + " · chiuse " + ra.chiuse
+    + (ra.scadute ? " · " + G(conta(ra.scadute, "scaduta", "scadute")) : "")
+    + (ra.inScadenza ? " · " + conta(ra.inScadenza, "in scadenza", "in scadenza") : "")]] : [];
+
   // 7 · appalti
   const rA = riepilogoAppalti(appalti, cantieri, appaltatori, documenti, oggi);
   if (!rA.quanti) nonMisurati.push("nessun appalto registrato (non vuol dire nessuna impresa esterna in cava)");
@@ -4923,6 +4937,7 @@ export function fascicoloIspezione(dati, oggi = new Date()) {
     sez("Idoneità sanitarie", righeIdo, "Nessun lavoratore in forza: le idoneità non si possono dire."),
     sez("Dispositivi di protezione", righeDpi, "Nessuna consegna di DPI a registro."),
     sez("Registro infortuni e near-miss", righeInf, "Nessun evento registrato. Non è «nessun evento»: è un registro in cui non è stato scritto niente."),
+    sez("Azioni correttive", righeAzioni, "Nessuna azione correttiva registrata: non vuol dire che non ce ne siano."),
     sez("Imprese esterne e appalti", righeApp, rA.testo || "Nessun appalto registrato."),
     sez("Ispezioni interne e prescrizioni", righeIsp, "Nessuna ispezione interna registrata."),
   ];
@@ -4939,6 +4954,7 @@ export function fascicoloIspezione(dati, oggi = new Date()) {
     nonMisurati, daSistemare, completo, inRegola,
     numeri: { cave: cave.length, dssRegolari: cicli.filter((c) => c.noto && c.stato === "regolare").length, nomineDaSistemare: nomKO.length,
       lavoratori: attivi.length, senzaGiudizio: perGiudizio[""], dpiDaSistemare: rd.daSistemare, infortuni: ri.infortuni, nearMissSenzaAzione: rnm.senzaAzione,
+      azioniScadute: ra.scadute, azioniInScadenza: ra.inScadenza,
       appalti: rA.quanti, ispezioniScadute: rI.scadute, conformiSenzaProva: cSenzaProva.length },
   };
 }

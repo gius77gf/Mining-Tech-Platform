@@ -3267,7 +3267,8 @@ test("⛔ fascicoloIspezione: l'elenco dell'ispettore per la cava intera, compos
       appaltatori: D.appaltatori, documenti: D.documenti } };
   const f = scudo.fascicoloIspezione(tutto, oggi);
   eq(f.sezioni.map((z) => z.titolo), ["Documento di sicurezza e salute (DSS)", "Organigramma della sicurezza e nomine", "Formazione e scadenze", "Idoneità sanitarie",
-    "Dispositivi di protezione", "Registro infortuni e near-miss", "Imprese esterne e appalti", "Ispezioni interne e prescrizioni"], "le otto sezioni, nell'ordine della visita");
+    "Dispositivi di protezione", "Registro infortuni e near-miss", "Azioni correttive", "Imprese esterne e appalti", "Ispezioni interne e prescrizioni"],
+    "⛔ le nove sezioni, nell'ordine della visita (19/09: «Azioni correttive» aggiunta — prima il fascicolo taceva sulle azioni scadute)");
   eq(f.sezioni.filter((z) => z.vuoto).length, 0, "sulla dimostrazione nessuna sezione è vuota");
   eq(f.firme, ["Luogo e data", "Il datore di lavoro", "Il direttore responsabile"], "tre firme: il direttore responsabile è del settore estrattivo");
   /* ⛔ le due domande, separate come nella cartella: che cosa NON risulta, e che
@@ -3276,14 +3277,16 @@ test("⛔ fascicoloIspezione: l'elenco dell'ispettore per la cava intera, compos
     "4 lavoratori senza giudizio di idoneità registrato", "1 appalto non verificato"], "⛔ le assenze, per nome — un DSS non databile non è «a posto»");
   ok(f.daSistemare.includes("nomina da sistemare: Direttore responsabile") && f.daSistemare.includes("1 lavoratore non idoneo in forza")
     && f.daSistemare.includes("consegne DPI: 5 righe da sistemare") && f.daSistemare.includes("4 near-miss dell'ultimo anno senza azione")
-    && f.daSistemare.includes("ispezioni: 1 scaduta, 4 voci senza esito"), "le righe registrate e non in regola: " + f.daSistemare.join(" | "));
+    && f.daSistemare.includes("azioni correttive: 3 scadute") && f.daSistemare.includes("ispezioni: 1 scaduta, 4 voci senza esito"),
+    "⛔ le righe registrate e non in regola, comprese le 3 azioni correttive scadute (19/09, dal deep-pass QA — prima il fascicolo taceva): " + f.daSistemare.join(" | "));
   eq([f.completo, f.inRegola, f.chiusura.allarme], [false, false, true], "e la chiusura è un allarme");
   ok(/^Sezioni o dati che in Scudo non risultano: DSS di Cava Monte Alto/.test(f.chiusura.testo) && /⚠️ E non tutto quello che è registrato è in regola/.test(f.chiusura.testo), f.chiusura.testo);
   // infortuni: 4 dal 15/09 (i9, l'infortunio oltre i 60 giorni che esercita
   // visitaRientroNecessaria in dimostrazione — finding 4 del secondo giro di
   // ricerca su Scudo); 3 prima.
-  eq(f.numeri, { cave: 2, dssRegolari: 0, nomineDaSistemare: 4, lavoratori: 7, senzaGiudizio: 4, dpiDaSistemare: 5, infortuni: 4, nearMissSenzaAzione: 4, appalti: 4, ispezioniScadute: 1, conformiSenzaProva: 1 },
-    "i numeri sono quelli delle funzioni di schermo (misurati chiamandole, non a memoria) — ⛔ 17/09: 1 voce «conforme» sulla dimostrazione senza nessun permesso di lavoro registrato dietro (l'accesso a spazi confinati dell'Impianto di lavorazione)");
+  eq(f.numeri, { cave: 2, dssRegolari: 0, nomineDaSistemare: 4, lavoratori: 7, senzaGiudizio: 4, dpiDaSistemare: 5, infortuni: 4, nearMissSenzaAzione: 4,
+    azioniScadute: 3, azioniInScadenza: 0, appalti: 4, ispezioniScadute: 1, conformiSenzaProva: 1 },
+    "i numeri sono quelli delle funzioni di schermo (misurati chiamandole, non a memoria) — ⛔ 17/09: 1 voce «conforme» sulla dimostrazione senza nessun permesso di lavoro registrato dietro (l'accesso a spazi confinati dell'Impianto di lavorazione); 19/09: 3 azioni correttive scadute, prima invisibili al fascicolo");
   const riga = (t, e) => { const z = f.sezioni.find((x) => x.titolo === t); const r = z && z.righe.find((q) => q[0] === e); return r ? r[1] : undefined; };
   ok(/^\*\*non databile\*\* — Il DSS è in archivio/.test(riga("Documento di sicurezza e salute (DSS)", "Cava Monte Alto")), "⛔ il DSS non databile è in grassetto, con la ragione del modulo");
   eq(riga("Organigramma della sicurezza e nomine", "Medico competente"), "**nessuna nomina: ruolo obbligatorio scoperto**", "il ruolo obbligatorio scoperto si vede");
@@ -3291,20 +3294,50 @@ test("⛔ fascicoloIspezione: l'elenco dell'ispettore per la cava intera, compos
   eq(riga("Idoneità sanitarie", "Giudizio del medico"), "idonei 1 · con prescrizioni 1 · **non idonei 1** · **senza giudizio registrato 4**", "⛔ chi non ha un giudizio registrato si conta, in grassetto");
   eq(riga("Formazione e scadenze", "Visita medica"), "4 su 5 in regola · **1 scaduta**");
   eq(riga("Registro infortuni e near-miss", "Near-miss nell'ultimo anno"), "5 (5 in tutto) · con azione 1 · **senza azione 4**");
+  eq(riga("Azioni correttive", "Azioni correttive"), "4 totali · aperte 2 · in corso 1 · chiuse 1 · **3 scadute**",
+    "⛔ 19/09: la stessa domanda che il KPI rosso del Quadro fa già (statoAzione/riepilogoAzioni), qui per la prima volta nel fascicolo");
 });
 test("⛔ fascicoloIspezione senza dati: ogni sezione dice che non risulta niente, e niente è «a posto»", () => {
   const oggi = new Date("2026-09-11T00:00:00");
   const v = scudo.fascicoloIspezione({}, oggi);
-  eq(v.sezioni.filter((z) => z.vuoto).length, 7, "sette sezioni vuote con la loro frase (l'organigramma ha sempre i ruoli)");
+  eq(v.sezioni.filter((z) => z.vuoto).length, 8, "otto sezioni vuote con la loro frase (l'organigramma ha sempre i ruoli; 19/09: +1 con «Azioni correttive»)");
   ok(v.sezioni.every((z) => z.righe.length || z.vuoto), "nessuna sezione muta");
   ok(v.nonMisurati.includes("nessuna cava registrata: il DSS non si può collegare a niente") && v.nonMisurati.includes("nessun lavoratore in forza")
-    && v.nonMisurati.includes("registro infortuni e near-miss vuoto: nessun evento registrato, che non è «nessun evento»"), v.nonMisurati.join(" | "));
+    && v.nonMisurati.includes("registro infortuni e near-miss vuoto: nessun evento registrato, che non è «nessun evento»")
+    && v.nonMisurati.includes("nessuna azione correttiva registrata: non vuol dire che non ce ne siano"), v.nonMisurati.join(" | "));
   ok(v.nonMisurati.some((x) => /nomina mancante/.test(x)), "i ruoli obbligatori scoperti sono assenze");
   eq([v.completo, v.inRegola, v.chiusura.allarme], [false, true, true], "⛔ vuoto non è in regola: è non misurato, e l'allarme resta");
   eq(v.numeri.lavoratori, 0); eq(v.numeri.dssRegolari, 0);
   const org = v.sezioni.find((z) => z.titolo === "Organigramma della sicurezza e nomine");
   eq(org.righe.filter((r) => /\*\*nessuna nomina: ruolo obbligatorio scoperto\*\*/.test(r[1])).length, scudo.NOMINE_RUOLI.filter((r) => r.obbligatoria).length, "un ruolo obbligatorio scoperto per ogni ruolo obbligatorio");
-  eq(scudo.fascicoloIspezione(null, oggi).sezioni.length, 8, "null non rompe");
+  eq(scudo.fascicoloIspezione(null, oggi).sezioni.length, 9, "null non rompe");
+});
+test("⛔ 19/09, dal deep-pass QA su Scudo: fascicoloIspezione taceva sulle azioni correttive scadute mentre il Quadro le dichiara in rosso", () => {
+  /* Riproduzione minima, isolando SOLO la variabile che conta (le azioni):
+     stessi dati di contorno nei due casi, cambia solo `azioni`. Prima di
+     questo fix, con o senza azioni scadute il fascicolo non diceva MAI
+     niente sul fronte "azioni correttive" — lo stesso array (`AZI`) che
+     sullo schermo produce il KPI rosso "Azioni correttive scadute" in cima
+     al Quadro. */
+  const oggi = new Date("2026-09-19");
+  const base = { cantieri: [{ id: "c1", nome: "Cava A" }], documenti: [], nomine: [], lavoratori: [], scadenze: [],
+    mansioni: [], dpi: [], appalti: [], appaltatori: [], infortuni: [],
+    ispezioni: [{ id: "i1", cantiereId: "c1", data: "2026-01-01", stato: "completata", dataChiusura: "2026-01-01", voci: [], esiti: {} }],
+    permessi: [], ctxPerm: {} };
+  const rigaAzioni = (f) => /azioni correttive:/.test(f.daSistemare.join(" | "));
+  const senzaAzioni = scudo.fascicoloIspezione({ ...base, azioni: [] }, oggi);
+  ok(!rigaAzioni(senzaAzioni), "senza nessuna azione, nessuna riga «azioni correttive» in daSistemare");
+  const conScadute = scudo.fascicoloIspezione({ ...base, azioni: [
+    { id: "a1", descrizione: "Disgaggio fronte", stato: "aperta", scadenza: "2026-01-01", responsabileId: "l1", origineTipo: "evento", origineId: "x" },
+    { id: "a2", descrizione: "Segnaletica viabilità", stato: "aperta", scadenza: "2026-02-01", responsabileId: "l1", origineTipo: "ispezione", origineId: "i1" },
+  ] }, oggi);
+  ok(conScadute.daSistemare.includes("azioni correttive: 2 scadute"),
+    "⛔ due azioni scadute da mesi DEVONO comparire fra le cose da sistemare: " + conScadute.daSistemare.join(" | "));
+  ok(conScadute.chiusura.allarme, "⛔ e l'allarme del fascicolo si accende");
+  eq(conScadute.numeri.azioniScadute, 2);
+  const sezAzioni = conScadute.sezioni.find((s) => s.titolo === "Azioni correttive");
+  ok(sezAzioni && !sezAzioni.vuoto && /\*\*2 scadute\*\*/.test(sezAzioni.righe[0][1]),
+    "e la sezione dedicata le mostra, non solo il totale: " + JSON.stringify(sezAzioni));
 });
 test("⛔ fascicolo nella pagina: il bottone nel Quadro e il foglio dal modulo, con lo stesso disegnatore", () => {
   const pag = readFileSync(join(HERE, "../../scudo/index.html"), "utf8");
