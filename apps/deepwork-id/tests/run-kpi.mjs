@@ -17169,7 +17169,7 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
        "un file che non c'entra niente non produce numeri, produce una frase");
   });
 
-  test("Genesi · dxfInTratti (G47d) legge LINE e POLYLINE, mai altro", () => {
+  test("Genesi · dxfInTratti (G47d) legge LINE, POLYLINE e LWPOLYLINE", () => {
     /* andata e ritorno contro il nostro STESSO export (dxfPianoFori,
        livello FRONTE): un profilo di quattro punti esce come POLYLINE e
        deve rientrare come UN tratto con gli stessi quattro punti,
@@ -17199,6 +17199,21 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     eq(genesi.dxfInTratti(lineaZero).length, 0, "un LINE di lunghezza zero (stesso punto due volte) non è un tratto");
     const poliUnPunto = "0\nPOLYLINE\n0\nVERTEX\n10\n1.0\n20\n1.0\n0\nSEQEND\n";
     eq(genesi.dxfInTratti(poliUnPunto).length, 0, "una POLYLINE con un solo VERTEX non è un tratto (serve almeno un segmento)");
+
+    /* ⛔ 19/09, dal quarto giro di deep-pass QA: LWPOLYLINE è l'entità
+       polilinea di DEFAULT di AutoCAD (dal R14), LibreCAD e QCAD — i tre
+       programmi che il tooltip del bottone nomina. Senza questo ramo un
+       file con SOLO LWPOLYLINE dava tratti:[] e la pagina diceva "il file
+       non contiene LINE o POLYLINE leggibili", falso. I suoi vertici sono
+       coppie di codici 10/20 RIPETUTE dentro la STESSA entità, non
+       VERTEX/SEQEND separati. */
+    const lw = ["0","SECTION","2","ENTITIES","0","LWPOLYLINE","8","0","90","3","70","0",
+      "10","5.0","20","6.0","10","15.0","20","4.0","10","25.0","20","7.0","0","ENDSEC","0","EOF"].join("\n");
+    const tLw = genesi.dxfInTratti(lw);
+    eq(tLw.length, 1, "una LWPOLYLINE isolata diventa un tratto");
+    eq(tLw[0].pts, [{x:5,y:6},{x:15,y:4},{x:25,y:7}], "i tre vertici, nell'ordine, non l'ultimo ripetuto tre volte");
+    const lwUnPunto = "0\nLWPOLYLINE\n90\n1\n70\n0\n10\n1.0\n20\n1.0\n";
+    eq(genesi.dxfInTratti(lwUnPunto).length, 0, "una LWPOLYLINE con un solo vertice non è un tratto");
   });
 
   test("⛔ Genesi · fra tirare a indovinare e dirlo, dice", () => {

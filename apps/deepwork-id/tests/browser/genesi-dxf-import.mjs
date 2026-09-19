@@ -166,6 +166,29 @@ try {
   } finally { try { unlinkSync(percorsoVuoto); } catch (e) {} }
 }
 
+/* ⛔ 19/09, dal quarto giro di deep-pass QA: LWPOLYLINE (l'entità polilinea
+   di DEFAULT di AutoCAD dal R14/1997, LibreCAD e QCAD) non era riconosciuta
+   — un file con SOLA LWPOLYLINE dava "il file non contiene LINE o POLYLINE
+   leggibili", falso: la geometria c'era, solo in un formato non letto. */
+{
+  const DXF_LW = ["0", "SECTION", "2", "ENTITIES",
+    "0", "LWPOLYLINE", "8", "IMPORT", "90", "3", "70", "0",
+    "10", "5.0", "20", "6.0", "10", "15.0", "20", "4.0", "10", "25.0", "20", "7.0",
+    "0", "ENDSEC", "0", "EOF"].join("\n");
+  const percorsoLw = join(R, "__genesi-dxf-import-lw-" + process.pid + ".dxf");
+  writeFileSync(percorsoLw, DXF_LW);
+  try {
+    const n0 = await pg.evaluate(() => window.__genesi.D2.tratti.length);
+    await pg.setInputFiles("#dxfImportFile", percorsoLw);
+    await pg.waitForTimeout(400);
+    const tratti = await pg.evaluate(() => window.__genesi.D2.tratti);
+    dice(tratti.length === n0 + 1, `una LWPOLYLINE isolata diventa un tratto (${n0} -> ${tratti.length})`, tratti.length);
+    dice(tratti[n0] && tratti[n0].pts.length === 3, "i suoi tre vertici, letti dalla stessa entità", tratti[n0]);
+    const avvisoLw = await pg.evaluate(() => document.getElementById("d2-dxf-import-esito").innerText);
+    dice(!/non contiene/.test(avvisoLw), "⛔ NON compare l'avviso «il file non contiene LINE o POLYLINE leggibili»: la geometria è stata trovata", avvisoLw.slice(0, 80));
+  } finally { try { unlinkSync(percorsoLw); } catch (e) {} }
+}
+
 if (CONTROPROVA) {
   dice(colpiti.size === DIFETTI.length,
     `l'iniezione ha trovato e sostituito il suo testo nella pagina servita (${colpiti.size}/${DIFETTI.length})`,

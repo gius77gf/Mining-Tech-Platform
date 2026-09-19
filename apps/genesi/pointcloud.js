@@ -5,6 +5,8 @@
 // Contengono i 3 fix della revisione serale 22/07: downsample XYZ, precisione UTM
 // (centraggio a valle, qui restano coordinate grezze), pre-shift OBJ.
 
+import { numIt } from '../../shared/deepwork-id-client/dw-shell.js';
+
 export const MAXPTS = 700000;   // cap punti resi: sopra, si fa downsample (browser)
 
 // ---- Parser XYZ / TXT: righe "x y z [r g b]" separate da spazio, virgola o ';' ----
@@ -12,7 +14,18 @@ export function parseXYZ(txt, maxpts = MAXPTS) {
   const lines = txt.split(/\r?\n/); const pos = [], col = [], colOk = []; let hasCol = false;
   for (const ln of lines) {
     const s = ln.trim(); if (!s || s[0] === '#') continue;
-    const p = s.split(/[\s,;]+/).map(Number);
+    /* ⛔ 19/09, dal quarto giro di deep-pass QA: se la riga ha già spazi che
+       separano i campi, la virgola DENTRO un token è un decimale italiano
+       ("12,345" = 12,345 m, non "12" e "345"), non un separatore — trattarla
+       come tale spaccava ogni coordinata in due e mescolava i pezzi con quelli
+       del colore, senza un solo errore a schermo. Si spacca sullo spazio e si
+       legge ogni token con `numIt` (che sa sia il punto sia la virgola). Solo
+       quando la riga NON ha nessuno spazio (un CSV puro "12,34,56" o
+       "12;34;56") la virgola/il punto e virgola tornano a fare da separatore
+       di campo, com'era già provato dai test — lì i valori restano interi
+       e `Number` non ambiguo. */
+    const conSpazi = /\s/.test(s);
+    const p = conSpazi ? s.split(/\s+/).map(numIt) : s.split(/[,;]+/).map(Number);
     if (p.length < 3 || !isFinite(p[0]) || !isFinite(p[1]) || !isFinite(p[2])) continue;
     pos.push(p[0], p[1], p[2]);
     // un punto è colorato SOLO se le tre celle r/g/b sono leggibili: a

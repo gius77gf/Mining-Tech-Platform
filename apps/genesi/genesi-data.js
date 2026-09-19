@@ -3699,10 +3699,13 @@ function _dxfPolilinea(layer, punti){
   return s;
 }
 /* G47d (14/09) — import DXF in SOLA LETTURA, ultima fetta di "Genesi
-   simile a un CAD" (il fondatore ha risposto "tutto"). Legge LINE e
+   simile a un CAD" (il fondatore ha risposto "tutto"). Legge LINE,
    POLYLINE (col suo VERTEX/SEQEND, la stessa forma che `_dxfPolilinea`
-   scrive) e li porta dentro come TRATTI (D2.tratti), MAI come fori,
-   fronte o piede.
+   scrive) e LWPOLYLINE (aggiunta il 19/09: è l'entità polilinea di
+   DEFAULT di AutoCAD dal R14/1997, LibreCAD e QCAD — senza di lei un file
+   scritto da uno di questi tre programmi dava "nessun tratto leggibile"
+   anche quando la geometria c'era) e li porta dentro come TRATTI
+   (D2.tratti), MAI come fori, fronte o piede.
 
    È la scelta di sicurezza che chiude la ricerca del 13/09
    (docs/RICERCA_CONTINUA_GENESI.md, "import CAD/DXF: come i software
@@ -3726,9 +3729,21 @@ function _dxfEntita(testo){
     const codice = righe[i].trim(), valore = righe[i+1];
     if(codice==='0'){
       const tipo = valore.trim();
-      if(tipo==='LINE' || tipo==='POLYLINE' || tipo==='VERTEX' || tipo==='SEQEND'){ cur={tipo, campi:{}}; entita.push(cur); }
+      if(tipo==='LINE' || tipo==='POLYLINE' || tipo==='VERTEX' || tipo==='SEQEND' || tipo==='LWPOLYLINE'){ cur={tipo, campi:{}, verts:[]}; entita.push(cur); }
       else cur = null;
-    } else if(cur){ cur.campi[codice]=valore; }
+    } else if(cur){
+      /* LWPOLYLINE (dal 19/09) porta i suoi vertici DENTRO la stessa entità,
+         come coppie di codici 10/20 RIPETUTE una volta per vertice — a
+         differenza di LINE/VERTEX, dove ogni codice compare una volta sola
+         e `campi[codice]=valore` (l'ultimo vince) basta. Un oggetto con
+         chiave "10" terrebbe solo l'ULTIMO vertice: si accumula invece un
+         array, un vertice per ogni "10" incontrato (l'ordine del formato
+         DXF garantisce che il gruppo 10 di un vertice precede sempre il
+         suo 20). */
+      if(cur.tipo==='LWPOLYLINE' && codice==='10') cur.verts.push({x:+valore, y:NaN});
+      else if(cur.tipo==='LWPOLYLINE' && codice==='20' && cur.verts.length) cur.verts[cur.verts.length-1].y = +valore;
+      else cur.campi[codice]=valore;
+    }
   }
   return entita;
 }
@@ -3748,6 +3763,15 @@ export function dxfInTratti(testo){
     } else if(e.tipo==='SEQEND'){
       if(poliCorrente && poliCorrente.length>=2) tratti.push({pts:poliCorrente});
       poliCorrente = null;
+    } else if(e.tipo==='LWPOLYLINE'){
+      /* ⛔ 19/09, dal quarto giro di deep-pass QA: LWPOLYLINE è l'entità
+         polilinea di DEFAULT scritta da AutoCAD (dal R14/1997), LibreCAD e
+         QCAD — cioè i tre programmi che il tooltip del bottone nomina come
+         interoperabilità. Senza questo ramo un file con SOLO LWPOLYLINE (il
+         caso comune) dava tratti:[] e la pagina diceva "il file non contiene
+         LINE o POLYLINE leggibili": falso, il file la geometria ce l'aveva. */
+      const pts = e.verts.filter(p=>Number.isFinite(p.x) && Number.isFinite(p.y));
+      if(pts.length>=2) tratti.push({pts});
     }
   }
   return tratti;

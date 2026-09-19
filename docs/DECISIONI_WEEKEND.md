@@ -2249,7 +2249,7 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.676** *(ricontate il 18/09, dopo il
+**Le prove automatiche sono passate a 3.678** *(ricontate il 19/09, dopo il decimo giro — 34→36 sull'addendo `run-pointcloud`: `genesi.pointcloud parseXYZ`/`dxfInTratti`; erano 3.676 il 18/09, dopo il
 sesto giro di deep-pass QA in parallelo su Sentinella/Genesi/Conti —
 `superamentiAperti` scriveva un valore fabbricato su un superamento vero,
 `muckShape`/il pannello Decking di Genesi stimavano un baricentro del

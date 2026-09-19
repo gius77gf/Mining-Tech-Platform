@@ -53,6 +53,20 @@ test("parseXYZ senza NESSUN punto colorato: col resta null (usa la scala per quo
   const r = pc.parseXYZ("1 0 0\n2 0 0\n3 0 0");
   eq(r.col, null, "nessuna riga aveva RGB: nessun grigio inventato, il fallback resta la scala per quota");
 });
+test("⛔ 19/09, dal quarto giro di deep-pass QA: campi separati da SPAZIO con decimale italiano — la virgola non è un separatore", () => {
+  // se la riga ha già spazi che dividono i campi, "12,345" è UN valore
+  // (12,345 m), non due (12 e 345): prima di questa correzione la virgola
+  // veniva presa per separatore anche qui, e le tre coordinate finivano
+  // spaccate e mescolate coi token del colore.
+  const r = pc.parseXYZ("12,345 56,789 90,123\n");
+  eq(r.count, 1, "un solo punto");
+  eq(r.pos, [12.345, 56.789, 90.123], "coordinate lette come decimali italiani, non spaccate");
+  eq(r.col, null, "nessun colore inventato dai pezzi spaccati");
+});
+test("...e senza spazi la virgola resta separatore di campo, com'era già provato sopra", () => {
+  const r = pc.parseXYZ("12,34,56");
+  eq(r.pos, [12, 34, 56], "tre valori separati dalla virgola, non uno solo");
+});
 
 console.log("\n— pointcloud: parsePLY —");
 function plyAscii(n) {
