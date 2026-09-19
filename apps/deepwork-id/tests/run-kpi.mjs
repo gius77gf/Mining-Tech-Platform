@@ -45603,6 +45603,59 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     ok(/D2\.selMulti\.length>=2/.test(pag), "il bottone chiede almeno due fori: specchiare un foro solo attorno a sé stesso non sposta niente");
   });
 }
+
+/* ===== GENESI · RUOTA I TRATTI — SECONDA TRASFORMAZIONE (19/09, G57) =====
+   A differenza del mirror (solo `mx`, asse fisso), qui l'angolo è
+   inevitabile: non esiste una rotazione "senza angolo". Resta minima
+   sull'altro fronte — nessun pivot da scegliere (centroide di tutti i punti
+   di tutti i tratti) — e resta fuori dal dominio dei fori apposta: `mx`/`my`
+   dei fori sono burden/spaziatura, non coordinate cartesiane libere. */
+{
+  test("Genesi · trattiRuotati ruota TUTTI i punti di TUTTI i tratti attorno al loro centroide comune", () => {
+    // due tratti, 4 punti totali: centroide (7.5, 1.25) — verificato a mano
+    const T = [{ pts: [{ x: 0, y: 0 }, { x: 10, y: 0 }] }, { pts: [{ x: 10, y: 0 }, { x: 10, y: 5 }] }];
+    const R = genesi.trattiRuotati(T, 90);
+    eq(R[0].pts, [{ x: 8.75, y: -6.25 }, { x: 8.75, y: 3.75 }]);
+    eq(R[1].pts, [{ x: 8.75, y: 3.75 }, { x: 3.75, y: 3.75 }]);
+  });
+  test("Genesi · trattiRuotati di 180° due volte torna al punto di partenza", () => {
+    const T = [{ pts: [{ x: 1, y: 2 }, { x: 3, y: -4 }, { x: -1, y: 9 }] }];
+    const R2 = genesi.trattiRuotati(genesi.trattiRuotati(T, 180), 180);
+    eq(R2, T);
+  });
+  test("Genesi · trattiRuotati con angolo 0, assente o falso non tocca l'array (ma ne fa una copia)", () => {
+    const T = [{ pts: [{ x: 1, y: 1 }] }];
+    for (const g of [0, null, undefined, NaN, false]) {
+      const R = genesi.trattiRuotati(T, g);
+      eq(R, T, `angolo ${g}: nessuna rotazione`);
+      ok(R !== T, `angolo ${g}: comunque una copia, non lo stesso array (coerente con foriRiflessi)`);
+    }
+  });
+  test("Genesi · trattiRuotati senza tratti, o con tratti senza punti, non solleva errori", () => {
+    eq(genesi.trattiRuotati(null, 90), []);
+    eq(genesi.trattiRuotati(undefined, 90), []);
+    eq(genesi.trattiRuotati([], 90), []);
+    // nessun punto in nessun tratto → nessun centroide calcolabile: si esce
+    // prima, gli oggetti tornano indietro TALI E QUALI (non si inventa un
+    // `pts:[]` su un tratto che non lo aveva).
+    eq(genesi.trattiRuotati([{ pts: [] }], 90), [{ pts: [] }]);
+    eq(genesi.trattiRuotati([{}], 90), [{}], "un tratto senza `pts` non fa esplodere il flatMap, e non gliene si inventa uno");
+  });
+  test("Genesi · trattiRuotati non tocca `fori`/`fronte`/`piede`: il dominio è solo i tratti", () => {
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    eq((pag.match(/trattiRuotati\(/g) || []).length, 1, "un solo punto di trasformazione");
+    const corpo = pag.match(/\$\('dtRuotaTratti'\)\.onclick=\(\)=>\{[\s\S]*?\n\};/)[0];
+    ok(!/D2\.holes\s*=|D2\.profilo\s*=|D2\.piede\s*=/.test(corpo), "il gestore del bottone scrive solo D2.tratti, mai fori/fronte/piede");
+    ok(/D2\.tratti=trattiRuotati/.test(corpo), "e legge/scrive D2.tratti");
+  });
+  test("⛔ Genesi · ruota tratti è collegato nella pagina, con la guardia sull'angolo illeggibile (G57)", () => {
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    ok(/gvv\('dtRuotaGradi'\)/.test(pag), "l'angolo si legge col lettore che dà NaN su un input illeggibile, mai 0 o `+valore`");
+    ok(/if\(!isFinite\(gradi\)\)/.test(pag), "un angolo illeggibile ferma l'azione invece di ruotare di NaN gradi (che sposterebbe ogni punto a NaN,NaN)");
+    const elenco = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map(s2 => s2.trim());
+    ok(elenco.includes("trattiRuotati"), "la pagina importa la funzione dal modulo");
+  });
+}
 /* ===== fine rifletti la selezione (19/09, G50) ===== */
 
 /* ===== GENESI · INPUT RELATIVO/POLARE PER LE COORDINATE (19/09, G51) =====

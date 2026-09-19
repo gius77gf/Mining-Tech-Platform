@@ -3971,6 +3971,45 @@ export function foriRiflessi(holes, idsSelezionati){
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
+   G57 · RUOTA I TRATTI (19/09) — LA TRASFORMAZIONE CHE MANCAVA, MA SOLO
+   DOVE HA SENSO FISICO FARLA.
+   ══════════════════════════════════════════════════════════════════════════
+   docs/RICERCA_GENESI_CAD.md, sezione 3, la classifica come «costo
+   medio-grande» per via del pivot e dell'angolo da chiedere — e per i FORI
+   è vero: `mx`/`my` non sono coordinate cartesiane qualunque, sono
+   burden/spaziatura rispetto alla faccia (lo stesso principio già scritto
+   sopra `foriRiflessi`: la spalla non si specchia perché non ha un
+   equivalente fisico). Ruotare un foro di un angolo qualunque mescolerebbe
+   le due grandezze e romperebbe quel significato per l'intera selezione.
+   I TRATTI no: sono geometria di riferimento importata (un rilievo DXF,
+   un profilo disegnato a mano), mai un dato che entra nei calcoli — lo
+   stesso motivo per cui l'import DXF li tiene "in sola lettura, mai come
+   fori/fronte/piede" (G47d). Ed è proprio lì che la rotazione risolve un
+   problema reale, già scritto nel messaggio di quell'import: «un file DXF
+   esterno può avere una convenzione di assi diversa... verifica
+   l'orientamento» — finora l'unico rimedio a un'importazione storta era
+   annullare e reimportare. Ruotare i tratti lascia correggere l'orientamento
+   sul posto, senza toccare fori/fronte/piede.
+   Pivot: il centroide di TUTTI i punti di TUTTI i tratti (nessun pivot da
+   scegliere, stessa scelta minima di `foriRiflessi`). Angolo: l'unico
+   pezzo che un mirror non ha e una rotazione non può fare a meno di avere
+   — digitato, non trascinato (un handle di rotazione sulla tela è
+   un'estensione futura, non necessaria per correggere un asse invertito o
+   ruotato di 90°/180°, il caso reale che questa unità risolve). */
+export function trattiRuotati(tratti, gradi){
+  const T=tratti||[];
+  if(!T.length || !gradi) return T.slice();
+  const tutti=T.flatMap(t=>t&&t.pts||[]);
+  if(!tutti.length) return T.slice();
+  const cx=tutti.reduce((s,p)=>s+ +p.x,0)/tutti.length, cy=tutti.reduce((s,p)=>s+ +p.y,0)/tutti.length;
+  const rad=gradi*Math.PI/180, co=Math.cos(rad), si=Math.sin(rad);
+  return T.map(t=>({...t, pts:(t&&t.pts||[]).map(p=>{
+    const dx=p.x-cx, dy=p.y-cy;
+    return { x:+(cx+dx*co-dy*si).toFixed(2), y:+(cy+dx*si+dy*co).toFixed(2) };
+  })}));
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
    G51 · INPUT RELATIVO/POLARE PER LE COORDINATE ESATTE (19/09)
    ══════════════════════════════════════════════════════════════════════════
    Sezione 4 del censimento CAD verificato (docs/RICERCA_GENESI_CAD.md):
