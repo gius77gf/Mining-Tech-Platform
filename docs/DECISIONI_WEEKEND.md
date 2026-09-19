@@ -10,6 +10,39 @@ può procedere con l'attuazione.
 
 ---
 
+## 🟡 19/09 — Genesi: blocchi/simboli riusabili per pattern di fori ricorrenti
+
+*Dal censimento CAD verificato (`docs/RICERCA_GENESI_CAD.md`, sezione 4, dopo
+tre unità già costruite senza bisogno di una decisione: G48 snap a oggetti,
+G49 selezione multipla, G50 rifletti la selezione — tutte "prima fetta
+piccola", nessuna delle tre ha toccato il modello dati di `D2`). I blocchi
+sono diversi: la ricerca stessa li marca "costo GRANDE" perché richiedono un
+modello dati nuovo (`D2.blockDefinitions`/`D2.blockInstances`, una
+definizione salvata una volta e istanziata N volte con posizione/rotazione/
+scala propria) e un flusso a più passi (definisci un blocco da una selezione
+esistente, poi inseriscilo altrove) — non un'estensione di quello che c'è,
+un secondo modo di rappresentare la geometria accanto a `D2.holes`/
+`D2.tratti`.*
+
+- [ ] **43. Decidere se vale la pena costruire i blocchi riusabili adesso,
+  o se la selezione multipla + rifletti (già pronte) coprono l'uso più
+  comune in cava — pattern di fori ripetuti quasi sempre generati dalla
+  maglia stessa (`D2.perRow`/`D2.file`), non disegnati a mano pezzo per
+  pezzo come un blocco presuppone.** Se la risposta è "sì, serve": il primo
+  passo piccolo è "definisci un blocco dalla selezione corrente" (salva le
+  posizioni RELATIVE al centroide, come nel modello della ricerca) più
+  "inserisci qui" (un click che aggiunge una copia coi propri `mx`/`my`,
+  non ancora un riferimento vivo alla definizione — l'aggiornamento
+  automatico di tutte le istanze quando la definizione cambia è un secondo
+  passo, non il primo). **Nessuna riga cambiata**: la scelta se aprire
+  questo cantiere, e con quale urgenza rispetto al resto del pivot su
+  Genesi, è del fondatore.
+  ⚠️ Nota collaterale: la stessa sezione della ricerca propone anche un
+  input di coordinate relativo/polare pieno (`@dx,dy`/`@dist<angolo`) per i
+  campi x/spalla già esistenti (G47a) — costo molto più piccolo dei
+  blocchi, isolato, e non richiede questa decisione: può partire come
+  cantiere a sé quando serve, non è bloccato da qui.
+
 ## 🟡 19/09 — Deepwork ID: bottone primario ancora ambra del core, e la sua identità cromatica va decisa
 
 *Dalla seconda iterazione UX su Deepwork ID (quindicesimo giro), verificata
@@ -953,7 +986,7 @@ cinque elencate qui sotto.
 
 ---
 
-# 📖 Da dove cominciare — le decisioni aperte sono **29**
+# 📖 Da dove cominciare — le decisioni aperte sono **30**
 
 *Erano 19 fino al 07/08. **Nove** sono state chiuse dal **ciclo**, non da te, con
 la regola che avevi concesso il 01/08 (senza risposta entro la settimana si
