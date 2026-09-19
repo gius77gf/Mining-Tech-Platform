@@ -12023,3 +12023,21 @@ run-kpi.mjs 3180/3180. run-pointcloud.mjs 36/36. numeri-nei-documenti.mjs
 
 run-kpi.mjs 3180/3180. numeri-nei-documenti.mjs 43/43 (421 banchi,
 copertura 1051/1051). iniezioni-fresche.mjs 709/709.
+
+## Tredicesimo giro: Sentinella, ricerca Flotta, UX Conti (19/09)
+
+- [x] **Sentinella** (`afd6d1af`): una lettura presa in un buco fra due
+      certificati di taratura restava invisibile a schermo se il
+      calendario di oggi era regolare — il file per l'ARPA lo diceva
+      già. Corretto con un badge separato (`BADGE_LETTURE_SCOPERTE`),
+      confermato sul caso vero della dimostrazione (V2).
+- [x] **Ricerca su Flotta** (`19478bd6`): il punto di riordino non conta
+      la domanda già nota dai tagliandi programmati, solo lo storico.
+      Costo Medio, non implementata.
+- [x] **Conti**: seconda iterazione UX, nessun difetto trovato.
+
+Lanciato in background il giro completo del browser su una worktree di
+`aade8904` (in corso).
+
+run-kpi.mjs 3181/3181. numeri-nei-documenti.mjs 43/43 (423 banchi,
+copertura 1052/1052).
