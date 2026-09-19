@@ -523,7 +523,7 @@ export const CSV_TABELLE = [
   { id: "campo.appello", app: "Campo", etichetta: "l'appello del turno di Campo",
     fonte: "campo.csvAppello", col: "data;turno;nome;ruolo;squadra;stato;ora;entrata;uscita;ore_lavorate;orari_da_controllare;riposo_stato;riposo_ore;riposo_fonte;riposo_nota" },
   { id: "campo.attivita", app: "Campo", etichetta: "le attività dei turni di Campo",
-    fonte: "campo.csvAttivita", col: "data;turno;titolo;dettaglio;stato;causale;minuti_fermo" },
+    fonte: "campo.csvAttivita", col: "data;turno;titolo;dettaglio;stato;causale;minuti_fermo;squadra;operatore" },
   { id: "campo.storico", app: "Campo", etichetta: "lo storico dei turni di Campo",
     fonte: "campo.csvStorico", col: "data;minuti_fermo;fermi;fermi_senza_minuti;attivita_totali;attivita_concluse;rapportini_inviati" },
   { id: "campo.pianoConsuntivo", app: "Campo", etichetta: "il consuntivo del piano di carica di Campo",

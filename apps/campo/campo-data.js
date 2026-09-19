@@ -908,7 +908,7 @@ export function csvStorico(righe, fuori) {
    non c'è nessun fermo — e le due si separano leggendo `stato`, che è la
    colonna accanto. Pura e testabile. */
 export const ATTIVITA_COLONNE = ["data", "turno", "titolo", "dettaglio", "stato",
-  "causale", "minuti_fermo"];
+  "causale", "minuti_fermo", "squadra", "operatore"];
 
 export function csvAttivita(righe) {
   // le anomalie prima: chi apre il file cerca quelle
@@ -922,7 +922,15 @@ export function csvAttivita(righe) {
          // foglio di calcolo legge «Guasto meccanico», non «guasto-meccanico»;
          // e chi lo rilegge (`chiaveCausale`) riconosce l'etichetta. Una
          // causale fuori elenco esce com'è scritta: è un dato, non un errore.
-         + `${csvCell(a.stato === "anomalia" ? descriviCausale(a.causale) : "")};${m === null ? "" : m}\n`;
+         + `${csvCell(a.stato === "anomalia" ? descriviCausale(a.causale) : "")};${m === null ? "" : m};`
+         // ⛔ 19/09, dal deep-pass QA su Campo: il file — che il codice stesso
+         // chiama "registro/archivio della giornata, handover" — non portava
+         // MAI chi era assegnato all'attività (squadra/operatore), pur
+         // essendo già mostrato a schermo (`etichettaAssegnazione`) e nel
+         // rapporto stampato. Due colonne separate, non l'etichetta unita:
+         // chi rilegge il file in un foglio di calcolo vuole poter filtrare
+         // per squadra senza spezzare una stringa.
+         + `${csvCell(squadraBase(a.squadra) || "")};${csvCell(String(a.operatore || "").trim())}\n`;
   }
   return csv;
 }

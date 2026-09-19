@@ -27099,9 +27099,9 @@ console.log("\n— Campo: i file che escono —");
        resta verde se le due metà sbagliano insieme: la controprova che toglie
        una colonna la toglie da tutt'e due, e questa riga non se ne accorge. Il
        testo scritto a mano è l'unica metà che non si muove. */
-    eq(campo.csvAttivita([]), "data;turno;titolo;dettaglio;stato;causale;minuti_fermo\n",
+    eq(campo.csvAttivita([]), "data;turno;titolo;dettaglio;stato;causale;minuti_fermo;squadra;operatore\n",
       "niente da esportare: solo l'intestazione, e le colonne sono queste");
-    eq(campo.csvAttivita(null), "data;turno;titolo;dettaglio;stato;causale;minuti_fermo\n",
+    eq(campo.csvAttivita(null), "data;turno;titolo;dettaglio;stato;causale;minuti_fermo;squadra;operatore\n",
       "e niente NON è un errore");
   });
 
