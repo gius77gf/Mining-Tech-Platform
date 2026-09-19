@@ -8682,10 +8682,11 @@ numero scritto dove non era stato misurato niente**.*
   il lettore non leggeva affatto le tre colonne, non una chiamata che le
   scartava): il registro infortuni esportato e ri-caricato perdeva la
   denuncia INAIL (3097→3109):
-  **3.673 prove girano senza rete** *(ricontato il 18/09, dopo il sesto
-  giro di deep-pass QA su Sentinella/Genesi/Conti: solo `run-kpi` è
-  salito, 3172→3177, le altre otto invariate — rilanciate una per una)*. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3177, `run-stile` 330,
+  **3.674 prove girano senza rete** *(ricontato il 19/09, dopo il sesto
+  giro di deep-pass QA su Sentinella/Genesi/Conti — `run-kpi` 3172→3177 — e
+  il settimo giro — 3177→3178, correzione del refuso di `terra-sequenza-lotto.mjs`
+  più il test sulla sezione Personale presente di Campo — le altre otto invariate)*. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3178, `run-stile` 330,
   `run-helpers` 83, `run-pointcloud` 34, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **41** e di asserzioni ne esegue di più:
@@ -11876,3 +11877,38 @@ indietro sulle superfici misurate), come impone il giro stesso:
 
 Nessun difetto di prodotto residuo da questo giro. numeri-nei-documenti.mjs
 43/43, 413 banchi, copertura 1049/1049 — nessuna propagazione necessaria.
+
+## Settimo giro di deep-pass QA + ricerca continua Scudo (19/09, notte)
+
+Quattro cantieri in parallelo: QA su Campo, Sentinella e Deepwork ID
+(interrotto dal riavvio del contenitore prima di riportare), più ricerca
+continua su Scudo.
+
+- [x] **Campo**: `testoConsegnaTurno` — il documento gemello di
+      `rapportoGiornata`, sincronizzato più volte oggi — non aveva MAI la
+      sezione "Personale presente": nessuna chiamata ad
+      `appelloTurno`/`riposoDiTurno`. Chi entrava in turno non sapeva chi
+      non era ancora spuntato né chi aveva meno delle 11 ore di riposo
+      dovute (D.Lgs 66/2003, art. 7). Riprodotto sulla dimostrazione
+      (Paolo Gallo non spuntato, Mario Rossi sotto soglia); fattorizzata
+      la costruzione comune fra i due documenti (`4464b311`).
+- [x] **Sentinella**: "Accogli nel registro" su una prevista di Genesi —
+      unico bottone di scrittura rimasto senza guardia (per-riga, senza
+      id fisso). Misurato PRIMA di scrivere la prova che il doppio-click
+      sincrono usato per gli altri quattro bottoni QUI non smaschera il
+      difetto in demo (VOL referenzia lo stesso array che `db.aggiungi`
+      muta — un'autodifesa accidentale della demo, assente contro un
+      backend vero): la prova regge misurando che il bottone si
+      disabilita in modo sincrono, prima di ogni `await` (`97544f39`).
+- [x] **Ricerca su Scudo**: preavvisi scalati (candidato tecnico, in
+      `docs/RICERCA_CONTINUA_SCUDO.md`) e due proposte che toccano una
+      decisione di prodotto/sicurezza (blocco su formazione scaduta,
+      avviso in tempo reale sulla perdita di idoneità durante un turno) —
+      messe in `docs/DECISIONI_WEEKEND.md` come decisione 38, non
+      implementate d'iniziativa (`4ff03001`, `47315759`).
+
+run-kpi.mjs 3178/3178. sintassi-pagine.mjs 34/34. run-stile.mjs 330/330.
+numeri-nei-documenti.mjs 43/43 (413 banchi, copertura 1051/1051).
+sentinella-bottoni-occupato.mjs 13/13 normale, 5 KO sotto `--controprova`.
+giro-node.mjs completo rilanciato fresco dopo tutte le modifiche: 3.674
+prove, 4155 asserzioni — numeri propagati con lo strumento, non a memoria.

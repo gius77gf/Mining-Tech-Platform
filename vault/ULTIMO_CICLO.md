@@ -1,27 +1,22 @@
 # Ultimo ciclo
 
-- **Quando**: 2026-09-18T23:59:33Z (letta da `date -u`, non predetta)
-- **Commit di partenza**: a75b7df8 (chore(vault): checkpoint e roadmap — settimo giro, KO stantio Terra chiuso)
-- **Cosa sto per fare**: quattro cantieri in parallelo appena dispatchati
-  (direttiva 26/07, ≥3 cantieri): QA deep-pass su Deepwork ID (mai avuto
-  un giro dedicato oggi), seconda QA su Sentinella (area diversa dal fix
-  già chiuso oggi su `superamentiAperti`/`kpiFrom`), seconda QA su Campo
-  (area diversa dal fix già chiuso oggi su `vociChecklistSalvata`), e
-  ricerca continua su Scudo (scadenze formazione/idoneità vs best
-  practice EHS). In attesa dei loro report per verificare-e-implementare.
-  Nel frattempo, il giro di convergenza lungo (PID 688, partito
-  20:01:20Z su commit c50d652d) è ancora vivo: il branch è avanzato di
-  21+ commit sulle superfici misurate. L'unico KO vero che aveva
-  segnalato finora (Terra, sequenza del progetto) è stato riverificato
-  contro il codice attuale e chiuso: era un refuso della regola di test
-  (`il 80%` invece di `l'80%`), non un difetto di prodotto (`0e2a18a6`).
-  **Prossimo passo atomico**: quando i quattro agenti riportano,
-  verificare ogni finding contro il codice attuale prima di
-  implementare (niente entra sulla parola dell'agente), correggere,
-  testare, committare app per app, checkpoint e roadmap aggiornati.
-  Se il giro lungo arriva in fondo o va giudicato troppo vecchio,
-  rilanciare `numeri-nei-documenti.mjs` fresco sull'HEAD corrente prima
-  di propagare qualunque numero. Se il backlog resta esaurito dopo
-  questo giro, proseguire con la lista "SE LA ROADMAP SEMBRA FINITA" di
-  CLAUDE.md (nuova sovrapposizione in docs/MAPPA_ECOSISTEMA.md, seconda
-  iterazione UX/estetica con screenshot, ecc.).
+- **Quando**: 2026-09-19T00:51:14Z (letta da `date -u`, non predetta)
+- **Commit di partenza**: 47315759 (docs(decisioni): Scudo — blocco su formazione scaduta e avviso in tempo reale)
+- **Cosa sto per fare**: appena chiuso il settimo giro di deep-pass QA
+  (Campo, Sentinella; Deepwork ID interrotto da un riavvio del contenitore,
+  da ridispatchare) più la ricerca continua su Scudo (checkpoint
+  `20260919-004910_settimo-giro-qa-campo-sentinella-ricerca-scudo.md`).
+  Tutti i numeri propagati con `giro-node.mjs`/`numeri-nei-documenti.mjs`
+  rilanciati freschi (3.674 prove, 4155 asserzioni, copertura 1051/1051).
+  **Prossimo passo atomico**: ridispatchare l'agente QA su Deepwork ID
+  (mai avuto un giro dedicato completato oggi), mantenendo almeno tre
+  cantieri paralleli (una nuova ricerca continua a rotazione su un'app non
+  ancora toccata, e/o una seconda iterazione UX con screenshot). Se il
+  backlog resta esaurito dopo quel giro, proseguire con la lista "SE LA
+  ROADMAP SEMBRA FINITA" di CLAUDE.md.
+  ⚠️ Nota per i prossimi checkpoint: un file di checkpoint di questo stesso
+  blocco è stato nominato PRIMA di leggere `date -u`, risultando datato un
+  giorno avanti rispetto al commit vero (vedi "Blocchi" nel checkpoint
+  `20260919-000512_...`) — non recuperabile senza riscrivere la storia
+  (decisione del fondatore, non presa qui). Da qui in avanti: leggere
+  sempre `date -u` PRIMA di scegliere il nome del file.
