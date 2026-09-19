@@ -1,21 +1,15 @@
 # Ultimo ciclo
 
-- **Quando**: 2026-09-19T05:52:58Z (letta da `date -u`, non predetta)
-- **Commit di partenza**: 71acaee6 (fix(test): prova scaduta in
-  scudo-versioni-documenti.mjs)
-- **Cosa sto per fare**: quindicesimo giro chiuso completamente. Il
-  vecchio giro completo del browser (base `aade8904`, 17 commit
-  indietro) è stato letto, ha dato un solo segnale reale (una prova
-  scaduta in Scudo, ora corretta) ed è stato spento e rilanciato da
-  zero sul commit corrente (`71acaee6`), log in scratchpad
-  `giro-completo-19-0552.log`, ancora in corso. In attesa di
-  dispatchare il prossimo blocco di almeno tre cantieri paralleli
-  (direttiva 26/07).
-  **Prossimo passo atomico**: scegliere tre app/angoli non ancora
-  freschi in questo giro (rotazione suggerita: Flotta, Conti, e
-  ricerca continua su un'app non ancora coperta oggi) e dispatchare QA/
-  ricerca/UX in parallelo, con il vincolo esplicito "niente comandi git
-  di scrittura, niente modifiche al codice di prodotto — solo
-  verificare e riportare". Verificare ogni finding indipendentemente
-  prima di implementare. Leggere l'esito del nuovo giro completo del
-  browser quando finisce, sezione 0 per prima cosa.
+- **Quando**: 2026-09-19T06:13:29Z (letta da `date -u`, non predetta)
+- **Commit di partenza**: da2a05f8 (docs(genesi): recupera la ricerca
+  concorrenti persa per collisione di scrittura)
+- **Cosa sto per fare**: chiudere i due cantieri pre-direttiva ancora in
+  volo (QA Flotta, UX Flotta), poi pivot completo su Genesi come da
+  direttiva del fondatore del 19/09.
+  **Prossimo passo atomico**: leggere il report QA Flotta
+  (`a372e9a0632e13de9`) e verificarne indipendentemente i findings
+  contro `apps/flotta/flotta-data.js` prima di decidere se/come agire,
+  poi fare lo stesso con il report UX Flotta quando arriva. Dopo:
+  iniziare a tradurre i due censimenti Genesi/CAD in `docs/RICERCA_GENESI_CAD.md`
+  in unità concrete verificate contro `apps/genesi/genesi.html` e
+  `apps/genesi/genesi-data.js`.
