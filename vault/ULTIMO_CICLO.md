@@ -1,20 +1,21 @@
 # Ultimo ciclo
 
-- **Quando**: 2026-09-21T10:14:14Z (letta da `date -u`, non predetta)
-- **Commit di partenza**: fc8bb528 (chore(vault): propaga il numero
-  vero di asserzioni (4284), giro-node pulito)
-- **Cosa sto per fare**: controllati i layer del Progetto 2D
-  (Isocrone/Energia/Innesco/Griglia) come ultimo candidato per il
-  metodo "verifica dal vivo": nessun segno di difetto storico non
-  coperto, a differenza di tratti/innesco-xml — non scritto un banco
-  senza un difetto noto da riprodurre. Chiuso il blocco con un
-  checkpoint di bilancio:
-  `vault/checkpoints/20260921-101414_genesi-blocco-esaurito-giro-pulito.md`.
-  Stato misurato: giro-node.mjs 41/41, 0 caduti, 4284 asserzioni,
+- **Quando**: 2026-09-21T10:47:08Z (letta da `date -u`, non predetta)
+- **Commit di partenza**: 7169086a (chore(vault): bilancio del blocco,
+  giro-node pulito (41/41, 0 caduti, 4284 asserzioni))
+- **Cosa sto per fare**: scritto un nuovo banco browser su Genesi per la
+  timeline dello sparo (`#play`/`#track`/`[data-spd]`, zero copertura
+  prima), 13/0, senza `DIFETTI`/`--controprova` (nessun bug storico da
+  riprodurre, scelta dichiarata nel file). Controllato anche
+  qualità/look: non sono controlli utente reali, nessun banco da
+  scrivere lì. Propagati banchi 455→456, file distinti 207→208,
+  asserzioni 4284→4285 nei quattro documenti tracciati. Checkpoint:
+  `vault/checkpoints/20260921-104708_genesi-banco-timeline-play-scrub.md`.
+  Stato misurato: giro-node.mjs 41/41, 0 caduti, 4285 asserzioni,
   documenti coerenti.
-- **Prossimo passo atomico**: cambiare area — la scena 3D (`buildSim`/
-  `renderSim`) e la timeline dello sparo, cercando azioni utente senza
-  copertura browser (play/pausa/scrub, cambio qualità, cambio look),
-  invece di continuare su RICERCA_CONTINUA_GENESI.md o gli export 2D
-  (entrambi già esauriti in questo blocco). Mandato del fondatore
-  invariato: solo Genesi, massimo sforzo.
+- **Prossimo passo atomico**: col metodo "bottoni/funzioni senza banco"
+  esaurito su design 2D/export/timeline, guardare i livelli/layer del
+  pannello 3D (`lMuck`/`lFly`/`lXray`/`lQuote`/`lAudio`, `xrOp`) per un
+  difetto di RENDERING, oppure un secondo passaggio su
+  `docs/GENESI_ROADMAP_COMPETITOR.md`/`docs/RICERCA_CONTINUA_GENESI.md`.
+  Mandato del fondatore invariato: solo Genesi, massimo sforzo.

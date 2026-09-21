@@ -483,6 +483,7 @@ const BANCHI = [
   ['snap a estremo di Genesi · controprova', 'genesi-snap-estremo.mjs', ['--controprova'], true],
   ["Ruota/Scala tratti nascosti mentre si disegna (G57/G58)", 'genesi-ruota-scala-tratti.mjs', []],
   ['Ruota/Scala tratti · controprova', 'genesi-ruota-scala-tratti.mjs', ['--controprova'], true],
+  ["la timeline dello sparo di Genesi: play/pausa/scrub", 'genesi-timeline-play-scrub.mjs', []],
   ["la selezione multipla dei fori di Genesi (G49)", 'genesi-selezione-multipla.mjs', []],
   ['selezione multipla di Genesi · controprova', 'genesi-selezione-multipla.mjs', ['--controprova'], true],
   ["rifletti la selezione dei fori di Genesi (G50)", 'genesi-rifletti-selezione.mjs', []],
