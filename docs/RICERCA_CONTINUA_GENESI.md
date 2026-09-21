@@ -5823,3 +5823,60 @@ coperto (misfire), due sono deboli/fuori scope per essere costruiti senza
 conferma (meteo, sismografo grezzo), uno è di un'altra app (esame
 post-volata). **Zero righe di codice in questa unità** — ed è la risposta
 corretta quando il delta, verificato con cura, non regge.
+
+## Ricerca del 21/09 — ISEE Field Practice Guidelines: misurato, non assunto, l'accesso al testo primario
+
+_Timestamp: 2026-09-21T04:15:00Z circa_
+
+Seguendo il "prossimo passo atomico" (leggere UNI 9916/ISEE per intero
+invece dei soli riassunti WebSearch), prima di dichiarare la cosa
+impossibile è stata **misurata con lo strumento giusto**, come impone
+CLAUDE.md sui "non si può": `WebSearch` per trovare i link diretti, poi
+`WebFetch` su ciascuno.
+
+- **UNI 9916**: confermato a pagamento, nessun testo integrale libero
+  (`store.uni.com`, nessun altro risultato con testo). Non ritentato con
+  WebFetch: non esiste un URL di un PDF libero da provare.
+- **ISEE Field Practice Guidelines 2020 / Performance Specifications
+  2022**: i link diretti su `isee.org/docs/...` e uno specchio
+  (`uttamblastech.com`) hanno dato **404** con WebFetch — non
+  "EGRESS_BLOCKED": il dominio risponde, il file specifico non c'è più a
+  quell'URL (link scaduto o percorso cambiato con parametri `?sfvrsn=`
+  che il fetch non gestisce).
+- **Uno specchio (`files.dep.state.pa.us`, un dominio governativo USA)
+  ha funzionato**: WebFetch ha scaricato un PDF vero di 30 pagine («ISEE
+  Blasting Seismograph Standards 2017», Eltschlager & Mann, un paper di
+  conferenza — non lo standard stesso, ma cita ampi estratti letterali
+  di FPGBS e PSBS con la cronologia delle revisioni 2015/2017). Il
+  `Read` di Claude Code ha letto il PDF per intero (non solo un
+  riassunto): orientamento del sensore longitudinale/radiale verso il
+  foro più vicino con tolleranza ±5°, condizioni particolari di
+  accoppiamento al suolo (sabbia, gelo, terreno saturo — proposta
+  respinta dal comitato per mancanza di fondamento tecnico condiviso),
+  protezione del microfono dalla pioggia, e le soglie di calibrazione
+  (range 2-250 Hz, accuratezza ±5% o ±0,5 mm/s, cross-talk <5%).
+  ⚠️ **Correzione a una riga precedente di questo file**: "WebFetch su un
+  dominio qualunque risponde EGRESS_BLOCKED" (13/08) era una
+  generalizzazione da due domini soli. Misurato oggi su un terzo
+  dominio: **funziona**. Non era un blocco di rete universale, era
+  quello che un campione di due poteva vedere — la stessa lezione già
+  scritta altrove in questo file sui righelli che dichiarano "non si
+  può" guardando lo strumento sbagliato o un campione troppo piccolo.
+  Non generalizzare nemmeno questa: resta da vedere dominio per dominio.
+
+### Il delta per Genesi: zero, e la ragione è di perimetro, non di sforzo
+
+Il contenuto trovato (posizionamento fisico del sismografo, accoppiamento
+al terreno, calibrazione dello strumento di misura) è **tutto sul come si
+installa e calibra un sismografo sul campo** — la fase di MISURA di un
+evento già avvenuto. Genesi non installa né calibra sismografi: **prevede**
+la vibrazione prima dello sparo (scaled distance, USBM 8507) e **confronta**
+la previsione con un valore reale digitato a mano nella riconciliazione
+(già censito il 13/09, righe 2500-2618 di questo file). Il perimetro di
+questo materiale è quello di chi tiene in mano lo strumento in cava — cioè
+Sentinella (monitoraggio/conformità), non Genesi (progetto) — e col
+mandato "solo Genesi" attivo non va costruito qui su un fondamento che
+appartiene a un'altra app. **Nessuna riga di codice**, nessuna proposta:
+è chiuso come "materiale trovato, perimetro sbagliato", non come "non
+c'è" — la ricerca sul PPV/scaled-distance restava comunque già coperta
+dalle sezioni del 12-13/09 di questo stesso file.
