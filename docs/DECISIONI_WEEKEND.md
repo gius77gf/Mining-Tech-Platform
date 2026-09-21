@@ -1091,6 +1091,8 @@ momento.
 | **26** | Conti: le **pesate non ancora fatturate** entrano nel fido del cliente? (15/09) | una delle tre strade (sommarle al valore pieno, mostrarle separate, o lasciare il limite dichiarato) e, se sì, come valorizzarle senza listino noto. Vedi la sezione 26. |
 | **27** | Sentinella: le **condizioni meteo** contano anche per polveri e vibrazioni, non solo rumore? (15/09) | se procedere con la strada 1 (solo contesto informativo, nessun giudizio di invalidità) o aspettare una ricerca normativa dedicata prima di costruire un giudizio vero. Vedi la sezione 27. |
 | **28** | Sentinella: uno **strumento ha un'identità propria**, distinta dal punto di misura — matricola itinerante fra postazioni? (16/09) | se le cave clienti usano uno strumento fisso per punto (il delta resta teorico) o strumenti che girano fra più postazioni (allora vale costruire il campo). Vedi la sezione 28. |
+| **29** | Genesi: la finestra MIC di 8 ms raggruppa sul tempo **nominale**, mai sullo scatter che Genesi stessa calcola già per il relief — allargarla, o pesare probabilisticamente? (18/09) | è un numero di sicurezza (decide se la volata è sotto soglia PPV): quale delle due strade, e con quale margine. Vedi la sezione 29. |
+| **30** | Genesi: lo scatter dell'innesco «elettrico» è un valore fisso (0,5 ms) mentre il proprio catalogo lo descrive «medio» — quale percentuale usare? (18/09) | una fonte con una percentuale specifica per l'elettrico a ponte resistivo, o la conferma di lasciarlo com'è finché non se ne trova una. Vedi la sezione 30. |
 
 ⚠️ **Correzione, 02/08.** Qui prima c'era scritto che *dieci* di queste
 diciannove erano la stessa domanda. **Sono quattro.** Le ho contate una per una
@@ -2419,6 +2421,80 @@ per ogni punto (il delta resta teorico, non si costruisce) o se
 capita davvero che lo stesso fonometro/sismografo giri fra più
 postazioni (allora vale la pena costruire il campo, costo stimato
 medio).
+
+## 29. Genesi: la finestra MIC di 8 ms raggruppa sul tempo nominale, mai sullo scatter
+
+*(dal ciclo di ricerca sulla dispersione dell'innesco, 18/09 —
+`docs/RICERCA_CONTINUA_GENESI.md`, verificato leggendo il codice riga per
+riga prima di scriverlo qui)*
+
+**Il fatto.** `micFinestra` (`genesi-data.js:1484`) raggruppa i fori
+entro finestre di 8 ms usando solo `tDet` **nominale**. `computeMIC()`
+(`genesi.html:1466`) è l'unico punto che la chiama, e non passa mai lo
+scatter. La stessa pagina calcola già `scatterMs`/`scatterInnesco` e li
+usa per il relief e per l'uniformità della curva di frammentazione — ma
+mai per la MIC, che è la grandezza per cui il mondo (Blair 1993, il
+brevetto US 6220167, due modelli probabilistici 2022/2025 citati nella
+ricerca) dice che lo scatter conta di più.
+
+**Come stiamo.** Genesi scrive già, per il relief, la frase «i fori che
+partono entro la dispersione dell'innesco contano come un istante solo:
+sparando insieme non si liberano a vicenda» — la stessa idea che il
+mondo applica alla MIC, e che Genesi non ripete lì. Due progetti
+identici a parità di geometria, uno con innesco elettronico (scatter 0,1
+ms) e uno con Nonel a ritardo lungo (scatter proporzionale, potenzialmente
+diversi ms), oggi danno la **stessa** MIC se i `tDet` nominali sono
+uguali — anche se il rischio reale di sovrapposizione, secondo il mondo,
+non lo è.
+
+**Perché serve una decisione, non un'unità automatica.** Il numero **8**
+è la convenzione USBM, non in discussione. Quello che cambierebbe è
+**come si applica**: allargare la finestra fissa dello scatter calcolato
+(una modifica semplice ma che sposta il confine sotto/sopra soglia su
+progetti già esistenti), oppure pesare probabilisticamente come nei due
+paper recenti (un cambio di modello, non un trasloco). È esattamente la
+stessa cautela già usata per il decking/air-decking e per i due
+rigonfiamenti del cumulo: un numero di sicurezza non si cambia
+sull'iniziativa del ciclo.
+
+**Che cosa serve da te.** Quale delle due strade preferisci (finestra
+allargata sullo scatter, o peso probabilistico), o se preferisci
+lasciare la convenzione com'è finché non c'è un caso reale che la
+richieda.
+
+## 30. Genesi: lo scatter dell'innesco «elettrico» è un valore fisso, il catalogo lo descrive diversamente
+
+*(stesso ciclo di ricerca del 18/09, stessa verifica sul codice)*
+
+**Il fatto.** `scatterInnesco` (`genesi-data.js:1472`) dà all'innesco
+«elettrico» uno scatter **fisso** di 0,5 ms, indipendente dal ritardo
+nominale — mentre il catalogo interno (`genesi-data.js:3440`) descrive
+lo stesso innesco con ritardi «serie MS/LP» (pirotecnico, non
+istantaneo) e uno scatter testuale «medio». La ricerca del 12/09, già in
+questo file, aveva trovato che i detonatori elettrici/non elettrici
+comuni (Nonel compreso) hanno un'accuratezza dichiarata crescente col
+ritardo (circa ±1% fino a ±5%) — cioè la stessa famiglia percentuale del
+Nonel, non un valore fisso vicino all'elettronico. Su un ritardo lungo
+(200 ms) lo 0,5 ms fisso è 8-16 volte meno di quanto darebbe una
+percentuale dell'1-5% (2-10 ms).
+
+**Come stiamo.** Non è verificato se sia un refuso di trasloco o una
+scelta consapevole: il commento della funzione non lo spiega. È
+un'incoerenza fra il testo del catalogo e il numero della formula,
+trovata col grep, non dedotta.
+
+**Perché serve una decisione, non un'unità automatica.** Cambiare il
+ramo `elettrico` da valore fisso a percentuale è una riga — ma nessuna
+fonte di questa ricerca dà una percentuale specifica per «elettrico a
+ponte resistivo con relè MS/LP» distinta dal Nonel generico. Costruire
+un numero senza sapere quale sia quello giusto sarebbe esattamente il
+"non c'è" che questo repository mette in guardia: un numero inventato è
+peggio di uno assente.
+
+**Che cosa serve da te.** Una fonte con una percentuale specifica per
+l'innesco elettrico a relè MS/LP (se la conosci o puoi procurartela), o
+la conferma di lasciare il valore fisso com'è finché non se ne trova
+una — il delta resta scritto qui per non perderlo.
 
 ## Cosa procede intanto SENZA di te
 I cicli automatici continuano su ciò che è sicuro e non gated: seconde

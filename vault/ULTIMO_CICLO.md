@@ -1,20 +1,19 @@
 # Ultimo ciclo
 
-- **Quando**: 2026-09-21T04:07:43Z (letta da `date -u`, non predetta)
-- **Commit di partenza**: 47e3099c (docs(genesi): chiudi riga invecchiata
-  su RICERCA_CONTINUA_GENESI, G53 già fatto)
-- **Cosa sto per fare**: verificato con WebSearch/WebFetch (misurato, non
-  assunto) se UNI 9916/ISEE hanno testo integrale libero. UNI 9916: no,
-  a pagamento. ISEE: i link ufficiali sono 404, ma uno specchio
-  governativo ha funzionato — scaricato e letto per intero un paper
-  di 30 pagine con estratti letterali degli standard ISEE. Corretta una
-  generalizzazione troppo larga del 13/08 ("WebFetch sempre bloccato":
-  falso, dipende dal dominio). Delta per Genesi: zero — il contenuto
-  (installazione/calibrazione fisica del sismografo) è territorio di
-  Sentinella, non di Genesi che prevede e confronta, non misura sul
-  campo. Checkpoint:
-  `vault/checkpoints/20260921-040743_genesi-isee-webfetch-misurato-perimetro-sbagliato.md`.
-- **Prossimo passo atomico**: scorrere le sezioni più vecchie (12-13/09)
-  di `docs/RICERCA_CONTINUA_GENESI.md` con `git log -S` su ogni proposta
-  ancora aperta, come nelle due unità precedenti, prima di aprire una
-  ricerca nuova.
+- **Quando**: 2026-09-21T04:15:00Z circa (letta da `date -u`, non predetta)
+- **Commit di partenza**: e578db12 (docs(genesi): misura accesso testo
+  ISEE, corregge generalizzazione WebFetch, delta zero)
+- **Cosa sto per fare**: continuato a scorrere
+  `docs/RICERCA_CONTINUA_GENESI.md` col metodo delle unità precedenti.
+  Chiusa la ricerca del 13/09 sulla convenzione assi DXF (Genesi ha già
+  una difesa più forte del mondo: import DXF mai usato nei calcoli di
+  sicurezza, G47d 14/09). Trovate due candidate di sicurezza dalla
+  ricerca del 18/09 (finestra MIC su tempo nominale invece che scatter;
+  scatter fisso dell'innesco elettrico incoerente col catalogo) mai
+  portate in `docs/DECISIONI_WEEKEND.md` come da regola — aggiunte come
+  sezioni 29 e 30, nessun codice cambiato. Checkpoint:
+  `vault/checkpoints/20260921-041500_genesi-mic-scatter-in-decisioni-weekend.md`.
+- **Prossimo passo atomico**: continuare a scorrere le sezioni più
+  vecchie di `docs/RICERCA_CONTINUA_GENESI.md` (righe 683-2262) con lo
+  stesso metodo, o passare a un'unità di codice vera se il rendimento
+  cala.

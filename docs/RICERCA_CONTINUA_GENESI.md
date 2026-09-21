@@ -2309,6 +2309,39 @@ Il settore ha **quattro linee di difesa** contro l'errore di convenzione assi:
 
 Nessuna fonte trovata descrive una **validazione esplicita della convenzione di assi** (es: "il fronte deve essere nella direzione positiva di X" o "l'asse Z deve puntare verso l'alto") prima di usare la geometria per il calcolo di burden/safety.
 
+### ✅ CHIUSA IL 21/09: il delta esisteva già, scritto un giorno dopo questa ricerca, e questa sezione era rimasta senza il suo "Il delta"
+
+Questa ricerca era "metà sul mondo" (nessuna sezione delta), e rileggendo
+`docs/RICERCA_CONTINUA_GENESI.md` prima di aprire una ricerca nuova (la
+regola "legge prima di proporre") è saltato all'occhio che il rischio
+descritto — un import DXF con convenzione di assi diversa che produce un
+burden calcolato storto, quindi flyrock — **non ha bisogno di essere
+costruito**: Genesi ha scelto una difesa più forte di tutte e quattro
+quelle censite nel mondo (validazione di plausibilità, report di
+deviazione, standard IREDES, calcolo automatico) — **non fidarsi mai**
+della geometria importata per il calcolo di sicurezza.
+
+Verificato leggendo il codice, un giorno dopo questa ricerca: G47d
+(14/09, commento a `genesi.html:5693-5698`, handler a `genesi.html:5700-
+5714`) importa un DXF **solo come tratti di riferimento visivo**
+(`origine:'dxf'`), mai come fori/fronte/piede — `dxfInTratti` non tocca
+nessuna struttura dati che entri in `costoVolata`, nel calcolo del
+burden o della vibrazione. L'avviso mostrato all'utente lo dice
+esplicitamente: *"Sono un riferimento VISIVO — non entrano in nessun
+calcolo (burden, relief, energia, flyrock)"*, con un ↩ Annulla se
+l'orientamento non torna. E per il caso in cui l'orientamento sia
+davvero storto, esistono già due strumenti di correzione manuale
+(`genesi.html:828-830`, i bottoni "↻ Ruota tratti" / "⤢ Scala tratti"),
+con la spiegazione nel titolo che cita esplicitamente "correggere
+l'orientamento di un rilievo DXF con una convenzione di assi diversa da
+Genesi" e "un'unità di misura diversa dai metri di Genesi".
+
+Cioè: dove il mondo valida-e-si-fida (con report di deviazione e
+tolleranze), Genesi **non si fida affatto** — è una scelta di sicurezza
+più conservativa, non una mancanza. Nessuna riga di codice in questa
+chiusura: la ricerca del 13/09 aveva trovato un rischio reale, e il
+codice l'aveva già chiuso prima ancora che la ricerca lo cercasse (unità
+14/09, un giorno dopo). Zero cantieri aperti su questo.
 
 ## Ricerca del 2026-09-13 — che cosa contiene davvero un rapporto di volata (metà sul mondo)
 
