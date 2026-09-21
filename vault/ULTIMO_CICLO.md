@@ -1,16 +1,14 @@
 # Ultimo ciclo
 
-- **Quando**: 2026-09-21T09:47:48Z (letta da `date -u`, non predetta)
-- **Commit di partenza**: 7198cfdd (test(genesi): completa il commit
-  precedente — banco, eccezione date-checkpoint, propagazione numeri)
-- **Cosa sto per fare**: verificare l'esito del giro-node.mjs completo
-  lanciato in background alla fine dell'unità precedente (log in
-  `/tmp/claude-0/.../scratchpad/genesi-live/giro-node-4.log`, non più
-  raggiungibile fra una sessione e l'altra — va ricontrollato se il
-  processo è ancora vivo o va rilanciato). Poi proseguire con
-  verifica dal vivo di altre funzioni Genesi recenti, o con la lettura
-  di `apps/genesi/PIANO_3D.md`/`docs/GENESI_ROADMAP_COMPETITOR.md` per
-  intero se il filone si esaurisce. Mandato del fondatore invariato:
-  solo Genesi, massimo sforzo — sovrascrive la rotazione multi-app
-  generica di questo trigger.
-- **Prossimo passo atomico**: come sopra.
+- **Quando**: 2026-09-21T09:54:30Z (letta da `date -u`, non predetta)
+- **Commit di partenza**: b8eefb38 (canarino: ciclo automatico vivo,
+  2026-09-21T09:47:48Z)
+- **Cosa sto per fare**: letto per intero `apps/genesi/PIANO_3D.md`
+  (fermo al 19/07). Verificato sul codice vivo che 3 dei 5 punti "da
+  fare" erano già costruiti, un quarto aveva la formula fatta ma non il
+  form dedicato, il quinto già tracciato altrove. Aggiornato il
+  documento con le prove. Checkpoint:
+  `vault/checkpoints/20260921-095430_genesi-piano3d-chiuso.md`.
+- **Prossimo passo atomico**: leggere `docs/GENESI_ROADMAP_COMPETITOR.md`
+  per intero con lo stesso metodo. Mandato del fondatore invariato:
+  solo Genesi, massimo sforzo.
