@@ -1,18 +1,22 @@
 # Ultimo ciclo
 
-- **Quando**: 2026-09-21T03:51:56Z (letta da `date -u`, non predetta)
-- **Commit di partenza**: 3ee7d87a (canarino: ciclo automatico vivo, 2026-09-21T03:48:16Z)
-- **Cosa sto per fare**: audit del calcolo economico (`costoVolata`,
-  margine): già consolidato in un punto unico, null-vs-zero corretto su
-  ogni addendo, i 4 punti che lo chiamano hanno un `nf` diverso per
-  ragioni già documentate e incrociate. Verificato dal vivo: la scheda
-  mostra "Totale volata €2.412" e "Margine €11.426 (€13.838 ricavo)" —
-  l'aritmetica torna esattamente sullo schermo vero. Nessun difetto
-  trovato. Checkpoint:
-  `vault/checkpoints/20260921-035156_genesi-audit-costoVolata-margine.md`.
-  Con questa, ~9 aree core di Genesi controllate di fila senza trovare
-  nulla: il rendimento dell'audit manuale a caso è sceso molto.
-- **Prossimo passo atomico**: cambiare metodo — (a) leggere per intero
-  UNI 9916/ISEE guidelines invece dei soli riassunti WebSearch, o (b)
-  verificare se `tests/simulatore/cava-sintetica.mjs` copre Genesi e
-  usarlo per uno stress-test su tanti casi invece di scelti a mano.
+- **Quando**: 2026-09-21T04:03:33Z (letta da `date -u`, non predetta)
+- **Commit di partenza**: 7975e1c6 (chore(vault): audit costoVolata/margine,
+  nessun difetto trovato)
+- **Cosa sto per fare**: chiudere una riga invecchiata in
+  `docs/RICERCA_CONTINUA_GENESI.md` — la proposta "avviso prima di
+  esportare con indicatori gravi" era dichiarata "scartata, non
+  implementata", ma `git log -S "fraseGraviExport"` mostra che è stata
+  fatta lo stesso giorno (commit 8e49ccf2, G53), con una forma diversa
+  (suffisso non bloccante sul toast, non il modale bloccante scartato)
+  che copre tutt'e quattro gli export ed è già coperta da un banco
+  dedicato. Prima verificato che `tests/simulatore/cava-sintetica.mjs`
+  non copre Genesi (solo una menzione in commento), quindi scartata
+  l'opzione (b) del checkpoint precedente. Checkpoint:
+  `vault/checkpoints/20260921-040333_genesi-chiusura-proposta1-export-gia-fatta.md`.
+- **Prossimo passo atomico**: tornare a un'unità di sviluppo vera —
+  verificare con WebSearch se UNI 9916/ISEE hanno un testo integrale
+  raggiungibile (misurare, non assumere il "non si può"), oppure
+  scorrere altre sezioni di `docs/RICERCA_CONTINUA_GENESI.md` con lo
+  stesso metodo `git log -S` per trovare altre proposte già fatte e mai
+  chiuse, o davvero ancora aperte.

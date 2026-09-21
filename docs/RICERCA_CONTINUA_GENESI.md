@@ -4569,6 +4569,38 @@ non solo il prodotto — o rischia di rompere la copertura che già esiste
 per proteggere quegli stessi quattro export. Lasciata come candidato per
 un cantiere dedicato, non implementata.
 
+### ✅ CHIUSA IL 21/09: la proposta 1 è stata fatta lo stesso giorno, con la
+forma che evita il costo Medio qui sopra — e questa sezione era rimasta
+scritta come se non lo fosse
+
+Trovato rileggendo questo file prima di proporre un nuovo candidato (la
+regola "legge prima di proporre" di CLAUDE.md), e verificato con git prima
+di scriverlo, non creduto: `git log --oneline -S "fraseGraviExport" --
+apps/genesi/genesi.html` → `8e49ccf2 feat(genesi): il semaforo di sintesi
+letto prima di esportare (G53)`, datato **2026-09-19T09:14:29Z** — dopo
+questa stessa riverifica (T02:39:17Z), lo stesso giorno.
+
+La forma scelta non è il modale bloccante scartato qui sopra: è un
+**suffisso non bloccante sullo stesso toast di successo** —
+`fraseGraviExport()` (`genesi.html:3645`) restituisce
+`" — ⚠️ N indicatori fuori fascia grave: verificare prima dello sparo"`
+quando `D2._sintesi.gravi>0`, altrimenti stringa vuota, ed è concatenata al
+`toast()` di tutt'e quattro gli export che portano il piano fuori
+dall'app: `grep -n "fraseGraviExport" apps/genesi/genesi.html` → righe
+3808 (scheda CSV), 5672 (piano di carico CSV), 5691 (piano fori DXF), 5755
+(piano innesco XML) — **tutti e quattro**, zero mancanti. Il download
+resta sincrono (nessun click bloccato, nessun modale da gestire), quindi
+**nessun banco esistente si rompe**: è esattamente il difetto di costo
+misurato sopra (24/91 prove cadute per un modale che intercetta il click)
+evitato scegliendo un meccanismo diverso invece di forzare quello
+originale. Verificato che esiste già un banco dedicato:
+`apps/deepwork-id/tests/browser/genesi-semaforo-export.mjs`, registrato in
+`tutti.mjs` righe 490-491 (passata normale + controprova).
+Non c'è altro da fare qui: **chi ha chiuso il cantiere non aveva
+aggiornato questa riga**, ed è la stessa lezione già scritta altrove in
+questo repository — una riga che propone un lavoro già fatto lo fa
+rinascere, finché qualcuno non la chiude.
+
 ---
 
 ## Ricerca del 2026-09-19 — secondo giro: oltre Kuz-Ram, validazione pre-sparo e tracciabilità sparato-vs-caricato (metà sul mondo)
