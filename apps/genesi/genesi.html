@@ -8346,6 +8346,7 @@ if(location.hostname==='localhost'||location.hostname==='127.0.0.1'){
     mdlHandleScreenPos:(i, tipo)=>{ const set = tipo==='piede' ? mdlPie : mdlHandles; const h=set[i]; if(!h) return null;
       const v=h.position.clone().project(cam), r=renderer.domElement.getBoundingClientRect();
       return { x: r.left+(v.x+1)/2*r.width, y: r.top+(1-v.y)/2*r.height }; },
+    get camIdx(){return camIdx}, get camPos(){return cam.position.toArray()}, get camTarget(){return ctrl.target.toArray()},
     loadFrontUrl: async (url)=>{ const t=await (await fetch(url)).text(); loadFrontMeshObject(new OBJLoader().parse(t)); return P.fori; },
     setParam:(k,v)=>{ P[k]=v; const el=$('p'+k.charAt(0).toUpperCase()+k.slice(1)); if(el)el.value=v; },
     setQuality:(q)=>{ if(QUALITA[q]){ qLevel=q; $('qlab').textContent=q; rebuild(); } return qLevel; }

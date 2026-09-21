@@ -1111,6 +1111,7 @@ momento.
 | **28** | Sentinella: uno **strumento ha un'identità propria**, distinta dal punto di misura — matricola itinerante fra postazioni? (16/09) | se le cave clienti usano uno strumento fisso per punto (il delta resta teorico) o strumenti che girano fra più postazioni (allora vale costruire il campo). Vedi la sezione 28. |
 | **29** | Genesi: la finestra MIC di 8 ms raggruppa sul tempo **nominale**, mai sullo scatter che Genesi stessa calcola già per il relief — allargarla, o pesare probabilisticamente? (18/09) | è un numero di sicurezza (decide se la volata è sotto soglia PPV): quale delle due strade, e con quale margine. Vedi la sezione 29. |
 | **30** | Genesi: lo scatter dell'innesco «elettrico» è un valore fisso (0,5 ms) mentre il proprio catalogo lo descrive «medio» — quale percentuale usare? (18/09) | una fonte con una percentuale specifica per l'elettrico a ponte resistivo, o la conferma di lasciarlo com'è finché non se ne trova una. Vedi la sezione 30. |
+| **31** | Genesi: la camera "Da terra 50 m" non arriva mai a 1,7 m — la barriera anti-sottoterra del trascinamento libero la sposta a 5,5 m, sempre, per costruzione (21/09) | quale delle tre strade (alzare il preset, bypassare la barriera solo per i preset, o solo correggere l'etichetta) — o la conferma che 5,5 m va bene com'è. Vedi la sezione 31. |
 
 ⚠️ **Correzione, 02/08.** Qui prima c'era scritto che *dieci* di queste
 diciannove erano la stessa domanda. **Sono quattro.** Le ho contate una per una
@@ -2514,6 +2515,71 @@ l'innesco elettrico a relè MS/LP (se la conosci o puoi procurartela), o
 la conferma di lasciare il valore fisso com'è finché non se ne trova
 una — il delta resta scritto qui per non perderlo.
 
+## 31. Genesi: la camera "Da terra 50 m" non è mai a 1,7 m — la barriera anti-sottoterra dei bottoni della barra la sposta a 5,5 m
+
+*(dal 21/09, metodo "verifica dal vivo": misurato in Playwright leggendo
+`cam.position`/`ctrl.target` dopo un clic vero sul bottone, non dedotto
+dal codice)*
+
+**Il fatto.** `CAMS[0]` (genesi.html:2832) descrive la camera "Da terra
+50 m" come `pos:(S)=>[S.Lm/2, 1.7, -50]`, `tgt:(S)=>[S.Lm/2, S.H*0.45,
+0]` — un occhio a 1,7 m (l'altezza di una persona) che guarda verso un
+bersaglio più in alto (`S.H*0.45`, sul fronte). `applyCamera(0)`
+scrive quei numeri **esattamente** con `cam.position.set(...)`, ma la
+riga subito dopo, `ctrl.update()`, applica il vincolo
+`ctrl.maxPolarAngle = Math.PI/2 - 0.02` (genesi.html:1623) — la
+barriera che impedisce, nel trascinamento LIBERO del mouse, di portare
+la camera sotto il piano del bersaglio (per non "vedere sottoterra").
+Con questi numeri l'angolo polare richiesto supera il limite, e
+OrbitControls **corregge silenziosamente** la posizione: misurato,
+resta esattamente sulla sfera richiesta (stessa distanza dal bersaglio,
+50,078 m) ma all'angolo massimo consentito — **y=5,5015, z=-50,0683**,
+non y=1,7. Nessun errore, nessuna console rossa: è una libreria di
+terzi che fa esattamente il suo lavoro, applicato per la prima volta a
+un caso che chi ha scritto la CAM non aveva messo alla prova.
+
+**Come stiamo.** Verificato che è **solo** questa camera: le altre tre
+(`drone`, `lato`, `libera`) arrivano ESATTAMENTE ai numeri della loro
+formula — misurato, non dedotto (`drone`: [31,55,-52] contro la
+formula [S.Lm/2+10,55,-52] = [31,55,-52]; `lato`: [-34,9,-16] contro
+[-34,9,-16]). Solo "Da terra" chiede un angolo che la barriera vieta.
+
+**Perché serve una decisione, non un'unità automatica.** La barriera
+(`maxPolarAngle`) esiste apposta per il trascinamento libero, ed è
+probabilmente giusta lì — una cava vista da sottoterra è spaesante.
+Ma applicarla anche a un preset scritto a numeri esatti non è mai
+stata una scelta: è un effetto collaterale di `ctrl.update()`
+chiamato indiscriminatamente da `applyCamera` su ogni bottone. Tre
+strade diverse, con effetti diversi sull'interazione:
+1. **alzare leggermente `pos.y` del preset** finché non rientra nel
+   limite — la camera resta "quasi a terra" (il numero esatto lo dà
+   il calcolo, non un tentativo), ma la label "Da terra" diventerebbe
+   meno letterale, e la stessa barriera resterebbe a proteggere anche
+   il preset da futuri aggiustamenti;
+2. **bypassare `maxPolarAngle` solo per l'assegnazione di un preset**
+   (alzarlo prima di `ctrl.update()`, riabbassarlo subito dopo) — la
+   camera arriva DAVVERO a 1,7 m, ma poi il primo trascinamento
+   dell'utente la farà scattare di colpo al limite consentito, un
+   salto visibile che oggi non esiste (perché oggi la camera non
+   raggiunge mai quella posizione);
+3. **lasciare com'è**, e correggere solo l'etichetta del bottone
+   ("Bassa" invece di "Da terra 50 m") per non promettere un punto di
+   vista che il codice non consegna mai.
+Nessuna delle tre è ovvia, e la seconda in particolare cambia il
+comportamento del trascinamento in un modo che merita di essere visto
+prima di essere scelto.
+
+**Che cosa serve da te.** Quale delle tre strade preferisci — o se il
+punto di vista attuale (5,5 m, non 1,7) va bene così com'è, che è
+comunque un'opzione legittima: nessuno l'aveva scelto di proposito, ma
+potrebbe essere già quello giusto.
+
+**Copertura intanto**: `genesi-camere-3d.mjs` misura e blinda il
+comportamento **come si presenta oggi** (comprese le coordinate
+clampate di "Da terra"), non quello che "dovrebbe" fare — così una
+scelta fra le tre strade sopra farà cadere quell'asserzione sola, per
+nome, invece di un banco più largo.
+
 ## Cosa procede intanto SENZA di te
 I cicli automatici continuano su ciò che è sicuro e non gated: seconde
 iterazioni UX delle app, test aggiuntivi, revisioni di qualità/sicurezza,
@@ -2807,10 +2873,11 @@ lettura dell'etichetta di gravità dal vocabolario invece del campo grezzo,
 e il bottone «Scadenze» al posto di «Adempimenti» nella barra in basso di
 Sentinella (bersagli di tocco a 320px saliti da 41,4 a 45,61–46,86 px),
 lanciando le suite)*, più **141** che girano con l'emulatore Firestore (**93** sulle regole
-di sicurezza, 19 sull'SDK, 24 sulle funzioni, 8 sul primo avvio) e **457
+di sicurezza, 19 sull'SDK, 24 sulle funzioni, 8 sul primo avvio) e **458
 esecuzioni** che aprono davvero le pagine in un browser *(21/09, aggiunti
 anche i banchi su Genesi sulla timeline dello sparo — play/pausa/scrub —
-e sulla modellazione 3D del fronte — trascinamento cresta/piede)*.
+sulla modellazione 3D del fronte — trascinamento cresta/piede — e sui
+quattro bottoni camera della scena 3D)*.
 
 Nella sola giornata del 31/07 le prove sulle funzioni delle app sono passate da
 **433 a 971**, e hanno fatto emergere **otto difetti veri**. I tre che pesano di
