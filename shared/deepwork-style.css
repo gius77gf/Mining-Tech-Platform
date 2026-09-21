@@ -153,7 +153,16 @@ b.bad { color: var(--danger); }
   width: 100%;
   padding: 10px 12px;
   background: var(--panel);
-  border: 1px solid var(--border);
+  /* ⛔ 19/09, dal deep-pass UX su Deepwork ID: `--border` è il token
+     DECORATIVO (separatori, hairline), mai per un controllo — è scritto in
+     docs/PALETTE_APP.md §2.1. `shared/dw-app-ui.css` ha già la versione
+     giusta (`--border-hi`), ma la carica solo chi importa anche quel foglio:
+     le pagine che caricano SOLO questo file (oggi: index/profilo/non-
+     autorizzato di Deepwork ID) ereditavano il bordo decorativo, misurato
+     1,19–1,56:1 contro il proprio sfondo — sotto la soglia WCAG 1.4.11 di
+     3:1, su OGNI campo della pagina. Le sei app non risentono di questo
+     cambio: caricano sempre anche `dw-app-ui.css`, che vince per ordine. */
+  border: 1px solid var(--border-hi);
   border-radius: var(--r-sm);
   color: var(--text);
   font-family: 'Barlow', sans-serif;

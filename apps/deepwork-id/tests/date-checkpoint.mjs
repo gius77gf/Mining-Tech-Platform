@@ -196,8 +196,79 @@ const lascito = new Set([...MAPPA.keys()].filter((f) => !daOggi.has(f)));
 
 console.log(`\nL'orologio del vault — ${MAPPA.size} checkpoint letti da git\n`);
 
+/* ⛔ UNA SOLA ECCEZIONE, CON IL NOME PER ESTESO E LA RAGIONE — e sorvegliata,
+   perché un'eccezione che non serve più è un'eccezione che nasconde.
+   Il 13/08 un checkpoint è stato scritto **predicendo** l'ora invece di
+   leggerla da `date -u`: si chiama `20260813-164000` ed è entrato in git alle
+   **16:37:45**, due minuti avanti. Il file è già stato riscritto col nome
+   giusto (`20260813-163745_…`, stesso contenuto), ma questo controllo legge
+   **ogni percorso mai aggiunto** alla storia — di proposito, se no basterebbe
+   un `git mv` per farlo tacere — quindi il percorso vecchio resta lì.
+   ⚠️ **Toglierlo davvero vuol dire riscrivere la storia del ramo**
+   (`--force-with-lease`), che è un'operazione distruttiva e **ferma al
+   fondatore**. Finché quella non si fa, la scelta è fra una CI rossa su questa
+   riga sola — che insegna a non guardare il rosso, ed è il difetto peggiore di
+   tutti — e un'eccezione **dichiarata per nome**. Si sceglie la seconda, e la
+   si rende impossibile da dimenticare: la prova qui sotto **cade** il giorno in
+   cui quel percorso smette di essere mal datato, cioè il giorno in cui la
+   storia viene riscritta. L'eccezione non può sopravvivere alla sua causa.
+   ⚠️ Dichiarata QUI (prima di entrambe le prove, giorno e ora) perché il 19/09
+   è emerso il primo caso a cavallo di mezzanotte: un'eccezione scusata solo per
+   l'ora sarebbe rimasta rossa sul giorno, la stessa CI-rossa-cronica che questo
+   blocco esiste per evitare. */
+const SCUSATI = new Map([
+  ["vault/checkpoints/20260813-164000_due-cantieri-e-la-copia-che-si-annuncia-gemella.md",
+    "13/08: ora PREDETTA invece che letta da `date -u`, 2 minuti avanti. Il file è già stato rinominato "
+    + "col nome giusto; resta il PERCORSO nella storia, e toglierlo chiede un force-with-lease fermo al fondatore."],
+  ["vault/checkpoints/20260915-070900_deepworkid-verdetto-scaduto-convergiclaims.md",
+    "15/09: stessa causa del 13/08, un minuto invece di due — l'ora scritta nel nome era una STIMA, non `date -u` "
+    + "letta prima di creare il file (era entrato alle 07:08:24, il nome diceva 07:09:00). Rinominato col nome "
+    + "giusto (`20260915-070824_…`, stesso contenuto); resta il PERCORSO vecchio nella storia."],
+  ["vault/checkpoints/20260917-195500_scudo-norme-e-deepworkid-decisione37.md",
+    "17/09: stessa causa, due minuti e venti secondi invece di uno o due — l'ora scritta nel nome era di nuovo "
+    + "una STIMA e non `date -u` letta prima di creare il file (era entrato alle 19:52:40, il nome diceva "
+    + "19:55:00). Rinominato col nome giusto (`20260917-195240_…`, stesso contenuto); resta il PERCORSO vecchio "
+    + "nella storia. Terza volta della stessa causa: la lezione non è nuova, la disciplina di leggere `date -u` "
+    + "prima di scrivere il nome ogni singola volta, sì."],
+  ["vault/checkpoints/20260919-000512_settimo-giro-ko-stantio-terra-sequenza.md",
+    "18/09→19/09: stessa causa, quarta volta — l'ora scritta nel nome era ancora una STIMA e non `date -u` letta "
+    + "prima di creare il file (era entrato alle 2026-09-18T23:56:58Z, il nome diceva 2026-09-19T00:05:12, otto "
+    + "minuti avanti e un giorno di calendario avanti). Rinominato col nome giusto "
+    + "(`20260918-235658_…`, stesso contenuto); resta il PERCORSO vecchio nella storia. Prima eccezione a cavallo "
+    + "di mezzanotte: scusata anche nella prova sul GIORNO, non solo su quella sull'ora."],
+  ["vault/checkpoints/20260919-160145_verifica-diretta-export-genesi.md",
+    "19/09: stessa causa, quinta volta — l'ora scritta nel nome era una STIMA (letta da `date -u` durante il "
+    + "ragionamento, non appena prima di scrivere il file) e non quella vera al momento della scrittura: era "
+    + "entrato alle 2026-09-19T15:59:43Z, il nome diceva 16:01:45, due minuti avanti. Rinominato col nome giusto "
+    + "(`20260919-155943_…`, stesso contenuto); resta il PERCORSO vecchio nella storia. Quinta volta della stessa "
+    + "causa in poche settimane: la disciplina resta la stessa, leggere `date -u` immediatamente prima di ogni "
+    + "scrittura del nome, mai riusare un orario letto anche solo qualche minuto prima."],
+  ["vault/checkpoints/20260921-043500_genesi-scansione-doc-esaurita-cambio-metodo.md",
+    "21/09: stessa causa, sesta volta — il nome usava \"circa\" (04:35:00Z) invece di leggere `date -u` appena "
+    + "prima di scrivere il file: era entrato alle 2026-09-21T04:32:02Z, tre minuti avanti. Rinominato col nome "
+    + "giusto (`20260921-043200_…`, stesso contenuto); resta il PERCORSO vecchio nella storia. Sesta volta della "
+    + "stessa causa: scrivere \"circa\" in un nome di file è la stessa stima vietata dalle cinque volte precedenti, "
+    + "solo con una parola diversa a nasconderla."],
+  ["vault/checkpoints/20260921-042500_genesi-nota-scadenza-decisione-28.md",
+    "21/09: stessa causa, settima volta, stesso blocco della sesta — un altro nome scritto con \"circa\" "
+    + "(04:25:00Z) nella stessa sessione in cui la sesta volta era già stata trovata E corretta, prova che "
+    + "correggere UN nome non basta a fermare l'abitudine che li scrive tutti: era entrato alle "
+    + "2026-09-21T04:23:17Z, un minuto e 43 secondi avanti. Rinominato col nome giusto "
+    + "(`20260921-042317_…`, stesso contenuto); resta il PERCORSO vecchio nella storia."],
+  ["vault/checkpoints/20260921-095430_genesi-piano3d-chiuso.md",
+    "21/09: ottava volta, stesso blocco delle due precedenti — questa volta senza nemmeno la parola "
+    + "\"circa\": il nome è stato scritto stimando l'ora invece di chiamare lo strumento `date -u` come "
+    + "azione dedicata immediatamente prima di scrivere il file. Era entrato alle 2026-09-21T09:51:19Z, il "
+    + "nome diceva 09:54:30, tre minuti e undici secondi avanti. Rinominato col nome giusto "
+    + "(`20260921-095119_…`, stesso contenuto); resta il PERCORSO vecchio nella storia. Tre volte nello "
+    + "stesso blocco di lavoro: la causa non è la disattenzione su un singolo file, è che la lettura di "
+    + "`date -u` non era diventata un passo obbligato e separato prima di OGNI nome — non un'ora ricordata "
+    + "da un comando lanciato in un passo precedente, per quanto vicino nel tempo."],
+]);
+
 test("nessun checkpoint NUOVO è datato dopo il giorno in cui è entrato in git", () => {
-  const v = datateNelFuturo(MAPPA, lascito);
+  const scusatiGiorno = new Set([...lascito, ...SCUSATI.keys()]);
+  const v = datateNelFuturo(MAPPA, scusatiGiorno);
   ok(v.length === 0,
     v.map((x) => `${x.file.replace(/^.*\//, "")} dice ${x.nome} ma è entrato il ${x.giornoGit} (${x.avanti} giorni avanti)`).join("\n      "));
 });
@@ -223,28 +294,8 @@ test("il lascito è misurato, non dimenticato", () => {
 const DALL_ORA = "2026-08-09T10:30:00Z";
 const daAdesso = new Set([...MAPPA].filter(([, q]) => Date.parse(q) >= Date.parse(DALL_ORA)).map(([f]) => f));
 const primaDiAdesso = new Set([...MAPPA.keys()].filter((f) => !daAdesso.has(f)));
-
-/* ⛔ UNA SOLA ECCEZIONE, CON IL NOME PER ESTESO E LA RAGIONE — e sorvegliata,
-   perché un'eccezione che non serve più è un'eccezione che nasconde.
-   Il 13/08 un checkpoint è stato scritto **predicendo** l'ora invece di
-   leggerla da `date -u`: si chiama `20260813-164000` ed è entrato in git alle
-   **16:37:45**, due minuti avanti. Il file è già stato riscritto col nome
-   giusto (`20260813-163745_…`, stesso contenuto), ma questo controllo legge
-   **ogni percorso mai aggiunto** alla storia — di proposito, se no basterebbe
-   un `git mv` per farlo tacere — quindi il percorso vecchio resta lì.
-   ⚠️ **Toglierlo davvero vuol dire riscrivere la storia del ramo**
-   (`--force-with-lease`), che è un'operazione distruttiva e **ferma al
-   fondatore**. Finché quella non si fa, la scelta è fra una CI rossa su questa
-   riga sola — che insegna a non guardare il rosso, ed è il difetto peggiore di
-   tutti — e un'eccezione **dichiarata per nome**. Si sceglie la seconda, e la
-   si rende impossibile da dimenticare: la prova qui sotto **cade** il giorno in
-   cui quel percorso smette di essere mal datato, cioè il giorno in cui la
-   storia viene riscritta. L'eccezione non può sopravvivere alla sua causa. */
-const SCUSATI = new Map([
-  ["vault/checkpoints/20260813-164000_due-cantieri-e-la-copia-che-si-annuncia-gemella.md",
-    "13/08: ora PREDETTA invece che letta da `date -u`, 2 minuti avanti. Il file è già stato rinominato "
-    + "col nome giusto; resta il PERCORSO nella storia, e toglierlo chiede un force-with-lease fermo al fondatore."],
-]);
+// SCUSATI è dichiarata più sopra (prima della prova sul GIORNO, che ne ha
+// bisogno anche lei dal 19/09): qui la si riusa soltanto.
 
 test("nessun checkpoint NUOVO è datato dopo l'ORA in cui è entrato in git", () => {
   const scusati = new Set([...primaDiAdesso, ...SCUSATI.keys()]);

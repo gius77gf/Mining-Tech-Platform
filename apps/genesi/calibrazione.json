@@ -3,8 +3,7 @@
     "versione": 1,
     "generato": "2026-06-12",
     "fonte": "calibrazione interna",
-    "dominio_validita": "progetto-tipo aziendale: maglia 4.5x3.5 m, Nonel 25 ms superficie, 15-20 fori, calcare; riprese da ~50 m da terra",
-    "nota": "ogni blocco dichiara la provenienza: 'misurato' (dal dataset), 'osservato' (stima manuale dai frame di riferimento VID_20250606), 'teorico' (letteratura/fisica), 'estrattore_v1' (misura automatica pianificata)"
+    "nota": "ogni blocco dichiara la provenienza: 'misurato' (dal dataset), 'osservato' (stima manuale da riprese di riferimento), 'teorico' (letteratura/fisica), 'estrattore_v1' (misura automatica pianificata)"
   },
   "sequenza": {
     "durataTipicaMs": 400,
@@ -23,7 +22,7 @@
     "spriteForo": 180,
     "miniChunkScuri": 7,
     "ritardoDopoDetonazioneS": 0.0,
-    "_provenienza": "osservato: getti verticali 5-10 m nei frame r15.8-r17.0 di VID_20250606; estrattore_v1 per misura automatica altezza"
+    "_provenienza": "osservato: getti verticali 5-10 m nelle riprese di riferimento; estrattore_v1 per misura automatica altezza"
   },
   "bulge": {
     "inizioDopoDetonazioneS": 0.2,

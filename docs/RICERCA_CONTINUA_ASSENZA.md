@@ -599,3 +599,752 @@ volendo**.
 L'ordine di valore è questo: prima P1 (una riga non sparisce senza che qualcuno
 lo dica), poi P3 (il file spiega sé stesso, e costa una riga), poi P2 (la
 ragione diventa leggibile da un programma).
+
+## 15/09 — riverifica della sezione D2: quanti degli otto «muti» lo sono ancora
+
+⏱️ **Riverifica mirata, non nuova ricerca.** La sezione D2 (04/08-13/08)
+elencava otto lettori CSV «MUTI»: `conti/fatture`, `conti/incassi`,
+`conti/listino`, `conti/pesate`, `scudo/infortuni`, `sentinella/monitoraggi`,
+`sentinella/volate`, `terra/rilievi`. Il documento ha più di un mese ed è
+codice che nel frattempo è stato lavorato: **sei degli otto sono invecchiati**,
+non solo `terra/rilievi` (già segnalato prima di aprire questa riverifica).
+
+Per ogni voce: (1) esiste una funzione sorella `scarti<Nome>Csv` parallela al
+lettore? (2) è davvero chiamata nella pagina, o esiste e basta?
+
+| voce originale | sorella `scarti*Csv` esiste? | è chiamata nella pagina? | stato oggi |
+|---|---|---|---|
+| conti/fatture | sì, `scartiFattureCsv` (conti-data.js:895) | sì | **RISOLTO** |
+| conti/incassi | sì, `scartiIncassiCsv` (conti-data.js:6515) | sì | **RISOLTO** |
+| conti/listino | sì, `scartiListinoCsv` (conti-data.js:1109) | sì | **RISOLTO** |
+| conti/pesate | sì, `scartiPesateCsv` (conti-data.js:5797) | sì | **RISOLTO** |
+| scudo/infortuni | **no** | — | ancora MUTO |
+| sentinella/monitoraggi | **no** | — | ancora MUTO |
+| sentinella/volate | sì, `scartiVolateCsv` (sentinella-data.js:1186) | sì | **RISOLTO** |
+| terra/rilievi | sì, `scartiRilieviCsv` (terra-data.js:2371) | sì (index.html:4804) | **RISOLTO** (segnalato prima della riverifica) |
+
+Comandi e uscite:
+
+```
+$ grep -n "^export function scarti" apps/conti/conti-data.js
+895:export function scartiFattureCsv(text) {
+965:export function scartiGareCsv(text) {
+1109:export function scartiListinoCsv(text) {
+5797:export function scartiPesateCsv(text) {
+6515:export function scartiIncassiCsv(text) {
+6614:export function scartiClientiCsv(text) {
+
+$ grep -n "^export function scarti" apps/scudo/scudo-data.js
+3310:export function scartiLavoratoriCsv(text) {
+3444:export function scartiScadenzeCsv(text) {
+6525:export function scartiAzioniCsv(text) {
+  → nessuna riga per `scartiInfortuniCsv`: la funzione non esiste
+
+$ grep -n "^export function scarti" apps/sentinella/sentinella-data.js
+852:export function scartiRicettoriCsv(text) {
+974:export function scartiAdempimentiCsv(text) {
+1186:export function scartiVolateCsv(text) {
+  → nessuna riga per `scartiMonitoraggiCsv`: la funzione non esiste
+
+$ grep -n "^export function scarti" apps/terra/terra-data.js
+2307:export function scartiFrontiCsv(text) {
+2371:export function scartiRilieviCsv(text) {
+
+$ grep -n "scartiFattureCsv(" apps/conti/index.html
+8053:    const scartate = scartiFattureCsv(testoFat);
+
+$ grep -n "scartiIncassiCsv(" apps/conti/index.html
+6786:    const scartate = scartiIncassiCsv(testoInc);
+
+$ grep -n "scartiListinoCsv(" apps/conti/index.html
+7865:    const scartate = scartiListinoCsv(testoLis);
+
+$ grep -n "scartiPesateCsv(" apps/conti/index.html
+7340:    const scartate = scartiPesateCsv(testoPes);
+
+$ grep -n "scartiVolateCsv(" apps/sentinella/index.html
+5366:    const scartate = scartiVolateCsv(testoVol);
+
+$ grep -n "scartiRilieviCsv(" apps/terra/index.html
+4804:    const scartate = scartiRilieviCsv(testoRil);
+
+$ grep -c "scartiInfortuniCsv(" apps/scudo/index.html
+0
+
+$ grep -c "scartiMonitoraggiCsv(" apps/sentinella/index.html
+0
+```
+
+**Conteggio finale: ancora davvero «muti» oggi 2 su 8** —
+`scudo/infortuni` (`parseInfortuniCsv`, scudo-data.js:2185) e
+`sentinella/monitoraggi` (`parseMonitoraggiCsv`, sentinella-data.js:749). Per
+questi due non esiste nessuna funzione `scarti*Csv` sorella: il filtro dentro
+il lettore scarta ancora in silenzio, esattamente come descritto in D2.
+Gli altri sei — i quattro lettori di Conti, `sentinella/volate` e
+`terra/rilievi` — hanno **entrambi** i requisiti (sorella scritta e sorella
+chiamata nella pagina reale) e non sono più un caso della sezione D2.
+
+⚠️ **Nota per chi userà P1-P4**: le proposte del documento erano pensate per
+un «dove» di otto punti. Quel «dove» oggi è **due**, non otto: prima di
+tradurre P1 (o le altre) in codice va riletta la sezione D2 alla luce di
+questa riga, perché il lavoro da fare non è più «costruire scartiXCsv su otto
+lettori» — è già stato fatto su sei di essi in un momento non tracciato da
+questo documento — ma solo «farlo, e chiamarlo dalla pagina, sui due che
+restano: `scudo/infortuni` e `sentinella/monitoraggi`». Un cantiere aperto
+sugli otto originali rifarebbe sei volte un lavoro già in produzione.
+
+---
+
+**✅ 15/09 (20:08 UTC) — chiusi i due lettori rimasti "muti", commit `afa64c4a`.**
+Riverifica indipendente il 16/09: `scartiInfortuniCsv` esiste in
+`apps/scudo/scudo-data.js:2311` ed è chiamata in `apps/scudo/index.html`;
+`scartiMonitoraggiCsv` esiste in `apps/sentinella/sentinella-data.js:778` ed
+è chiamata in `apps/sentinella/index.html` — entrambe verificate con `grep`
+diretto, non sulla parola del documento. Il conteggio "ancora davvero muti
+oggi 2 su 8" scritto sopra è quindi **superato**: sono 0 su 8. Non c'è più
+nessun lettore CSV muto da questa lista. Chi rilegge D2/P1-P4 in cerca di
+lavoro da fare parta da qui, non dal conteggio più in alto.
+
+---
+
+**✅ 16/09 — P4 implementata (lo zero dichiarato di Flotta esce come
+dichiarato), commit da verificare nel prossimo checkpoint.** `csvRicambi`
+guadagna una quinta colonna `stato` (`predefinito`/`misurato`), derivata
+dallo stesso `numeroDichiarato(r.giacenza)` che già decide lo "0" nudo —
+nessun secondo giudizio, nessuna copia debole. **Deliberatamente NON
+tradotta in P2**: `parseRicambiCsv` non rilegge ancora la colonna (il
+modello dati di un ricambio non ha oggi un posto dove tenere questa
+distinzione, e introdurlo qui sarebbe la decisione che P2 vuole prendere
+in comune per tutti e undici i CSV). P2, P3 restano aperte.
+
+---
+
+**✅ 16/09 (più tardi, stesso giorno) — P2, PRIMA FETTA: il vocabolario
+nasce in `shared/dw-ponti.js`, un solo scrittore migrato.** `csvRicambi`
+scriveva già `"predefinito"`/`"misurato"` a mano (P4 sopra) — esattamente
+il rischio che questo repository chiama "una copia debole nasce da una
+firma troppo stretta": il PROSSIMO scrittore che avesse avuto bisogno delle
+stesse due parole le avrebbe ricopiate, e da lì in poi le due copie
+sarebbero potute divergere senza che nessuna prova se ne accorgesse.
+
+Aggiunte sei costanti (`STATO_CELLA_MAI_MISURATO`,
+`STATO_CELLA_NON_APPLICABILE`, `STATO_CELLA_ILLEGGIBILE`,
+`STATO_CELLA_NON_ANCORA`, `STATO_CELLA_PREDEFINITO`,
+`STATO_CELLA_MISURATO`) più `STATI_CELLA` (l'elenco chiuso, con la
+corrispondenza SDMX/GML dichiarata nel proposta P2), e migrato
+`csvRicambi` a importarle invece di scrivere le due parole a mano. Prova
+di identità (non di comportamento, la forma giusta per una costante
+condivisa): il CSV di Flotta deve contenere esattamente il VALORE della
+costante importata, non una stringa che per caso combacia — controprova
+fatta sul codice vero (sostituita la costante con una stringa quasi
+identica, `"predefinito-FINTO"`, confermato che il test cade, ripristinato).
+
+**Quello che questa fetta NON fa, e va detto**: nessuno degli altri dieci
+CSV di D1 scrive ancora questa colonna; nessun lettore la rilegge (stesso
+limite dichiarato per P4); i quattro codici che nessuno scrive ancora
+(`mai-misurato`, `non-applicabile`, `illeggibile`, `non-ancora`) esistono
+solo come vocabolario dichiarato, provati per il loro VALORE ma non
+esercitati da nessun caso reale. Il passo successivo è lo stesso di
+sempre: uno scrittore alla volta, a partire da quelli con l'assenza più
+frequente misurata in D1/D3 di questo documento (rilievi di Terra,
+pesate/incassi di Conti).
+
+---
+
+**✅ 16/09 (stesso giorno) — P2, SECONDO SCRITTORE: `csvRilievi` di Terra.**
+A differenza di Flotta (che aveva già i due stati scritti a mano), qui il
+modello non distingue nessuna ragione per un volume mancante — quindi il
+codice giusto è il binario più semplice, lo stesso di Flotta:
+`STATO_CELLA_MISURATO` quando `volumeM3` è un numero (zero compreso: uno
+zero CONTATO è un dato, non un'assenza — la stessa regola che questo
+documento ripete per Flotta), `STATO_CELLA_MAI_MISURATO` quando manca.
+L'ottava colonna del file, aggiunta dopo la settima (tolleranza, 11/09).
+
+Prima fetta come P4: solo lo scrittore. `parseRilieviCsv` non rilegge
+ancora la colonna — resta posizionale a sette campi, quindi un file
+vecchio senza `stato` continua a rientrare identico (provato: un CSV a
+sette colonne scritto a mano rientra con la stessa lunghezza di prima).
+Aggiornata anche `CSV_TABELLE` in `shared/deepwork-id-client/dw-shell.js`
+(l'intestazione dichiarata per l'auto-riconoscimento del file, B8) — presa
+dalla prova B8 stessa, che confronta il censimento con l'export VERO e
+avrebbe fatto cadere qualunque copia scritta a mano.
+
+Il candidato successivo (pesate/incassi di Conti) resta il passo dopo:
+lì il file ha venti colonne e un meccanismo di lettura diverso (`leggiCsv`
+sull'intero testo, per via degli a capo dentro le celle — vedi il
+commento sopra `cellePesate`), quindi merita la stessa cura dedicata data
+qui a Terra, non una fretta.
+
+---
+
+**✅ 16/09 (stesso giorno) — P2, TERZO SCRITTORE: `csvIncassi` di Conti.**
+Scelto invece di `csvPesate` perché genuinamente più semplice: quattro
+colonne, un solo campo che il lettore scarta se assente (`importo`,
+esattamente come `volumeM3` per Terra), nessun campo derivato o
+condizionale che complichi la scelta del codice. Stesso binario, stessa
+disciplina già usata due volte: `STATO_CELLA_MISURATO` quando `importo` è
+un numero (zero dichiarato compreso — un incasso a zero è un movimento
+vero, non un'assenza, la stessa regola di sempre), `STATO_CELLA_MAI_MISURATO`
+quando manca. Quinta colonna, prima fetta: solo lo scrittore,
+`parseIncassiCsv` resta a quattro colonne posizionali e un file vecchio
+rientra identico. Aggiornata `CSV_TABELLE` in `dw-shell.js` per
+`conti.incassi` (la stessa guardia B8 che aveva già preso Terra).
+Controprova sul codice vero: sostituita la costante con una stringa quasi
+identica, confermato che il test cade, ripristinato.
+
+`csvPesate`/`parsePesateCsv` (venti colonne, `netto` derivato non letto,
+`fontePrezzo` scritto solo se dichiarato) resta il candidato successivo:
+lì la scelta di QUALE campo porti lo stato — e se il binario basti o serva
+un terzo codice (`non-applicabile` per una pesata a peso dove la densità
+non serve) — merita ancora la stessa cura dedicata, non riusata di corsa
+dal pattern appena chiuso qui.
+
+---
+
+**✅ 16/09 (stesso giorno) — P2, QUARTO SCRITTORE: `csvPesate` di Conti, e
+il PRIMO USO DI UN TERZO CODICE.** Letto `pesiPesata` prima di scrivere
+codice (è la stessa funzione che decide `netto` a schermo — riusata, non
+riscritta): distingue già `noto` (un peso completo, o il netto dichiarato
+direttamente), `incompleto` (arrivato UN SOLO peso dei due, lordo o tara)
+e "niente" (nessuno dei tre). Sono tre stati genuinamente diversi, non due:
+un ticket della pesa letto a metà (`incompleto`) è un guasto o un refuso,
+diverso da "nessuno ha pesato" — quindi qui il binario già usato tre volte
+NON bastava, ed è la prima occasione in cui il vocabolario condiviso porta
+un terzo codice:
+  - nessun peso di nessun tipo → `STATO_CELLA_MAI_MISURATO`
+  - un solo peso dei due (`incompleto`) → `STATO_CELLA_ILLEGGIBILE`
+    (un ticket a metà, non un'assenza)
+  - un peso pieno o il netto dichiarato → `STATO_CELLA_MISURATO`
+
+Ventunesima colonna, prima fetta: solo lo scrittore, `parsePesateCsv`
+resta posizionale a venti campi. Aggiornata `CSV_TABELLE` (guardia B8) e
+le due asserzioni che contavano le colonne dichiarate. Controprova sul
+codice vero: collassato `incompleto` su `mai-misurato` invece di
+`illeggibile`, confermato che il test dedicato alla distinzione dei tre
+stati cade, ripristinato.
+
+**Con questo, quattro scrittori su undici sono migrati** (Flotta, Terra,
+Conti-incassi, Conti-pesate) e tutti e tre i codici usati finora
+(`misurato`, `mai-misurato`, `illeggibile`) sono ora esercitati da almeno
+un caso reale — restano `non-applicabile` e `non-ancora`, ancora solo
+dichiarati. Il passo successivo, quando si riprenderà P2, è uno degli
+altri sette CSV di D1 (scadenze, listino, fatture, gare, mezzi/ricambi di
+Flotta, scadenze/lavoratori di Scudo, monitoraggi/volate di Sentinella —
+l'elenco esatto va riletto in §3 di questo documento prima di scegliere).
+
+---
+
+**✅ 16/09 (stesso giorno) — P2, QUINTO SCRITTORE: `csvRicettori` di
+Sentinella, e la PRIMA VOLTA CHE LA RIGA NON SPARISCE MAI.** Diverso dai
+primi quattro per una ragione strutturale, non di stile: in rilievi/
+incassi/pesate un valore assente fa scartare l'INTERA riga al rientro; un
+ricettore senza `distanza` invece resta un ricettore — nessun `.filter`
+lo tocca. La cella vuota è comunque un'assenza senza spiegazione, quindi
+P2 si applica lo stesso, ma il "prima si sceglie il campo" qui vale
+doppio: `csvClienti` e `csvGare` sono stati scartati come candidati
+proprio in questa unità perché hanno già una colonna chiamata `stato`
+con un significato diverso (lo stato commerciale del cliente/della gara)
+— scriverne una seconda con lo stesso nome e un significato diverso
+sarebbe stato il difetto peggiore possibile per uno strumento nato per
+togliere ambiguità, non per aggiungerne.
+
+Stesso binario di Terra e Conti-incassi (nessuna ragione più fine da
+distinguere): `STATO_CELLA_MISURATO` quando `distanzaDelRicettore` (la
+stessa funzione che decide lo zero-non-è-una-distanza a schermo, riusata)
+restituisce un numero, `STATO_CELLA_MAI_MISURATO` quando restituisce
+`null`. Undicesima colonna, prima fetta: solo lo scrittore,
+`parseRicettoriCsv` resta posizionale a dieci campi. Aggiornata
+`CSV_TABELLE` (guardia B8) e le tre asserzioni esistenti che ancoravano
+la fine della riga sulle colonne del sopralluogo. Controprova sul codice
+vero: sostituita la costante con una stringa quasi identica, confermato
+che i due test dedicati cadono, ripristinato.
+
+**Cinque scrittori su undici migrati.** Restano sei: scadenze (Terra,
+Flotta, Scudo — già unificate dietro `statoScadenza` in `shared/`, quindi
+probabilmente non serve un NUOVO stato lì), listino/fatture/gare-residue
+di Conti, mezzi/ricambi-residui di Flotta, lavoratori di Scudo,
+monitoraggi/volate di Sentinella — l'elenco preciso resta quello di D1/D2
+sopra, e va riletto (non ricordato a memoria) prima di scegliere il
+prossimo, perché due candidati già controllati in questa unità
+(`csvClienti`, `csvGare`) si sono rivelati NON adatti per la collisione
+di nome — la stessa domanda va rifatta per ognuno dei sei rimasti prima
+di scrivere codice.
+
+---
+
+**✅ 16/09 (stesso giorno) — P2, SESTO SCRITTORE: `csvListino` di Conti.**
+Controllato PRIMA di scrivere: nessuna colonna `stato` preesistente (a
+differenza di `csvClienti`/`csvGare`, scartati in questa stessa ricerca
+poco sopra) — candidato pulito. `prezzo` è esattamente il campo per cui
+D1 misurava «1→0 RIGA PERSA»: senza un prezzo leggibile `parseListinoCsv`
+scarta la riga (`.filter(p => p.nome && p.prezzo != null)`), la stessa
+famiglia di `volumeM3` per Terra e `importo` per gli incassi di Conti.
+Stesso binario, nessuna ragione più fine da distinguere: `STATO_CELLA_MISURATO`
+quando `prezzo` è un numero, `STATO_CELLA_MAI_MISURATO` quando manca.
+
+Sesta colonna, prima fetta: solo lo scrittore, `parseListinoCsv` resta
+posizionale a cinque campi. Aggiornata `CSV_TABELLE` (guardia B8, sesto
+colpo consecutivo della stessa guardia) e le due asserzioni esistenti che
+ancoravano la fine della riga sull'aliquota IVA. Controprova sul codice
+vero: sostituita la costante con una stringa quasi identica, confermato
+che il test dedicato cade, ripristinato.
+
+**Sei scrittori su undici migrati — più della metà.** Restano cinque:
+fatture/gare-residue di Conti (probabilmente entrambe con lo stesso
+problema di `csvClienti`/`csvGare`, da controllare), mezzi/ricambi-residui
+di Flotta, lavoratori di Scudo, monitoraggi/volate di Sentinella. Le
+scadenze unificate (Terra/Flotta/Scudo dietro `statoScadenza`)
+probabilmente non sono un buon candidato per la stessa ragione della
+collisione di nome, ma vanno controllate, non assunte.
+
+---
+
+**⚠️ 16/09 — il costo di P3 (riga di convenzione in testa al CSV) misurato,
+come la proposta stessa chiedeva prima di scriverla: NON è gratis.**
+
+```
+$ node -e "import('./apps/flotta/flotta-data.js').then(m => {
+  const csv = '# riga di convenzione\nnome;giacenza;sogliaMin;prezzo;stato\nFiltro olio;4;2;18,9;misurato\n';
+  console.log(JSON.stringify(m.parseRicambiCsv(csv)));
+});"
+→ [{"nome":"# riga di convenzione","giacenza":0,"sogliaMin":null,"prezzo":null},
+   {"nome":"Filtro olio","giacenza":4,"sogliaMin":2,"prezzo":18.9}]
+```
+
+`isIntestazione` scarta solo la riga che INIZIA con la parola chiave attesa
+(`"nome"` per `parseRicambiCsv`): una riga di commento davanti diventa una
+riga di DATO fantasma — qui un ricambio chiamato «# riga di convenzione».
+La proposta originale l'aveva previsto come rischio possibile ("va misurato
+prima..."): è successo. Il costo vero non è "una riga di commento in un
+posto solo": è insegnare a **ognuno dei 21 lettori** a riconoscere e
+scartare una riga di convenzione PRIMA del controllo sull'intestazione — lo
+stesso ordine di grandezza di P1 (8 lettori) ma su tutti e 21, perché un
+lettore che non lo sa fa esattamente il danno mostrato sopra. **Non
+implementata**: resta un cantiere a sé, con questo costo scritto per chi lo
+aprirà, non più una stima ottimistica.
+
+---
+
+**✅ 16/09 (stesso giorno) — P2, SETTIMO SCRITTORE: `csvTarature` di
+Sentinella.** Controllati PRIMA di scrivere i due candidati rimasti di D1
+oltre a Clienti/Gare (già scartati): `csvSquadre` di Campo scrive già una
+colonna `stato` con un significato diverso (lo stato operativo della
+squadra, `"operativa"` di default — stessa collisione di Clienti/Gare) e
+`csvAzioni` di Scudo pure (lo stato del workflow dell'azione correttiva,
+`"aperta"` di default). Tutti e quattro i candidati con collisione di nome
+sono ora verificati e scartati per la stessa ragione. `csvTarature` non ha
+nessuna colonna `stato` preesistente: candidato pulito, l'ultimo dei sei
+originali di D1 ancora liberi.
+
+Qui il campo misurato da D1 (`scadenza`) è una DATA, non un numero, e la
+riga non sparisce mai — la stessa famiglia dei ricettori, non quella di
+rilievi/incassi/listino: il commento della funzione lo dice da sempre,
+«ESCONO TUTTI, ANCHE QUELLI CON LE DATE ROTTE». Prima di scegliere il
+codice si è letto `ragioneData` (in `shared/dw-shell.js`), che per una
+data distingue TRE ragioni — non scritta, non esiste (30/02), non si
+legge — e sembrava l'occasione per un secondo uso del terzo codice dopo
+`csvPesate`. Non lo è: a differenza di `pesiPesata` (che decide `noto` /
+`incompleto` / niente leggendo direttamente i DUE pesi grezzi), qui la
+tripla distinzione vive SOLO nel messaggio che il lettore costruisce per
+l'utente durante il parsing — l'oggetto `taratura` che il modulo tiene in
+memoria, e che lo scrittore vede, porta `scadenza` già passata da `dataIso`
+a monte (nel giro `parseTaratureCsv` → oggetto applicativo), che collassa
+"non scritta" e "non esiste" nello stesso `""`. Scrivere un terzo codice
+qui avrebbe significato ricostruirsi una distinzione che l'oggetto non
+porta più — la copia debole che questo file chiama altrove "calcolare una
+cosa che un altro pezzo del prodotto ha già deciso". Quindi binario, come
+Terra/Conti-incassi/Conti-listino/Sentinella-ricettori: `STATO_CELLA_MISURATO`
+quando `dataISOEsiste(t.scadenza)` (riusata, non riscritta — è la stessa
+funzione con cui `shared/` valida ogni data ISO), `STATO_CELLA_MAI_MISURATO`
+altrimenti — e "altrimenti" copre sia il vuoto sia il 30 febbraio, provato
+esplicitamente nel test dedicato perché non restasse un caso implicito.
+
+Settima colonna, prima fetta: solo lo scrittore, `parseTaratureCsv` resta
+posizionale a sei campi (un file vecchio senza `stato` rientra identico,
+provato). Aggiornata `CSV_TABELLE` in `dw-shell.js` per `sentinella.tarature`
+(guardia B8, settimo colpo consecutivo della stessa guardia in sette
+unità). Controprova sul codice vero: invertita la condizione
+(`STATO_CELLA_MISURATO`↔`STATO_CELLA_MAI_MISURATO`), confermato che il
+test dedicato cade, ripristinato via `cp` + `diff`.
+
+**Sette scrittori su undici migrati.** Degli undici di D1 restano solo
+`csvClienti` e `csvGare` di Conti — entrambi già scartati per la
+collisione di nome — quindi **P2 ha raggiunto il suo limite naturale sui
+CSV di D1**: tutti i candidati liberi sono migrati, i quattro rimasti
+(Clienti, Gare, Squadre, Azioni) hanno tutti una colonna `stato` propria e
+di significato diverso, e riusarla sarebbe il difetto che questo documento
+esiste per evitare. Il passo successivo, se si vuole continuare P2 oltre
+D1, non è "l'ottavo scrittore": è o (a) accettare che sette su undici è il
+massimo raggiungibile con questo vocabolario sul perimetro misurato, o (b)
+aprire una domanda nuova — per i quattro CSV con `stato` proprio, il LORO
+vocabolario di stato copre già la distinzione misurato/non-misurato, o è
+un concetto ortogonale (come `statoTaraturaStrumento` di Sentinella, che è
+"quanto è valida oggi la taratura" e non "è stata scritta la cella") che
+lascerebbe comunque un buco? Non misurato in questa unità — è la domanda
+per chi riprenderà P2, non una conclusione.
+
+---
+
+**⛔ 16/09 (subito dopo) — CORREZIONE: `csvClienti` NON aveva la collisione
+di nome che questo documento gli attribuiva, tre volte, senza riverificarla.**
+Aprendo la domanda lasciata in sospeso qui sopra — se il `stato` proprio dei
+quattro CSV rimasti sia ortogonale o copra già l'assenza — la prima verifica
+indipendente ha smentito la premessa: `csvClienti` **non ha mai avuto una
+colonna `stato`**.
+
+```
+$ grep -n "CSV_CLIENTI_INTESTAZIONE" apps/conti/conti-data.js
+6772:export const CSV_CLIENTI_INTESTAZIONE = "id;ragioneSociale;piva;sdi;indirizzo;sconto;fido;note;cap;comune;provincia;codiceFiscale";
+```
+Dodici colonne, nessuna chiamata `stato`. E nessun `cliente.stato` altrove
+nel modulo (`grep -n "\.stato\b" apps/conti/conti-data.js`, letto riga per
+riga: tutte le occorrenze appartengono ad altre entità — fatture, ordini,
+preventivi, note SdI — mai a un cliente). `csvGare`, invece, la collisione
+ce l'ha davvero: `"titolo;base;scadenza;stato"`, con `g.stato || "aperta"`
+e il vocabolario `aperta/vinta/persa`. Le due erano state scartate
+**insieme**, nella stessa frase, nell'unità del quinto scrittore — probabilmente
+perché controllate in coppia e la collisione vera di Gare è stata attribuita
+per contagio anche a Clienti, senza il `grep` separato che questo stesso
+documento chiede altrove ("per ogni non-c'è l'agente scrive la prova di aver
+guardato"). L'errore è stato ripetuto **tre volte** (unità del quinto, sesto
+e settimo scrittore) senza che nessuno lo riaprisse: un'affermazione ripetuta
+non diventa più vera, e qui ha quasi fatto scartare per la quarta volta un
+candidato valido.
+
+`csvClienti` è quindi migrato come **OTTAVO scrittore**: `fido` è
+esattamente il campo per cui D1 misurava «assente (ok)» (non una riga persa
+— `parseClientiCsv` scarta solo per `ragioneSociale` mancante, mai per
+`fido`), stesso binario di Ricettori/Tarature: `STATO_CELLA_MISURATO`
+quando `numeroDichiarato(c.fido)` è un numero (zero dichiarato compreso —
+«non gli si fa credito» è un dato vero, non un'assenza, la stessa
+distinzione che il test `FIDO NON IMPOSTATO` verifica dal 2026), `STATO_CELLA_MAI_MISURATO`
+altrimenti. Tredicesima colonna, prima fetta: solo lo scrittore,
+`parseClientiCsv` resta posizionale a dodici campi (compatibilità
+all'indietro provata). Aggiornata `CSV_TABELLE` in `dw-shell.js` (guardia
+B8, ottavo colpo consecutivo). Controprova sul codice vero: invertita la
+condizione, confermato che il test dedicato cade, ripristinato.
+
+**Otto scrittori su undici migrati — e il vero limite naturale di P2 su
+D1 è ORA tre, non quattro**: restano davvero irraggiungibili solo `csvGare`
+di Conti, `csvSquadre` di Campo e `csvAzioni` di Scudo (collisione di nome
+verificata singolarmente per ciascuno, non per contagio). La domanda
+lasciata aperta nella nota precedente (il loro `stato` proprio è ortogonale
+o copre già l'assenza?) resta valida per questi tre, e resta aperta.
+
+---
+
+**✅ 16/09 (subito dopo) — la domanda sui tre CSV rimasti ha una risposta:
+ORTOGONALE su tutti e tre, misurato leggendo la funzione che decide il
+loro `stato`, non deducendolo dal nome.**
+
+```
+$ sed -n '1182,1186p' apps/scudo/scudo-data.js
+export function statoAzione(azione, oggi = new Date()) {
+  const a = azione || {};
+  if (a.stato === "chiusa") return "regolare";
+  return statoScadenza(a.scadenza, oggi);
+}
+```
+`a.stato` (aperta/in-corso/chiusa) è il WORKFLOW dell'azione correttiva;
+`a.scadenza` (il campo che D1 misurava assente) è deciso da tutt'altra
+strada — `statoScadenza` di `shared/dw-ponti.js`, che per una data mancante
+risponde già **"senza data"**, non un `undefined` muto. Stessa storia per
+gli altri due:
+```
+$ sed -n '1973,1976p' apps/conti/conti-data.js
+export function baseGara(gara) {
+  const g = gara || {};
+  return g.base != null && g.base !== "" && Number.isFinite(+g.base) ? +g.base : null;
+}
+```
+`baseGara` non legge mai `g.stato` (aperta/vinta/persa): una gara persa può
+avere una base dichiarata o no, indipendentemente dall'esito. E
+`squadreAttive: squadre.filter(q => q.stato === "operativa").length`
+(campo-data.js:2672) filtra sull'operatività, mai su `persone` — che il
+commento della stessa funzione (righe 2763-2772) tratta già con la
+convenzione «vuoto = non lo so, zero = svuotata apposta» usata da sempre,
+prima ancora che esistesse P2.
+
+**Ma il gap ha un peso diverso a seconda del TIPO di campo, e vale la
+pena dirlo esplicitamente prima di proporre qualunque cosa**: `scadenza`
+(Azioni) è una DATA, dove l'assenza è già inequivocabile via cella vuota
+(`statoScadenza` la chiama «senza data» sullo schermo da sempre — non
+c'è ambiguità zero-vs-assente su una data, a differenza di un numero). Il
+valore marginale di P2 lì sarebbe solo un marcatore leggibile da un
+programma, non una correzione di un'ambiguità vera. `persone` (Squadre) e
+`base` (Gare) invece sono NUMERI, dove la stessa ambiguità zero-vs-assente
+che ha motivato tutta la ricerca ASSENZA esiste davvero e oggi non ha
+nessun marcatore.
+
+**Non implementato, e va detto perché**: applicare P2 a questi tre
+richiederebbe un nome DIVERSO da `stato` per non collidere (es.
+`statoCella`), il che romperebbe l'uniformità del vocabolario — ogni
+lettore automatico dei file dovrebbe sapere che in undici CSV la colonna
+si chiama `stato` e in questi tre si chiamerebbe diversamente. Questa non
+è una scoperta da tradurre in codice sulla parola di chi ha fatto la
+ricerca: è una **decisione di naming/prodotto** (un secondo nome per lo
+stesso concetto, o accettare che questi tre restino fuori da P2 per
+sempre) che merita di essere presa esplicitamente, non scritta di
+sfuggita dentro un'unità di ricerca. P2 si considera **chiuso a otto
+scrittori su undici** finché qualcuno non prende quella decisione.
+
+---
+
+## 6. NUOVO ANGOLO (17/09) — Sentinella: il «dopo-volata» (colpo cieco), non
+ancora censito qui — e il verdetto è POSITIVO, non un'altra proposta
+
+**La domanda**, nella forma che questo documento chiede («prima il mondo, poi
+la nostra app»): come tratta il mondo l'assenza del dato più critico del
+nostro mestiere — *questo foro ha detonato o no* — e chi la nostra casa lo
+dichiara, se qualcuno lo dichiara?
+
+**1. Il mondo, di seconda mano** (`WebSearch`; le pagine dirette di eCFR e
+WorkSafeBC non sono state aperte una per una, uso la sintesi dei risultati
+di ricerca, con le fonti). Un colpo cieco (misfire — carica non detonata) non
+è trattato come «nessun dato»: ha una procedura propria, con almeno tre stati
+impliciti — non ancora ispezionato, ispezionato-pulito, ispezionato-con-colpo-
+cieco-e-bonificato. La ricerca (query: `misfire blast report "undetonated"
+holes regulation quarry blasting record requirement`) restituisce, come
+sintesi dei risultati: la posizione di un eventuale esplosivo non detonato va
+**registrata sul blast report**; dopo lo sparo è richiesta un'**ispezione
+mirata** a cercare esplosivo non detonato; e un colpo cieco va **segnalato
+immediatamente alla direzione della miniera**, con l'area interdetta finché
+non è messa in sicurezza — [eCFR, 30 CFR Part 75 Subpart N — Explosives and
+Blasting](https://www.ecfr.gov/current/title-30/chapter-I/subchapter-O/part-75/subpart-N);
+[WorkSafeBC, OHS Regulation Part 21: Blasting
+Operations](https://www.worksafebc.com/en/law-policy/occupational-health-safety/searchable-ohs-regulation/ohs-regulation/part-21-blasting-operations);
+[WorkSafeBC, OHS Guidelines Part
+21](https://www.worksafebc.com/en/law-policy/occupational-health-safety/searchable-ohs-regulation/ohs-guidelines/guidelines-part-21).
+
+**2. In casa — cercato prima dove sembrava dovesse stare, e non c'è, provato:**
+
+```
+$ grep -rniE "colpo cieco|misfire|mancata detonazione|mancata esplosione" \
+  apps/genesi/genesi-data.js apps/genesi/genesi.html
+apps/genesi/genesi.html:6569: [...] 'l\'ANFO si desensibilizza in acqua →
+  probabile MANCATA DETONAZIONE e fumi NOx tossici.' [...]
+```
+L'unica occorrenza in Genesi (l'app di progettazione volate, già lodata in §0
+per l'XML in stile ISO 19115) è un avviso di chimica sull'ANFO in acqua, non
+un campo che registra l'esito di un foro. Genesi — che fa riconciliazione
+peso per peso, non conferma di sparo (§ commento in `genesi.html:4208`: «Dal
+file arrivano solo i chili caricati […] restano da compilare qui sotto a
+mano») — davvero **non ha** questo concetto. Fin qui l'ipotesi «manca» era
+vera.
+
+⛔ **Ma è la stessa trappola descritta in CLAUDE.md al contrario** (14/08:
+«si cerca la parola del mondo dentro il NOSTRO codice» — qui il rischio
+simmetrico era fermarsi alla prima app cercata e concludere che la funzione
+non esistesse in nessuna). La domanda giusta non è «Genesi ce l'ha?» ma «dove
+si chiamerebbe la cosa se esistesse fatta in un altro modo?» — e la risposta
+è Sentinella, non Genesi: un colpo cieco è un fatto ambientale/di sicurezza
+del dopo-sparo, non della progettazione. Cercato lì (unità 116 dell'11/09,
+mai citata in questo documento):
+
+```
+$ grep -n "^export const DOPO_" apps/sentinella/sentinella-data.js
+4828:export const DOPO_NON_APPLICABILE = "non-applicabile";
+4829:export const DOPO_NON_REGISTRATO = "non-registrato";
+4830:export const DOPO_REGOLARE = "regolare";
+4831:export const DOPO_ANOMALIE = "anomalie";
+```
+
+`statoDopoVolata` (`sentinella-data.js:4862`) distingue **quattro** stati, non
+un binario: la volata non è ancora sparata (`non-applicabile` — è, alla
+lettera, il `nilReason="inapplicable"` di GML citato in §1.2 di questo
+stesso documento: «there is no value»); nessuno ha ancora compilato
+l'ispezione post-sparo (`non-registrato`, colore «warn», **non** «regolare»
+— il commento del codice lo scrive con le stesse parole del principio del
+fondatore, righe 4826-4827: *«una volata eseguita SENZA questi campi non è
+"regolare", è "dopo-volata non registrato". Il silenzio non è un esito.»*);
+ispezionato e pulito (`regolare`); ispezionato con almeno un colpo cieco o una
+proiezione fuori area (`anomalie`) — e su quest'ultimo la validazione
+(`campiDopoVolata:4903`) **blocca il salvataggio** finché non si scrive che
+cosa è stato fatto («ritrovata e brillata, messa in sicurezza, area
+interdetta…»): è esattamente l'obbligo di bonifica del mondo (punto 1 sopra)
+reso **obbligatorio dal form**, non solo raccomandato in un manuale.
+
+E lo zero è dichiarato zero, non confuso con «nessuno ha guardato» — la
+stessa distinzione che regge tutto il resto di questo documento, qui sul dato
+più critico del mestiere:
+```
+$ sed -n '4838,4839p' apps/sentinella/sentinella-data.js
+  const m = numeroDichiarato(x.mancateEsplosioni);
+  const mancate = m != null && Number.isInteger(m) && m >= 0 ? m : null;
+```
+
+**Verificato fino in fondo alla catena** (letto, non supposto — la stessa
+regola di D2 su questo documento):
+- **allo schermo**: `riepilogoDopoVolata` (`sentinella-data.js:4940`) somma le
+  mancate solo su chi le ha dichiarate (`mancateTotali = null` finché nessuno
+  dichiara — la propagazione agli aggregati di §1.1b, non un totale
+  tranquillo), conta a parte `nonRegistrate`, e quel numero non è una
+  bandiera scollegata (la trappola della regola 20 di `run-stile.mjs`, già
+  pagata altrove in questa casa):
+  `grep -n "nonRegistrate" apps/sentinella/index.html` →
+  `4739:  rd.nonRegistrate ? \` · <span class="badge warn" …>\${rd.nonRegistrate} senza dopo-volata</span>\` : ""`;
+- **nel file che esce** (`csvRegistroVolate:5519`): la cella passa da
+  `cella()`, che scrive vuoto per `null` e il numero per uno zero dichiarato —
+  non un `|| 0` che confonderebbe le due cose (il commento a `5491-5495` lo
+  dice per nome, citando proprio questo errore come quello già corretto);
+- **nel giro di ritorno** (`parseVolateCsv:1181,1184`):
+  ```
+  $ sed -n '1181p;1184p' apps/sentinella/sentinella-data.js
+        const sm = String(mancateEsplosioni == null ? "" : mancateEsplosioni).trim();
+          mancateEsplosioni: /^\d+$/.test(sm) ? parseInt(sm, 10) : null,
+  ```
+  una cella vuota rilegge `null`, non zero — la distinzione sopravvive
+  all'export/import, non solo alla sessione in corso (è la stessa prova che
+  D1 di questo documento pretende per gli 11 CSV, qui fatta a mano su questo
+  campo).
+
+**Verdetto — e perché va scritto anche se non produce lavoro.** Zero proposte
+P entrano da questa unità: non c'è nessun «non c'è» da colmare. È il caso
+simmetrico alla regola di CLAUDE.md del 01/08 («due cantieri stavano per
+aprirsi su cose già costruite» — indici di Scudo, solleciti di Conti): qui
+l'ipotesi di partenza (Genesi non ha un posto per dichiarare un colpo cieco)
+era **vera**, ma la funzione non manca all'ecosistema — vive nell'app giusta
+(Sentinella), è **più fine** del minimo che il mondo richiede (quattro stati
+contro i tre impliciti di §1, con la bonifica resa obbligatoria dal form e
+non solo raccomandata), ed è collegata dallo schermo al file di scambio senza
+un punto cieco lungo la catena. Vale la pena catalogarlo qui — non c'era
+prima, verificato con `grep -c "dopo-volata\|dopoVolata\|mancateEsplosioni" docs/RICERCA_CONTINUA_ASSENZA.md`
+prima di questa unità → `0` — perché è il **quarto** esempio indipendente
+(dopo `numeroDichiarato`, le sei bandiere e l'XML di Genesi in §0) di questa
+casa che inventa da sola un pezzo dello stesso principio che la sezione 1
+documenta nel mondo, e il più recente dei quattro (11/09, dopo che il grosso
+di questa ricerca era già scritto).
+
+---
+
+## 7. NUOVO ANGOLO (18/09) — Flotta: `budgetVsSpesa` conta un costo, ma può
+sommarne l'importo come zero. Un difetto vero, non ancora citato qui.
+
+**Dichiarazione di copertura (letta prima di scegliere, come chiede la
+procedura).** Questo documento, fino a oggi, sull'assenza aveva già trattato
+a fondo Terra (§D2, rilievi), Conti (pesate/incassi/listino/clienti/gare, §6
+del piano P2), Sentinella (ricettori, tarature, §6 il dopo-volata), Scudo
+(§D2, gli scarti di infortuni/azioni) e, di striscio, Flotta stessa per UNA
+sola funzione (`csvRicambi`, P4, la giacenza «predefinito» vs «misurata»).
+Campo non ha mai una voce dedicata in questo file. Ho controllato per primo
+Campo: `mediaFermiAlGiorno`, `pianoRiepilogo`, `pianoParziale`, `orariDiTurno`
+e `csvSquadre` (`apps/campo/campo-data.js`, righe 1472-2498 e 2966-2786)
+trattano TUTTI il caso — bandiere `parziale`/`noto`/`misurabile`, motivo a
+parole, «almeno» invece di un totale muto — con un livello di cura pari o
+superiore a quello che questo documento chiede altrove; ho controllato anche
+Genesi (`x50DaMisure`, `_riconRiassuntoCampo`, `caricaTotale`/
+`caricaSenzaConto`, `apps/genesi/genesi-data.js`) con lo stesso esito: già
+difesi. Nessuna proposta nuova nasce da Campo o da un secondo giro su Genesi
+— onestamente, zero.
+
+Il meccanismo nuovo l'ho trovato invece **dentro Flotta**, in una funzione
+mai citata in questo file: `budgetVsSpesa` (`apps/flotta/flotta-data.js:1687`,
+nata il 05/09, mai passata sotto la lente dell'assenza — verificato
+`grep -c "budgetVsSpesa" docs/RICERCA_CONTINUA_ASSENZA.md` → `0` prima di
+questa riga).
+
+**Il meccanismo, letto riga per riga:**
+```
+$ sed -n '1697,1720p' apps/flotta/flotta-data.js
+  const dellAnno = [], senzaData = { voci: 0, importo: 0 };
+  for (const c of C) {
+    if (!c) continue;
+    const d = String(c.data || "").slice(0, 10);
+    if (!dataISOEsiste(d)) { senzaData.voci++; senzaData.importo += +c.importo || 0; continue; }
+    if (+d.slice(0, 4) === A) dellAnno.push(c);
+  }
+  ...
+  const riga = (b) => {
+    const k = chiaveVoce(b.voce);
+    const spese = k ? dellAnno.filter((c) => chiaveVoce(c.voce) === k) : dellAnno;
+    const speso = r2(spese.reduce((t, c) => t + (+c.importo || 0), 0));
+    ...
+    return { ..., previsto, speso, nSpese: spese.length, ... };
+  };
+```
+Una voce di costo **senza data** ha il suo secchio dedicato (`senzaData`,
+contato E sommato a parte, poi dichiarato nel CSV — riga 1765). Una voce di
+costo **senza importo** non ce l'ha: entra in `dellAnno`, viene contata in
+`spese.length` (quindi in `nSpese`, il numero che dice «quante voci di
+spesa» — un numero che sale), ma il suo contributo a `speso` (i soldi
+davvero spesi, il numero che decide il colore) è `+c.importo || 0`, cioè
+**zero silenzioso**: la stessa forma, sullo stesso file, che la sezione D1
+di questo documento chiama «l'unico zero che va dichiarato» quando è
+voluta (Flotta/ricambi) — qui non lo è.
+
+**Che il caso non sia teorico lo dice il resto del file, non io.** Un
+«costo con voce e data ma senza importo» è uno stato che Flotta CONOSCE e
+GESTISCE altrove, con la stessa funzione (`numeroDichiarato`) che
+`budgetVsSpesa` non chiama mai su `c.importo`:
+```
+$ grep -n "numeroDichiarato(c.importo)\|numeroDichiarato(c && c.importo)" apps/flotta/flotta-data.js apps/flotta/index.html
+apps/flotta/flotta-data.js:855:                 c.voce || "", mostra(numeroDichiarato(c.importo), 2),
+apps/flotta/flotta-data.js:1909:    const d = String(c && c.data || "").slice(0, 10), imp = numeroDichiarato(c && c.importo);
+apps/flotta/index.html:2655:        : ""}${numeroDichiarato(c.importo) == null
+apps/flotta/index.html:2687:      const totPc = pc.righe.reduce((t, c) => { const n = numeroDichiarato(c.importo); return t + (n !== null && n > 0 ? n : 0); }, 0);
+apps/flotta/index.html:4286:        `<b>${esc(c.voce)}</b> — ${numeroDichiarato(c.importo) == null ? "importo non scritto" : eur(c.importo)}.`,
+apps/flotta/index.html:4301:        `Stai per togliere <b>${esc(c.voce)}</b>${numeroDichiarato(c.importo) == null ? "" : " (" + eur(c.importo) + ")"} dai costi della flotta.<br>
+```
+La lista dei costi disegna un `badge` **«importo non scritto»** per una
+riga così (`index.html:2656`); e il ponte con Conti (`index.html:2707-2715`,
+`totPc` a riga 2687) la esclude ESPRESSAMENTE dal confronto e lo dichiara a
+parole: *«voce di questo registro è senza data o senza importo e non si può
+confrontare alla cifra»*. Cioè **due funzioni sorelle, nello stesso file,
+sanno già distinguere e dichiarare questo stato**; `budgetVsSpesa`, la
+terza che tocca lo stesso campo per lo stesso scopo (un totale in euro), è
+quella rimasta con la copia più debole — la stessa famiglia che CLAUDE.md
+chiama «una regola scritta due volte, la seconda più debole».
+
+⚠️ **Onestà sulla raggiungibilità**: oggi nessun percorso della UI può
+CREARE un costo senza importo — il form lo pretende positivo
+(`index.html:4544-4546`, «Scrivi l'importo della spesa: un numero maggiore
+di zero»), e i due ponti che scrivono `costi` in automatico lo fanno solo a
+importo noto (`if (costo > 0) …`, `interventi`, riga 3812; `if (v.euro > 0)
+…`, rifornimenti, riga 5142). Quindi il caso è **latente**, come `nomiLiberi`
+insegna a dichiarare per i casi «raggiungibili ma non impossibili»: un
+record scritto prima che questa regola esistesse, importato da fuori, o
+scritto da un'altra app che condivide la collezione (nessuna barriera fra
+app dentro la stessa organizzazione, per la regola già scritta in CLAUDE.md
+sul confine `appId`) arriva comunque a `budgetVsSpesa` con `importo` vuoto.
+Ed è esattamente il caso per cui la lista e il ponte con Conti hanno GIÀ
+costruito la difesa: se fosse davvero impossibile, quella difesa non
+esisterebbe.
+
+**L'effetto, se il caso si presenta**: la riga di budget di quella voce
+conta una spesa in più (`nSpese` sale) ma zero euro in più (`speso` resta
+fermo), e lo stato/colore (`ETICHETTA_STATO_BUDGET`, riga 1682) può restare
+`"in-linea"` (verde, `ok`) o `"sotto-ritmo"` (blu, `info`) — le due letture
+più tranquille che questa funzione sa dare — proprio mentre esiste una
+spesa reale il cui importo nessuno ha ancora scritto. È lo stesso verso
+«tranquillo» già misurato in questa casa su `pianoRiepilogo` di Campo (pillola
+verde a zero fori registrati) e su `_riconRiassuntoCampo` di Genesi (0 kg,
+0 kg, verde): qui il colore non mente sul TOTALE (zero spese darebbe
+comunque «nessuna spesa»), mente su un totale **parziale che si presenta
+come completo**.
+
+**P5 — `budgetVsSpesa` dichiara le voci senza importo come dichiara già
+quelle senza data.**
+· **Dove:** `budgetVsSpesa` (`apps/flotta/flotta-data.js:1687-1734`).
+· **Che cosa non va:** una voce di costo con `importo` non scritto entra nel
+conteggio delle spese (`nSpese`) ma esce dal totale in euro (`speso`) come
+zero silenzioso, mentre la stessa app sa già dire «importo non scritto» in
+altri due punti sullo stesso campo. · **Come si vede:** si scrive un costo
+con `db.aggiorna` (o si importa da fuori) lasciando `importo` a `null` con
+voce e data valide, si apre la schermata Costi → Budget: la riga di quella
+voce conta una spesa in più ma lo stesso totale, e può restare verde.
+· **Quanto costa:** la stessa forma già scritta per `senzaData` — un secondo
+secchio `senzaImporto: { voci, nSpese }` accumulato nello stesso ciclo (riga
+1701-1702, un `if (numeroDichiarato(c.importo) == null) { … continue-solo-dal-
+totale-non-dal-conteggio }`), una bandiera `noto` sul modello di quella già
+usata da Scudo per gli indici infortunistici (§ D5 di questo documento), e
+la stessa frase in `descriviBudget` per il caso `noto === false` («speso: X,
+almeno — N voci di questa spesa non hanno ancora un importo scritto»).
+· **Come si misura:** una prova che passa a `budgetVsSpesa` due costi con la
+stessa voce, uno con importo e uno senza (`importo: null`), e pretende
+`nSpese === 2` **insieme a** `speso` uguale al solo primo importo **e** una
+bandiera che lo dichiari — non solo `speso` diverso da zero, che passerebbe
+anche col difetto di oggi.
+
+Non implementata: resta una proposta, non verificata da nessun cantiere —
+come impone la sezione 4 di questo documento, nessun numero qui sopra entra
+in roadmap sulla mia parola.

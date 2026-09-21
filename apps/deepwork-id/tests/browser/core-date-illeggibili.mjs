@@ -53,14 +53,21 @@ const PROM_STORTA = "data:'30/02/2026'";
    la SCHEDA del mezzo, che ha una guardia sua. È la quarta delle cinque cause
    di CLAUDE.md (l'iniezione puntata nel posto sbagliato) più la seconda (la
    difesa in profondità): si toglie tutto lo strato, e allora si vede il danno. */
+/* ogni voce è [cerca, sostituisci]: le due guardie «togliere e basta» hanno la
+   sostituzione vuota — scritte così anche `iniezioni-fresche` le legge da fermo */
 const GUARDIE = [
-  "else if(illegg.length){badge=`<span class=\"scad-badge warn\">${illegg[0].k}: data illeggibile</span>`;cls='warn';}",
-  "if(!st.leggibile){cls='warn';bg='scad-badge warn';testo='data illeggibile';}else ",
+  ["else if(illegg.length){badge=`<span class=\"scad-badge warn\">${illegg[0].k}: data illeggibile</span>`;cls='warn';}", ""],
+  ["if(!st.leggibile){cls='warn';bg='scad-badge warn';testo='data illeggibile';}else ", ""],
   // la media che non c'è: rimettere il ripiego `: 0` fa tornare «0,0 mc»
   ["const mediaProf=cnt>0?(m/cnt):null;", "const mediaProf=cnt>0?(m/cnt):0;"],
-  ["$('tot-mc').textContent=mc===null?'—':mc.toFixed(1);", "$('tot-mc').textContent=(mc||0).toFixed(1);"],
-  ["if($('tot-media'))$('tot-media').textContent=mediaProf===null?'—':mediaProf.toFixed(2);",
-   "if($('tot-media'))$('tot-media').textContent=(mediaProf||0).toFixed(2);"],
+  /* ⚠️ AGGIORNATA IL 02/09: il core scrive il totale con `perLettura`, non con
+     `toFixed`, e la guardia non trovava più il suo pezzo (la controprova
+     usciva «A VUOTO», che almeno grida; adesso `iniezioni-fresche` guarda
+     anche le tabelle chiamate GUARDIE). Il difetto rimesso è lo stesso:
+     il netto mai calcolato torna «0,0». */
+  ["$('tot-mc').textContent=mc===null?'—':perLettura(mc,1,true);", "$('tot-mc').textContent=perLettura(mc||0,1,true);"],
+  ["if($('tot-media'))$('tot-media').textContent=ms.mediaProf===null?'—':perLettura(ms.mediaProf,2,true);",
+   "if($('tot-media'))$('tot-media').textContent=perLettura(ms.mediaProf||0,2,true);"],
   // la data stampata che guardava la forma e non l'esistenza
   ["function fmt(d){ if(d===null||d===undefined||d==='')return'—'; const t=dataIt(d,''); return t||'data non valida'; }",
    "function fmt(d){ if(!d)return'—';const[y,m,g]=d.split('-');return`${g}/${m}/${y}`; }"],

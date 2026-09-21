@@ -207,6 +207,22 @@ anomali, e ripetere che la decisione operativa resta del responsabile.
 Coerente con la scelta già fatta di non spedirla finché non la si prova su
 un fronte reale della tua cava (documentata in `GENESI_NUOVE_FUNZIONI.md`).
 
+⛔ **AGGIORNAMENTO 12/09: LA PROPOSTA 4 È STATA SPEDITA IL 29/07 (DUE
+GIORNI DOPO QUESTA RICERCA), E LA CONDIZIONE DI SICUREZZA QUI SOPRA NON È
+MAI STATA VERIFICATA.** `h.burdenVero` (dal fronte 3D disegnato a mano) è
+in pagina dal 29/07; l'estensione al rilievo boretrack misurato
+(`deviazioneForiDaCsv`/`burdenVeroDaRilievo`) è stata aggiunta il 12/09
+senza controllare questa nota né `docs/DECISIONI_WEEKEND.md` (sezione 6,
+che blocca esplicitamente questa stessa funzione dal 07/08). Per la prima
+(fronte disegnato a mano) il rischio è più contenuto: l'utente vede
+direttamente la forma che disegna. Per la seconda (rilievo importato via
+CSV) il rischio è quello descritto qui sopra alla lettera — un errore di
+segno inverte l'avviso di flyrock — e non è ancora risolto: aggiunto un
+avviso visibile nel pannello, ma la verifica su un caso reale che questa
+nota chiedeva non è mai arrivata. Dettaglio completo e stato aggiornato:
+`docs/DECISIONI_WEEKEND.md` (sezione 6) e
+`vault/checkpoints/20260912-200615_genesi-boretrack-avviso-sicurezza.md`.
+
 Lo stesso vale per la 5: la banda d'incertezza va presentata come **"quanto
 può sbagliare la previsione"**, mai come "ecco il valore vero".
 

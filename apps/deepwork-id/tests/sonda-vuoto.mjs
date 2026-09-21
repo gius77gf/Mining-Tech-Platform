@@ -283,8 +283,20 @@ const VOCABOLARIO_MANCANTE = [
   [/^Senza dati$/, "un PERIODO senza nessuna lettura registrata (report di conformità)"],
   [/^Mai misurato$/, "un PUNTO di misura che non è mai stato letto"],
   [/^Manca /, "un CAMPO preciso che non c'è — convenzione «Manca <il campo>», una frase per campo"],
+  /* ⚠️ 03/09: NON è un modo di dire «manca il dato». È una CAUSALE DI FERMO di
+     Campo — perché l'attività si è fermata: il materiale non c'era — che dal
+     03/09 vive come `etichetta` di un oggetto e quindi la sonda la legge; prima
+     era una stringa nuda in un array e non la vedeva. La parola resta identica
+     per l'utente, e non si tocca per accontentare il righello. */
+  [/^Mancanza materiale$/, "una CAUSALE di fermo di Campo (il materiale non c'era), non un dato assente"],
   [/^Dato mancante$/, "il ripiego generico, quando non si sa quale campo manchi"],
   [/^Senza frequenza$/, "un'IMPOSTAZIONE che manca (ogni quanti giorni), non una misura"],
+  /* ⏱️ 11/09, Flotta: una manutenzione senza né data né ore motore. Non è un
+     dato assente e non è «Senza frequenza»: è un'IMPOSTAZIONE che manca
+     (QUANDO va fatta), sulla riga della lista e dell'ordine di lavoro. Prima
+     `urgenza(null)` rispondeva «a ore» anche quando le ore non c'erano — un
+     ripiego con la faccia di un piano; `urgenzaManutenzione` lo dice. */
+  [/^senza scadenza$/, "una MANUTENZIONE che non dice QUANDO va fatta (né data né ore motore): un'impostazione che manca, non una misura"],
   /* ⛔ LA SORELLA DI «SENZA FREQUENZA», E NON SI SCHIACCIA SU DI LEI (02/08,
      decisione 16). Sono tutt'e due impostazioni che mancano, ma bloccano due
      cose diverse e su schermate diverse: senza frequenza non si sa QUANDO
@@ -328,6 +340,20 @@ const VOCABOLARIO_MANCANTE = [
      esistesse, e il punto della funzione è proprio che NON si ripiega su
      «a mano»: l'assenza del dato non è un dato favorevole. */
   [/^Provenienza non dichiarata$/, "di una MISURA non risulta la strada d'ingresso (file dello strumento o inserimento a mano): diverso da «Mai misurato» (parla del punto) e da «Taratura non dichiarata» (parla dello strumento) — qui il dato c'è, manca la sua custodia"],
+  /* ⛔ 19/09, dal quinto giro di deep-pass QA: LA QUARTA PORTATA SULLO STESSO
+     STRUMENTO, e ancora un soggetto diverso dalle tre qui sopra. «Taratura
+     non dichiarata» dice che lo strumento NON HA nessun certificato;
+     «Letture senza taratura» dice il contrario — i certificati CI SONO, il
+     calendario di OGGI è persino regolare — ma una lettura specifica fu
+     presa in un buco fra due certificati che non si toccano (uno scaduto,
+     l'altro non ancora partito). Schiacciarla su «Taratura non dichiarata»
+     direbbe una cosa falsa (che lo strumento non ha certificati, quando ne
+     ha due); schiacciarla su «Provenienza non dichiarata» direbbe un'altra
+     cosa falsa (che non si sa come la misura sia entrata, quando si sa
+     benissimo, manca solo chi la copre). Il file per l'ARPA la chiama già
+     "scoperta" (`coperturaTaratura`): qui è la stessa idea scritta per lo
+     schermo. */
+  [/^Letture senza taratura$/, "una o più LETTURE furono prese in un buco fra due certificati di taratura, anche se il calendario di OGGI è regolare: diverso da «Taratura non dichiarata» (lì lo strumento non ha NESSUN certificato) e da «Provenienza non dichiarata» (lì non si sa come la misura sia entrata) — qui i certificati ci sono, manca solo quello che copriva QUEL giorno"],
 ];
 /* ⚠️ IL FILTRO È IL PUNTO DEBOLE, e lo si è scoperto con la controprova. La
    prima versione cercava `manca|senza dat|mai misur|non misur|n.d.` — cioè
@@ -410,15 +436,19 @@ const ALLARMI_ACCETTATI = {
     + " chiudere le regole del Firebase pubblico ha reso questo ramo quello che prende TUTTI i visitatori",
   "scudo.azioneLabel":
     "prende lo STATO di un'azione: senza stato ricade sul primo della lista, non è un giudizio su un dato mancante",
-  "scudo.etichettaAmbiente":
-    "è un'etichetta binaria (reclamo/superamento) chiamata solo su azioni che vengono DAVVERO dall'ambiente",
+  /* ✅ TOLTO L'11/09: `scudo.etichettaAmbiente`. Stava qui come «etichetta
+     binaria (reclamo/superamento)» — cioè un ternario che su un'origine
+     sconosciuta rispondeva «Superamento», ed era proprio il difetto: con la
+     terza origine («dopo-volata») è diventata una mappa, e senza origine
+     risponde «Fatto ambientale». L'allarme non si presenta più, e la seconda
+     guardia lo ha preteso fuori. */
   /* `conti.livelloSollecito` stava qui con la ragione «la sonda gli passa anche
      numeri grandi, e allora il rosso è giusto» — cioè era dichiarato accettabile
      un allarme che NON nasceva da un dato mancante. Col filtro `valePer` la
      sonda non gli passa più i giorni di ritardo pieni, e il caso è sparito da
      solo: la seconda guardia lo ha preteso fuori. È il modo giusto di
      accorciare questo elenco — non a memoria. */
-  "campo.scartoLivello":
+  "ponti.scartoLivello":
     "DORMIENTE: con la carica reale assente e quella di progetto presente dà il 100% di scarto. I chiamanti passano sempre da pianoRiepilogo, che per i fori non registrati usa la carica di PROGETTO",
   /* ✅ TOLTO IL 01/08: `campo.pianoRiepilogo`, che ereditava `scartoLivello`.
      Non è più un allarme dichiarabile perché non è più un allarme: con un piano
@@ -445,6 +475,11 @@ const ALLARMI_ACCETTATI = {
     + " ⚠️ E la SOGLIA che manca fa l'opposto e non è un allarme: risponde «senza soglia», giallo, non giudicabile.",
   "flotta.sottoScorta":
     "eredita `statoScorta` sopra, che è il posto dove quella decisione è scritta: qui la lista dei pezzi da riordinare",
+  "flotta.ordinaMagazzino":
+    "18/09, dal deep-pass QA: stessa eredità di `sottoScorta` sopra — chiama `statoScorta` per ogni riga, non ne"
+    + " riscrive la decisione. Qui è l'intera lista del magazzino (non solo i pezzi da riordinare) ordinata per"
+    + " gravità, prima corretta come lista filtrata in `sottoScorta` e non propagata qui: stessa regola, letta"
+    + " una volta sola, non un secondo allarme.",
 };
 
 const allarmi = new Map();

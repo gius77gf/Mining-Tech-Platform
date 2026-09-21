@@ -54,7 +54,7 @@ const TIPI = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/jav
    controprova che non sostituisce niente non prova niente. */
 const DIFETTI_PAGINA = [
   // 1, 2, 3 · il file per l'ARPA scritto a mano nel gestore, com'era
-  ["const csv = csvAmbiente(MON, ADE, RIC);",
+  ["const csv = csvAmbiente(MON, ADE, RIC, new Date(), IDX_METEO_GIORNO);",
    'let csv = "tipo;nome;valore;unita;soglia;stato;dettaglio\\n";\n'
    + '    for (const m of MON) { const st = statoMisura(m);\n'
    + '      const storico = (m.letture || []).map(l => l.data + ":" + l.valore).join(" ");\n'
@@ -242,6 +242,18 @@ console.log("\n· il riepilogo sopra il registro volate, con una volata che non 
     "⛔ dice «almeno», cioè che quel numero è un pavimento", riep);
   dice(/non dichiara(no)? i chili/.test(riep),
     "e dice su quante volate il totale non è fatto", riep);
+  /* la comunicazione della volata (05/09): la voce del diario è scritta su
+     OGNI volata eseguita — quando c'è, e quando manca — mai un silenzio */
+  const meta = await pg.$$eval("#vol-list .item", (e) => e.map((x) => ({
+    /* la prevista si riconosce dal badge di stato «Prevista», che non è per
+       forza il primo badge della riga («da confermare» viene prima) */
+    prevista: [...x.querySelectorAll(".badge")].some((b) => /^\s*Prevista\s*$/.test(b.textContent)),
+    testo: x.textContent.replace(/\s+/g, " ") })));
+  const eseguite = meta.filter((m) => !m.prevista);
+  dice(eseguite.length > 0 && eseguite.every((m) => /comunicata all'ente|nessuna comunicazione registrata|comunicazione registrata a metà/.test(m.testo)),
+    "⛔ ogni volata eseguita dice se è stata comunicata, e quando manca lo dice con le parole", eseguite.map((m) => m.testo.slice(0, 80)));
+  dice(eseguite.some((m) => /comunicata all'ente il 16\/07\/2026 \(PEC prot\. 4412\/2026\)/.test(m.testo)) && eseguite.some((m) => /nessuna comunicazione registrata/.test(m.testo)),
+    "e la dimostrazione mostra tutt'e due i casi: una comunicata, le altre no", eseguite.length + " eseguite");
   await pg.close();
 }
 

@@ -10,6 +10,885 @@ può procedere con l'attuazione.
 
 ---
 
+## 🟡 19/09 — Genesi: blocchi/simboli riusabili per pattern di fori ricorrenti
+
+*Dal censimento CAD verificato (`docs/RICERCA_GENESI_CAD.md`, sezione 4, dopo
+tre unità già costruite senza bisogno di una decisione: G48 snap a oggetti,
+G49 selezione multipla, G50 rifletti la selezione — tutte "prima fetta
+piccola", nessuna delle tre ha toccato il modello dati di `D2`). I blocchi
+sono diversi: la ricerca stessa li marca "costo GRANDE" perché richiedono un
+modello dati nuovo (`D2.blockDefinitions`/`D2.blockInstances`, una
+definizione salvata una volta e istanziata N volte con posizione/rotazione/
+scala propria) e un flusso a più passi (definisci un blocco da una selezione
+esistente, poi inseriscilo altrove) — non un'estensione di quello che c'è,
+un secondo modo di rappresentare la geometria accanto a `D2.holes`/
+`D2.tratti`.*
+
+- [ ] **43. Decidere se vale la pena costruire i blocchi riusabili adesso,
+  o se la selezione multipla + rifletti (già pronte) coprono l'uso più
+  comune in cava — pattern di fori ripetuti quasi sempre generati dalla
+  maglia stessa (`D2.perRow`/`D2.file`), non disegnati a mano pezzo per
+  pezzo come un blocco presuppone.** Se la risposta è "sì, serve": il primo
+  passo piccolo è "definisci un blocco dalla selezione corrente" (salva le
+  posizioni RELATIVE al centroide, come nel modello della ricerca) più
+  "inserisci qui" (un click che aggiunge una copia coi propri `mx`/`my`,
+  non ancora un riferimento vivo alla definizione — l'aggiornamento
+  automatico di tutte le istanze quando la definizione cambia è un secondo
+  passo, non il primo). **Nessuna riga cambiata**: la scelta se aprire
+  questo cantiere, e con quale urgenza rispetto al resto del pivot su
+  Genesi, è del fondatore.
+  ⚠️ Nota collaterale: la stessa sezione della ricerca propone anche un
+  input di coordinate relativo/polare pieno (`@dx,dy`/`@dist<angolo`) per i
+  campi x/spalla già esistenti (G47a) — costo molto più piccolo dei
+  blocchi, isolato, e non richiede questa decisione: può partire come
+  cantiere a sé quando serve, non è bloccato da qui.
+
+## 🟡 19/09 — Deepwork ID: bottone primario ancora ambra del core, e la sua identità cromatica va decisa
+
+*Dalla seconda iterazione UX su Deepwork ID (quindicesimo giro), verificata
+indipendentemente: `--app-accent`/`--app-accent2` di Deepwork ID
+(`#c7b794`/`#e8dcc0`, la "sabbia") sono deliberatamente pallidi — sono
+l'unica coppia di variabili di colore che le quattro pagine ridefiniscono,
+a differenza delle sei app che ridefiniscono l'intera palette
+(`--bg`,`--card`,`--grad`,`--text`…). Effetto confermato:
+`.dw-btn` (il bottone "Accedi"/"Crea profilo"/"Invita"/eccetera, il più
+premuto di ogni pagina) usa ancora il gradiente ambra ORIGINALE del core
+(`linear-gradient(135deg, rgb(255,171,0), rgb(255,109,0))`, identico byte
+per byte), mentre lo stesso `admin.html` dichiara nel proprio commento
+"il colore resta quello di Deepwork ID: la sabbia, non l'ambra del core" —
+vero per bordi/testo/aloni, non per l'elemento che l'utente tocca di più.
+
+- [ ] **42. Decidere se Deepwork ID debba restare vicino al core (è la
+  Fase 0, "di sistema", quindi un'identità minima potrebbe essere una
+  scelta voluta) oppure ricevere una palette propria e completa come le
+  sei app verticali (secondo `docs/PALETTE_APP.md`). Non risulta deciso
+  in nessun checkpoint. Se la risposta è "palette propria": va ridefinito
+  almeno `--grad` (oggi letterale nel foglio condiviso, non derivato da
+  `--app-accent`) per le quattro pagine, con lo stesso metodo di
+  confronto e misura di contrasto già usato per le sei app — non è un
+  problema di leggibilità (il testo sul bottone regge 6,6–9,8:1 su
+  entrambe le fermate del gradiente attuale), è una questione di identità
+  visiva. **Nessuna riga cambiata**: la scelta è del fondatore.
+  ⚠️ Nota collaterale trovata nella stessa passata, già corretta senza
+  bisogno di questa decisione (`8378bcb2`… vedi sotto): la mancata
+  attivazione dei temi chiaro/sole su tutt'e quattro le pagine e il bordo
+  dei campi sotto soglia WCAG erano BUG (nessuna scelta di prodotto li
+  giustificava), non decisioni — corretti direttamente.
+
+## 🟡 19/09 — Genesi↔Campo: il consuntivo di carico non distingue un foro sparato da uno caricato e MAI detonato (misfire)
+
+*Dalla ricerca continua su Genesi (quattordicesimo giro), verificata
+indipendentemente prima di scrivere questa voce con gli stessi comandi
+citati nel documento — vedi `docs/RICERCA_CONTINUA_GENESI.md`, sezione
+"secondo giro" del 19/09.*
+
+- [ ] **41. Il consuntivo Campo→Genesi (`_riconParseCampo`,
+  `apps/genesi/genesi-data.js:640-676`) legge una sola colonna numerica,
+  `carica_reale_kg` (intestazione confermata:
+  `data;turno;foro;carica_prog_kg;carica_reale_kg;scarto_pct[...]`,
+  riga 625). Un foro **caricato secondo progetto e poi sparato** e un
+  foro **caricato secondo progetto e MAI detonato** (misfire/colpo
+  cieco) producono esattamente lo stesso numero in quella colonna e
+  quindi esattamente lo stesso `scarto_pct` — il caso più pericoloso
+  (esplosivo vivo nel foro) è quello che il riepilogo "il foro più fuori
+  scostamento" (`genesi-data.js:889-891`) ha meno probabilità di
+  segnalare, perché uno scarto vicino a zero è lì il segno di "tutto
+  bene". Confermato: nessuna occorrenza di
+  `misfire|colpo cieco|mancata accensione|mancata esplosione` in tutto
+  `apps/genesi/`.
+  **Perché serve una decisione e non un'unità automatica**: la
+  correzione minima nel formato (una colonna opzionale `esito` con
+  valori `sparato`/`misfire`/vuoto) è a basso costo da sola, ma
+  l'altra metà del canale — chi SCRIVE quella colonna — vive
+  nell'app **Campo**, non in Genesi: è una modifica che attraversa due
+  app e il loro formato di scambio, non un bug in una funzione sola.
+  Serve anche decidere **come si giudica un file vecchio** (quelli
+  reali di oggi, senza la colonna): la riconciliazione deve dichiarare
+  "esito non tracciato in questo file", mai un silenzioso "zero
+  misfire" — è lo stesso principio già applicato altrove in questa
+  casa (l'assenza di un dato non è un dato favorevole), qui su un dato
+  che tocca la sicurezza in cava.
+  **Nota separata, minore**: la stessa ricerca propone anche un
+  promemoria fisso sul report stampato di Genesi sul tempo minimo di
+  attesa dopo un sospetto misfire — **non aggiunto**: il numero citato
+  (un'ora, dal D.Lgs 624/1996) viene da uno snippet di ricerca
+  aggregato, non dal testo dell'articolo letto per intero, e questa
+  casa non scrive in un documento un numero di legge di seconda mano
+  (peggio di un numero assente). Se questa decisione procede, il primo
+  passo è verificare il testo vigente dell'articolo esatto.
+
+## 🟡 19/09 — La barra di navigazione in basso: sotto i 44 px di larghezza su tre app, sotto i 60 in tutte tranne il core
+
+*Dalla seconda iterazione UX/estetica su Scudo, misurato con
+`getBoundingClientRect()` sul renderizzato (non dedotto dal CSS) e
+riverificato indipendentemente prima di scrivere questa voce, con lo
+stesso strumento, su Conti e Flotta.*
+
+- [ ] **40. `.nav` (`shared/dw-app-ui.css:641`) garantisce un'altezza minima
+  ai bottoni della barra in basso (`min-height:var(--tap)`, 44px normale/
+  60px nel tema del sole — "con i guanti si colpisce largo, come nel
+  core") ma NESSUNA larghezza minima: `grid-template-columns:repeat(var(
+  --nav-cols),1fr)` divide la pillola (max 520px, `calc(100% - 16px)`
+  sotto) in parti uguali qualunque sia `--nav-cols`. Il core ha 4 voci
+  fisse e non tocca mai la soglia (misurato: 75,5px a 320px, 103px a
+  430px). Le app sono cresciute oltre le 4 voci e la barra si è stretta
+  con loro, in silenzio — nessun errore, nessuna prova rossa, nessuno
+  scorrimento a indicarlo.
+  **Misurato @320px** (`getBoundingClientRect` su ogni `.nav button`,
+  tre app, tema scuro): **Conti** (`--nav-cols:10`) — 10 bottoni, tutti a
+  **31,0px**, il 30% del minimo AA per i bersagli di tocco; **Scudo**
+  (`--nav-cols:8`) — 8 bottoni fra **37,6 e 42,7px**, sempre sotto 44;
+  **Flotta** (`--nav-cols:6`) — fra **48,1 e 58,3px**: sopra i 44 normali,
+  ma sotto i **60px** che il tema del sole richiede a query, quindi
+  **nessuna delle sei app** rispetta il proprio stesso standard "guanti"
+  in outdoor mode, non solo Scudo/Conti. Sentinella e Terra hanno la
+  stessa `--nav-cols:6` di Flotta e quindi la stessa larghezza; Campo
+  (`--nav-cols:5`, ~60px @320) è l'unica app sopra soglia anche nel sole.
+  **Perché serve una decisione, non un'unità automatica**: la cura tocca
+  un componente CONDIVISO (`shared/dw-app-ui.css`, "si serializza solo
+  ciò che tocca `shared/`") usato da tutte e sette le superfici, e non
+  ha una risposta ovvia — introdurre lo scorrimento orizzontale in una
+  barra in basso è un pattern che **non esiste altrove** nell'ecosistema
+  (il core scorre le sue linguette `.atabs`, non la barra), va deciso col
+  metodo del confronto affiancato e almeno tre iterazioni prima di essere
+  chiamato buono, come vuole la direttiva sull'eccellenza.
+  **Le strade**: (a) `grid-auto-flow:column; grid-auto-columns:minmax(
+  var(--tap),1fr); overflow-x:auto` quando `--nav-cols` supera una soglia
+  dichiarata (proposta della QA su Scudo) — barra scorrevole, mai sotto
+  il minimo, ma introduce un pattern nuovo e un indizio di scorrimento
+  (freccia? ombra sul bordo?) da disegnare; (b) consolidare le voci più
+  numerose (Conti 10, Scudo 8) in meno sezioni con sotto-menu, invece di
+  allargare il componente — costo più alto, ma niente scorrimento nuovo;
+  (c) accettare la larghezza ridotta sotto i 44/60px come compromesso
+  dichiarato per le app con più di N voci, documentandolo invece di
+  correggerlo. Nessuna proposta implementata: cambia la struttura
+  condivisa di ogni app, e la direttiva sullo stile la vuole "pelo per
+  pelo" identica finché qualcuno non decide altrimenti.
+
+---
+
+## 🟡 19/09 — Deepwork ID: nessun audit log sulle azioni sensibili di organizzazione (cambio ruolo, rimozione membro)
+
+*Dalla ricerca continua su Deepwork ID (`docs/RICERCA_CONTINUA_DEEPWORKID.md`,
+19/09), confrontata con l'audit trail di Slack (2 anni, admin-only),
+Linear (90 giorni, owner-only), Notion (indefinito, owner-only) e Auth0
+(append-only, retention estesa sugli eventi sensibili — tutte fonti di
+seconda mano, WebSearch). Collegata alla decisione 37 (token che resta
+valido fino a un'ora dopo la revoca): se un ex membro con token ancora
+valido rimuove qualcuno o cambia un ruolo in quella finestra, oggi non
+resta traccia di chi l'ha fatto né di quando.*
+
+- [ ] **39. Nessuna collezione di audit log, e le due funzioni più sensibili
+  non registrano nemmeno chi ha agito.** Verificato su
+  `apps/deepwork-id/functions/index.js`:
+  `grep -n "auditLog\|audit_log\|logAzione"` → **0** risultati in tutto il
+  file: nessuna collezione tipo `organizations/{orgId}/auditLog` esiste.
+  `updateMemberRole` (riga 233) fa `tx.update(memRef, { role })` e basta —
+  nessun `changedBy`/`from`/`to`; `removeMember` (riga 264) fa
+  `tx.delete(memRef)` e basta — nessun `removedBy`. Il confronto:
+  `grep -c "createdBy\|changedBy\|actedBy\|removedBy\|modifiedBy"` sull'intero
+  file → **0**. L'unica funzione che registra chi ha agito è `inviteMember`
+  (`invitedBy`) e `revokeInvite` (`revokedBy`) — le due più recenti, non le
+  altre.
+  **Perché serve una decisione, non un'unità automatica**: un audit log
+  tocca com'è strutturato il dato (una collezione nuova, per sempre, in
+  ogni organizzazione), la sua visibilità (chi lo legge: solo owner? anche
+  admin?) e la sua conservazione (90 giorni come Linear? 2 anni come Slack?
+  indefinito come Notion?) — tre scelte di prodotto, nessuna deducibile dal
+  codice.
+  **Le strade**: (a) collezione append-only
+  `organizations/{orgId}/auditLog/{id}` con `{actor, azione, bersaglio,
+  prima, dopo, quando}`, scritta dalla stessa Cloud Function che fa
+  l'azione — costo medio-alto (tocca `updateMemberRole`/`removeMember`/
+  `createOrganization` e serve una policy di lettura/retention); (b) solo
+  sulle due funzioni più sensibili (cambio ruolo, rimozione), rimandando le
+  altre — costo medio, copre il caso peggiore (isolamento fra organizzazioni
+  concorrenti) senza disegnare tutto il sistema subito; (c) rimandare
+  finché non c'è un caso reale che lo richieda (un cliente che contesta
+  un'azione), registrando solo la mancanza. Nessuna proposta implementata:
+  la scelta di che cosa tracciare, chi legge e per quanto tempo è del
+  fondatore.
+
+---
+
+## 🟡 19/09 — Scudo: la formazione scaduta non blocca un turno, e la perdita di idoneità DURANTE un turno non avvisa nessuno
+
+*Dalla ricerca continua su Scudo (`docs/RICERCA_CONTINUA_SCUDO.md`, 19/09),
+confrontata con le best practice EHS (SafetyCulture, Intelex, Cority,
+FileFlo, Enablon — di seconda mano, WebSearch) e col D.Lgs 81/08. Non è un
+difetto: Scudo traccia già `idoneita` e le scadenze di formazione, e le
+mostra correttamente a schermo, nel Quadro e nei documenti che escono
+(decisione 17 e i fix di oggi su `prognosiAperta`/`riepilogoInfortuni`).
+La domanda è se debba fare qualcosa di PIÙ — bloccare, o avvisare in tempo
+reale — che oggi non fa per scelta implicita, non per un bug.*
+
+- [ ] **38. Due mancanze collegate, entrambe verificate col codice, nessuna
+  delle due implementata**: (1) **nessun blocco operazionale** — un
+  lavoratore con formazione/idoneità scaduta può comunque essere assegnato
+  a un turno o a una mansione: Scudo lo segnala (badge, riepilogo, Quadro)
+  ma non impedisce nulla, e non esiste un campo tipo `richiedeFormazione`/
+  `bloccoOperazione` sul modello mansioni/turni; (2) **nessun avviso in
+  tempo reale** — se un'idoneità scade DURANTE un turno già in corso (es.
+  alle 14:00 su un turno che finisce alle 18:00), nessuno riceve un avviso:
+  la scadenza si vede solo alla prossima apertura della pagina.
+  **Perché serve una decisione, non un'unità automatica**: (1) è un
+  cambiamento di comportamento del prodotto con implicazioni legali e
+  operative dirette — impedire un'assegnazione è una scelta che tocca la
+  responsabilità del datore di lavoro (D.Lgs 81/08, artt. 15/37), non un
+  ritocco silenzioso; un blocco troppo rigido potrebbe anche impedire
+  un'operazione realmente necessaria in un'emergenza. (2) un avviso in
+  tempo reale su un turno in corso presuppone una decisione su COME
+  avvisare (in-app? notifica push, non ancora costruita nell'ecosistema?)
+  e chi lo riceve (il lavoratore, il preposto, entrambi).
+  **Le strade**: (a) costruire il blocco come AVVISO rafforzato (impossibile
+  confermare l'assegnazione senza un secondo tocco esplicito, ma non un
+  divieto assoluto) — costo medio, nessun rischio di bloccare un'emergenza;
+  (b) costruire un vero blocco (l'assegnazione non si salva) — costo medio,
+  ma richiede una via di eccezione dichiarata per i casi limite; (c)
+  lasciare solo la segnalazione attuale, e aggiungere semmai un contatore
+  più visibile nel Quadro. Per l'avviso in tempo reale: (d) rimandarlo
+  finché non esiste un canale di notifica push nell'ecosistema (nessuna
+  app ce l'ha oggi); (e) costruire solo un ricalcolo più frequente dentro
+  la pagina già aperta (nessun avviso fuori dall'app). Nessuna proposta è
+  implementata: sono candidati da rimisurare col codice in mano, non presi
+  sulla parola della ricerca.
+
+---
+
+## 🟡 17/09 — Deepwork ID: un membro rimosso o declassato resta operativo fino a un'ora, e lo stato "disabled" dichiarato non lo scrive nessuna funzione
+
+*Dalla ricerca continua su Deepwork ID (`docs/RICERCA_CONTINUA_DEEPWORKID.md`,
+17/09), su un angolo non ancora guardato dalle ricerche precedenti (quelle
+sui ruoli/RBAC e sull'export dati): che cosa succede al TOKEN già in mano a
+un membro quando gli si toglie l'accesso, non a chi glielo assegna. Il
+requisito fondante di questo repository — l'isolamento totale fra
+organizzazioni CONCORRENTI — dipende anche da questo, non solo dalle regole
+Firestore.*
+
+- [ ] **37. Un membro rimosso o declassato di ruolo mantiene un token Firebase
+  valido con i permessi VECCHI fino a un'ora.** `removeMember`
+  (`apps/deepwork-id/functions/index.js:206`) e `updateMemberRole`
+  (`apps/deepwork-id/functions/index.js:182`) chiamano entrambe solo
+  `rebuildClaims` (riga 222 e 202), che riscrive i custom claims
+  dell'utente — ma i custom claims sono **stateless lato token**: un token
+  già emesso resta valido fino alla sua scadenza naturale (fino a un'ora)
+  a meno di chiamare esplicitamente `revokeRefreshTokens()`. Nessuna delle
+  due funzioni la chiama
+  (`grep -n "revokeRefreshTokens" apps/deepwork-id/functions/index.js` →
+  nessun risultato), e `firestore.rules` non ha un controllo di freschezza
+  sul token (`auth_time`/`iat` contro un `revokedAt`): solo il claim. Un ex
+  membro con un token ancora valido continua a vedere/scrivere per fino a
+  un'ora dopo essere stato rimosso da un'organizzazione i cui dati — per la
+  natura di questo prodotto — possono essere quelli di un'azienda
+  concorrente della sua nuova.
+  **Secondo problema collegato**: lo stato `disabled` è nello schema
+  dichiarato (`apps/deepwork-id/ARCHITETTURA.md:47`, `status: active |
+  invited | disabled`) e ha già l'etichetta pronta in `admin.html`, ma
+  nessuna funzione lo scrive — sui 7 export di
+  `apps/deepwork-id/functions/index.js` zero si chiamano `disableMember` o
+  `setMemberStatus`
+  (`grep -n "disableMember\|setMemberStatus" apps/deepwork-id/functions/index.js`
+  → nessun risultato). L'unico modo di togliere l'accesso oggi è
+  `removeMember`, che CANCELLA il documento di membership: non esiste una
+  sospensione reversibile (utile per un dipendente in malattia/permesso,
+  senza perdere lo storico di chi era e che ruolo aveva).
+  **Perché serve una decisione e non una correzione automatica**: aggiungere
+  `revokeRefreshTokens()` cambia un comportamento di sicurezza per TUTTE le
+  app dell'ecosistema contemporaneamente (ogni sessione attiva di un membro
+  rimosso o declassato verrebbe interrotta, forzando un nuovo login) — un
+  cambiamento visibile all'utente che merita una conferma esplicita, non
+  un ritocco silenzioso a codice che tocca l'isolamento multi-tenant.
+  Costruire `disableMember` è invece una feature nuova (anche piccola), non
+  un difetto da correggere.
+  **Le strade**: (a) aggiungere `revokeRefreshTokens(uid)` sia a
+  `removeMember` sia a `updateMemberRole` — chiude la finestra di un'ora,
+  costo basso (poche righe), effetto collaterale onesto e visibile (logout
+  forzato); (b) aggiungere anche `disableMember`/`setMemberStatus` per lo
+  stato sospeso reversibile, riusando la stessa `rebuildClaims` +
+  `revokeRefreshTokens`; (c) lasciare così finché non arriva un caso reale
+  (un cliente che lamenta un ex dipendente ancora operativo), registrando
+  solo la sovrapposizione. **La mia risposta, se non rispondi entro la
+  settimana**: (a) e (b) insieme — sono la stessa causa (nessuna delle due
+  funzioni chiude davvero l'accesso), il costo è basso, e la mancanza tocca
+  esattamente la garanzia che il fondatore ha scritto come non negoziabile
+  (isolamento fra organizzazioni concorrenti). Non lo costruisco da solo
+  perché introduce un logout forzato visibile agli utenti, che merita una
+  conferma prima di attivarlo su un prodotto già in mano a clienti.
+
+  **✅ Aggiornamento 19/09 (quinta QA su Deepwork ID): la strada (a) è
+  già stata costruita** — `revocaSessioni()` (`functions/index.js:219`)
+  chiama `revokeRefreshTokens` ed è invocata sia da `updateMemberRole`
+  (riga 258) sia da `removeMember` (riga 282), col commento del codice
+  stesso che dichiara la causa e il limite. **⛔ Ma il limite dichiarato
+  è stato RIPRODOTTO, non solo letto**: sotto l'emulatore, un admin
+  rimosso ha continuato — con lo stesso token, mai rinfrescato — a
+  leggere un documento riservato (200 OK) e a **cancellare una fattura
+  "emessa"** (azione riservata ad admin/owner, `organizations/orgA/apps/
+  conti/fatture/fatt1` → sparita) DOPO che `removeMember` aveva già
+  cancellato la sua membership e chiamato `revokeRefreshTokens`. La causa
+  è quella che il codice descrive: `revokeRefreshTokens` blocca solo il
+  PROSSIMO refresh, mai il token già firmato, e `firestore.rules` (righe
+  21-32, `memberOf`/`isAdmin`/`isOwner`) legge solo il claim nel token,
+  mai la membership viva su Firestore. Quindi la finestra di un'ora resta
+  aperta anche dopo (a) — non è un difetto di (a), è il limite che (a)
+  non poteva chiudere da solo, reso concreto da una SCRITTURA su una
+  risorse admin-only invece che da un'ipotesi.
+  **Nuova strada (d), per chiudere il residuo**: sui controlli più
+  sensibili (update/delete su un documento emesso, update su
+  `organizations/{orgId}`), sostituire la sola lettura del claim con un
+  incrocio anche col documento di membership live (`get(...members/
+  $(request.auth.uid)).data.status == 'active'`) — chiude l'accesso nello
+  stesso istante in cui `removeMember` cancella la membership, invece che
+  alla scadenza naturale del token. Costo: una lettura Firestore in più
+  per ogni controllo su quelle regole (non su tutte: solo dove il rischio
+  è più alto) — un compromesso latenza/costo contro sicurezza che (a) non
+  aveva ancora richiesto e che va pesato dal fondatore, non deciso qui.
+
+---
+
+## 🟡 17/09 — Scudo↔Campo: le ore lavorate per gli indici infortunistici sono già misurate altrove, ma nessuno le collega
+
+*Cercando una sovrapposizione nuova nella mappa ecosistema (`docs/
+MAPPA_ECOSISTEMA.md` §3), dopo che il censimento del 16/09 si era dichiarato
+esaustivo (§3h) guardando solo gli header dei moduli dati, non le funzioni
+che consumano un dato altrove. La sovrapposizione trovata è reale su
+entrambi i lati, verificata leggendo il codice — non è un bug, nessuno dei
+due moduli mente su quello che fa — ed è un caso in cui costruire il ponte
+comporta un rischio dichiarato dal codice stesso.*
+
+- [ ] **35. Scudo↔Campo: le ore lavorate che servono a IF/IG/LTIFR sono già
+  misurate da Campo, ma `oreAnno` resta manuale.** `indiciInfortunistici`
+  (`apps/scudo/scudo-data.js:5316`) calcola i tre indici infortunistici che
+  un'azienda **porta in gara** e confronta con la media di settore, dividendo
+  per `oreAnno` — una collezione scritta **solo a mano**
+  (`apps/scudo/scudo-data.js:433`). Il commento della funzione (righe
+  5299-5312) rifiuta esplicitamente di stimarle dal numero di operatori,
+  chiamando quel ripiego «un denominatore inventato… una dichiarazione falsa
+  fatta con la faccia di un calcolo» — quindi oggi, senza compilazione manuale,
+  i tre indici restano `calcolabile:false`. Campo intanto misura già le ore
+  vere, per persona e per turno: la collezione `presenze` porta
+  `entrata`/`uscita` («gli orari VERI della persona», distinti apposta da
+  `ora`, che è solo l'istante in cui qualcuno ha spuntato la riga), e
+  `orariPresenza` (`apps/campo/campo-data.js:1910`) le trasforma già in minuti
+  lavorati con una bandiera `attendibile`. Nessuna funzione oggi le somma su
+  un anno intero, e nessuno dei due moduli legge l'altro
+  (`grep -n "oreAnno\|indiciInfortunistici\|oreLavorate" shared/dw-ponti.js
+  apps/campo/campo-data.js` → nessun risultato). Dettaglio completo, con le
+  citazioni di riga, in `docs/MAPPA_ECOSISTEMA.md` §3i.
+  **Perché serve una decisione e non un ponte automatico**: le ore di Campo
+  coprono solo chi timbra un turno lì — personale d'ufficio, part-time non
+  in `presenze`, o una cava che non usa quella schermata resterebbero fuori.
+  Sostituire in silenzio `oreAnno` con un numero di Campo che copre MENO
+  della forza lavoro vera produrrebbe un indice sbagliato — più alto o più
+  basso del vero a seconda di chi manca — esattamente il rischio che il
+  commento di `indiciInfortunistici` vieta già per la stima "a mano".
+  **Le strade**: (a) il ponte propone il totale di Campo come un valore
+  **suggerito**, che l'organizzazione conferma o corregge prima che entri
+  in `oreAnno` — mai una sostituzione silenziosa, con la copertura (quante
+  persone/turni sono nel conto di Campo) dichiarata accanto al numero; (b) si
+  costruisce solo per le organizzazioni che dichiarano di tracciare TUTTA la
+  forza lavoro in Campo (una bandiera esplicita, non dedotta); (c) si lascia
+  `oreAnno` manuale e si registra solo la sovrapposizione, senza costruire
+  niente, finché non arriva un caso reale che la renda urgente. **La mia
+  risposta, se non rispondi entro la settimana**: (a) — è il valore più alto
+  (chiude un `calcolabile:false` che oggi lascia senza indici molte
+  organizzazioni) al costo più basso (nessuna sostituzione automatica, la
+  persona umana resta l'ultima parola su un numero che si porta in gara). Non
+  la costruisco da solo perché tocca un indice di sicurezza che si confronta
+  con la media di settore, e un ponte silenziosamente parziale sarebbe
+  esattamente il denominatore inventato che il codice rifiuta già.
+
+---
+
+## 🟡 17/09 — Core: nessuna cava ha un obiettivo di produzione con cui confrontarsi
+
+*Dalla ricerca continua sul cruscotto del titolare (`docs/RICERCA_CONTINUA_CORE.md`,
+17/09). Le prime due proposte dello stesso giro di ricerca — il badge delle
+notifiche che non contava le scadenze mezzi, e i mezzi da lavoro senza
+indicatore di guasto — erano economiche (riusavano dati e pattern già scritti
+altrove nel core) e sono già state costruite e verificate in questa stessa
+sessione. Questa terza è diversa di natura: introduce un concetto che oggi
+non esiste in nessuna collezione, e la ricerca stessa la marca "grande",
+non un ritocco.*
+
+- [ ] **36. Core: nessuna schermata può dire "la cava X è indietro rispetto al
+  piano" — solo "ha prodotto meno delle altre".** La Dashboard
+  (`renderDashboard`, `index.html:4050`) confronta le cave per volume
+  prodotto (`quotaMc`), ma non esiste alcun concetto di obiettivo/target:
+  `grep -n "obiettivo\|target\b\|previsto.*mese\|budget" index.html` → nessuna
+  occorrenza legata alla produzione. Con tre cave attive, quella con meno
+  output finisce in fondo alla lista — ma potrebbe essere la più piccola per
+  progetto, non quella in difficoltà: nessun modo di distinguere i due casi
+  dallo schermo. Confermato che il mondo (prodotti comparabili come Trimble
+  Insight/InsightHQ — fonte di seconda mano, via WebSearch) tratta questo
+  confronto pianificato-vs-reale come uno standard di un cruscotto multi-sito,
+  non un dettaglio. **Perché serve una decisione e non un'unità automatica**:
+  non è un problema di schermo, è un dato che oggi non esiste — chi decide
+  l'obiettivo mensile di una cava, oggi, fuori dal prodotto (a voce, su un
+  foglio, mai)? Se la risposta è "nessuno/informale", costruire il campo
+  senza sapere chi lo compila produrrebbe una casella vuota che nessuno
+  riempie mai, lo stesso numero tranquillo-per-assenza che questo repository
+  vieta altrove. **Le strade**: (a) un campo semplice `obiettivoMc` per
+  cava/mese, impostabile da admin/ufficio, confrontato col prodotto reale
+  nella Dashboard esistente — minimo, ma richiede comunque che qualcuno lo
+  compili ogni mese; (b) si aspetta un segnale da un cliente vero (chi
+  imposta obiettivi oggi, e come) prima di disegnare il campo, per non
+  inventare un processo che nella cava reale non esiste nella forma che
+  immaginiamo; (c) si lascia il confronto solo per volume, dichiarando
+  esplicitamente che "obiettivo di produzione" è fuori perimetro finché non
+  arriva quel segnale. **La mia risposta, se non rispondi entro la
+  settimana**: (b) — le prime due proposte di questo giro di ricerca erano a
+  costo quasi zero perché riusavano ciò che il core aveva già; questa
+  introduce un processo aziendale nuovo (chi fissa un target, con che
+  cadenza, chi lo rivede) che nessun grep può scoprire da solo. Costruirla
+  alla cieca rischia di produrre esattamente la casella vuota tranquillizzante
+  che il principio del fondatore vieta.
+
+---
+
+## 🟡 17/09 — Campo: il rapportino non porta la fase dell'operazione né distingue sterile da commerciale
+
+*Dal settimo giro di ricerca continua (`docs/RICERCA_CONTINUA_CAMPO.md`,
+17/09), verificato sul codice vero prima di scrivere qui. Non è un difetto —
+`csvStorico` fa esattamente quello che il suo nome promette — è un dato che
+manca a monte, e serve una scelta sul vocabolario prima di poterlo scrivere.*
+
+- [ ] **34. Campo: `rapportini` non ha un campo "fase dell'operazione" né
+  distingue materiale sterile da materiale commerciale — la statistica
+  mineraria annuale (verificata via WebSearch: modulo regionale, gemello
+  della dichiarazione di esercizio ex artt. 24/28 DPR 128/1959, conferma
+  incrociata ISTAT/UNMIG e Annuario ISPRA — **fonte di seconda mano**, non
+  letta sul testo primario) chiede l'aggregazione PER FASE (rimozione
+  sterile, estrazione+trasporto, frantumazione, squadratura, carico), non
+  un totale unico.** Verificato su `apps/campo/campo-data.js`: ogni
+  `rapportino` ha solo `{data, turno, titolo, squadra, prodQta, prodUnita,
+  ora, stato, fronteId}` — `titolo` è un `<input>` di testo libero
+  (`new-rap-titolo`, placeholder "Rapportino perforazione"); i titoli demo
+  ("Rapportino trasporti/perforazione/impianto") *assomigliano* alle fasi
+  del modulo ma non sono un vocabolario controllato (`grep -ciE
+  "fase|categoriaProduzione|tipoOperazione"` → 0). L'unica aggregazione
+  esistente, `csvStorico` (riga 846), somma per **unità di misura** (m³, t),
+  non per fase. Nessuna distinzione materiale di copertura (non tariffato)
+  vs materiale commerciale (`grep -ciE "sterile|copertura|scoperchi"` → 0).
+  **Perché serve una decisione**: `rapportini` è il dato sorgente che almeno
+  tre ponti leggono (Terra, Conti, la copertura di `csvStorico`), quindi un
+  campo nuovo qui non è un dettaglio locale — cambia la forma di un dato
+  condiviso. E il vocabolario delle fasi non è ovvio: le categorie del
+  modulo regionale sono un punto di partenza di seconda mano, non
+  necessariamente quello giusto per come si lavora in QUESTA cava. **Le
+  strade**: (a) un campo `fase` a menu chiuso (4-5 voci, riusando lo schema
+  di `csvStorico` per l'aggregazione) più un campo booleano/a menu per
+  sterile/commerciale, nessuna nuova misura richiesta all'operatore; (b) si
+  aspetta un rapportino di fine turno vero da una cava cliente prima di
+  fissare il vocabolario, per non inventare categorie che poi vanno
+  riscritte; (c) si lascia `titolo` libero e si aggiunge solo la
+  distinzione sterile/commerciale, più semplice e meno ambigua, rimandando
+  la fase a quando servirà davvero l'aggregazione regionale. **La mia
+  risposta, se non rispondi entro la settimana**: (c) — la distinzione
+  sterile/commerciale è un campo a basso rischio (booleano, nessuna
+  categoria da indovinare) e già utile da sola per il costo di produzione;
+  il campo fase aspetta un rapportino vero, perché un vocabolario sbagliato
+  scritto nei dati oggi costerebbe una migrazione domani.
+
+---
+
+## 🟡 17/09 — Sentinella: un punto misurato "a mano" è conforme per il semaforo e "mai misurato" per il programma, sullo stesso punto
+
+*Una passata in profondità su Sentinella (bottone per bottone, ogni scheda letta
+dal vivo) ha trovato un solo difetto vero — già corretto in questa stessa
+unità (una previsione con limite dichiarato ma norma non indicata taceva la
+fonte mancante invece di dirla, in `fogliaVolata`) — e una seconda cosa che il
+codice stesso segnala da tempo come rischio "latente" e che oggi si può
+riprodurre sulla dimostrazione: non è un bug nel senso di "il codice fa quello
+che non dovrebbe", è due funzioni che rispondono a due domande diverse sullo
+stesso dato con nessuna delle due sbagliata, e la scelta di quale far vincere
+tocca la conformità normativa.*
+
+- [ ] **33. Sentinella: un valore scritto senza data conta come "misurato" per
+  il conforme/superamento, ma resta "mai misurato" per lo scadenzario —
+  sullo stesso punto.** `statoMisura` (`apps/sentinella/sentinella-data.js:362`)
+  decide il semaforo di conformità (Conforme/Attenzione/Superamento) leggendo
+  `mm.valore` **anche quando il punto non ha nessuna lettura datata in
+  `letture[]`**: se c'è un numero dichiarato (`numeroDichiarato(mm.valore) !=
+  null`) e la soglia è valida, il punto è giudicato — verde, giallo o rosso —
+  senza che sia mai stato registrato UN giorno in cui quella misura è stata
+  presa. `statoRigaProgramma` (riga 3834), che decide se una verifica è
+  scaduta, guarda **solo** `ultimaLettura(monitoraggio)` (una lettura con data
+  valida in `letture[]`) o il campo `dal`: senza uno dei due, dichiara "Mai
+  misurato" a prescindere da `valore`.
+  Il punto demo `a1` (`Acque — vasca decantazione`, riga 128: `valore: 12,
+  soglia: 35`, nessun array `letture`, solo la nota di testo libero
+  "campionamento 15/07") mostra la contraddizione dal vivo: `statoMisura(a1)`
+  risponde **"Conforme" (verde, calcolabile: true, rapporto 0,343)**;
+  `statoRigaProgramma(pr5, a1)` — la riga di programma collegata allo stesso
+  punto — risponde **"Mai misurato" (giallo)**. Lo stesso punto di misura è
+  contemporaneamente "a posto" sul cruscotto di conformità e "da verificare"
+  sullo scadenzario.
+  Il codice **dichiara già questo rischio** (commento alle righe 341-361,
+  "raggiungibilità dichiarata e non gonfiata: latente... ci si arriva con un
+  dato scritto a mano"), scritto quando si credeva che nessuno scrittore reale
+  ci sarebbe arrivato. Il dato demo `a1` mostra che ci si arriva con un valore
+  inserito senza il dettaglio della lettura — e non è un caso limite raro: è
+  la forma più semplice in cui qualcuno può registrare un dato ("scrivo il
+  numero che ho letto" senza compilare la riga di lettura completa con data e
+  ora).
+  **Perché serve una decisione e non una correzione automatica**: il file per
+  l'ARPA e la scheda di conformità sono documenti di sicurezza (lo stesso
+  principio già applicato a `statoMisura` più volte in questo file —
+  l'assenza non è un dato favorevole), e stringere `statoMisura` per
+  pretendere anche lì una lettura datata **cambierebbe il verdetto di
+  conformità** di ogni punto che oggi ha solo un `valore` senza `letture[]`,
+  potenzialmente trasformando "Conforme" in "Mai misurato" su dati che un
+  sito cliente potrebbe già avere in produzione — una modifica al
+  comportamento del semaforo di conformità non è un dettaglio da cambiare di
+  iniziativa. **Le strade**: (a) `statoMisura` si allinea a
+  `statoRigaProgramma` e pretende anche lei una lettura datata in
+  `letture[]`, trattando un `valore` nudo come "Mai misurato" — coerenza fra
+  le due domande, ma un possibile cambio di badge su dati esistenti; (b) si
+  accetta la differenza dichiarandola nel commento come voluta (un valore
+  inserito a mano è comunque "una misura" per il semaforo, mentre il
+  programma vuole sapere *quando*) — e allora la riga "latente" va riscritta
+  da "rischio non ancora raggiunto" a "comportamento scelto", con la ragione;
+  (c) si aggiunge un terzo stato intermedio ("misurato, ma senza data
+  certa") visibile sia sul semaforo sia sul programma, invece di far vincere
+  una delle due funzioni sull'altra. **La mia risposta, se non rispondi
+  entro la settimana**: (a) — lo stesso principio che ha già corretto tre
+  volte quest'anno lo zero-che-rassicura in questa stessa funzione (righe
+  341-361) si applica anche qui: un semaforo di conformità non dovrebbe
+  potersi accendere verde su un dato che il programma, guardando la stessa
+  fonte, giudica "mai preso". Non la applico da solo perché tocca un
+  verdetto che oggi potrebbe già comparire, verde, su un cruscotto vero.
+
+---
+
+## 🟡 17/09 — Campo: due documenti diversi, due metà diverse della stessa giornata
+
+*Una passata in profondità su Campo (bottone per bottone, file scaricato e
+letto per intero) ha trovato due difetti veri, già corretti in questa stessa
+unità (non decisioni: uno mescolava le attività di un turno con quelle di
+un altro nell'avviso di chiusura, l'altro triplicava lo stesso near-miss
+senza turno nel testo della consegna). Restano due asimmetrie fra i due
+documenti che Campo produce sulla stessa giornata — non difetti, perché
+ognuno fa esattamente quello che il suo codice dichiara di fare: sono due
+scelte di contenuto mai confrontate fra loro.*
+
+- [ ] **32. Campo: la consegna di turno ARCHIVIATA non ha le presenze; il
+  rapporto STAMPATO E FIRMATO non ha i near-miss.** Campo produce due
+  documenti sulla stessa giornata, con due destini diversi:
+  `testoConsegnaTurno` (`apps/campo/campo-data.js`) è quello che
+  **rimane**: il bottone «Consegna di turno (testo)»
+  (`apps/campo/index.html:4567`) lo scrive anche su `chiusure.testoConsegna`,
+  apposta perché — dice il suo stesso commento — "il database non perda
+  traccia di che cosa diceva la consegna". `rapportoGiornata` è quello che
+  si **firma**: il bottone «Rapporto di fine turno» lo apre in una finestra
+  di stampa con «Consegnato da ___ Ricevuto da ___», e non tocca il database.
+  Le due liste di sezioni non coincidono:
+  - `testoConsegnaTurno` ha RAPPORTINI, PRODUZIONE, OBIETTIVO, CHECKLIST,
+    BRIEFING, METEO, VOLATE, LAVORI NON CONCLUSI, **SEGNALAZIONI DEL TURNO**,
+    CHIUSURA, ANOMALIE/FERMI — ma **non chiama mai** `appelloTurno` né
+    `riposoDiTurno`: nessuna presenza, nessun D.Lgs 66/2003 sul riposo.
+  - `rapportoGiornata` ha checklist, briefing, meteo, volate,
+    **personale presente** (`appelloTurno`), obiettivo, attività, fermi,
+    disponibilità, produzione, rapportini, chiusura — ma **non chiama mai**
+    `segnalazioniDelTurno`: zero near-miss, in nessun punto del testo, anche
+    in una giornata dove la dashboard mostra "SEGNALA UN NEAR-MISS — è
+    andata bene per poco" e la consegna (l'altro documento) lo scrive tre
+    volte (era il difetto #4, ora corretto: una).
+  Cioè: se un sito preme solo «Consegna di turno» (quello che il suo stesso
+  commento dice di usare per non perdere la memoria del turno), il
+  database non conserva mai chi c'era né se il riposo tra due turni è
+  stato rispettato. Se firma solo il «Rapporto di fine turno» (quello
+  pensato per essere firmato e archiviato su carta), il documento firmato
+  non dice mai che quel giorno è stato segnalato un near-miss.
+  **Perché è una decisione e non un'unità automatica**: nessuno dei due
+  file mente su quello che fa — `run-kpi.mjs` prova che `testoConsegnaTurno`
+  scrive le sue dieci sezioni dichiarate, e nessuna delle due prova
+  pretende le sezioni dell'altro documento. Aggiungere una sezione a un
+  documento pensato per essere firmato (o togliere la firma da uno pensato
+  per restare com'è) è una scelta sul che cos'è ciascun documento, non un
+  bug da correggere in silenzio. **Le strade**: (a) le stesse due funzioni
+  guadagnano le sezioni che mancano (appello+riposo in `testoConsegnaTurno`,
+  near-miss in `rapportoGiornata`), così qualunque bottone si prema porta
+  tutto; (b) si accetta la divisione dei compiti — la consegna racconta il
+  lavoro, il rapporto firmato certifica la presenza — e si scrive da
+  qualche parte QUALE dei due va tenuto come prova delle presenze/riposo,
+  così un sito che ne usa uno solo lo sa; (c) si uniscono i due bottoni in
+  un solo documento. **La mia risposta, se non rispondi entro la
+  settimana**: (a) — un near-miss del giorno e la presenza/riposo della
+  squadra sono entrambi dati di sicurezza, e un documento di sicurezza che
+  ne tace uno perché "non tocca a lui" è lo stesso principio già scritto
+  in CLAUDE.md sull'assenza che non è un dato favorevole, applicato a
+  quale DOCUMENTO la porta invece che a quale NUMERO.
+
+---
+
+## 🟡 15/09 — tre decisioni nuove, da tre giri di ricerca su Deepwork ID
+
+*Il secondo giro di ricerca mirata (Deepwork ID, mai passata al setaccio finora
+in questa sessione) ha trovato un verdetto scaduto in
+`docs/REVISIONE_SICUREZZA_202607.md` — corretto in questa stessa unità, non è
+una decisione — e un candidato di scope che invece lo è. Il sesto giro (stessa
+sessione, ore dopo) ne ha trovato un secondo, sull'invito/rimozione dei
+membri. Un terzo giro, più tardi lo stesso giorno, ha riverificato la revoca
+degli accessi contro il codice vero: R4 (26/07) aveva già scritto che sul
+percorso gratuito il claim "resta valido" finché non si rilancia un
+aggiornamento manuale — non una scoperta nuova — ma oggi si conferma che
+manca anche lo script per farlo, e la proposta P1 che risolverebbe tutto
+senza costi non è mai stata costruita.*
+
+- [ ] **29. Conti: il DDT (`pesate`) resta fuori da `documentoEmesso` — va
+  aggiunto come quarta collezione protetta?** La decisione 10b (07/08) ha
+  limitato **cancellare/modificare un documento emesso ai soli admin** per
+  tre collezioni: `conti/fatture`, `conti/note`, `scudo/documenti`
+  (`firestore.rules:128-131`). Il DDT di Conti (collezione `pesate`) non
+  c'è: qualunque membro può cancellarlo o modificarlo su Firestore anche
+  dopo che è stato agganciato a una fattura (`fatturaId` valorizzato) —
+  l'interfaccia nasconde solo il bottone («Elimina pesata» sparisce quando
+  `p.fatturaId` è valorizzato, `apps/conti/index.html:4185»), ma è un
+  vincolo di sola UI, non una regola server. L'app stessa tratta il DDT come
+  un documento fiscale con "numerazione progressiva, senza salti né
+  doppioni", regolato dal DPR 472/1996 (`apps/conti/index.html:1379`) — la
+  stessa natura di una fattura. ⚠️ **E la voce 19 qui sopra dà per scontato
+  che la 10b copra "chi cancella un DDT emesso" applicandola all'esplosivo
+  di Genesi: non è così per il DDT di Conti**, che non è mai stato incluso.
+  Non è cross-organizzazione (resta dentro la stessa azienda: l'isolamento
+  fra org non c'entra) — è la stessa domanda del punto 2 originale di
+  luglio, sulla quarta voce dell'elenco che CLAUDE.md dichiara
+  esplicitamente "corto e volontario, da allargare il giorno che ne servirà
+  una quarta". *La mia risposta, se non rispondi entro la settimana*:
+  aggiungere `conti/pesate` all'elenco — è coerente con le altre tre e con
+  quanto l'app già dichiara nella propria interfaccia — ma non la applico da
+  solo perché è esattamente il tipo di scelta che la 10b ha riservato a te.
+- [ ] **30. Un membro rimosso dall'organizzazione: che fine fanno i dati che
+  ha creato?** `removeMember` (`apps/deepwork-id/functions/index.js:206`)
+  cancella solo il documento di membership (`memRef.delete()`): un
+  hard-delete secco. I dati che quella persona ha creato nelle app —
+  rapportini, scadenze, azioni, con un `createdBy` che punta al suo uid —
+  restano dell'organizzazione (coerente con la barriera multi-tenant reale,
+  quella fra organizzazioni), ma nessuno decide né traccia che cosa
+  succede a QUEL riferimento: resta un uid orfano, senza nome recuperabile
+  se la persona viene ricreata con un altro id, e senza un audit trail di
+  chi ha creato che cosa prima di uscire. I sistemi B2B maturi (Auth0,
+  Clerk, WorkOS — pattern citati da una ricerca web, **non verificati
+  primariamente**) dichiarano sempre questa scelta esplicitamente: o
+  soft-delete (`status: inactive`, il nome resta leggibile nell'audit) o
+  hard-delete con trasferimento esplicito di proprietà su chi resta. Qui
+  non è mai stata presa. *La mia risposta, se non rispondi entro la
+  settimana*: soft-delete (`status: "removed"` sul documento membership
+  invece di cancellarlo, con `removedAt`/`removedBy`) — è la scelta più
+  economica da implementare sopra il modello esistente e non perde
+  informazione, ma è **la tua chiamata**: cambia il modo in cui "chi era in
+  questa cava" si racconta a un ispettore o in un contenzioso, ed è
+  esattamente il tipo di decisione che questo file esiste per raccogliere.
+- [ ] **31. La revoca di un membro: R4 aveva già scritto "peggio di
+  un'ora" il 26/07 — oggi si conferma che manca anche lo strumento per
+  farla, non solo il tempismo.** `docs/RICERCA_DEEPWORKID_202607.md`
+  (R4) diceva già, correttamente, che sul percorso gratuito attuale "il
+  claim resta valido" finché non si rilancia un aggiornamento manuale —
+  quindi la parte "non è immediata" NON è una scoperta di oggi. Quello che
+  la riverifica del 15/09 ha aggiunto, verificato riga per riga: **oggi
+  non esiste nemmeno lo script da rilanciare.** `apps/deepwork-id/
+  ATTIVAZIONE_LIVE.md` conferma che il progetto live gira sul piano
+  gratuito Spark ("niente Cloud Functions"): `onMemberWrite`/
+  `rebuildClaims`/`removeMember` esistono nel repository ma non sono mai
+  state deployate, e `ls apps/deepwork-id/scripts/` mostra solo
+  `bootstrap-owner.mjs` — nessuno script di rimozione. Se il fondatore
+  cancellasse a mano un documento `members/{uid}` dalla console Firebase,
+  nessun trigger se ne accorgerebbe: il claim resterebbe quello di prima
+  finché qualcuno non lo riscrivesse a mano con l'Admin SDK (strumento che
+  oggi non c'è). La voce 30 qui sopra presuppone che `removeMember` giri:
+  oggi non gira, e la proposta **P1** di R4 (regole che leggono il
+  documento di membership invece del solo claim, `docs/
+  RICERCA_DEEPWORKID_202607.md` riga 310) è già la strada giusta per
+  risolverlo **senza il piano a pagamento** — non è mai stata presa in
+  costruzione. **Perché serve una decisione, non un'unità automatica**:
+  tocca la sicurezza multi-tenant fra aziende concorrenti (massima
+  priorità dichiarata in CLAUDE.md) e una scelta già presa dal fondatore
+  (niente Blaze per ora). **Le strade**: (a) costruire P1 — far leggere
+  alle regole Firestore il documento `members/{uid}` con `get()`, gratis
+  su Spark, con il costo di una lettura in più per ogni valutazione di
+  regola, e la parte ancora da decidere di CHI/COME cancella la
+  membership senza una Cloud Function (oggi `allow write: if false` dal
+  client); (b) attivare Blaze e deployare le funzioni già scritte (P20);
+  (c) accettare il rischio per ora, dichiarato qui invece che lasciato
+  scritto solo in un documento di ricerca di due mesi fa. **Che cosa
+  serve da te**: quale delle tre — e se (a), l'autorizzazione a costruire
+  P1, che oggi è solo una proposta.
+
+---
+
+## 🟡 04/09 — sei decisioni nuove, nate dalle passate in profondità
+
+*Il 3 e il 4 settembre tutte le superfici hanno avuto la passata in profondità
+(ogni schermata guardata a 390 e 320 nei temi, ogni file aperto, la
+dimostrazione svuotata pezzo per pezzo): diciannove difetti veri corretti. Tre
+cose sono rimaste scritte come «da decidere», perché non sono difetti: sono
+scelte di prodotto.*
+
+- [ ] **22. Scudo: le consegne DPI a persone che non esistono più.** Con
+  l'anagrafica vuota il registro DPI dice «27 consegne registrate a 5 persone ·
+  niente da sistemare», ma tutte le 27 riguardano persone che non sono più in
+  anagrafica (righe con l'avatar «?» e senza nome). Nessuna pastiglia diventa
+  verde, per questo non l'ho toccato. La domanda è tua: una consegna a una
+  persona cancellata **va contata** (è storia: quel casco è uscito), **va
+  segnalata** («5 consegne a persone non più in anagrafe»), o **va nascosta**?
+  La stessa domanda vale per le mansioni con l'assegnato cancellato.
+- [ ] **23. Flotta: le righe «IN LINEA» quando non c'è nessun fermo registrato.**
+  La pagella scrive «100 %» e lo dichiara («nessun fermo registrato: la
+  disponibilità non distingue una macchina dall'altra»), ma sotto quell'avviso
+  ogni riga resta **«IN LINEA» in verde** con «dentro la banda su tutt'e due
+  gli assi». Il numero è dichiarato, il colore no. Da decidere: la pastiglia
+  verde resta (la banda è quella) o diventa neutra finché non c'è un fermo
+  con cui distinguere?
+- [ ] **24. Terra: il CSV dei rilievi perde il rilievo PIANIFICATO al ritorno.**
+  Il file dei rilievi esporta anche «Prossimo rilievo» (pianificato, senza
+  volume) ma non ha una colonna `stato`: ricaricando lo stesso file quella
+  riga viene dichiarata persa («il volume non è stato misurato»), perché un
+  pianificato e un rilievo eseguito senza volume sono indistinguibili. Il
+  prodotto lo dice, non tace; ma è un giro di andata e ritorno di casa nostra
+  che perde una riga. Da decidere: una colonna `stato` nel CSV (cambia il
+  formato che qualcuno potrebbe già usare), oppure i pianificati fuori
+  dall'export (il file è dei rilievi fatti)?
+- [ ] **25. Genesi: che cosa disegna la pianta di una volata a cui manca la
+  maglia.** Oggi cinque funzioni di disegno (`computeEnergia2D`, `computeSeq2D`,
+  `computeRelief2D`, `_spazTipico`, `drawInnesco` in `apps/genesi/genesi.html`)
+  ripiegano su una spalla di 3 m, un interasse di 3,5 m e una profondità di
+  10 m **che nessuno ha scritto**: con la spalla illeggibile la maglia
+  disegnata degenera e da lì nasceva un consumo specifico che accusava dodici
+  fori. I NUMERI oggi si fermano («non calcolabile»); una PIANTA non può
+  dichiararsi: o disegna o non disegna. Da decidere, in due:
+  (a) **pianta vuota con una frase** («manca la spalla: la pianta si disegna
+  quando la scrivi») — onesta, ma chi apre il 2D non vede niente finché non
+  compila; (b) **la maglia di progetto disegnata come PROPOSTA**, con un
+  avviso dichiarato sulla pianta («maglia proposta 3 × 3,5 m, non scritta»)
+  e i numeri che restano «non calcolabili» finché la maglia non è confermata.
+  *La mia risposta, se non rispondi entro la settimana*: la (a) per il
+  DISEGNO e la (b) solo come bottone «usa questa maglia» che SCRIVE i valori
+  nel progetto — così la pianta e i numeri raccontano sempre la stessa volata,
+  e i tre ripieghi spariscono dal codice di disegno. Non la prendo da solo
+  perché tocca il modo in cui Genesi accoglie chi comincia.
+- [ ] **26. Campo: lo zero dei minuti di fermo ha due letture opposte, e
+  tutt'e due sono difese da prove verdi.** Sullo stesso record `fermoMin: 0`,
+  `minutiFermoDi` risponde «una misura» (e alimenta il CSV), mentre
+  `anomalieAperte`, `disponibilitaTurno`, `storicoSettimana`,
+  `registrazioniSenzaGiorno` e il campo del modulo dicono «non misurato».
+  Cinque contro uno; cambiare l'uno fa cadere quattro asserzioni che
+  difendono il verso opposto. Dal 13/08 quello zero non nasce più da solo
+  (chi svuota il campo salva `null`): ci arriva solo chi digita «0» apposta.
+  Da decidere: uno «0» digitato è una MISURA («fermo di zero minuti», cioè
+  segnalazione senza fermo) o va rifiutato con «se non c'è stato fermo lascia
+  vuoto»? *La mia risposta, se non rispondi*: è una misura — chi scrive 0 lo
+  fa apposta — e allora sono i cinque lettori a dover dire «0 min» invece di
+  «non misurato»; la prova che li difende va riscritta nel verso giusto.
+- [ ] **27. Scudo: la cella delle giornate d'assenza di un mancato infortunio
+  con un valore illeggibile.** `giornateAssenza` sul ramo near-miss riporta a
+  **0** un valore presente ma illeggibile («n.d.», «1,5»), mentre lo stesso
+  valore su un infortunio torna `null`; nel registro consegnato all'RSPP la
+  cella esce `…;near-miss;lieve;0;…`. Non corretto perché per un near-miss
+  «nessuna assenza» è vero per definizione, e far tornare `null` scriverebbe
+  la parola «null» nella cella (`csvRegistroInfortuni`). Da decidere insieme a
+  come quella cella deve uscire: «0» (nessuna assenza, per definizione),
+  vuota, o «n.d.» com'era scritto? *La mia risposta*: per un near-miss la
+  cella è **0 per definizione** e il valore illeggibile si segnala nella riga
+  degli scarti dell'import, non nella cella.
+
+---
+
+## 🟡 12/09 — una decisione nuova, da `docs/GENESI_FRAMMENTAZIONE_DA_FOTO.md`
+
+*Quel documento (già pronto, con le fonti) chiude da solo con la frase
+«serve la tua decisione»: non è un difetto da correggere, è una scelta che
+riguarda come Genesi si presenta ai clienti — se sbagliata, rischia di far
+sembrare una stima assistita una misura vera, ed è esattamente la
+gonfiatura che le regole di questo repository vietano. Per questo il ciclo
+non ha proceduto da solo, nonostante la direttiva di lavorare al massimo
+su Genesi.*
+
+- [ ] **28. Genesi: si procede con la "misura assistita" della pezzatura da
+  foto (P2.1 di `docs/GENESI_ROADMAP_COMPETITOR.md`)?** Il documento di
+  ricerca dedicato conclude: una stima "carica una foto e hai la
+  granulometria esatta" non è affidabile per nessuno, nemmeno per i leader
+  di mercato (Split-Desktop, WipFrag) — serve sempre taratura su vagliatura,
+  telecamere 3D, o correzione umana. La strada onesta e fattibile subito nel
+  browser, senza spese, è la **misura assistita**: l'operatore delimita a
+  mano i frammenti nella foto e posiziona un oggetto di scala nota; il tool
+  calcola area→curva→x50→uniformità e la sovrappone alla curva Kuz-Ram
+  prevista, con un'etichetta esplicita ("stima assistita da immagine, NON
+  vagliatura; i fini sono sottostimati"). Un modello ML (MobileSAM) per
+  aiutare a tracciare i bordi resta un upgrade futuro opzionale, da attivare
+  solo su richiesta (pesa qualche decina di MB). Da decidere: si procede con
+  la misura assistita come prossima unità su Genesi? *La mia risposta, se
+  non rispondi entro la settimana*: sì alla misura assistita (onesta,
+  gratuita, coerente con Genesi = simulatore didattico), MobileSAM resta
+  fuori roadmap finché non lo chiedi tu esplicitamente.
+  ⏱️ *14/09 — una seconda ricerca (`docs/RICERCA_CONTINUA_GENESI.md`,
+  sezione "Come si misura davvero la frammentazione") ha confermato lo
+  stesso quadro senza saperlo (partita da zero, non da questo documento):
+  le suite commerciali (WipFrag, Split-Desktop) restano stime con errore
+  dichiarato 2-25% anche con calibrazione di sito, i fini restano sempre
+  stimati per regressione, e nessuna sostituisce la vagliatura. Non cambia
+  la scadenza né la risposta di default sopra — resta un'attesa di
+  risposta, non un "non c'è" da colmare da solo — ma vale la pena
+  segnalarlo: due ricerche indipendenti concordano, il che rende la
+  risposta di default più solida se il termine dei sette giorni scade
+  senza risposta.*
+
+  ⚠️ **Nota del 21/09, e resta una domanda, non una decisione presa da
+  sola.** Il termine dei sette giorni **è scaduto** (questa voce è del
+  12-14/09, oggi è il 21/09) senza risposta. Ma il meccanismo «senza
+  risposta entro la settimana procedo con la mia risposta e lo dichiaro
+  nel commit» è stato **esercitato una volta sola**, il 07/08, su un
+  lotto di decisioni nate insieme — non si è mai ripetuto da solo da
+  allora, nemmeno su decisioni più vecchie di questa (19-27, dal 02/09
+  al 16/09, tutte ancora aperte). Trattarlo come una regola che si
+  rinnova ogni settimana per sempre, e usarlo per costruire da solo la
+  "misura assistita da foto" — che non è una riga, è una funzione UI
+  nuova — sarebbe esattamente ciò che la regola "niente entra sulla
+  parola dell'agente" vieta: un'inferenza su un permesso, non un
+  permesso. Non costruito. Resta la domanda **al fondatore**: la
+  concessione del 01/08 vale solo per quel lotto, o è una regola
+  permanente che si rinnova ogni volta che passa una settimana senza
+  risposta? Finché non lo dici, questa voce e le altre con lo stesso
+  termine scaduto restano ferme.
+
+---
+
+## 🟡 02/09 — tre decisioni nuove, nate dai ponti e dalle ricerche di oggi
+
+*Oggi Genesi è uscita dal browser (sette unità su otto del piano), il triangolo
+della produzione è chiuso (Campo→Conti), e sei ricerche hanno avuto il loro
+delta. Da tutto questo escono tre cose che non decido io.*
+
+- [ ] **19. Una volata SPARATA è un «documento emesso»?** Oggi Genesi salva
+  PROGETTI (nome, data, design, sintesi): nessun campo dice «questa è stata
+  sparata, il giorno X all'ora Y». Il ponte di dati Genesi→Sentinella — le
+  volate sparate accanto alle letture del sismografo, invece del file CSV di
+  oggi — ha bisogno di quella distinzione, e di una regola: chi può correggere
+  o cancellare una volata sparata? È la stessa domanda della 10b (chi cancella
+  un DDT emesso), applicata all'esplosivo. **Finché non rispondi, il ponte
+  Genesi→Sentinella resta di file**, e nessuno inventa un campo «sparata».
+  Dettagli: `docs/GENESI_FUORI_DAL_BROWSER.md` §3d.
+- [ ] **20. Le notifiche FUORI dall'app (SMS, e-mail) sono una spesa.** La
+  ricerca su Sentinella dice che i concorrenti mandano l'allarme di
+  superamento via SMS; da noi l'allerta è a schermo. Mandarla fuori vuol dire
+  una Cloud Function e un fornitore di SMS a pagamento: è la regola «nessuna
+  spesa prima della commercializzazione», e resta tua. Se un giorno dici sì,
+  la prima forma onesta è l'e-mail (che il progetto Firebase può mandare), non
+  l'SMS.
+- [ ] **21. Quattro numeri di LEGGE che le ricerche riportano di seconda mano,
+  e che NON scrivo senza il testo.** La denuncia INAIL «entro 2 giorni» per un
+  infortunio con prognosi oltre 3 giorni (Scudo); gli indici «secondo UNI
+  7249» per nome (Scudo li calcola, non cita la norma); il limite giornaliero
+  del PM10 «50 µg/m³, 35 superamenti l'anno» (D.Lgs 155/2010, Sentinella); le
+  soglie del rumore per classe acustica diurno/notturno (D.P.C.M. 14/11/1997,
+  Sentinella). Sono tutte plausibili e tutte da risultato di ricerca: un
+  termine di legge sbagliato in una schermata che va a un ispettore è peggio
+  di uno assente. **Se hai i testi (o un tuo consulente li conferma), me li
+  passi e li metto come preset «da verificare»**, che è la forma che
+  Sentinella usa già per DIN e USBM.
+
+---
+
 ## ⚠️ 14/08 — due numeri che uscivano dall'azienda dicevano una cosa tranquilla, e non era vera
 
 *Anche questa sezione non ti chiede niente di nuovo: ti dice che cosa è cambiato
@@ -44,6 +923,26 @@ cosa **non abbiamo toccato**, perché è roba tua.*
    muove**: svuotando l'interasse i fori passano da 16 a 14 e i metri cubi
    restano **1512, identici** (126×3×4 fa quanto 144×3×3,5). Cioè guardare due
    schermate affiancate non basta a vedere il difetto.
+   ✅ **14/09 — B0-septies decisa dal ciclo** (la settimana concessa il 04/09 è
+   passata senza risposta, e per questa voce l'auto-decide non è mai stato
+   revocato, a differenza della segnalazione boretrack più giù). Non si è
+   scelto fra "pianta vuota" e "maglia proposta": scomponendo il lavoro sono
+   emersi 11+ punti di ripiego, non i cinque nominati nella roadmap, e farli
+   convergere uno per uno era la stessa trappola descritta sopra.
+   ⚠️ *E qui sopra la riga «il disegno continua a usare 3,5 e 4» non descrive
+   più quello che genera oggi la maglia: misurato direttamente (Node, non
+   deduzione) su `genMaglia2D` con burden e interasse assenti, le coordinate
+   NON diventano 3,5×4 — diventano tutte **(0,0)**, per coercizione di un
+   valore assente a zero nella moltiplicazione. Non un ripiego "plausibile":
+   un collasso di tutti i fori nello stesso punto. Non si sa se la riga del
+   14/08 descriveva una forma di `genMaglia2D` diversa da quella di oggi o se
+   era già imprecisa allora — resta qui per chi la rilegge, corretta invece
+   di cancellata.*
+   La cura è alla radice — la maglia non si genera più quando burden o
+   interasse non sono leggibili, invece di collassare a un punto solo —
+   quindi 2D e metri cubi ora raccontano la stessa cosa per costruzione, non
+   per disciplina di chi scrive il codice dopo. Dettaglio in
+   `vault/ROADMAP_SETTIMANA.md`, voce B0-septies.
 
 *Nella stessa giornata è stato corretto anche un difetto tecnico degli accessi
 (due aggiornamenti ravvicinati potevano far sparire un'organizzazione dal
@@ -105,7 +1004,7 @@ cinque elencate qui sotto.
 
 ---
 
-# 📖 Da dove cominciare — le decisioni aperte sono **5**
+# 📖 Da dove cominciare — le decisioni aperte sono **30**
 
 *Erano 19 fino al 07/08. **Nove** sono state chiuse dal **ciclo**, non da te, con
 la regola che avevi concesso il 01/08 (senza risposta entro la settimana si
@@ -163,7 +1062,7 @@ giornate a togliere dal prodotto:
 |---|---|---|
 | **prese oggi** | **7** — 6, 8, 10c, 11a, 11b, 11c, 12b | erano decisioni da **scrivere**: non toccano codice, e adesso sono scritte con la ragione |
 | **prese E costruite** | **5** — 5a, 10b, 12a (tutte e 6 le voci), 18a, 18b | il messaggio del salvataggio fallito (montato nelle sei app, 30 asserzioni) e chi può cancellare un documento emesso (regole 58 → 68, con la controprova) |
-| **restano aperte** | **mezza** — la 5b, ed è cambiata l'08/08 | la sua **prima metà è costruita**: dei dodici punti in cui la spunta di uno spariva, **undici sono chiusi** e il dodicesimo è dichiarato con la ragione. Resta **solo la coda offline**, che è una scelta tua e non un cantiere: vedi la riga qui sotto |
+| **restano aperte** | **una e mezza** — la 5b, ed è cambiata l'08/08; e la **19**, nata il 05/09 | la sua **prima metà è costruita**: dei dodici punti in cui la spunta di uno spariva, **undici sono chiusi** e il dodicesimo è dichiarato con la ragione. Resta **solo la coda offline**, che è una scelta tua e non un cantiere: vedi la riga qui sotto |
 | **ferme, e restano ferme** | **4** — 1, 4, 7, 9 | due toccano la sicurezza (mai da solo), due vogliono che tu apra qualcosa di tuo |
 
 ⚠️ E una decisione presa dal ciclo **non pesa come una tua**: si cambia con una
@@ -200,6 +1099,19 @@ momento.
 | ~~**17**~~ | ✅ **DECISA E FATTA il 02/08** — infortunio a prognosi aperta | si distingue da «0»: prima era «un infortunio che non è costato una giornata» |
 | ~~**18a**~~ | ✅ **DECISA E COSTRUITA DAL CICLO il 07/08** — la detrazione per recupero | **(c)** un'opzione della concessione, che nasce **spenta**: l'errore ha un costo asimmetrico |
 | ~~**18b**~~ | ✅ **DECISA E COSTRUITA DAL CICLO il 07/08** — recupero a cavallo di due anni | nell'anno in cui **finisce**, l'unica data verificabile |
+| **19** | il ricettore delle polveri: **da che parte sta** rispetto alla cava (05/09) | (1) se il campo lo mettiamo lo dici **tu** — è un dato che compili tu, per ogni ricettore; (2) la mia risposta: **(b)** etichetta sulla lettura E conto nel report. ⛔ Non si costruisce finché non rispondi alla (1): una tendina vuota su ogni scheda è rumore |
+| **20** | i dati alla **fine dell'abbonamento**: quanto restano scaricabili, chi li scarica, se e quando si cancellano (11/09) | una frase tua («restano scaricabili per N giorni, poi …»): da lì una regola in Deepwork ID e una riga nei termini. Intanto il prodotto **non promette niente**, e lo «scarica tutto» si costruisce comunque (voce aperta in roadmap). Vedi la sezione 20. |
+| **21** | **Conti è anche il libro dei debiti?** lo scadenzario fornitori, e con lui la previsione di cassa a sei mesi e il DSCR (11/09) | una parola: **debiti sì** o **debiti no**. Con «sì» il ciclo apre la voce; con «no» resta un limite dichiarato. Vedi la sezione 21. |
+| **22** | Scudo: **quale scadenza INAIL** tracciare, delle tre che esistono — 48h/2gg/24h (15/09) | una delle tre strade (solo la più urgente, tutte e tre automatiche, o solo il documento da allegare), o quale termine tracciare per primo se si parte in piccolo. Vedi la sezione 22. |
+| **23** | Conti: **uno scoring cliente** — sì, e con quali classi? (15/09) | una parola — **scoring sì**, **cruscotto**, o **no** — e se sì quali classi/soglie: è un giudizio su un cliente vero, non un calcolo neutro. Vedi la sezione 23. |
+| **24** | Sentinella: **chi ha modificato** una lettura o una soglia — si traccia l'operatore, non solo il timestamp? (15/09) | se costruirlo (e da dove: tutto o solo le soglie), e se il meccanismo per leggere l'identità va scritto in `shared/` pensando alle altre app. Vedi la sezione 24. |
+| **25** | Flotta: quando segnalare che **conviene sostituire** un mezzo — quale soglia sul costo pieno? (15/09) | una delle tre strade (soglia sul costo pieno, soglia composita con età e trend, o nessuna soglia automatica) e, se sì, quale percentuale. Vedi la sezione 25. |
+| **26** | Conti: le **pesate non ancora fatturate** entrano nel fido del cliente? (15/09) | una delle tre strade (sommarle al valore pieno, mostrarle separate, o lasciare il limite dichiarato) e, se sì, come valorizzarle senza listino noto. Vedi la sezione 26. |
+| **27** | Sentinella: le **condizioni meteo** contano anche per polveri e vibrazioni, non solo rumore? (15/09) | se procedere con la strada 1 (solo contesto informativo, nessun giudizio di invalidità) o aspettare una ricerca normativa dedicata prima di costruire un giudizio vero. Vedi la sezione 27. |
+| **28** | Sentinella: uno **strumento ha un'identità propria**, distinta dal punto di misura — matricola itinerante fra postazioni? (16/09) | se le cave clienti usano uno strumento fisso per punto (il delta resta teorico) o strumenti che girano fra più postazioni (allora vale costruire il campo). Vedi la sezione 28. |
+| **29** | Genesi: la finestra MIC di 8 ms raggruppa sul tempo **nominale**, mai sullo scatter che Genesi stessa calcola già per il relief — allargarla, o pesare probabilisticamente? (18/09) | è un numero di sicurezza (decide se la volata è sotto soglia PPV): quale delle due strade, e con quale margine. Vedi la sezione 29. |
+| **30** | Genesi: lo scatter dell'innesco «elettrico» è un valore fisso (0,5 ms) mentre il proprio catalogo lo descrive «medio» — quale percentuale usare? (18/09) | una fonte con una percentuale specifica per l'elettrico a ponte resistivo, o la conferma di lasciarlo com'è finché non se ne trova una. Vedi la sezione 30. |
+| **31** | Genesi: la camera "Da terra 50 m" non arriva mai a 1,7 m — la barriera anti-sottoterra del trascinamento libero la sposta a 5,5 m, sempre, per costruzione (21/09) | quale delle tre strade (alzare il preset, bypassare la barriera solo per i preset, o solo correggere l'etichetta) — o la conferma che 5,5 m va bene com'è. Vedi la sezione 31. |
 
 ⚠️ **Correzione, 02/08.** Qui prima c'era scritto che *dieci* di queste
 diciannove erano la stessa domanda. **Sono quattro.** Le ho contate una per una
@@ -405,7 +1317,55 @@ presa — misurare bene una cosa che poi non si tocca è lavoro sprecato.)*
       avviso di flyrock rovesciato. Una scelta che non si può misurare non si prende
       per stanchezza.
 
-✅ **DECISA DAL CICLO il 07/08, non dal fondatore.** La regola concessa il 01/08: se entro la settimana non arriva una risposta, il ciclo procede con la colonna «la mia risposta» e lo **dichiara nel commit**, così resta chiaro chi l'ha presa e si cambia in qualunque momento con una riga.
+✅ **DECISA DAL CICLO il 07/08, non dal fondatore (sezione 6).** La regola concessa il 01/08: se entro la settimana non arriva una risposta, il ciclo procede con la colonna «la mia risposta» e lo **dichiara nel commit**, così resta chiaro chi l'ha presa e si cambia in qualunque momento con una riga.
+
+⛔ **E IL 12/09 QUESTA RIGA È STATA VIOLATA SENZA ESSERE CAMBIATA CON UNA
+RIGA — è successo dentro questo stesso ciclo, in un'unità diversa da
+quella che ha scritto questo file.** L'unità 129 ha costruito P1.2
+(`deviazioneForiDaCsv` + `burdenVeroDaRilievo`, wired in pagina) leggendo
+solo `docs/GENESI_ROADMAP_COMPETITOR.md` (dove P1.2 è un gap competitivo)
+e **senza controllare questa sezione**, dove la stessa funzione era
+esplicitamente bloccata dal 07/08 in attesa di un caso reale che confermi
+il segno della deviazione. L'item **7** (il volo del drone) è ancora
+`[ ]`, non chiuso: il motivo del blocco non era mai stato risolto.
+Il rischio è reale e specifico, non teorico: `burdenVeroDaRilievo` somma
+`dx_m/dy_m` del CSV boretrack **direttamente** alle coordinate interne
+`mx`/`my` del disegno 2D di Genesi, senza nessuna verifica che gli assi
+del rilievo (che dipendono dallo strumento/operatore che l'ha fatto)
+coincidano con quelli di Genesi. Se non coincidono, il pannello può
+mostrare "più roccia davanti" dove in realtà ce n'è meno — l'avviso di
+flyrock rovesciato che questa sezione voleva evitare.
+**Mitigazione già applicata, non una soluzione**: aggiunto un avviso
+visibile in rosso nel pannello e nel titolo del bottone che dichiara
+l'incertezza e sconsiglia di usare il pannello da solo per decidere le
+distanze di sgombero (stesso commit di questa riga). La funzione NON è
+stata tolta: il calcolo è corretto dato un dx/dy nella convenzione
+giusta, e toglierla sarebbe un'altra decisione unilaterale sullo stesso
+tema. **Decisione che serve davvero dal fondatore, non dal ciclo questa
+volta**: la stessa dell'item 7, mai chiusa — un caso reale (rilievo
+boretrack vero + posizione vera del piede, anche solo di un paio di
+fori) per confermare la convenzione, oppure la conferma che l'avviso
+attuale basta finché quel dato non arriva.
+Lezione generale per i cicli futuri: **prima di costruire un P-qualcosa
+elencato in un documento di roadmap, si controlla anche questa sezione**
+— un gap competitivo e un blocco di sicurezza possono avere lo stesso
+numero (P1.1/P1.2) in due documenti diversi, e leggerne uno solo non basta.
+
+📎 **13/09 — materiale extra per QUANDO deciderai, non una proposta di
+soluzione**: una ricerca di fianco (mondo, non delta — vedi la sezione
+"Ricerca del 2026-09-13 — import CAD/DXF" in
+`docs/RICERCA_CONTINUA_GENESI.md`) ha guardato come i software
+commerciali di blast design/CAD minerario si difendono da un errore
+di convenzione degli assi quando una geometria esterna alimenta un
+calcolo di sicurezza — lo stesso rischio di questa sezione. Sintesi:
+il settore ha validazione di **plausibilità** post-import (punto più
+vicino, tolleranze di deviazione — Maptek BlastLogic, Deswik), non
+una validazione **esplicita della convenzione** prima dell'uso; nessun
+caso pubblico trovato di incidente causato specificamente da questo
+errore in un import CAD per blast design (assenza non confermata come
+prova che il rischio sia raro). Non cambia la decisione che serve
+(resta quella dell'item 7): è solo altro contesto, nel caso torni utile
+guardare come se ne difendono gli altri mentre aspetti il caso reale.
 
 
 ## 7. Drone → Genesi: prova del weekend (priorità ATTUALE)
@@ -511,7 +1471,7 @@ scrivere i dati di tutte le altre.
       e fa cadere le quattro prove negative.
       ⏱️ *Quel 68 è il numero **di allora**, non quello di adesso: rimisurato il
       13/08 sotto l'emulatore, la suite delle regole è a **75 passati, 0
-      falliti**. Chi legge questa riga non prenda il 68 per lo stato corrente —
+      falliti** (⏱️ 91 dal 05/09 notte: dieci prove sui ponti come dati). Chi legge questa riga non prenda il 68 per lo stato corrente —
       è la storia di questa decisione, non il conto di oggi.*
       ⛔ E il difetto della prima stesura va letto da chi tocca quel file: le
       regole di Firestore sono **additive**, e un carattere jolly ricorsivo
@@ -981,6 +1941,645 @@ andato: lì la detrazione non è quella parziale, è **incompleta**, e va detto.
       Prove: `run-kpi` 1853 → **1860**, sette casi compreso quello in cui uno
       **zero dichiarato** è una misura e un vuoto no.
 
+## 19. Il ricettore delle polveri: da che parte sta rispetto alla cava?
+
+*Nato il 05/09 (sera) chiudendo le condizioni meteo della misura in
+Sentinella. Il codice che serviva è fatto; quello che manca è un dato che solo
+tu puoi dire, e un'interpretazione che non voglio inventare.*
+
+**Il fatto.** Da stasera ogni lettura può portare il vento (velocità e
+direzione), la pioggia, la temperatura e l'umidità — scritti a mano o letti dal
+file dello strumento. Sul **rumore** l'app applica la regola della norma (DM
+16/03/1998, All. B — letta di seconda mano, dai risultati di ricerca): con
+vento oltre 5 m/s o con pioggia la misura **non vale**, e la riga lo suggerisce
+senza togliere niente. Sulle **polveri** il dato del vento oggi si scrive e
+basta: l'app **non dice** se il ricettore era sottovento, perché per dirlo
+servirebbe sapere **da che parte sta la casa rispetto alla cava** — e il
+ricettore, nella sua scheda, ha solo la **distanza** in metri.
+
+**Perché conta.** Una lettura di polveri alta con il ricettore **sopravento**
+non è colpa della cava; una bassa con il ricettore **sottovento** è la prova
+migliore che si possa portare a un ispettore. Senza la direzione, tutte e due
+sono un numero e basta.
+
+**Quello che ho già risolto, e non serve a te.** Il campo sarebbe uno solo,
+sulla scheda del ricettore: *da che parte sta rispetto alla cava*, scelto fra
+le stesse otto direzioni del vento (N, NE, E, SE, S, SO, O, NO). Con quello e
+con la direzione del vento della lettura la regola è aritmetica: il ricettore
+è sottovento quando il vento **arriva dalla parte della cava**, cioè soffia
+dalla direzione opposta a quella in cui sta la casa (casa a NE della cava →
+sottovento con vento da SO, e nei due settori accanto). Provato a mente sugli
+otto settori; costa una funzione pura e una tendina.
+
+**Le due cose che decidi tu:**
+
+1. **Lo mettiamo?** È un dato in più da compilare per ogni ricettore, e lo
+   compili tu (o chi fa la campagna): se non lo sai per una casa, quella casa
+   resta «non si può dire», che è la risposta giusta. Se non ti serve, non
+   lo costruisco: una tendina vuota su ogni scheda è rumore.
+2. **Che cosa deve dire l'app** quando il ricettore era sottovento? Due
+   strade: (a) **solo un'etichetta** sulla lettura («ricettore sottovento» /
+   «sopravento» / «non si può dire»), che il report riporta e basta — nessun
+   giudizio; (b) anche un **conto nel report**, «N letture sottovento, la più
+   alta X µg/m³», che è quello che un ispettore chiederebbe. La (b) contiene
+   la (a); la (a) da sola non fa dire all'app niente che non sia scritto.
+
+Finché non decidi, resta com'è: il vento si scrive, e sulle polveri non si
+giudica. È scritto anche nel commento del modulo (`condizioniMisura`), così
+nessuno lo costruisce per conto suo.
+
+## 20. I dati alla fine dell'abbonamento: quanto restano, e chi li scarica?
+
+*(dalla ricerca trasversale dell'11/09 sull'uscita dei dati)*
+
+**Il fatto.** Chi compra un gestionale in abbonamento chiede, prima di
+firmare, che cosa succede ai suoi dati se smette di pagare: molti fornitori li
+cancellano **entro pochi giorni** dalla fine dell'abbonamento, e le guide che
+consigliano un gestionale alle PMI dicono di pretendere un'esportazione
+completa «senza dover chiedere al fornitore». Il GDPR (art. 20) obbliga a
+restituire i dati **personali** in un formato leggibile da macchina entro un
+mese; per il resto (pesate, rilievi, volate) vale il contratto.
+
+**Come stiamo.** Oggi nessuna app ha un «scarica tutto»: 34 collezioni su 65
+non hanno nessuna uscita delle righe (è la voce aperta in roadmap, e si fa
+senza decidere niente qui). Ma **quanto tempo** i dati restano leggibili dopo
+la fine dell'abbonamento, **chi** può ancora scaricarli in quel periodo, e
+**se e quando** si cancellano, non è scritto da nessuna parte: né nel
+prodotto né in un documento che un cliente possa leggere.
+
+**Le strade.**
+1. **Periodo di grazia dichiarato** (per esempio: i dati restano scaricabili
+   in sola lettura per un tempo fissato dopo la scadenza, poi si cancellano
+   con un preavviso scritto). È quello che chi compra si aspetta di leggere.
+2. **Nessuna cancellazione automatica**: i dati restano finché il cliente non
+   chiede la cancellazione. Più semplice da promettere, costa spazio e chiede
+   una regola sull'accesso.
+3. **Decidere dopo**, quando ci sarà il primo contratto. È lecito, ma la
+   domanda arriverà **prima** della firma, non dopo.
+
+**Un vincolo trovato dopo (11/09, ricerca sugli esplosivi).** Il registro
+delle operazioni giornaliere del deposito di esplosivi (art. 55 T.U.L.P.S.,
+letto di seconda mano) si conserva **cinquant'anni, anche dopo la cessazione
+dell'attività**: se un giorno un registro così vivesse in una nostra app, non
+potrebbe seguire la regola «si cancella N giorni dopo la fine
+dell'abbonamento». La frase che decidi deve quindi distinguere i dati che **la
+legge obbliga a tenere** (e per quanto) da quelli che il cliente tiene per sé.
+
+**Che cosa serve da te.** Una frase: «i dati restano scaricabili per N giorni
+dopo la fine dell'abbonamento, poi …». Da quella frase discendono una regola
+in Deepwork ID (chi legge cosa dopo la scadenza) e una riga nei termini di
+servizio. Fino ad allora il prodotto non promette niente — che è meglio di
+promettere a caso.
+
+## 21. Conti è anche il libro dei debiti? Lo scadenzario fornitori
+
+*(dalla ricerca del terzo giro su Conti, 11/09)*
+
+**Il fatto.** La banca, prima di un fido, chiede lo scadenzario **clienti e
+fornitori** con le date previste di incassi e pagamenti; il Codice della
+crisi (adeguati assetti, art. 2086 c.c.) vuole che un'impresa sappia prevedere
+i propri flussi di cassa a **sei mesi**, e il DSCR si calcola dividendo i
+flussi previsti per le uscite dei debiti in scadenza. Tutto di seconda mano,
+dai risultati di ricerca.
+
+**Come stiamo.** Conti sa tutto del lato **entrate**: esposizione per cliente,
+fido superato, incassi attesi per mese, tempi reali di pagamento, solleciti.
+Del lato **uscite** ha i costi con la data del documento e l'importo — non una
+scadenza di pagamento, non un «pagato il», non un fornitore. Quindi lo
+scadenzario fornitori non c'è, e senza di lui non c'è né la previsione di
+cassa a sei mesi né il DSCR.
+
+**Le strade.**
+1. **Conti diventa anche il libro dei debiti**: ai costi si aggiungono
+   fornitore, scadenza e stato (da pagare / pagato il), e da lì la previsione
+   di cassa a sei mesi (entrate attese meno uscite previste) e, se un giorno
+   entrano i debiti bancari, il DSCR. È lavoro vero: una collezione che
+   cambia, un form, un prospetto, l'export.
+2. **Conti resta il libro delle vendite** con i costi a consuntivo: lo
+   scadenzario fornitori lo tiene il commercialista o un altro programma, e
+   Conti esporta quello che ha. Onesto, e più stretto di quello che la banca
+   chiede.
+3. **Decidere dopo**, quando un cliente lo chiederà.
+
+**Che cosa serve da te.** Una parola: **debiti sì** o **debiti no**. Con «sì»
+il ciclo apre la voce e la porta fino alla previsione di cassa; con «no» la
+domanda 3 della ricerca resta scritta come limite dichiarato del prodotto.
+
+## 22. Scudo: quale scadenza INAIL tracciare, delle tre che esistono
+
+*(dalla ricerca dell'ottavo giro su Scudo, secondo passaggio su
+infortuni/INAIL, 15/09)*
+
+**Il fatto.** Quando succede un infortunio, l'INAIL non chiede UNA denuncia:
+ne chiede **tre**, con termini diversi e per casi diversi (di seconda mano,
+dai risultati di ricerca):
+- **48 ore** — comunicazione statistica, per qualunque assenza di almeno un
+  giorno oltre a quello dell'evento;
+- **2 giorni** — la denuncia vera e propria (Mod. 4bis), quando la prognosi
+  supera i 3 giorni;
+- **24 ore** — per un infortunio mortale o con pericolo di vita.
+
+Oggi Scudo non traccia nessuna delle tre: `grep -ciE "entro (2|due) giorni|48
+ore|24 ore|denuncia inail" apps/scudo/scudo-data.js apps/scudo/index.html` →
+1 e 0, e l'unica occorrenza parla di provvedimenti disciplinari, non della
+denuncia. `SCADENZE_PRESET` non ha una voce per nessuna delle tre, e
+`TIPI_DOCUMENTO` (9 voci: DSS, POS, DVR, DUVRI, Nomina, Verbale DPI, Verbale
+di verifica periodica, Idoneità sanitaria, Attestato formazione, Altro) non
+ne ha una per «denuncia infortunio».
+
+**Come stiamo.** Il registro infortuni registra l'evento, la gravità (ora a
+quattro gradini, dal 15/09) e — da oggi — la persona coinvolta: tutto il
+materiale per calcolare quale delle tre scadenze scatta c'è già nel record.
+Manca solo il collegamento: nessuna delle tre finisce a schermo come
+promemoria con una data-entro-cui.
+
+**Le strade.**
+1. **Solo la più urgente**: quando un infortunio nasce con gravità
+   «mortale» o «permanente», Scudo genera in automatico un promemoria a 24
+   ore. Copre il caso che fa più danno se saltato, costo piccolo (una
+   funzione pura + un promemoria, stesso schema di `testoPromemoria`).
+2. **Tutte e tre, automatiche**: alla registrazione di ogni infortunio
+   Scudo genera i promemoria che si applicano (48h sempre, 2gg se
+   `giorniAssenza > 3` o prognosi ancora aperta, 24h se mortale/permanente),
+   con lo stato che scala a "scaduto" se nessuno lo segna fatto. Copertura
+   completa, costo medio: tre regole di attivazione da mettere alla prova
+   una per una, e un modo di dire "fatta" diverso da una scadenza normale
+   (qui non si rinnova, si chiude).
+3. **Solo il documento**: aggiungere «Denuncia INAIL» a `TIPI_DOCUMENTO`
+   così si può allegare la ricevuta della denuncia già fatta altrove (per
+   esempio su MyINAIL), senza calcolare nessuna scadenza. Il più semplice,
+   ma non avvisa nessuno prima che il termine scada — la parte che serve di
+   più a chi rischia di dimenticarsene.
+
+**Che cosa serve da te.** Quale delle tre strade (o quale termine tracciare
+per primo, se si parte in piccolo con la strada 1 e si allarga dopo).
+
+⚠️ **Addendum dall'undicesimo giro di ricerca su Scudo (16/09, riverificato
+indipendentemente).** La ricerca conferma questo stesso punto — nessuna
+delle tre scadenze è tracciata (`dataCertificato`, `scadenzaDenunciaInail`,
+`denunciaData`/`denunciaNumero`: 0 occorrenze ciascuno, riverificato con
+`grep`) — e non è una mancanza nuova: è la stessa dell'ottavo giro. Il
+dettaglio che NON era ancora scritto qui, di seconda mano e da verificare
+sulla fonte primaria prima di scriverlo in una scadenza vera: i tre termini
+decorrerebbero dalla **data di ricezione del certificato medico**, non
+dalla data dell'evento — cioè servirebbe un campo `dataCertificato` distinto
+da `data` (quando l'evento è successo) per calcolare la scadenza giusta. Se
+si sceglie la strada 2 o 3 questo campo va aggiunto da subito, o le
+scadenze calcolate sull'evento invece che sul certificato sarebbero
+sbagliate nella direzione pericolosa (termine dichiarato più lungo di
+quello vero). Non verificato sulla norma primaria (D.P.R. 1124/1965 artt.
+330-331): **prima di calcolare una data vera da mostrare al cliente, questo
+punto va confermato**, non solo dedotto dai risultati di ricerca.
+
+## 23. Conti: uno scoring cliente — sì, e con quali ingredienti?
+
+*(dalla ricerca del settimo giro su Conti, gestione del credito, 15/09)*
+
+**Il fatto.** Conti ha già, separati, i tre ingredienti di un giudizio sul
+cliente — `esposizioneClienti` (quanto deve), `tempiPagamentoClienti`
+(quanto ci mette di solito), `agingIncassi` (da quanto è scaduto) — ma
+nessuna funzione li combina in un numero o in un'etichetta unica.
+`grep -inE "scoring|rating|classe di rischio|affidabilit"
+apps/conti/conti-data.js` → **0** occorrenze: non c'è nemmeno l'abbozzo.
+
+**Come stiamo.** Chi oggi vuole sapere "questo cliente è affidabile?" deve
+aprire tre schermate diverse e farsi un'opinione a mente. Le banche e i
+software di credit management costruiscono invece un giudizio unico
+(spesso una lettera o una classe di rischio) dalla combinazione di
+esposizione, puntualità storica e anzianità del credito scaduto.
+
+**Perché serve una decisione, non un'unità automatica.** Uno scoring non è
+un calcolo neutro come un totale: è un GIUDIZIO su un cliente reale, che il
+titolare potrebbe mostrargli o usare per decidere se continuare a
+vendergli a credito. Il principio del fondatore vale qui più che altrove —
+**l'assenza di un dato non è un dato favorevole** — quindi uno scoring
+scritto male (per esempio un cliente nuovo senza storia classificato come
+"a rischio" invece di "non ancora valutabile") farebbe più danno di non
+averlo.
+
+**Le strade.**
+1. **Scoring sì**, con la formula e la scala decise insieme (per esempio
+   tre classi — regolare / da monitorare / a rischio — o un punteggio), e
+   con un quarto stato esplicito per "non abbastanza storia per giudicare"
+   invece di far scivolare un cliente nuovo sul gradino più tranquillo o
+   più severo per default.
+2. **Scoring no, per ora**: i tre ingredienti restano tre schermate
+   separate, e chi decide resta una persona, non il software.
+3. **Solo un cruscotto che li affianca** (i tre numeri fianco a fianco per
+   cliente, senza combinarli in un giudizio unico): via di mezzo, nessun
+   giudizio automatico ma meno click per vederli insieme.
+
+**Che cosa serve da te.** Una parola — **scoring sì**, **cruscotto**, o
+**no** — e, se sì, quali classi/soglie usare: è la parte che un ciclo
+automatico non può decidere da solo, perché è una scelta di prodotto su
+come Conti *giudica* un cliente vero.
+
+## 24. Sentinella: chi ha modificato una lettura o una soglia — attribuzione, sì?
+
+*(dalla ricerca del settimo giro su Sentinella, catena di custodia, 15/09
+— riverificata di persona sul codice vero prima di scriverla qui)*
+
+**Il fatto.** Sentinella registra **quando** ogni lettura è stata
+corretta o annullata (`correggiLettura`/`annullaLettura`, con un
+`quando` in `origine.corretta`), ma non **chi** l'ha fatto: nessun
+parametro utente nella firma di quelle funzioni, nessun campo nei dati
+scritti. Lo stesso vale per un cambio di soglia o la chiusura di un
+reclamo. `grep -n "chi\|utente"` sulle funzioni che modificano dati →
+solo `quando`, mai un operatore. (Un campo `chi` esiste già, ma è **chi
+ha SEGNALATO** un reclamo o fatto un sopralluogo — un nome del
+ricettore, non l'operatore interno di Sentinella: due cose diverse che
+condividono solo il nome del campo.)
+
+**Come stiamo.** Se un ricettore contesta «avete abbassato la soglia il
+10/09 alle 14:30 per nascondere un superamento», Sentinella oggi può
+rispondere solo con l'ora — non con chi, dei tecnici che hanno accesso,
+l'ha fatto davvero. I software professionali di monitoraggio ambientale
+per l'estrattivo (LIMS come OnLIMS, Quentic — descritti da fonti
+secondarie, non documentazione tecnica primaria) tracciano sempre
+timestamp **e** operatore su ogni modifica: è lo standard per reggere
+una contestazione legale, non un dettaglio tecnico.
+
+**Perché serve una decisione, non un'unità automatica.** Non è un
+`grep`-e-aggiungi: serve leggere l'identità di chi è collegato **dallo
+SDK deepwork-id** al momento della modifica — un meccanismo che
+**nessun'altra app di questo ecosistema usa ancora per questo scopo**
+(cercato con `grep`: nessun pattern "utente corrente"/"chi sono io"
+riusabile in Sentinella né altrove). Quindi non è un piccolo aggiunta a
+Sentinella sola: è la prima volta che una funzione di prodotto legge
+l'identità dell'operatore per scriverla nei dati, e la risposta a "come
+si fa" andrebbe probabilmente **in `shared/`**, perché la stessa domanda
+(chi ha chiuso questa scadenza in Scudo? chi ha corretto questo importo
+in Conti?) si riproporrà nelle altre app — costruirla dentro Sentinella
+sola rischierebbe la stessa copia debole che questo file mette in
+guardia altrove.
+
+**Le strade.**
+1. **Sì, e si parte da Sentinella**: si aggiunge `chi` (letto dall'SDK,
+   non digitato) a `correggiLettura`, `annullaLettura`, al cambio soglia
+   e alla chiusura di un reclamo — il meccanismo nasce in `shared/` così
+   le altre app lo trovano già pronto quando servirà a loro. Costo
+   medio-grande: firme di funzione, schema Firestore, UI che mostra "chi
+   ha corretto", e un export per un audit esterno.
+2. **Sì, ma solo dove conta di più**: le soglie (l'unico dato che decide
+   se una cava è "conforme"), non le letture o i reclami — un
+   sottoinsieme più piccolo, stesso meccanismo.
+3. **No, per ora**: si resta con solo il timestamp, dichiarando il
+   limite (nessuna app di questo ecosistema traccia oggi l'operatore su
+   una modifica).
+
+**Che cosa serve da te.** Se costruirlo (e da dove: tutte le modifiche o
+solo le soglie), e se il meccanismo di lettura dell'identità va scritto
+subito in `shared/` (pensando alle altre app) o solo dentro Sentinella
+per ora.
+
+## 25. Flotta: quando segnalare che conviene sostituire un mezzo — quale soglia?
+
+*(dal settimo giro di ricerca su Flotta, TCO e decisione di sostituzione,
+15/09 — riverificata di persona: la mancanza sull'ammortamento nel costo
+orario era falsa, corretta e già costruita in questa stessa unità; questa
+voce riguarda solo ciò che resta genuinamente aperto)*
+
+**Il fatto.** Flotta sa già dire, per un mezzo, il costo di esercizio
+(`euroOra`), il costo pieno con l'ammortamento del possesso
+(`euroOraCompleto`, oggi visibile sia nel fascicolo del mezzo sia — da
+questa unità — nel confronto fra mezzi della pagella) e l'età
+(`etaMezzo`, aggiunta in questa stessa unità). Nessuna funzione li
+combina in un segnale "conviene sostituirlo": `grep -n "tcoMezzo\|
+meritoDiSostituzione\|sogliaSostituzione" apps/flotta/flotta-data.js` →
+**0** occorrenze.
+
+**Come stiamo.** I tre numeri esistono già, separati: chi vuole
+decidere se sostituire un mezzo deve aprirne il fascicolo, leggere
+l'età, il costo pieno e il trend dei costi (`costoControStoria`, già
+costruito), e farsi un'opinione a mente — la stessa situazione di
+Conti prima della decisione #23 sullo scoring cliente. La pratica di
+settore (di seconda mano, dai risultati di ricerca — non verificata da
+fonti primarie): un mezzo si segnala per la sostituzione quando il suo
+costo orario supera una soglia (spesso il 50-60% del valore di un
+mezzo nuovo equivalente, o quando il costo orario di manutenzione da
+solo supera un multiplo di quello di un mezzo nuovo), non solo per
+l'età anagrafica — un mezzo vecchio ma economico da mantenere non va
+segnalato quanto uno giovane con un guasto ricorrente.
+
+**Perché serve una decisione, non un'unità automatica.** Una soglia di
+sostituzione è un giudizio economico su un bene reale (il mezzo che
+oggi lavora in cava), non un calcolo neutro — la stessa ragione già
+scritta per lo scoring cliente di Conti (decisione #23): una soglia
+scritta a caso (per esempio segnalando ogni mezzo sopra una certa età,
+ignorando quanto costa davvero mantenerlo) farebbe più danno di non
+averla, mandando a sostituire mezzi sani e a ignorare mezzi costosi ma
+giovani.
+
+**Le strade.**
+1. **Soglia sul costo pieno**: si segnala un mezzo quando
+   `euroOraCompleto` supera una percentuale dichiarata (es. 50%) sopra
+   la media di flotta per quel tipo di mezzo — riusa `BANDA_PAGELLA`
+   come modello, ma su una soglia diversa, dedicata al costo pieno.
+2. **Soglia composita**: costo pieno **e** età **e** trend in aumento
+   insieme (tre condizioni), per non segnalare un mezzo che costa
+   molto ma stabilmente (magari è sempre costato così, non sta
+   peggiorando).
+3. **Nessuna soglia automatica, solo il numero esposto**: ci si ferma a
+   quanto già fatto in questa unità (il costo pieno visibile riga per
+   riga nel confronto) e la decisione resta a chi guarda la pagella —
+   nessun segnale, nessun rischio di un falso allarme o di un mancato
+   allarme.
+
+**Che cosa serve da te.** Una delle tre strade, e se sì quale soglia
+percentuale (o quale combinazione di condizioni) usare: è lo stesso
+tipo di scelta della decisione #23, applicata a un mezzo invece che a
+un cliente.
+
+## 26. Conti: le pesate non ancora fatturate entrano nel fido del cliente?
+
+*(dal quarto giro di ricerca su Conti, fido cliente ed esposizione,
+15/09 — riverificata di persona sul codice vero prima di scriverla qui)*
+
+**Il fatto.** `esposizioneClienti` — la funzione che alimenta
+`avvisoFidoPesata`, l'avviso mostrato quando si registra una pesata —
+somma solo le **fatture** aperte di un cliente. Le pesate/DDT già
+consegnati ma non ancora fatturati (`fatturaId: null`, 8 in
+dimostrazione) non entrano nel conto: `grep -n
+"esposizioneClienti("` mostra che tutte le quattro chiamate nella
+pagina passano solo `FAT`, e la funzione non ha nemmeno il parametro
+per riceverle.
+
+**Come stiamo.** In un ciclo a fatturazione differita (materiale
+consegnato oggi, fatturato fra settimane) un cliente può restare "in
+regola" con l'avviso del fido per settimane, mentre il materiale già
+uscito dalla cava lo ha già portato oltre il limite — il fido, così
+com'è, misura solo ciò che è già diventato un credito documentato, non
+ciò che la cava ha già impegnato. I sistemi enterprise di gestione
+ordini (Oracle, NetSuite, Dynamics — di seconda mano) sommano
+all'esposizione anche gli "unbilled": consegnato-non-fatturato.
+
+**Perché serve una decisione, non un'unità automatica.** Sommare le
+pesate significa decidere **come** contarle: al valore pieno stimato
+(che può differire dal valore di fattura, per sconti o correzioni
+successive), e soprattutto **cosa succede quando la fattura viene
+emessa** — la pesata esce dal conto delle "non fatturate" e la
+fattura entra in quello delle "aperte": se il passaggio non è atomico
+(un momento in cui né l'una né l'altra contano, o entrambe contano)
+il fido può mentire per un istante nella direzione sbagliata. È lo
+stesso principio delle "due grandezze scorrelate" e delle "copie
+deboli" che questo repository ha già pagato: un conto sbagliato per un
+attimo, se cade proprio mentre si emette una fattura vicina al fido,
+è il momento in cui l'avviso serve di più.
+
+**Le strade.**
+1. **Sì, sommare le pesate non fatturate** al valore pieno stimato
+   (prezzo di listino del cliente, se noto), con la regola di
+   passaggio esplicita e provata nei due versi (pesata→fattura non
+   deve né sparire né raddoppiare il conto).
+2. **Sì, ma solo come informazione separata** ("impegnato non
+   fatturato: X €" accanto all'esposizione da fatture, non sommato):
+   meno rischio di un conto che sbaglia per un istante, ma chi guarda
+   deve ancora sommare a mente.
+3. **No, per ora**: si resta sull'esposizione da fatture, dichiarando
+   il limite (un cliente vicino al fido può restare "in regola" per il
+   tempo che intercorre fra consegna e fatturazione).
+
+**Che cosa serve da te.** Una delle tre strade, e se sì (1 o 2) se il
+valore delle pesate va stimato al prezzo di listino del cliente o
+lasciato "non calcolabile" quando il listino non è noto.
+
+## 27. Sentinella: le condizioni meteo contano anche per polveri e vibrazioni?
+
+*(dall'ottavo giro di ricerca su Sentinella, meteo e superamenti, 15/09
+— riverificata di persona sul codice vero prima di scriverla qui)*
+
+**Il fatto.** Sentinella ha già `misuraFuoriCondizioni`, che dichiara
+non valida una misura di **rumore** con vento oltre 5 m/s o pioggia,
+per il DM 16/03/1998 (All. B) — una norma citata con la sua soglia
+precisa. La stessa funzione è **gated su `tipo === "rumore"`**: `grep
+-n 'tipo !== "rumore"'` in `sentinella-data.js` mostra tre punti
+(`misuraFuoriCondizioni`, `contaFuoriCondizioni`, `contaCalibrazioni`)
+che escludono polveri e vibrazioni a monte. Temperatura e umidità
+sono già importate e composte in un testo (`condizioniMisura`), ma
+nessuna funzione le legge per un giudizio: `grep -n '\.temperatura\b'`
+→ solo 2 righe, la mappatura dell'import e la composizione del testo.
+
+**Come stiamo.** Di seconda mano (WebSearch, non verificato da testi
+primari): il vento in direzione del ricettore aggrava un superamento
+di polveri (può giustificare la sospensione delle attività
+polverose); l'inversione termica altera la propagazione del rumore
+oltre a quanto già coperto da vento/pioggia; il terreno saturo d'acqua
+attenua le vibrazioni fino al 37% nel passaggio roccia→suolo — un
+effetto fisico, non un problema di installazione della strumentazione
+(corregge una deduzione di un giro precedente, il 05/09, che l'aveva
+scartato come tale).
+
+**Perché serve una decisione, non un'unità automatica.** Il rumore ha
+una soglia scritta in un decreto (5 m/s, pioggia sì/no): un giudizio
+netto, con la norma citata. Per polveri e vibrazioni non c'è una
+soglia altrettanto precisa nei risultati di ricerca — solo un
+principio qualitativo. Scrivere "vento in direzione del ricettore →
+misura invalidata" senza una soglia numerica citabile sarebbe lo
+stesso errore già pagato in questo repository: **un numero di legge
+riportato di seconda mano e scritto in una schermata è peggio di un
+numero assente**. Qui il rischio è anche più sottile — non un numero,
+ma un **giudizio di invalidità** presentato con la stessa autorità del
+DM 16/03/1998 senza avere una norma equivalente per polveri e
+vibrazioni.
+
+**Le strade.**
+1. **Solo contesto, nessun giudizio**: mostrare `condizioniMisura(l).
+   testo` (già calcolato, non gated su tipo) accanto anche alle
+   letture di polveri e vibrazioni, senza dichiarare nessuna "fuori
+   condizioni" — chi legge vede il meteo e valuta da sé. Costo
+   piccolo: la funzione non giudica niente di nuovo, solo mostra un
+   dato già presente.
+2. **Ricerca normativa dedicata** prima di costruire un giudizio vero
+   per polveri (di solito nei piani di monitoraggio ambientale delle
+   cave la sospensione delle attività polverose con vento forte è un
+   impegno assunto nell'autorizzazione, non una legge unica — va letto
+   il piano di monitoraggio del cliente, che questo ciclo non ha).
+3. **Niente per ora**: si resta su rumore, dichiarando il limite.
+
+**Che cosa serve da te.** Se procedere con la strada 1 (informazione
+in più, senza giudizio) come primo passo sicuro, o se preferisci
+aspettare la strada 2 quando ci sarà un piano di monitoraggio vero da
+leggere.
+
+## 28. Sentinella: uno strumento ha un'identità propria, distinta dal punto?
+
+*(dal nono giro di ricerca su Sentinella, catena di custodia dello
+strumento ed escalation, 16/09 — riverificata di persona sul codice vero
+prima di scriverla qui)*
+
+**Il fatto.** In Sentinella la taratura è un array dentro il **punto di
+misura** (`m.tarature: [{data, scadenza, ente, certificato, nota}]`), e
+`chiaveStrumento` normalizza il **nome del punto**, non un campo
+strumento a sé: `grep -ciE 'numeroSerie|matricola|serieStrumento'
+apps/sentinella/sentinella-data.js` → **0**. Il commento del codice
+dichiara la scelta a proposito («un punto di misura non è
+un'etichetta: porta una soglia») e regge per lo scopo per cui è nato.
+
+**Come stiamo.** Di seconda mano (WebSearch, mai letto il testo
+primario): i LIMS ambientali per il settore minerario tracciano la
+catena di custodia a livello dello **strumento del singolo
+prelievo/evento**, non del punto fisso — uno stesso fonometro o
+sismografo, con lo stesso certificato, che viene spostato su più
+postazioni in date diverse è descritto come prassi comune nel mondo
+dei laboratori.
+
+**Perché serve una decisione, non un'unità automatica.** Il modello
+attuale (soglia legata al punto) è corretto per lo scopo per cui è
+nato e non tocca nessun esito di conformità. Costruire un'identità
+propria dello strumento (campo `strumento: {nome, matricola}` sulla
+taratura, raggruppamento per matricola invece che per punto) avrebbe
+senso SOLO se le cave clienti tengono davvero strumenti itineranti fra
+più postazioni — e nessuna fonte di questo giro lo conferma per il
+settore estrattivo specificamente: è un'inferenza dal mondo dei
+laboratori, non un fatto verificato per il nostro dominio. Costruirlo
+sulla parola dell'agente sarebbe esattamente ciò che la regola "niente
+entra sulla parola dell'agente" vieta.
+
+**Che cosa serve da te.** Se le cave clienti usano uno strumento fisso
+per ogni punto (il delta resta teorico, non si costruisce) o se
+capita davvero che lo stesso fonometro/sismografo giri fra più
+postazioni (allora vale la pena costruire il campo, costo stimato
+medio).
+
+## 29. Genesi: la finestra MIC di 8 ms raggruppa sul tempo nominale, mai sullo scatter
+
+*(dal ciclo di ricerca sulla dispersione dell'innesco, 18/09 —
+`docs/RICERCA_CONTINUA_GENESI.md`, verificato leggendo il codice riga per
+riga prima di scriverlo qui)*
+
+**Il fatto.** `micFinestra` (`genesi-data.js:1484`) raggruppa i fori
+entro finestre di 8 ms usando solo `tDet` **nominale**. `computeMIC()`
+(`genesi.html:1466`) è l'unico punto che la chiama, e non passa mai lo
+scatter. La stessa pagina calcola già `scatterMs`/`scatterInnesco` e li
+usa per il relief e per l'uniformità della curva di frammentazione — ma
+mai per la MIC, che è la grandezza per cui il mondo (Blair 1993, il
+brevetto US 6220167, due modelli probabilistici 2022/2025 citati nella
+ricerca) dice che lo scatter conta di più.
+
+**Come stiamo.** Genesi scrive già, per il relief, la frase «i fori che
+partono entro la dispersione dell'innesco contano come un istante solo:
+sparando insieme non si liberano a vicenda» — la stessa idea che il
+mondo applica alla MIC, e che Genesi non ripete lì. Due progetti
+identici a parità di geometria, uno con innesco elettronico (scatter 0,1
+ms) e uno con Nonel a ritardo lungo (scatter proporzionale, potenzialmente
+diversi ms), oggi danno la **stessa** MIC se i `tDet` nominali sono
+uguali — anche se il rischio reale di sovrapposizione, secondo il mondo,
+non lo è.
+
+**Perché serve una decisione, non un'unità automatica.** Il numero **8**
+è la convenzione USBM, non in discussione. Quello che cambierebbe è
+**come si applica**: allargare la finestra fissa dello scatter calcolato
+(una modifica semplice ma che sposta il confine sotto/sopra soglia su
+progetti già esistenti), oppure pesare probabilisticamente come nei due
+paper recenti (un cambio di modello, non un trasloco). È esattamente la
+stessa cautela già usata per il decking/air-decking e per i due
+rigonfiamenti del cumulo: un numero di sicurezza non si cambia
+sull'iniziativa del ciclo.
+
+**Che cosa serve da te.** Quale delle due strade preferisci (finestra
+allargata sullo scatter, o peso probabilistico), o se preferisci
+lasciare la convenzione com'è finché non c'è un caso reale che la
+richieda.
+
+## 30. Genesi: lo scatter dell'innesco «elettrico» è un valore fisso, il catalogo lo descrive diversamente
+
+*(stesso ciclo di ricerca del 18/09, stessa verifica sul codice)*
+
+**Il fatto.** `scatterInnesco` (`genesi-data.js:1472`) dà all'innesco
+«elettrico» uno scatter **fisso** di 0,5 ms, indipendente dal ritardo
+nominale — mentre il catalogo interno (`genesi-data.js:3440`) descrive
+lo stesso innesco con ritardi «serie MS/LP» (pirotecnico, non
+istantaneo) e uno scatter testuale «medio». La ricerca del 12/09, già in
+questo file, aveva trovato che i detonatori elettrici/non elettrici
+comuni (Nonel compreso) hanno un'accuratezza dichiarata crescente col
+ritardo (circa ±1% fino a ±5%) — cioè la stessa famiglia percentuale del
+Nonel, non un valore fisso vicino all'elettronico. Su un ritardo lungo
+(200 ms) lo 0,5 ms fisso è 8-16 volte meno di quanto darebbe una
+percentuale dell'1-5% (2-10 ms).
+
+**Come stiamo.** Non è verificato se sia un refuso di trasloco o una
+scelta consapevole: il commento della funzione non lo spiega. È
+un'incoerenza fra il testo del catalogo e il numero della formula,
+trovata col grep, non dedotta.
+
+**Perché serve una decisione, non un'unità automatica.** Cambiare il
+ramo `elettrico` da valore fisso a percentuale è una riga — ma nessuna
+fonte di questa ricerca dà una percentuale specifica per «elettrico a
+ponte resistivo con relè MS/LP» distinta dal Nonel generico. Costruire
+un numero senza sapere quale sia quello giusto sarebbe esattamente il
+"non c'è" che questo repository mette in guardia: un numero inventato è
+peggio di uno assente.
+
+**Che cosa serve da te.** Una fonte con una percentuale specifica per
+l'innesco elettrico a relè MS/LP (se la conosci o puoi procurartela), o
+la conferma di lasciare il valore fisso com'è finché non se ne trova
+una — il delta resta scritto qui per non perderlo.
+
+## 31. Genesi: la camera "Da terra 50 m" non è mai a 1,7 m — la barriera anti-sottoterra dei bottoni della barra la sposta a 5,5 m
+
+*(dal 21/09, metodo "verifica dal vivo": misurato in Playwright leggendo
+`cam.position`/`ctrl.target` dopo un clic vero sul bottone, non dedotto
+dal codice)*
+
+**Il fatto.** `CAMS[0]` (genesi.html:2832) descrive la camera "Da terra
+50 m" come `pos:(S)=>[S.Lm/2, 1.7, -50]`, `tgt:(S)=>[S.Lm/2, S.H*0.45,
+0]` — un occhio a 1,7 m (l'altezza di una persona) che guarda verso un
+bersaglio più in alto (`S.H*0.45`, sul fronte). `applyCamera(0)`
+scrive quei numeri **esattamente** con `cam.position.set(...)`, ma la
+riga subito dopo, `ctrl.update()`, applica il vincolo
+`ctrl.maxPolarAngle = Math.PI/2 - 0.02` (genesi.html:1623) — la
+barriera che impedisce, nel trascinamento LIBERO del mouse, di portare
+la camera sotto il piano del bersaglio (per non "vedere sottoterra").
+Con questi numeri l'angolo polare richiesto supera il limite, e
+OrbitControls **corregge silenziosamente** la posizione: misurato,
+resta esattamente sulla sfera richiesta (stessa distanza dal bersaglio,
+50,078 m) ma all'angolo massimo consentito — **y=5,5015, z=-50,0683**,
+non y=1,7. Nessun errore, nessuna console rossa: è una libreria di
+terzi che fa esattamente il suo lavoro, applicato per la prima volta a
+un caso che chi ha scritto la CAM non aveva messo alla prova.
+
+**Come stiamo.** Verificato che è **solo** questa camera: le altre tre
+(`drone`, `lato`, `libera`) arrivano ESATTAMENTE ai numeri della loro
+formula — misurato, non dedotto (`drone`: [31,55,-52] contro la
+formula [S.Lm/2+10,55,-52] = [31,55,-52]; `lato`: [-34,9,-16] contro
+[-34,9,-16]). Solo "Da terra" chiede un angolo che la barriera vieta.
+
+**Perché serve una decisione, non un'unità automatica.** La barriera
+(`maxPolarAngle`) esiste apposta per il trascinamento libero, ed è
+probabilmente giusta lì — una cava vista da sottoterra è spaesante.
+Ma applicarla anche a un preset scritto a numeri esatti non è mai
+stata una scelta: è un effetto collaterale di `ctrl.update()`
+chiamato indiscriminatamente da `applyCamera` su ogni bottone. Tre
+strade diverse, con effetti diversi sull'interazione:
+1. **alzare leggermente `pos.y` del preset** finché non rientra nel
+   limite — la camera resta "quasi a terra" (il numero esatto lo dà
+   il calcolo, non un tentativo), ma la label "Da terra" diventerebbe
+   meno letterale, e la stessa barriera resterebbe a proteggere anche
+   il preset da futuri aggiustamenti;
+2. **bypassare `maxPolarAngle` solo per l'assegnazione di un preset**
+   (alzarlo prima di `ctrl.update()`, riabbassarlo subito dopo) — la
+   camera arriva DAVVERO a 1,7 m, ma poi il primo trascinamento
+   dell'utente la farà scattare di colpo al limite consentito, un
+   salto visibile che oggi non esiste (perché oggi la camera non
+   raggiunge mai quella posizione);
+3. **lasciare com'è**, e correggere solo l'etichetta del bottone
+   ("Bassa" invece di "Da terra 50 m") per non promettere un punto di
+   vista che il codice non consegna mai.
+Nessuna delle tre è ovvia, e la seconda in particolare cambia il
+comportamento del trascinamento in un modo che merita di essere visto
+prima di essere scelto.
+
+**Che cosa serve da te.** Quale delle tre strade preferisci — o se il
+punto di vista attuale (5,5 m, non 1,7) va bene così com'è, che è
+comunque un'opzione legittima: nessuno l'aveva scelto di proposito, ma
+potrebbe essere già quello giusto.
+
+**Copertura intanto**: `genesi-camere-3d.mjs` misura e blinda il
+comportamento **come si presenta oggi** (comprese le coordinate
+clampate di "Da terra"), non quello che "dovrebbe" fare — così una
+scelta fra le tre strade sopra farà cadere quell'asserzione sola, per
+nome, invece di un banco più largo.
+
 ## Cosa procede intanto SENZA di te
 I cicli automatici continuano su ciò che è sicuro e non gated: seconde
 iterazioni UX delle app, test aggiuntivi, revisioni di qualità/sicurezza,
@@ -996,10 +2595,291 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 2.877** *(ricontate il 18/08 lanciando le
-suite)*, più **123** che girano con l'emulatore Firestore (**75** sulle regole
-di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **200
-esecuzioni** che aprono davvero le pagine in un browser.
+**Le prove automatiche sono passate a 3.728** *(stesso giro — Genesi, correzione di `syncTrattoUI` trovata da `genesi-snap-estremo.mjs` (G48): Ruota/Scala tratti (G57/G58) restavano visibili mentre si disegnava ancora un tratto, e la barra cresciuta spingeva la tela sotto la barra di navigazione fissa — misurato dal vivo con Playwright: 40 px bastavano a far cadere il clic che chiude il tratto sull'icona della barra invece che sulla tela. E, prima di questo, dopo `deviazioneStatistiche` (G59): media e massima della deviazione RADIALE di perforazione (`Math.hypot(dx,dy)`, non dx/dy col segno — quel segno dipende dalla convenzione di assi del rilievo boretrack, ancora non confermata), segnalata dalla ricerca del 19/09 come mancanza reale rispetto al QC statistico di JKSimBlast, verificata prima con un grep per nome (zero righe). E, prima di questo, dopo `trattiScalati` (G58): terza trasformazione CAD, scala tutti i tratti DALL'ORIGINE (non dal centroide come rotate/mirror — un errore di unità sbaglia ogni coordinata della stessa proporzione, compreso il centroide, misurato prima di scriverla così) per correggere un rilievo DXF disegnato in un'unità diversa dai metri di Genesi — dopo `trattiRuotati` (G57): seconda trasformazione CAD dopo il mirror di G50, ruota tutti i tratti importati/disegnati attorno al loro centroide comune per correggere sul posto l'orientamento di un rilievo DXF con assi diversi da Genesi — resta fuori dal dominio dei fori, dove mx/my sono burden/spaziatura, non coordinate libere — dopo la stessa causa di G56c ritrovata in `innescoSuMaglia` (G56d): `innFrom=-1` diceva sia «primo della volata» sia «nessun raccordo raggiunge questo foro», e la «Rete di innesco» del Validatore contava il secondo caso come inesistente — dopo `relief=null` che distingue il vero primo foro della zona da un vicino già sparato ma oltre la distanza di adiacenza (un foro mancante nella maglia) G56c — trovato con una verifica diretta sugli export CSV/DXF/XML dopo aver tolto un foro con drag+Canc, non da un agente — dopo l'annulla premuto a metà di un trascinamento G56b, dopo la guida di allineamento in Y sul trascinamento di un foro G56, dopo il misfire nel report stampato G55, dopo il limite dello stack di annulla G54, il semaforo di sintesi letto prima di esportare G53, l'esito della detonazione G52, `coordinataRelativa`/input relativo-polare G51, `foriRiflessi`/rifletti la selezione G50, `foriSenzaId`/selezione multipla G49 e `puntoSnapEstremo`/`estremiDisegno` di G48)* *(ricontate il 19/09, dopo il dodicesimo giro — Sentinella, `allerteTaratura`/badge; erano 3.676 il 18/09, dopo il
+sesto giro di deep-pass QA in parallelo su Sentinella/Genesi/Conti —
+`superamentiAperti` scriveva un valore fabbricato su un superamento vero,
+`muckShape`/il pannello Decking di Genesi stimavano un baricentro del
+cumulo in miliardi di miliardi di metri, e il sollecito di Conti non
+passava dalla guardia sulle fatture "come non emesse" — e, prima di
+questo, dopo il quinto giro di deep-pass QA in parallelo su
+Scudo/Terra/Flotta — un mortale
+restava "a prognosi aperta" per sempre, il quarto asse di conformità
+"confine" di Terra non aveva un aggregato, il contatore sostituito o
+azzerato di Flotta aveva quattro regole diverse — e, prima di questo, dopo
+aver corretto in Campo `vociChecklist`: il ricontrollo dei fronti dopo il
+maltempo spariva dal conteggio se il meteo veniva corretto dopo la
+risposta, e, prima di questo, dopo aver corretto in Conti (margineMese non escludeva le fatture scartate dallo SdI
+dal margine mensile per competenza) e, prima di questo, in Terra (`renderValore` usava `rilievoUsabile` invece di
+`rilievoUsabileConData`: un rilievo a calendario impossibile gonfiava il
+valore del materiale estratto) e, prima di questo, in shared/dw-app-ui.js e
+nelle superfici che lo usano (toast senza role/aria-live su core/Genesi/admin,
+CSS di errore assente in Genesi) e, prima di questo, in Campo (CLASSE_HSE senza la chiave «senza-scadenze») e,
+prima di questo, in Conti (prioritaIncasso/agingIncassi/incassoPerMese/kpiFrom, una
+fattura stornata per intero restava scaduta e urgente su un residuo di zero
+euro) e, prima di questo, in Flotta tre copie deboli mai propagate (ordinamento del
+magazzino, csvBudget, propostaScorte) e, prima di questo, il ponte
+Genesi→Terra (un volume in unità arbitrarie della nuvola
+passava per metri cubi veri) e, ancora prima, in Genesi
+`pointcloud.js:parseXYZ` (un file XYZ misto disallineava
+i colori dalle posizioni) e, ancora prima, in Sentinella `dataIt` (copia
+debole locale che leggeva la forma della stringa invece del calendario
+vero) e, ancora prima, in Campo
+`testoConsegnaTurno` (semaforo delle azioni correttive HSE nella checklist
+della consegna testuale, come già in `rapportoGiornata`) e, ancora prima, i
+tre difetti in dw-shell.js: `leggiCsv` trimmava ogni campo anche se
+quotato apposta per conservare gli spazi di contorno, `_combacia` riconosceva
+una sottosequenza CON BUCHI come «l'inizio» di una tabella, e `parseCsvLine`
+perdeva lo spazio bianco che la guardia anti-formula protegge (il `.trim()`
+arrivava dopo aver tolto l'apostrofo); e prima di questo, dopo aver
+corretto in Flotta — quarto giro di deep-pass — il libretto esportato in CSV,
+che non portava la sezione «Componenti a vita propria» mostrata a schermo e in
+stampa; e prima di questo, dopo aver corretto il ponte `idoneitaDiTurno` —
+shared/dw-ponti.js: mancava un contatore
+per l'ottavo stato, «senza data», propagato a cinque punti di Campo, inclusi i
+due documenti stampati; e prima di questo, dopo aver corretto in Scudo —
+quinto giro di deep-pass — `cartellaLavoratore`: un DPI
+previsto dalla mansione e mai consegnato non entrava nel fascicolo per
+l'ispettore, solo nel Quadro; e prima di questo, dopo aver corretto nel core —
+deep-pass mirato — `esitoSparo`: la guardia di coerenza
+era asimmetrica, bloccava «mancati > fori» ma non il gemello «esplosi > fori»
+senza mancati scritto; e prima di questo, dopo aver corretto in Conti — sesto
+giro di deep-pass — `incassoAtteso`/`incassoPerMese`
+e la copia debole del Quadro/delle Fatture: una fattura scartata dallo SdI
+restava cassa in arrivo e credito sollecitabile; e prima di questo, dopo aver
+corretto in Campo — quinto giro di deep-pass — l'idoneità nei documenti, che
+nominava solo chi è NON idoneo e non chi ha un documento HSE scaduto o in
+scadenza; e prima di questo, dopo aver aggiunto in Flotta — dal delta della
+ricerca continua, tredicesimo giro — la soglia di vita dei componenti a
+scaglioni; e prima di questo, dopo aver corretto in Conti — quinto giro di deep-pass — sei funzioni che trattavano una
+fattura scartata dallo SdI come credito vero; e prima di questo, dopo aver
+corretto in Scudo — quarto giro di deep-pass — il ramo "senza data" mancante
+in `abilitazioneLavoratore`/`pillReq` e le tre colonne perse su export→import
+di `csvRegistroInfortuni`; e prima di questo, dopo aver corretto in Flotta —
+secondo giro di deep-pass — tre difetti veri: i CSV col
+punto inglese invece della virgola italiana, il libretto senza il costo
+orario completo, l'età del mezzo mai mostrata a schermo; e prima di questo,
+dopo aver corretto in Terra `sequenzaLotto` — l'articolo scritto a mano invece di
+`articoloNumero` — e in Flotta `PIANI_TAGLIANDO`, che non dichiarava la fonte
+dei suoi passi a ore; e prima di questo, dopo aver
+corretto in Scudo — censimento a doppio punto di chiamata, quinto difetto
+vero nello stesso giorno, ma di forma diversa dagli altri quattro: il
+lettore `parseInfortuniCsv` non leggeva affatto le tre colonne della
+denuncia INAIL (non una singola chiamata fra due che le scartava) — un
+registro infortuni esportato e ri-caricato perdeva `dataCertificato`/
+`denunciaData`/`denunciaNumero`, e senza nessuna modale per correggerli
+dopo la registrazione l'unico modo per rimediare sarebbe stato cancellare
+l'evento e ricrearlo; ottava/nona/decima colonna in coda, scrittore e
+lettore insieme, nuovo test con controprova — dopo aver corretto in
+Sentinella — censimento a doppio punto di chiamata, quarto
+difetto vero trovato con lo stesso metodo nello stesso giorno —
+`db.aggiungi("adempimenti",...)`: l'import CSV non passava `periodoMesi`/
+`giorniConsegna` che `parseAdempimentiCsv` già leggeva; un adempimento
+re-importato perdeva il periodo dichiarato e il bottone «Prepara il
+report» si rifiutava di partire con lo stesso messaggio di un adempimento
+mai compilato; nessuna normalizzazione a `null` necessaria (il parser
+restituisce sempre le due chiavi, mai `undefined`); nuovo test con
+controprova — dopo aver corretto in Conti — censimento a doppio punto di
+chiamata, terzo difetto
+vero trovato con lo stesso metodo nello stesso giorno — `csvClienti`/
+`parseClientiCsv`: la copia di sicurezza dell'anagrafica non portava
+`listinoId`, quindi un cliente col listino personalizzato ri-caricato dal
+backup tornava silenziosamente al listino base; quattordicesima colonna,
+scrittore e lettore insieme (il campo esisteva già su entrambi i lati
+dello schermo, non è una prima fetta), nuovo test con controprova — dopo
+una passata di profondità su Terra — binario 2, lettura diretta del sorgente,
+nessun agente di ricerca: `tolleranzaPct` del rilevatore era wired solo a
+metà, provato a livello di modulo (`csvRilievi`/`parseRilieviCsv`/
+`classeAccuratezza`) ma non passato dal gestore di import CSV a
+`db.aggiungi` — un rilievo re-importato perdeva la tolleranza dichiarata e
+ricadeva sulla tipica in silenzio, stessa famiglia del bug di
+`rapportoGiornata` di Campo trovato lo stesso giorno con lo stesso metodo;
+corretto normalizzando a `null`, non `undefined` (Firestore lancia sul
+campo `undefined`), nuovo test di wiring con controprova — dopo aver
+migrato a Conti (`csvClienti`) l'OTTAVO scrittore — e corretto un errore
+ripetuto per tre unità di fila: `csvClienti` NON aveva mai la collisione
+di nome che gli era stata attribuita insieme a `csvGare` (nessuna colonna
+`stato`, verificato col `grep` separato che non era mai stato fatto);
+`fido` è il campo che D1 misurava assente, tredicesima colonna. Restano
+davvero irraggiungibili solo `csvGare`/`csvSquadre`/`csvAzioni` — dopo aver
+migrato a Sentinella (`csvTarature`) il settimo scrittore libero
+del vocabolario condiviso di P2 — la data collassa a monte da `dataIso`,
+quindi binario su `dataISOEsiste(scadenza)`, non un terzo codice; settima
+colonna — dopo aver
+migrato a Conti (`csvListino`) il sesto scrittore del vocabolario condiviso
+di P2 — `prezzo` è il campo per cui D1 misurava una riga persa, stesso
+binario, sei scrittori su undici (più della metà) — dopo aver
+migrato a Sentinella (`csvRicettori`) il quinto scrittore del vocabolario
+condiviso di P2 — la prima volta che la riga NON sparisce mai senza il
+valore misurato (un ricettore senza distanza resta un ricettore); scartati
+come candidati `csvClienti` e `csvGare` di Conti perché avevano già una
+colonna chiamata `stato` con un significato diverso — dopo aver
+migrato a Conti (`csvPesate`) il quarto scrittore del vocabolario condiviso
+di P2 — la prima volta con un TERZO codice, `illeggibile` per un ticket
+della pesa con un solo peso dei due, diverso da `mai-misurato` (nessun
+peso) — riusando `pesiPesata`, la stessa funzione che decide `netto` a
+schermo, senza un secondo giudizio — dopo aver
+migrato a Conti (`csvIncassi`) il terzo scrittore del vocabolario
+condiviso di P2 — scelto invece di `csvPesate` perché più semplice,
+stesso binario su `importo` — dopo aver
+migrato a Terra (`csvRilievi`) il secondo scrittore del vocabolario
+condiviso di P2 — qui il binario misurato/mai-misurato è l'unico
+possibile perché il modello non distingue nessuna ragione più fine per un
+volume mancante — dopo aver
+aggiunto in `shared/dw-ponti.js` il vocabolario condiviso di P2 (ricerca
+ASSENZA) — sei costanti per dire perché una cella di un CSV è vuota o vale
+zero per convenzione, con un solo scrittore migrato (`csvRicambi` di
+Flotta) come prima fetta — dopo aver
+corretto in Campo un buco di cablaggio trovato leggendo direttamente il
+sorgente: il rapporto di fine turno stampato e firmato non riceveva mai le
+volate di Sentinella dalla pagina, anche se il ponte P6 le leggeva già per il
+documento gemello — dopo una
+revisione di qualità sulla stessa unità: `csvRegistroInfortuni` e
+`fogliaCartella` non portavano la nota della denuncia INAIL — lo schermo la
+mostrava, il CSV e il foglio stampabile per il consulente no, la stessa
+famiglia di difetto di «dove un documento compone qualcosa che ESCE, chi
+decide i suoi numeri»; la settima colonna del CSV ora COMPONE più avvisi
+insieme — prognosi aperta, visita di rientro, denuncia INAIL — invece di
+sceglierne uno solo, e `csvRegistroInfortuni` ha guadagnato un `oggi`
+iniettabile che non aveva — dopo aver aggiunto a Scudo `scadenzaDenunciaInail`
+(D.P.R. 1124/1965, art. 53) — due termini diversi, 2 giorni dal certificato
+medico o 24 ore dall'evento se mortale; il termine mortale è un MASSIMO
+dichiarato, non preciso, perché Scudo registra solo il giorno dell'infortunio
+e non l'ora; una prognosi ancora aperta non è "non dovuta", è "non si sa
+ancora" — verificato anche nel browser — dopo aver costruito il ponte
+Campo→Sentinella (sovrapposizione 3g della mappa
+ecosistema, cercata il 15/09) — `meteoDelGiorno` traduce i turni meteo di
+Campo in pioggia/vento forte per giudicare le misure di rumore fuori
+condizioni (DM 16/03/1998), con la pioggia confermata solo se tutti i turni
+del giorno sono d'accordo e il vento forte mai un verdetto, solo un
+sospetto; non testabile end-to-end in demo (come `ponteScudo`) — dopo aver
+aggiunto a Terra `serieAnni` dentro `banchiDaSempre` — il valore anno per
+anno di ogni banco, non solo il totale «almeno» che diceva CHE manca una
+misura senza dire DOVE (ultimo delta del tredicesimo giro di ricerca
+continua), verificato anche nel browser — dopo aver aggiunto a Terra
+`aperturaFuoriProgramma` — anticipo/ritardo di un lotto
+rispetto al mese previsto dal progetto (quinto dei sei delta del giro di
+ricerca sul sequenziamento multi-anno, parente di `sequenzaLotto` ma sul
+CALENDARIO invece che sull'avanzamento di un altro lotto): il Lotto 4 della
+dimostrazione è stato aperto con 183 giorni di ritardo, verificato anche
+nel browser — dopo aver aggiunto a Sentinella `superamentiUltimiGiorni` — l'escalation sui
+superamenti ripetuti (dal delta della ricerca continua, nono giro,
+verificato indipendentemente prima di scrivere): un pattern di superamenti
+sullo stesso ricettore, sommati su tutti i suoi punti in una finestra
+mobile, con la soglia come parametro configurabile — nessuna fonte del
+mondo ne dà una universale. Il caso non è nella dimostrazione reale (zero
+superamenti aperti oggi); verificato iniettando un punto apposta nel
+browser — dopo aver aggiunto a Terra `sequenzaLotto` — `lotto.ordine` finalmente usato in un
+controllo, non solo mostrato: badge "fuori sequenza" (non bloccante) quando un
+lotto è aperto prima che il precedente raggiunga la soglia dichiarata, stessa
+forma `{pertinente, frase}` di `attesaCollaudo`/`attesaRecupero`, verificato
+anche nel browser — dopo aver aggiunto a Terra
+`varianzaLottoAnno`/`volumePianificatoLottoAnno` — il
+confronto pianificato-vs-reale PER LOTTO PER ANNO, dal delta della ricerca
+continua sul sequenziamento multi-anno, verificato indipendentemente prima di
+scrivere codice: `varianzaMensilePiano` è aggregata su tutti i lotti insieme
+e non dice quale lotto sta slittando. Campo `volumiAnnuali` opzionale sui
+lotti, prima fetta su un solo lotto della dimostrazione, verificato anche nel
+browser) — dopo aver aggiunto a Scudo il fascicolo macchina (`attrezzature/{id}` collegato alla
+verifica periodica, `attrezzaturaDiScadenza`/`descriviLegameAttrezzatura` a
+distinguere «non collegata» da «collegamento rotto», tema segnalato tre
+volte — luglio, 09/08, 16/09 — verificato anche nel browser) — dopo aver
+aggiunto a Scudo il preset `rischio-chimico` (gemello di `rumore-vibraz`,
+titolo IX D.Lgs 81/08) e il tipo di documento «Scheda dati di sicurezza
+(SDS)» — prima fetta nel ciclo di vita generico dei documenti, i campi
+propri (sostanza, classificazione, revisione) restano il passo successivo
+— dopo aver aggiunto a Scudo `notificheScadenzeNonLette` — un contatore di scadenze
+urgenti persistente finché la pagina non si visita, "nuova" dedotta dal
+tempo confrontando `livelloScadenza` all'ultima visita con quello di oggi,
+verificato nel browser dopo aver trovato un difetto CSS reale (`.badge`
+batte `[hidden]` a parità di specificità, quindi l'attributo da solo non
+nasconde mai il badge) — dopo aver aggiunto a Conti `statoRecupero` — lo storico dei solleciti DAVVERO inviati
+("mai comunicato" è uno stato dichiarato, non un livello zero), un bottone
+"Segna come inviato" senza nessun invio automatico, verificato nel browser
+(un ID scambiato per il numero della fattura non lo vedrebbe nessuna suite
+`node`) — dopo aver aggiunto a Conti `statoPianoRientro` — un piano di
+rientro a rate su una fattura scaduta, fra il sollecito e la messa in mora
+formale, con le rate lette come cascata e tre esiti dichiarati (rispettato/
+in ritardo/decaduto), prima fetta a sola lettura, verificato nel browser
+(un confronto per `id` invece che per `fatturaId` non lo vedrebbe nessuna
+suite `node`) — dopo aver aggiunto a Flotta `componentiDelMezzo`/`vitaComponenti` (prima fetta): il
+punto di partenza sulle ore del mezzo per pneumatici, cingoli e denti benna
+— verificato nel browser dopo un primo collegamento alla pagina sbagliato
+(filtro per mezzo su un elenco già scoperto a un mezzo solo) che nessuna
+suite `node` poteva vedere — dopo aver
+corretto in Conti `esitoMovimento`: un pagamento più basso dell'aperto che
+coincide con lo sconto cassa concordato (`scontoCassaMaturato`) non è più
+letto come acconto — dopo aver
+aggiunto a Scudo `barriereRicorrenti`/`BARRIERE_MANCATE` (dal delta della
+ricerca continua, undicesimo giro — ICAM): che cosa avrebbe dovuto fermare
+l'evento, non che cosa l'ha causato, con un chip multi-select nella modale
+di analisi — dopo aver
+chiuso la migrazione dei 21 lettori CSV alle righe fisiche: `leggiCsv`
+guadagna `nRighe` e con lei sono migrati gli ultimi due lettori non
+standard, `scudo.scartiAzioniCsv` e `conti.scartiClientiCsv` — dopo aver
+aggiunto a Flotta `frequenzaFermiControStoria` (dal delta della ricerca
+continua, undicesimo giro) — il ritmo dei fermi contro la storia del mezzo,
+terza sorella di consumo/costo, collegata a `prioritaOperative` — dopo aver
+aggiunto a Conti `concentrazionePortafoglio` (dal delta della ricerca
+continua, decimo giro) — la quota del cliente più esposto sul credito
+aperto, verificata anche nel browser — dopo aver
+migrato `flotta.scartiTelemetriaCsv` — l'ultima forma non standard con
+intestazione per NOME di colonna — a riga fisica, dopo aver
+riscritto in Sentinella la provenienza del periodo di un adempimento al
+positivo e aggiunto la regola 33 di `run-stile.mjs` (mai «non rilevato», dal
+delta su PAROLE proposta 3 metà b), dopo aver
+aggiunto a `shared/deepwork-id-client/dw-shell.js` `righeCsvNumerate` — il
+numero di riga fisico nel file al posto della posizione nell'elenco già
+scartato, dal delta della riverifica sul documento invecchiato PAROLE — e
+migrati quattro lotti (`scartiFrontiCsv`/`scartiRilieviCsv` di Terra,
+`scartiScadenzeCsv`/`scartiInfortuniCsv` di Scudo,
+`scartiMonitoraggiCsv`/`scartiRicettoriCsv`/`scartiAdempimentiCsv`/`scartiVolateCsv`
+di Sentinella, `scartiSquadreCsv`/`scartiPianoCsv` di Campo,
+`scartiRicambiCsv`/`scartiMezziCsv` di Flotta,
+`scartiFattureCsv`/`scartiGareCsv`/`scartiListinoCsv` di Conti — i 18 lettori
+in forma standard sono tutti migrati), poi estesa `righeCsvNumerate` per
+accettare anche un predicato oltre a una parola chiave (senza cambiare il
+contratto a stringa per chi già la usa) e migrato con lei
+`scudo.scartiLavoratoriCsv` — restano cinque forme non standard, basate
+su celle già parsate invece che su testo grezzo, poi aver aggiunto a
+Genesi `burdenPerForo` — il pannello «Burden per foro» sulla scheda
+Progetto 2D (dal secondo giro di ricerca su Genesi), verificato anche
+nel browser,
+dopo aver aggiunto a `terra-data.js` `sezionePeggiore` — la prima fetta delle sezioni
+trasversali per fronte, additiva e collegata subito al posto di
+`conformitaGeometria` senza cambiare nessun contratto — dopo aver aggiunto a
+`scudo-data.js`/`sentinella-data.js` gli ultimi due lettori CSV
+rimasti «muti» dal delta della riverifica su ASSENZA (`scartiInfortuniCsv`,
+`scartiMonitoraggiCsv`), dopo aver aggiunto a `run-kpi.mjs` la prova che «saldata» e «parziale» non sono mai vere
+insieme in `statoFattura` di Conti, a `claims-convergenza.mjs` il limite a
+tre scritture ravvicinate, a `kpiFrom` di Scudo un `oggi` fisso, alla
+conformità di Terra il fronte conteso fra due lotti, a `tagliandiInScadenza`
+di Flotta lo stesso criterio di `urgenzaManutenzione`, a `fogliaVolata` di
+Sentinella la lettura trovata per valore, a `applicaIncassi` di Conti le
+note di credito, a `cancellazioneLasciaBuco` la numerazione DDT senza
+salti, a `vitaCava` di Terra il margine fra esaurimento e scadenza,
+a `abilitazioneLavoratore` di Scudo la sospensione temporanea, a
+`reclamiPerRicettore` di Sentinella l'aggregazione per punto,
+`costoControStoria` di Flotta il costo medio per intervento contro la sua
+storia, a `varianzaMensilePiano` di Terra lo scarto del mese corrente dal
+piano annuo, a `prioritaOperative` di Flotta le voci "trend",
+`avvisiChiusuraTurno` di Campo gli avvisi non bloccanti alla chiusura del
+turno, a `tendenzaRitmo` di Terra il ritmo corto contro il lungo e a
+`testoSollecito` di Conti l'escalation per livello del sollecito e a
+`fattureOltre90` di Conti l'elenco per il commercialista e a
+`cartellaLavoratore` di Scudo gli infortuni della persona, la visita
+medica di rientro dopo un'assenza oltre 60 giorni, il terzo/quarto gradino
+di gravità (permanente/mortale) coi giorni convenzionali UNI 7249, la
+lettura dell'etichetta di gravità dal vocabolario invece del campo grezzo,
+e il bottone «Scadenze» al posto di «Adempimenti» nella barra in basso di
+Sentinella (bersagli di tocco a 320px saliti da 41,4 a 45,61–46,86 px),
+lanciando le suite)*, più **141** che girano con l'emulatore Firestore (**93** sulle regole
+di sicurezza, 19 sull'SDK, 24 sulle funzioni, 8 sul primo avvio) e **461
+esecuzioni** che aprono davvero le pagine in un browser *(21/09, aggiunti
+anche i banchi su Genesi sulla timeline dello sparo — play/pausa/scrub —
+sulla modellazione 3D del fronte — trascinamento cresta/piede — sui
+quattro bottoni camera della scena 3D, sulla selezione di un foro
+nella vista Raggi-X, con la sua controprova per un difetto vero trovato
+e corretto, e sul cursore di trasparenza del fronte in vista Raggi-X)*.
 
 Nella sola giornata del 31/07 le prove sulle funzioni delle app sono passate da
 **433 a 971**, e hanno fatto emergere **otto difetti veri**. I tre che pesano di

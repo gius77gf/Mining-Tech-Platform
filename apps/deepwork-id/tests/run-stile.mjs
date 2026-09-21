@@ -222,7 +222,7 @@
 // Come si aggiunge una regola: una funzione che restituisce l'elenco delle
 // violazioni con file e riga, e un `test(...)` che pretende zero.
 // ============================================================
-import { readFileSync, readdirSync, existsSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
 import { classifica, mascheraCodice, senzaCommenti, COMMENTO, CODICE, DENTRO } from "./tokenizza.mjs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -2118,7 +2118,18 @@ function avvisoUsatoComeLavagna(src) {
        dove `mode-note` ha diritto di stare è la riga che lo installa. */
     if (!/["']mode-note["']/.test(riga)) return;
     if (/<[^>]*\bid=["']mode-note["']/.test(riga)) return;   // è la dichiarazione del riquadro
-    if (/\bdb\.mode\b|\blive\(\)/.test(riga)) return;   // è l'installazione dell'avviso
+    if (/\bdb\.mode\b|\blive\(\)/.test(riga)) {
+      /* ⛔ È ESENTE L'INSTALLAZIONE, NON LA RIGA. Il 04/09 la controprova ha
+         piantato il veleno proprio sulla riga che installa la nota (i punti
+         d'iniezione cadono dove cadono i campioni, e l'amministrazione di
+         Deepwork ID era appena cambiata di qualche riga) e la regola non lo
+         vedeva: «1 iniezioni su 56 non viste». La forma d'installazione è una
+         sola in tutte e sette le superfici — `$("mode-note").textContent =` o
+         `.innerHTML =` seguita dal modo — quindi si toglie QUELLA e si guarda
+         se l'id compare ancora. */
+      const senza = riga.replace(/\$\(["']mode-note["']\)\.(textContent|innerHTML)\s*=/g, "");
+      if (!/["']mode-note["']/.test(senza)) return;
+    }
     fuori.push(`riga ${i + 1}: ${riga.trim().slice(0, 90)}`);
   });
   return fuori;
@@ -2142,6 +2153,8 @@ test("la regola 14 sa vedere il difetto che è stato tolto", () => {
   const base = '<div class="note" id="mode-note"></div>\n'
     + '$("mode-note").textContent = db.mode === "live" ? "Dati reali." : "Dati di esempio.";\n';
   ok(avvisoUsatoComeLavagna(base).length === 0, "la sola installazione non è una violazione");
+  ok(avvisoUsatoComeLavagna(base.replace(/\n$/, ";esito(\"mode-note\", \"Esportate 3 fatture.\", \"success\");\n")).length === 1,
+    "il veleno piantato SULLA RIGA dell'installazione si vede lo stesso (04/09)");
   ok(avvisoUsatoComeLavagna(base + 'esito("mode-note", "Esportate 3 fatture.", "success");').length === 1,
     "un esito scritto sull'avviso è una violazione");
   ok(avvisoUsatoComeLavagna(base + '$("mode-note").textContent = "Esportati 3 incassi.";').length === 1,
@@ -2544,7 +2557,7 @@ controprovaSuiVeri("regola 17 (struttura riscritta in casa)", strutturaInCasa,
    automaticamente vorrebbe dire indovinare male: qui si vuole sapere che
    QUESTA funzione alimenta QUELLA mappa. */
 const COPPIE_STATO = [
-  { funzione: "statoScadenzaHSE", modulo: "shared/dw-ponti.js",
+  { funzione: "statoScadenza", modulo: "shared/dw-ponti.js",   // dal 02/09 statoScadenzaHSE è un alias di statoScadenza: le risposte stanno qui
     pagina: "apps/scudo/index.html", mappa: "B",
     perche: "il semaforo dello scadenzario di Scudo (badge e striscia)" },
   { funzione: "statoScadenzaTerra", modulo: "apps/terra/terra-data.js",
@@ -2571,7 +2584,7 @@ const COPPIE_STATO = [
   { funzione: "esitoAbilitazione", modulo: "apps/scudo/scudo-data.js",
     pagina: "apps/scudo/index.html", mappa: "ESITO_MAT",
     perche: "le pastiglie della matrice «chi può fare cosa» di Scudo" },
-  { funzione: "statoScadenzaHSE", modulo: "shared/dw-ponti.js",
+  { funzione: "statoScadenza", modulo: "shared/dw-ponti.js",   // dal 02/09 statoScadenzaHSE è un alias di statoScadenza: le risposte stanno qui
     pagina: "apps/scudo/index.html", mappa: "DPI_BADGE",
     perche: "l'etichetta al maschile del dispositivo nel registro DPI di Scudo" },
   /* ⚠️ QUI LA MAPPA STA NEL MODULO, NON NELLA PAGINA — ed è il disegno giusto
@@ -3503,6 +3516,12 @@ const VIETATI = [
   [/\b190\s*(video|filmat)/i, "l'archivio dei video"],
   [/\b6\s*\/\s*23\s*volate\b|\b6\s+volate\s+su\s+23\b/i, "le volate misurate di quell'origine"],
   [/dominio di validit[àa]/i, "il litotipo dichiarato come dominio di validità del modello"],
+  /* 03/09: la passata su Genesi ha trovato in `apps/genesi/calibrazione.json`
+     la `_meta` con l'elenco intero della regola ferrea e il nome della ripresa
+     di riferimento. Il commit e262c880 «rimosse tutte le citazioni» aveva
+     guardato le pagine: i JSON pubblicati tali e quali no. */
+  [/\bVID_\d{6,}/, "la ripresa di riferimento di quell'origine"],
+  [/\bdominio_validita\b/i, "il dominio di validità del modello, scritto come chiave"],
 ];
 
 test("regola 26: i dati di riferimento del fondatore non compaiono in nessuna superficie", () => {
@@ -3520,6 +3539,16 @@ test("regola 26: i dati di riferimento del fondatore non compaiono in nessuna su
   }
   /* quanti soggetti ha guardato davvero: uno «zero violazioni» senza questo
      numero non distingue «pulito» da «non ho aperto niente» */
+  /* e i JSON delle app, che il sito pubblica tali e quali (03/09) */
+  const _rd = readdirSync, _st = statSync;
+  const jsonApp = [];
+  const cammina = (d) => { for (const n of _rd(d)) { const f = join(d, n); if (n === "node_modules" || n === "tests") continue; if (_st(f).isDirectory()) cammina(f); else if (/\.json$/.test(n)) jsonApp.push(f); } };
+  cammina(join(root, "apps"));
+  for (const f of jsonApp) {
+    const testo = readFileSync(f, "utf8"); guardate++; caratteri += testo.length;
+    for (const [re, che] of VIETATI) { const m = re.exec(testo); if (m) male.push(`${f.slice(root.length + 1)}: «${m[0]}» — ${che}`); }
+  }
+  ok(jsonApp.length >= 3, `JSON delle app guardati: ${jsonApp.length} — dovrebbero esserci almeno esplosivi, calibrazione e un manifest`);
   ok(guardate >= 14, `superfici guardate: ${guardate} — l'elenco si è accorciato`);
   ok(caratteri > 500000, `solo ${caratteri} caratteri esaminati: il tokenizzatore sta buttando via il file`);
   ok(male.length === 0,
@@ -3527,10 +3556,11 @@ test("regola 26: i dati di riferimento del fondatore non compaiono in nessuna su
     + male.join("\n  "));
 });
 
-test("regola 26: la controprova — rimessi i quattro dati, la regola li vede tutti e quattro", () => {
+test("regola 26: la controprova — rimessi i sei dati, la regola li vede tutti e sei", () => {
   const sano = senzaCommenti(leggi("index.html"));
   const finti = ["maglia 4,5×3,5", "archivio di 190 video", "6/23 volate misurate",
-                 "il dominio di validità del modello"];
+                 "il dominio di validità del modello",
+                 "riprese VID_20250606", "\"dominio_validita\": \"…\""];   // 03/09: i due del JSON di Genesi
   const visti = [];
   for (let i = 0; i < VIETATI.length; i++) {
     /* si inietta in una COPIA in memoria, mai sul file: il core lo carica il
@@ -3577,12 +3607,14 @@ const SENZA_TEMI = {
     "vetrina di presentazione: e' scura di suo per scelta, e MOSTRA i due temi delle app "
     + "nelle schermate che scorre (scuro e chiaro si alternano). Darle un interruttore "
     + "del tema vorrebbe dire far cambiare veste alla vetrina, non alle app.",
-  "apps/deepwork-id/index.html": "schermata d'accesso del servizio comune, non una verticale.",
-  "apps/deepwork-id/admin.html": "amministrazione del servizio comune, si usa da scrivania.",
-  "apps/deepwork-id/profilo.html": "profilo del servizio comune, si usa da scrivania.",
-  /* ⚠️ questa riga l ha aggiunta la regola stessa: la mia prima stesura dell
-     elenco se n era dimenticata una, e il controllo l ha detto al primo giro. */
-  "apps/deepwork-id/non-autorizzato.html": "pagina di errore del servizio comune: una frase e un bottone, nessuna schermata.",
+  /* ⛔ 19/09, dal deep-pass UX: le quattro righe di Deepwork ID che stavano
+     qui sono state TOLTE, non svuotate — erano esattamente il difetto che
+     questa regola esiste per prendere. La preferenza di tema scelta in una
+     qualunque delle sei app "vale per tutte le pagine dell'ecosistema" (è
+     scritto nel commento di dw-tema.js stesso): un servizio comune che
+     nessuno raggiunge da un'app con un tema diverso da quello scuro non è
+     una scelta di prodotto, è un buco. Le quattro pagine caricano
+     dw-tema.js da oggi. */
   "apps/genesi/login.html": "schermata d accesso di Genesi: segue la sua app, che i temi non li ha (vedi la riga sopra).",
   "apps/genesi/nuvola-poc.html": "visore della nuvola di punti: una tela 3D a tutto schermo, dove il tema non dipinge niente.",
   "index.html":
@@ -3965,6 +3997,56 @@ test("regola 32: la controprova — nei due versi", () => {
   ok(!RE_FRASE_IMPORT.test(senza), "la regola 32 crede importata una frase che l'import non nomina");
   const con = 'import { conta, frasePersi } from "../../shared/deepwork-id-client/dw-shell.js";';
   ok(RE_FRASE_IMPORT.test(con), "la regola 32 non riconosce l'import buono");
+});
+
+/* ⛔ REGOLA 33 (15/09, dal delta della riverifica su PAROLE, proposta 3):
+   MAI «non rilevato» in nessun testo che l'utente legge. Non è una
+   preferenza di stile: nei rapporti di prova italiani «n.r.» / «non
+   rilevato» vuol dire il CONTRARIO di «nessuno ha misurato» — significa
+   *misurato e sotto il limite di rilevabilità dello strumento*. Oggi
+   l'ecosistema non usa mai questa parola (giusto: dice sempre «non
+   misurato»/«non calcolabile»), ma quel risultato buono è affidato alla
+   memoria di chi scrive domani, non a una regola. La prima persona che
+   scriverà «non rilevato» pensando che significhi «non misurato» starà
+   dichiarando, senza saperlo, una misura mai fatta nel verso
+   tranquillizzante — e niente diventerebbe rosso.
+   Si cerca nel TESTO (`senzaCommenti`, non `mascheraCodice`: la parola vive
+   dentro le stringhe, che qui vanno guardate, non nascoste), su pagine e
+   moduli dati insieme. */
+function nonRilevatoIn(src) {
+  const vivo = senzaCommenti(src);
+  const fuori = [];
+  const re = /non\s+rilevat[oaie]/gi;
+  let m;
+  while ((m = re.exec(vivo))) {
+    const riga = vivo.slice(0, m.index).split("\n").length;
+    fuori.push({ riga, testo: vivo.split("\n")[riga - 1].trim().slice(0, 100) });
+  }
+  return fuori;
+}
+console.log("\n── Regola 33: mai «non rilevato» — nei rapporti di prova vuol dire il contrario ──");
+{
+  let guardate = 0;
+  const male = [];
+  for (const [nome, rel] of SUPERFICI.concat(MODULI)) {
+    const src = leggi(rel);
+    if (src === null) continue;
+    guardate++;
+    for (const v of nonRilevatoIn(src)) male.push(`${nome} riga ${v.riga}: «${v.testo}»`);
+  }
+  test("regola 33: nessuna superficie scrive «non rilevato»", () => {
+    ok(guardate === SUPERFICI.length + MODULI.length,
+      `la regola 33 ha guardato ${guardate} superfici su ${SUPERFICI.length + MODULI.length}: non sta guardando dove crede`);
+    ok(male.length === 0, "«non rilevato» compare dove significa il contrario di quel che intende dire:\n  " + male.join("\n  "));
+  });
+}
+test("regola 33: la controprova — nei due versi", () => {
+  const rotta = 'el.textContent = "Punto 3: valore non rilevato nel periodo scelto.";';
+  ok(nonRilevatoIn(rotta).length === 1, "la regola 33 non vede la frase rimessa");
+  const commentata = "// prima dicevamo 'non rilevato', adesso 'non misurato'";
+  ok(nonRilevatoIn(commentata).length === 0, "la regola 33 accusa un commento");
+  ok(nonRilevatoIn('const x = "non misurato";').length === 0, "la regola 33 non confonde «non misurato» con «non rilevato»");
+  ok(nonRilevatoIn('const x = "il rilevatore è acceso";').length === 0, "«rilevatore» da solo, senza «non» davanti, non è il difetto");
 });
 
 console.log(`\nRisultato Stile: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);

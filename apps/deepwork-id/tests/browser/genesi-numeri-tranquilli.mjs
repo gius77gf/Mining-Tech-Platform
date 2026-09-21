@@ -36,6 +36,13 @@
       una volata si può sparare — e il riquadro «Manda a Sentinella» dicevano
       soltanto «calibrata sui tuoi referti». La guardia esisteva e non era
       collegata a chi disegna il numero.
+   5. **UN `||0` TRASFORMAVA L'ASSENZA IN UNO ZERO "MISURATO", NEL REPORT
+      STAMPABILE.** (19/09, dal terzo giro QA.) La riga «Ritardo foro / fila»
+      scriveva `gnum(D2.ritardoFila||0,1)`: un ritardo per fila illeggibile
+      (volata salvata con quel campo `null`, `Object.assign` non valida) usciva
+      come «42 / 0 ms» — file tutte simultanee, misurato — invece di
+      «42 / — ms». `D2.ritardo`, nella stessa riga, non aveva il fallback;
+      `gnum` scrive già «—» su `null`, bastava smettere di pre-convertirlo.
 
    ⚠️ I CASI SI COSTRUISCONO NEI DATI, MAI NEL DOCUMENTO. La normativa
    sconosciuta e la legge su tre referti entrano da `localStorage` — cioè dalla
@@ -71,9 +78,15 @@ const DIFETTI = [
   // 3a · la copia più debole di csvCell nel CSV della legge di sito
   ["].map(csvCell).join(';')).join('\\n')+'\\n';",
    "].map(v=>{ const s=String(v==null?'':v); return /[;\"\\n]/.test(s)?'\"'+s.replace(/\"/g,'\"\"')+'\"':s; }).join(';')).join('\\n')+'\\n';"],
-  // 3b · la copia più debole nel file che importa Sentinella
-  ["function _sentCell(v){ return csvCell(String(v==null?'':v).replace(/[\\r\\n\\t]+/g,' ').trim()); }",
-   "function _sentCell(v){ const s=String(v==null?'':v).replace(/[\\r\\n\\t]+/g,' ').trim(); return /[;\"]/.test(s)?'\"'+s.replace(/\"/g,'\"\"')+'\"':s; }"],
+  // 3b · la copia più debole nel file che importa Sentinella.
+  // ⛔ `_sentCell` è salita in `genesi-data.js` il 12/09 (unità 122): l'ancora
+  // seguiva il testo della PAGINA e ha smesso di trovare niente il giorno del
+  // trasloco — la stessa famiglia già chiusa qui sopra al punto 4a (una
+  // decisione spostata, l'iniezione rimasta al vecchio indirizzo). Il server
+  // qui sopra ora serve anche `genesi-data.js` sotto controprova, e l'ancora
+  // segue la funzione nel suo indirizzo vero.
+  ["export function _sentCell(v) { return csvCell(String(v == null ? \"\" : v).replace(/[\\r\\n\\t]+/g, \" \").trim()); }",
+   "export function _sentCell(v) { const s = String(v == null ? \"\" : v).replace(/[\\r\\n\\t]+/g, \" \").trim(); return /[;\"]/.test(s) ? '\"' + s.replace(/\"/g, '\"\"') + '\"' : s; }"],
   /* 4a · la legge provvisoria non dichiarata nella scheda validatori.
      ⛔ QUESTA INIEZIONE ERA SCADUTA, e la controprova lo diceva da sé — «1 non
      hanno trovato il loro pezzo» — senza che nessuno leggesse quella riga.
@@ -89,6 +102,9 @@ const DIFETTI = [
   // 4b · e nel riquadro da cui parte il file per Sentinella
   ["    provvisoria: st.fonte==='sito' && !!(st.fit && st.fit.avviso==='pochi'),",
    "    provvisoria: false,"],
+  // 5 · il ritardo per fila trasformato in zero "misurato" nel report stampabile
+  ["gnum(D2.ritardo,1)+' / '+gnum(D2.ritardoFila,1)+' ms']",
+   "gnum(D2.ritardo,1)+' / '+gnum(D2.ritardoFila||0,1)+' ms']"],
 ];
 
 const colpiti = new Set();
@@ -97,7 +113,7 @@ const srv = createServer((q, s) => {
   if (existsSync(p) && statSync(p).isDirectory()) p = join(p, "index.html");
   if (!existsSync(p)) { s.writeHead(404); return s.end("no"); }
   let corpo = readFileSync(p);
-  if (CONTROPROVA && p.endsWith("apps/genesi/genesi.html")) {
+  if (CONTROPROVA && (p.endsWith("apps/genesi/genesi.html") || p.endsWith("apps/genesi/genesi-data.js"))) {
     let t = corpo.toString("utf8");
     for (const [a, b] of DIFETTI) if (t.includes(a)) { colpiti.add(a); t = t.split(a).join(b); }
     corpo = Buffer.from(t, "utf8");
@@ -137,6 +153,9 @@ async function apri(preludio) {
   const errori = [];
   pg.on("pageerror", (e) => errori.push(e.message));
   if (preludio) await pg.addInitScript(preludio);
+  /* senza rete vera in questo contenitore, l'import da gstatic morirebbe da
+     solo dopo ~13 s: lo si taglia subito, come in `genesi-locale.mjs`. */
+  await pg.route("https://www.gstatic.com/**", (r) => r.abort());
   await pg.goto(`http://127.0.0.1:${PORTA}/apps/genesi/genesi.html`, { waitUntil: "domcontentloaded" });
   await pg.waitForTimeout(2500);
   await pg.evaluate(() => {
@@ -158,13 +177,31 @@ async function apri(preludio) {
 /* ⚠️ LA PROVA DI AVER NAVIGATO. Genesi non ha `.page`: `setScreen` scrive
    `scr-<nome>` sul body. Un banco che non naviga risponde «tutto a posto» dopo
    aver guardato la schermata sbagliata. */
+/* ⏱️ 12/09: LO SPLASH D'AVVIO PRENDE FINO A 15-20s A SPARIRE IN QUESTO
+   AMBIENTE (senza GPU: la scena 3D iniziale è lenta a costruirsi), non i
+   ~1,85s previsti dal suo stesso timer (splash.hide a 1250ms + rimozione a
+   600ms). `pointer-events:none` arriva solo quando la classe `.hide` viene
+   messa, quindi finché lo splash resta sopra il bottone della barra il click
+   non arriva a nessuno — misurato con `elementFromPoint`: `DIV#splash`, non
+   il bottone. Un solo click con un'attesa fissa (anche di 1200-1300ms) cade
+   quasi sempre PRIMA che lo splash sparisca, ed è per questo che questo
+   banco dichiarava 30 KO su un prodotto che, aspettando di più, naviga
+   benissimo (verificato: stessi 30 KO sul commit precedente a qualunque
+   lavoro di questa sessione — non è una regressione, è il banco che non
+   aspettava abbastanza). Si RIPROVA il click ogni 400ms per un tetto di 25s
+   invece di aspettare una volta sola: costa pochi millisecondi quando lo
+   splash è già sparito, e recupera i secondi che servono quando non lo è. */
 async function vaiA(pg, schermo) {
-  await pg.evaluate((s) => {
-    const b = [...document.querySelectorAll("#bottomnav button")].find((x) => x.dataset.scr === s);
-    if (b) b.click();
-  }, schermo);
-  await pg.waitForTimeout(1200);
-  const cls = await pg.evaluate(() => document.body.className);
+  const scadenza = Date.now() + 25000;
+  let cls = "";
+  do {
+    await pg.evaluate((s) => {
+      const b = [...document.querySelectorAll("#bottomnav button")].find((x) => x.dataset.scr === s);
+      if (b) b.click();
+    }, schermo);
+    await pg.waitForTimeout(400);
+    cls = await pg.evaluate(() => document.body.className);
+  } while (!cls.includes("scr-" + schermo) && Date.now() < scadenza);
   dice(cls.includes("scr-" + schermo), `navigato davvero (→ ${schermo})`, cls);
 }
 const righeScheda = (pg) => pg.evaluate(() => {
@@ -182,6 +219,14 @@ const VOLATA_NORMA_IGNOTA = () => {
     design: { B: 3, S: 3.5, diam: 102, prof: 10, kg: 58, stem: 2.2, sub: 0.9, esplosivo: "anfo-standard",
       innesco: "nonel", roccia: "calcare", frat: "media", bagnato: false, presplit: false,
       sequenza: "diagonale", recNorma: "uni-9916", recFreq: 25, recDist: 300, perRow: 12, file: 1 } }]));
+};
+const VOLATA_RITARDOFILA_ASSENTE = () => {
+  localStorage.setItem("genesiDisclaimerV1", "1");
+  localStorage.setItem("genesiVolate", JSON.stringify([{ id: "v1", nome: "Fronte Sud 20/07",
+    data: "2026-07-20", sintesi: "10 fori",
+    design: { B: 3, S: 3.5, diam: 102, prof: 10, kg: 58, ritardo: 42, ritardoFila: null, stem: 2.2, sub: 0.9,
+      esplosivo: "anfo-standard", innesco: "nonel", roccia: "calcare", frat: "media", bagnato: false, presplit: false,
+      sequenza: "diagonale", recNorma: "uni-9916", recFreq: 25, recDist: 300, perRow: 10, file: 1 } }]));
 };
 const SITO_TRE_REFERTI = () => {
   localStorage.setItem("genesiDisclaimerV1", "1");
@@ -228,13 +273,19 @@ console.log("\n· la spalla cancellata: il campo vuoto e i numeri di prima");
 console.log("\n· volata salvata con una normativa che Genesi non conosce");
 {
   const pg = await apri(VOLATA_NORMA_IGNOTA);
-  await pg.evaluate(() => {
-    const it = document.querySelector('.hg-item[data-id="v1"]');
-    const btn = it && it.querySelector('button[data-act="apri"]');
-    if (btn) btn.click();
-  });
-  await pg.waitForTimeout(1400);
-  const cls = await pg.evaluate(() => document.body.className);
+  /* stessa attesa di `vaiA`: anche questo click cade sulla schermata Home,
+     dove lo splash può ancora essere sopra (vedi la nota su `vaiA`). */
+  const scadenzaApri = Date.now() + 25000;
+  let cls = "";
+  do {
+    await pg.evaluate(() => {
+      const it = document.querySelector('.hg-item[data-id="v1"]');
+      const btn = it && it.querySelector('button[data-act="apri"]');
+      if (btn) btn.click();
+    });
+    await pg.waitForTimeout(400);
+    cls = await pg.evaluate(() => document.body.className);
+  } while (!cls.includes("scr-design") && Date.now() < scadenzaApri);
   dice(cls.includes("scr-design"), "la volata salvata si apre davvero nel 2D", cls);
 
   await pg.evaluate(() => document.getElementById("btn-scheda-csv").click());
@@ -255,6 +306,34 @@ console.log("\n· volata salvata con una normativa che Genesi non conosce");
   const doc = String(await pg.evaluate(() => window.__doc) || "");
   const m = doc.match(/PPV al recettore[^<]*<\/td><td>([^<]*)</);
   dice(m && /limite —/.test(m[1]), "e il report stampabile scriveva già «limite —»", m && m[1]);
+  dice(pg.__errori.length === 0, "la pagina non solleva errori", pg.__errori[0]);
+  await pg.close();
+}
+
+// ── 5 · IL RITARDO PER FILA ASSENTE, NEL REPORT STAMPABILE ────────────────
+console.log("\n· volata salvata con il ritardo per fila illeggibile");
+{
+  const pg = await apri(VOLATA_RITARDOFILA_ASSENTE);
+  const scadenzaApri = Date.now() + 25000;
+  let cls = "";
+  do {
+    await pg.evaluate(() => {
+      const it = document.querySelector('.hg-item[data-id="v1"]');
+      const btn = it && it.querySelector('button[data-act="apri"]');
+      if (btn) btn.click();
+    });
+    await pg.waitForTimeout(400);
+    cls = await pg.evaluate(() => document.body.className);
+  } while (!cls.includes("scr-design") && Date.now() < scadenzaApri);
+  dice(cls.includes("scr-design"), "la volata salvata si apre davvero nel 2D", cls);
+
+  await pg.evaluate(() => document.getElementById("btn-report").click());
+  await pg.waitForTimeout(500);
+  const doc = String(await pg.evaluate(() => window.__doc) || "");
+  const m = doc.match(/Ritardo foro \/ fila<\/td><td>([^<]*)</);
+  dice(!!m, "la riga «Ritardo foro / fila» c'è nel report", doc.slice(0, 200));
+  dice(m && /^42 \/ —\s*ms$/.test(m[1]),
+    "⛔ e il ritardo per fila illeggibile resta «—», non «0» (file tutte simultanee, misurato)", m && m[1]);
   dice(pg.__errori.length === 0, "la pagina non solleva errori", pg.__errori[0]);
   await pg.close();
 }

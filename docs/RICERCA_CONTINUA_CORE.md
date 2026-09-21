@@ -323,3 +323,458 @@ rimisura prima di scriverlo da qualunque altra parte.*
 ---
 
 *Ricerca proposta da cantiere. Nessun elemento è stato dichiarato di buon senso: ogni riga che afferma un'osservazione è stata verificata su fonti pubbliche o su prove nel codice di Deepwork. Le note su gestionali non letti sono dichiarate come deduzione.*
+
+
+---
+
+## Ricerca del 2026-09-04 — il registro di carico e scarico degli esplosivi (metà sul mondo)
+
+⚠️ **Dichiarazione obbligatoria**: nessuna pagina primaria è stata letta in questa ricerca. Ogni articolo di legge, obbligo, scadenza, definizione o nome di prodotto citato qui sotto viene da **risultati di ricerca** (`WebSearch`, che ha funzionato regolarmente — la rete non è bloccata), non dal testo integrale della fonte. Ogni riga porta il proprio grado di fiducia. Un numero di legge non verificato sul testo primario **non va scritto altrove senza questa marcatura**.
+
+### 1. La norma italiana (di seconda mano, con fonte e fiducia)
+
+- **TULPS, R.D. 773/1931, art. 55** — impone a chi esercita fabbriche, depositi o rivendite di esplosivi di qualunque genere di tenere un **registro delle operazioni giornaliere**, con le generalità delle persone con cui le operazioni sono compiute. Il registro va tenuto **in forma elettronica** secondo le modalità del regolamento; deve essere esibito a ogni richiesta degli ufficiali/agenti di p.s.; i rivenditori devono comunicare mensilmente all'ufficio di polizia le generalità di chi ha acquistato munizioni/esplosivi, tipo e quantità, ed estremi dei titoli autorizzativi. **Fiducia: media** (più fonti indipendenti concordano sul contenuto, ma nessuna è il testo di legge letto direttamente).
+- **Durata di conservazione del registro — CONTRADDIZIONE TROVATA, non risolta**: una ricerca (query "circolare Ministero Interno registro carico scarico esplosivi") riporta **cinque anni** anche dopo la cessazione dell'attività, citando l'art. 108 del regolamento TULPS; un'altra ricerca (query mirata sulla durata) riporta **cinquant'anni**, sempre riferita all'art. 55 TULPS/registro elettronico, segnalando essa stessa che esisterebbe una fonte più vecchia (2012) con "5 anni" ora superata. **Fiducia: bassa su entrambi i numeri** — la ricerca non ha saputo dire quale sia quello vigente né se i due si riferiscano a registri diversi (registro del rivenditore vs registro del titolare di deposito in cava). Va verificato sul testo primario prima di scriverlo in qualunque schermata.
+- **R.D. 635/1940** (regolamento di esecuzione del TULPS, con gli allegati sugli esplosivi) — l'art. 108 del regolamento dettaglia il contenuto del registro: data dell'operazione, generalità dell'acquirente/venditore, tipo e quantità di esplosivo, documento esibito dall'acquirente, estremi del porto d'armi o dell'autorizzazione del Questore. Il registro è soggetto a **vidimazione e bollatura** da parte dell'autorità di p.s. **Fiducia: media**.
+- **D.Lgs. 624/1996** (attuazione direttive 92/91/CEE e 92/104/CEE, sicurezza e salute dei lavoratori nelle industrie estrattive) — si applica a prospezione, ricerca e coltivazione di sostanze minerali e idrocarburi, e ai lavori negli impianti connessi. Non è la norma sull'esplosivo in sé quanto sull'organizzazione della sicurezza: prevede la figura del **Direttore responsabile**, che deve redigere un "Ordine di servizio" specifico sulle modalità di impiego degli esplosivi, da sottoporre all'approvazione dell'autorità di vigilanza (riferimento incrociato con l'art. 305 del D.P.R. 128/1959). **Fiducia: media**.
+- **D.P.R. 128/1959** ("Norme di polizia delle miniere e delle cave") — **questa, non il D.P.R. 302/1956, sembra essere la norma di riferimento diretta su esplosivi in cava/miniera**: il **Titolo VIII, artt. 297-303**, tratta specificamente degli esplosivi. Art. 297: divieto di usare esplosivi, accessori detonanti e inneschi non riconosciuti dal Ministero dell'Interno (ex art. 53 TULPS) e non riconosciuti idonei all'uso minerario dal Ministero dell'Industria; art. 299: elenco degli esplosivi idonei tenuto dal Ministero, approvato con decreto pubblicato in Gazzetta Ufficiale (elenco oggi tenuto da UNMIG/MASE); art. 303: obbligo per gli imprenditori di dotarsi di esplosivi e accessori detonanti a norma. **Fiducia: media** — il numero degli articoli e il loro contenuto sintetico sono confermati da più fonti indipendenti, ma il testo integrale non è stato letto.
+- **D.P.R. 302/1956** ("Norme di prevenzione degli infortuni sul lavoro integrative di quelle generali emanate con D.P.R. 547/1955") — riguarda cave e miniere in generale (prevenzione infortuni), non è dedicato in modo specifico al registro degli esplosivi; contiene norme tecniche di dettaglio sul trasporto e la consegna dell'esplosivo (consegna in quantità non superiori al fabbisogno giornaliero, trasporto in contenitori originali, esplosivo separato da micce/detonatori). **Fiducia: media** — probabile che la domanda originaria intendesse il D.P.R. 128/1959 per il registro vero e proprio; il 302/1956 sembra più sulle norme di sicurezza operativa che sul registro. Da chiarire su fonte primaria.
+- **Rapporto D.Lgs. 81/2008 / D.Lgs. 624/1996**: il D.Lgs. 81/2008 **non ha abrogato** il D.Lgs. 624/1996; le attività estrattive **non rientrano** nel campo di applicazione del Titolo XI (atmosfere esplosive) del D.Lgs. 81/2008 — resta il 624/1996 la norma speciale di settore. **Fiducia: media**.
+- **Direttiva 2008/43/CE e recepimento italiano** — la direttiva (Commissione, 4/4/2008, ex direttiva 93/15/CEE) istituisce un sistema armonizzato di identificazione e tracciabilità univoca degli esplosivi per uso civile lungo tutta la filiera. **Recepita in Italia con il D.Lgs. 25 gennaio 2010, n. 8** (G.U. n. 33 del 10/2/2010): l'art. 3 istituisce, a partire dal **5 aprile 2015**, un sistema di raccolta dati che consente identificazione e tracciabilità univoca lungo l'intera catena di fornitura e per l'intero ciclo di vita dell'esplosivo, con possibilità di risalire a chi lo ha posseduto. Esiste anche una circolare del Ministero dell'Interno del 1° aprile 2015 su identificazione e tracciabilità. **Fiducia: media-alta** (più fonti indipendenti concordano su numero del decreto, data G.U. e data di efficacia).
+- **Fochino**: la licenza per l'esercizio del mestiere di fochino è rilasciata dalla **Prefettura**; il fochino è l'unico abilitato a confezionare/innescare le cariche, brillare le mine, gestire i colpi mancati; occorre un attestato di idoneità che include cultura generale, conoscenza tecnica specifica e conoscenza delle norme di sicurezza sull'impiego di esplosivi nei lavori minerari; all'esame va esibito un **libretto di lavoro** con i lavori svolti (un manuale d'esame parla genericamente di "libretto"; non è confermata una dicitura ufficiale "libretto del fochino" come termine di legge — vedi punto 4). **Fiducia: media**.
+- **Direttore responsabile / sorvegliante**: il quadro (D.Lgs. 624/1996 + D.P.R. 128/1959) assegna al Direttore responsabile — o al Sorvegliante in sua assenza — la definizione delle distanze di sicurezza e la verifica dell'allontanamento di personale e mezzi prima del brillamento. **Fiducia: media**.
+- **Sanzioni**: la ricerca non ha trovato un articolo specifico e univoco che sanzioni la mancata/irregolare tenuta del registro di carico e scarico in sé (distinto dalla fabbricazione/commercio abusivo di materie esplodenti, art. 678 c.p., che è un reato diverso — la detenzione/commercio senza licenza, non la tenuta del registro). Le fonti trovate dicono solo che le violazioni degli obblighi del TULPS in materia sono sanzionate come **contravvenzioni**, senza indicare l'importo o la pena. **Non trovato con WebSearch** un riferimento preciso all'articolo sanzionatorio della sola omessa tenuta/vidimazione del registro — query usata: "sanzioni penali mancata tenuta registro esplosivi TULPS articolo 678 codice penale".
+- **Controlli — chi e con quale periodicità**: le fonti indicano il ruolo delle **sezioni UNMIG** (oggi sotto il Ministero dell'Ambiente e della Sicurezza energetica, MASE) per l'attività di polizia mineraria — sorveglianza sull'uso degli esplosivi, verifiche periodiche e straordinarie sugli impianti, verifica dei luoghi di lavoro secondo D.Lgs. 81/2008 e 624/1996. È citata una verifica periodica **biennale** ma riferita all'impianto di terra (messa a terra) degli impianti di prima lavorazione annessi a cave/miniere, **non** al registro esplosivi in sé — non trovata una periodicità dichiarata specificamente per il controllo del registro esplosivi. **Fiducia: bassa** sulla periodicità applicata al registro; **media** sul ruolo generale di UNMIG. Il ruolo della Questura/Commissariato (controllo ai sensi del TULPS, competenza sulle licenze di deposito e sul nulla osta) è confermato da più fonti ma senza una cadenza dichiarata. **Non trovato con WebSearch** un riferimento a un ruolo esplicito di ASL/regione sul controllo del registro esplosivi (le fonti su ASL/regione riguardano piuttosto la sicurezza generale delle cave, non il registro esplosivi) — query usata: "UNMIG ASL controllo polizia mineraria cava esplosivi ispezione periodicità".
+
+### 2. Il contenuto del registro in pratica
+
+Le fonti (nessuna delle quali un modulo ufficiale letto per intero) convergono su questi campi per il registro ex art. 55 TULPS / art. 108 regolamento:
+- data dell'operazione;
+- generalità della persona/ditta con cui l'operazione è compiuta (fornitore in entrata, o utilizzatore/fochino in uscita);
+- tipo e quantità di esplosivo (e, in cava, anche degli accessori detonanti/inneschi, trattati come voce separata in molte fonti sul fochino e sul deposito);
+- documento esibito dall'acquirente/ricevente per l'identificazione;
+- estremi del titolo autorizzativo (nulla osta, porto d'armi, autorizzazione del Questore) per l'acquirente.
+
+Sul contenuto **specifico di cava** (giacenza dopo movimento, impiego per volata, riconciliazione, residui, colpo mancato) le fonti trovate sono **più deboli e indirette**:
+- **Quantità massime in deposito temporaneo/riservetta**: una fonte (procedura di sicurezza regionale) riporta il divieto di depositare oltre **50 kg** in riservette non autorizzate dall'ingegnere capo; la quantità consegnabile a un singolo addetto è limitata a **25 kg**, salvo eccezione scritta della direzione; un esempio di riservetta autorizzata riporta un massimo di **1.000 kg** per esplosivo di II e III categoria. Sono numeri di **esempi/casi citati dalle fonti**, non una soglia generale univoca — vanno trattati come indicativi. **Fiducia: bassa-media**.
+- **Colpo mancato**: le fonti (procedure di sicurezza regionali/aziendali, non norma primaria) descrivono il divieto di abbandonare mine cariche non esplose: vanno fatte brillare con una nuova carica in un foro vicino, oppure applicando un'altra cartuccia nello stesso foro del colpo mancato (se parte del borraggio è rimovibile senza utensili metallici o scintillanti). Dopo la volata si verifica l'assenza di segni di colpi non esplosi prima di riprendere il lavoro, e la ricerca di eventuali cartucce/colpi inesplosi prosegue con cautela. **Non è emerso con chiarezza dalle fonti come il colpo mancato venga registrato nel registro di carico/scarico** (es. come "consumo" vs "reso", con quale documentazione) — punto da segnare per il delta come domanda aperta, non come fatto. **Fiducia: bassa** sulla parte di registrazione, **media** sulla parte procedurale di sicurezza.
+- **Riconciliazione carico/consumo/giacenza**: non è emersa una fonte che descriva esplicitamente il meccanismo di riconciliazione (es. giacenza iniziale + carichi − consumi per volata − resi = giacenza finale) come obbligo normativo formalizzato in una singola colonna; è una conseguenza logica del tenere un registro di movimentazione ma **non è stata trovata una fonte primaria o secondaria che la descriva come tale per il caso italiano** — query usate: "colpo mancato esplosivo non esploso volata procedura registrazione normativa", nessun risultato con dettaglio sulla riconciliazione contabile.
+- **Conservazione**: vedi la contraddizione 5 vs 50 anni già segnalata al punto 1.
+
+### 3. Il mondo dei software
+
+- **Orica SHOTPlus / BlastIQ** — SHOTPlus è descritto come il software leader del settore per progettazione e modellazione di volate (drill & blast design), con integrazione a BlastIQ Mobile: i pattern di volata vengono importati da SHOTPlus e parametri come profondità, quantità di esplosivo e condizione del foro vengono catturati elettronicamente sul banco. L'enfasi delle fonti trovate è sulla progettazione/QA-QC della volata più che sul registro di carico/scarico in sé. **Fiducia: media**.
+- **Dyno Nobel — ΔE2 (Differential Energy) e Electronic Shot Report (ESR)** — sistema con pannello di controllo in-truck; il software ΔE2 Pre-Load permette di posizionare l'energia nel foro e importare dati da app mobile che creano i progetti di volata; include un **Electronic Shot Report (ESR)** descritto come funzionalità che crea report per rispettare i requisiti regolatori — cioè un'esportazione pensata per l'autorità/compliance. Il sistema usa dati GPS dai pacchetti di perforazione "smart" e carica profili di carica automaticamente. **Fiducia: media**.
+- **MineSight Blast** — interfaccia di progettazione drill & blast con tutti i dati (progetto e reale) salvati in un **database SQL**; collegamenti diretti a sistemi di gestione flotta perforazione e ai sistemi dei fornitori di esplosivo per il trasferimento automatico dei dati. **Fiducia: media**.
+- **Maptek BlastLogic** — gestione dell'inventario esplosivi via tablet: livelli di scorta aggiornati dinamicamente sul campo, sostituendo la tenuta cartacea e riducendo errori di calcolo manuale; traccia in modo integrato vibrazione, frammentazione, prestazioni, costo e **inventario di ogni volata**; il tablet BlastLogic comunica direttamente con IBIS per controllare il caricamento dell'esplosivo — cioè check-in/check-out di esplosivo e accessori assegnati a una volata specifica. È il prodotto più vicino, fra quelli trovati, a un "registro digitale di carico/scarico legato alla singola volata". **Fiducia: media-alta** (più pagine Maptek indipendenti concordano).
+- **P-Wave Master Blaster** — descritto come "blast and inventory management software" che migliora l'accuratezza della documentazione, riduce la carta, permette ricerca/recupero rapido della documentazione di volata. Poche informazioni di dettaglio trovate oltre a questa descrizione generale. **Fiducia: bassa** (fonte unica, sintetica).
+- **EasyBoundBook** (mercato USA) — software specificamente per **FEL compliance** (Federal Explosives License, normativa ATF statunitense, non italiana) e inventory tracking per produttori/distributori di esplosivi. Rilevante solo come termine di paragone: mostra che nel mercato USA esiste una categoria di software dedicata proprio alla "compliance del registro esplosivi", separata dai software di blast design. **Fiducia: media** sull'esistenza del prodotto, **non applicabile** al contesto normativo italiano.
+- **TTE (Tenenga, partner italiano di TTE Europe GmbH)** — presentato come l'unica soluzione italiana per la tracciabilità di armi ed esplosivi conforme alle linee guida UE (identificazione/tracciabilità ex direttiva 2008/43/CE): genera codici identificativi univoci per ogni unità/pacco e, quando le imprese della filiera usano sistemi informatizzati, genera un dato elettronico da trasmettere all'impresa successiva a ogni consegna. È il prodotto più direttamente legato all'obbligo di legge sulla tracciabilità (non al registro TULPS in sé). **Fiducia: media**.
+- **Software gestionali italiani generici di tracciabilità lotti** (Datalog, Zucchetti, Dinamico, ecc.) — esistono ma sono generalisti (alimentare, rifiuti); **non è emerso alcun gestionale italiano generalista che dichiari esplicitamente una funzione per il registro di carico/scarico esplosivi in cava** — query usata: "software gestione registro esplosivi cava Italia deposito digitale tracciabilità lotto", nessun prodotto verticale sul mestiere trovato oltre a TTE.
+
+### 4. Le parole del mestiere in italiano
+
+- **Deposito di consumo**: deposito annesso al cantiere/cava, per l'esplosivo destinato all'uso corrente (distinto dal deposito principale/fabbrica). Non è emersa una definizione di legge testuale precisa dalle fonti trovate, ma il termine ricorre nei documenti di settore come categoria distinta dal deposito di produzione/vendita. **Fiducia: bassa** sulla definizione esatta.
+- **Riservetta**: secondo una fonte (schema di procedura di sicurezza regionale), è lo **stoccaggio di esplosivi in sotterraneo** all'interno del cantiere (a differenza del deposito all'aperto); soggetta ad autorizzazione del Prefetto sentita la Commissione Tecnica Provinciale per gli Esplosivi. **Fiducia: media** (fonte unica ma specifica e coerente con l'uso comune del termine).
+- **Licenza di deposito**: autorizzazione rilasciata dal **Prefetto** (ex art. 47 TULPS) per il deposito e la minuta vendita di esplosivi di I, IV e V categoria, previo sopralluogo della Commissione Tecnica Provinciale; sopra i 200 kg indicati da una fonte serve la licenza di deposito vera e propria (sotto quella soglia si parlerebbe di semplice detenzione — dato da verificare). **Fiducia: media**.
+- **Nulla osta**: autorizzazione rilasciata dal **Questore**, necessaria per il trasporto di esplosivi; ha validità di **un mese**, non può essere rilasciato a minori, è esente da tasse; la richiesta deve specificare quantità, tipo, uso previsto, luogo di impiego e durata presunta dei lavori. **Fiducia: media**.
+- **Giornale delle operazioni**: nome con cui più fonti indicano il registro giornaliero ex art. 55 TULPS (sinonimo di "registro di carico e scarico" nel linguaggio delle fonti trovate) — ma **non è stato confermato con una fonte che lo chiami esplicitamente e ufficialmente "giornale delle operazioni"** come dicitura distinta dal "registro delle operazioni giornaliere"; potrebbero essere lo stesso oggetto con due nomi informali diversi usati da fonti diverse. **Fiducia: bassa** sulla distinzione terminologica.
+- **Libretto del fochino**: **non trovato con WebSearch** come dicitura ufficiale — le fonti parlano genericamente di un "libretto di lavoro" da esibire all'esame di fochino, con i lavori svolti, ma nessuna fonte usa testualmente l'espressione "libretto del fochino" come nome di un documento normato. Query usata: `"libretto del fochino" OR "giornale delle operazioni" cava terminologia mestiere` — trovate fonti sul fochino in generale, non sulla dicitura specifica.
+- **Fochino**: termine confermato e diffuso — l'operatore abilitato (licenza prefettizia) a confezionare/innescare cariche, brillare mine, gestire colpi mancati. Termini di mestiere collegati trovati nelle fonti: **camere di mina** (cavità di grandi dimensioni per la carica), **fornelli** (una volta riempite le camere), **fori da mina/petardi** (cariche interne più piccole). **Fiducia: media**.
+
+### Fonti
+
+| URL | Che cosa dice | Fiducia |
+|---|---|---|
+| https://www.brocardi.it/testo-unico-pubblica-sicurezza/titolo-ii/capo-v/art55.html | Testo/commento art. 55 TULPS: registro operazioni giornaliere, comunicazione mensile, esibizione a richiesta, conservazione | media |
+| https://www.gazzettaufficiale.it/eli/id/1931/06/26/031U0773/sg | Testo TULPS R.D. 773/1931 (pagina indice GU) | media |
+| https://www.vigilfuoco.it/sites/default/files/2024-07/COORD_RD_06_05_1940_n_635_Allegati_TULPS_ESPLOSIVI.pdf | Testo coordinato R.D. 635/1940 con allegati esplosivi (regolamento TULPS) | media |
+| https://www.tuttoprevenzioneincendi.it/images/Norme/RD_06_05_1940_N_635_Allegati_TULPS_ESPLOSIVI.pdf | Idem, altra fonte del testo coordinato | media |
+| https://www.conarmi.org/faq_scheda.jsp?idnews=3068 | Circolare Min. Interno su esenzione da bollo dei registri di carico/scarico; contenuto art. 108 reg. TULPS; conservazione "5 anni" | bassa (in contraddizione con altra fonte sulla durata) |
+| https://www.earmi.it/diritto/leggi/tracciabilita_esplosivi.html | Circolare 1/4/2015 su identificazione e tracciabilità esplosivi; sistema dal 5/4/2015 | media |
+| https://pugliacon.regione.puglia.it/documents/72607/118877/AE_LEX_IT_03_dlgs624_96.pdf | Testo D.Lgs. 624/1996 | media |
+| https://www.brascaepartners.it/web/2021/03/25/sicurezza-sul-lavoro-nelle-miniere-a-cielo-aperto/ | Commento su D.Lgs. 624/96, direttore responsabile, ordine di servizio esplosivi (art. 305 DPR 128/1959) | media |
+| https://fareimpresa.comune.milano.it/documents/87339536/190972295/dpr302.pdf | Testo D.P.R. 302/1956 | media |
+| https://www.edizionieuropee.it/law/html/35/zn64_01_020.html | D.P.R. 128/1959, norme di polizia delle miniere e cave, riferimenti articolato | media |
+| https://www.gazzettaufficiale.it/eli/id/1959/04/11/059U0128/sg | Testo D.P.R. 128/1959 (indice GU) | media |
+| https://unasf.conflavoro.it/news/licenza-fochino-galleria/ | Licenza fochino, DPR 302/1956 citato come base, art. 27 su licenza prefettizia | media |
+| https://www.certifico.com/sicurezza-lavoro/documenti-sicurezza/67-documenti-riservati-sicurezza/6455-il-fochino-quadro-normativo | Quadro normativo fochino: attestato di idoneità, competenze richieste | media |
+| https://www.earmi.it/download/libri/fochino.pdf | Manuale esame fochino: libretto di lavoro da esibire, terminologia (camere, fornelli, fori) | media |
+| https://www301.regione.toscana.it/bancadati/atti/Contenuto.xml?id=5138049&nomeFile=Delibera_n.64_del_31-01-2017-Allegato-A | Schema procedura sicurezza esplosivi in cava: riservetta, quantità 50/25/1000 kg, colpo mancato | media |
+| https://www.ausl.bologna.it/eventi/archivio/auslevent.2016-07-12.1669126488/files/Linea-Guida-n-a6-14-Utilizzo-degli-esplosivi-in.pdf | Linea guida uso esplosivi in galleria (ASL Bologna) | media |
+| https://www.senato.it/leg/16/BGT/Schede/docnonleg/18522.htm | Schema di decreto di recepimento direttiva 2008/43/CE | media |
+| https://olympus.uniurb.it (dlgs812016) | D.Lgs. 81/2016, attuazione direttiva 2014/28/UE su esplosivi per uso civile (mercato) | media |
+| https://www.tenenga.it/tracciabilita-degli-esplosivi-tte-ha-la-soluzione-e-i-partner/ | Soluzione TTE per tracciabilità esplosivi, partner italiano TTE Europe GmbH | media |
+| https://www.tenenga.it/en/tte/ | Pagina prodotto TTE | media |
+| https://unmig.mase.gov.it/attivita-delle-sezioni-unmig-e-dei-laboratori-chimici-e-mineralogici-2022/ | Attività di ispezione UNMIG su cave/miniere | media |
+| https://unmig.mase.gov.it/sicurezza/attivita-per-la-sicurezza/elenco-degli-esplosivi/ | Elenco esplosivi idonei uso minerario, tenuto da UNMIG/MASE | media |
+| https://www.orica.com/digital-solutions/blast-design-and-execution/shotplus | Prodotto SHOTPlus, progettazione volate | media |
+| https://www.agg-net.com/resources/articles/drilling-blasting/oricas-digital-drilling-and-blasting-solution | Integrazione SHOTPlus/BlastIQ Mobile, cattura elettronica parametri | media |
+| https://www.globalminingreview.com/mining/11102019/dyno-nobel-launches-new-blasthole-management-system/ | Lancio ΔE2 Dyno Nobel | media |
+| https://www.dynonobel.com/resource-centre/explosive-engineers-mobile-app/ | App mobile Dyno Nobel, Electronic Shot Report (ESR) per compliance regolatoria | media |
+| https://im-mining.com/2014/09/22/minesight-blast-software-to-help-redefine-blasting/ | MineSight Blast, database SQL, collegamento a sistemi fornitori esplosivo | media |
+| https://www.maptek.com/forge/september_2020/digital-explosives-inventory-management/ | Maptek BlastLogic: inventario esplosivi via tablet, check-in/out per volata | media-alta |
+| https://www.maptek.com/case_studies/blastlogic/ | Case study BlastLogic | media |
+| https://miningandblasting.wordpress.com/software-for-mining/ | Elenco software settore, cita P-Wave Master Blaster | bassa |
+| https://easyboundbook.com/explosives-software | Software USA per FEL compliance (ATF) — riferimento comparativo, non applicabile all'Italia | media (per il contesto USA), n/a per l'Italia |
+| https://prefettura.interno.gov.it/it/prefetture/padova/licenza-deposito-e-minuta-vendita-esplosivi-i-iv-e-v-cat | Licenza di deposito e minuta vendita, art. 47 TULPS, soglia 200 kg | media |
+| https://www.conarmi.org/media/faq_files/Quesito_nulla_osta_acquisto_esplosivi.pdf | Nulla osta ex art. 55 TULPS | media |
+| https://www.puntosicuro.it/attivita-estrattive-minerali-C-17/sicurezza-valutazione-dei-rischi-per-le-attivita-estrattive-nelle-cave-AR-21944/ | Rapporto D.Lgs. 81/2008 - D.Lgs. 624/1996, esclusione Titolo XI atmosfere esplosive | media |
+
+### Domande per il delta
+
+Da rispondere partendo dal **meccanismo** del nostro codice, non dal nome cercato nel mondo:
+
+1. Nel core (o nell'app che tratta gli esplosivi, se esiste già una funzione dedicata): **chi sa quanti kg di esplosivo e quanti detonatori sono stati caricati in una specifica volata, e da quale lotto/fornitore provengono?** C'è una struttura dati che lega volata → consumo esplosivo → lotto, o l'esplosivo è oggi un campo libero/testuale dentro la scheda volata?
+2. **Chi calcola la giacenza in deposito dopo un movimento?** Esiste una funzione che fa carico − consumo − reso = giacenza, o la giacenza (se esiste un modulo che la tratta) è un valore inserito a mano senza riconciliazione automatica?
+3. **Come viene trattato, se viene trattato, un colpo mancato**? C'è un campo/stato distinto per "esplosivo non detonato" nella scheda volata, o l'unico modo di registrarlo oggi sarebbe una nota testuale? Se non c'è, è un'assenza da dichiarare per nome, non da dedurre.
+4. **Chi firma, nel prodotto, l'operazione di carico/scarico** — c'è un concetto di operatore/fochino associato al movimento, o le operazioni sono anonime rispetto a chi le ha eseguite?
+5. **Esiste già, in una qualunque app dell'ecosistema, un concetto di "lotto" tracciabile** (per materiali diversi dall'esplosivo, es. materiali di cava, ricambi Flotta) che potrebbe dare un pattern riusabile per il lotto dell'esplosivo, invece di inventarne uno nuovo?
+6. **Se esiste già un'esportazione per un'autorità** (es. verso ARPA in Sentinella, verso l'ente in Terra) qual è il meccanismo che quell'esportazione usa per dichiarare "questo dato manca" invece di ometterlo — e quel meccanismo si può riusare per un'eventuale esportazione del registro esplosivi verso Questura/UNMIG?
+7. **La conservazione a lungo termine** (5 o 50 anni secondo le fonti, da verificare) ha oggi un corrispettivo nel prodotto — un dato che il prodotto non permette di eliminare o modificare una volta scritto? Se il registro esplosivi dovesse essere immutabile per decenni, quale meccanismo esistente (se esiste) tratta già un dato "che non si tocca più"?
+
+### Il delta, fatto da chi ha il codice in mano (04/09, verificato contro il commit `fc6fa9d2`)
+
+Le sette domande qui sopra, risposte aprendo le FUNZIONI — non cercando la
+parola del mondo nel nostro codice. Ogni «non c'è» porta il comando.
+
+1. **Chi sa quanti kg e da quale lotto.** I chili di una volata li sa
+   `misureVolataFochino(r)` in `shared/deepwork-id-client/dw-shell.js` (dal
+   `tot_kg` del rapportino del fochino, o dalla somma dei `kg` per foro in
+   `fori_dettaglio`, con `parziale` quando un foro non li porta) e, per il
+   progetto, `misureVolataProgetto(v)`; i chili **per tipo** li sa
+   `esplosivoPerTipo(r)` (03/09), che dichiara a parte i chili senza tipo e i
+   fori con due tipi. **Il lotto non esiste**: `grep -n "lotto" index.html` →
+   0 righe di codice (solo Terra ha un `lotto`, ed è la porzione di cava:
+   `statoLotto`, `avanzamentoLotto` in `terra-data.js`, altra cosa). I
+   **detonatori** non sono contati: per foro c'è `innesco` (testo libero,
+   «Detonatore a tubo»), nessuna quantità né numero di serie —
+   `grep -c "detonator" index.html` → 3 righe, tutte testi d'esempio o segnaposto.
+2. **Chi calcola la giacenza.** Nessuno: `DB.deposito` in `index.html` è il
+   deposito dei CONSUMABILI di perforazione (`punte`, `aste`, `lubr`), non
+   dell'esplosivo — `grep -n "deposito" index.html` → solo quelle tre
+   collezioni e due note d'esempio («Chili da recuperare dal registro del
+   deposito»). Non c'è un carico, non c'è un reso, non c'è una giacenza:
+   il core sa solo il **consumo per volata**.
+3. **Il colpo mancato.** C'è, dal 03/09: `esitoSparo(r)` legge `colpiEsplosi`,
+   `colpiMancati`, `mancatiNota` del rapportino del fochino, con `contato`
+   (assente ≠ zero), `coerente`/`perche` (mancati > fori) e `pericolo`; la
+   pagina lo scrive in elenco, scheda, PDF e cronologia. Quello che **non c'è**
+   è la quantità di esplosivo rimasta nel foro (kg non esplosi) e il suo
+   recupero/distruzione: `grep -n "recuper\|distru" index.html` → 2 righe,
+   nessuna sul tema (una distrugge i grafici, l'altra è una nota d'esempio). Per il registro del mondo il colpo mancato è un movimento
+   (esplosivo caricato e non consumato); qui è un conteggio di fori.
+4. **Chi firma.** Il rapportino porta `userId`/`createdBy` (chi l'ha scritto
+   nell'app: `user_fochino` nella dimostrazione) e il PDF del fochino lascia la
+   riga per la firma a mano (commento in `index.html` intorno alla riga 4418:
+   «nessuna firma digitale annunciata»). Nessuna firma sul movimento, perché
+   il movimento non esiste (punto 2).
+5. **Un lotto tracciabile altrove.** No: in Flotta i ricambi hanno codice e
+   scorta ma non un lotto; in Conti le pesate hanno il DDT (numero documento
+   del vettore/cliente), che è il parente più vicino di «provenienza con
+   numero del documento» — `grep -n "ddtIds" apps/conti/conti-data.js | head -2`
+   → le fatture collegano le pesate per `ddtIds`, e la pesata È il DDT. Un pattern riusabile per il carico (fornitore +
+   numero documento + data) c'è lì, non nel core.
+6. **Come si dichiara «manca» verso un'autorità.** Sentinella (report ARPA:
+   `conSoglia`, «senza dati» ≠ conforme) e Terra (foglio per l'ente:
+   «non misurato», `incertezzaScavo` con la copertura) lo fanno con la
+   bandiera del modulo letta dal foglio; nel core lo fa il PDF del fochino
+   («almeno N kg», «chili non dichiarati», `esitoSparo` «non contato»). Il
+   meccanismo per un registro esiste ed è il solito: la funzione decide, il
+   foglio scrive la sua dichiarazione.
+7. **Conservazione e immutabilità.** Le regole Firestore negano la
+   cancellazione dal client dei documenti «emessi» di Conti (decisione 10b,
+   `apps/deepwork-id/firestore.rules`); il core, nella Fase attuale, non passa
+   da Deepwork ID (ARCHITETTURA §8): i rapportini del fochino sono
+   modificabili e cancellabili da chi ha l'app. Un registro vidimato vuole il
+   contrario, e questo — insieme ai 5/50 anni non risolti — è **norma di
+   seconda mano**: prima di scriverlo in una schermata serve il testo primario
+   o la parola del fondatore.
+
+**Che cosa ne segue, come candidato e non come cantiere aperto**: il core sa
+il *consumo* per volata (kg, per tipo, per foro, con i colpi mancati); un
+registro di carico e scarico vuole anche il *carico* (fornitore, documento,
+lotto, detonatori contati) e la *giacenza* = carico − consumo − reso, e vuole
+che il movimento porti chi l'ha fatto. È una collezione nuova (`movimenti
+esplosivo`) con tre funzioni pure in `shared/` (giacenza, riconciliazione col
+consumo di `misureVolataFochino`, dichiarazione di ciò che manca), non una
+modifica di quello che c'è. Non entra in roadmap come «da fare» finché il
+fondatore non decide se il core deve tenere un registro con valore legale (la
+decisione è commerciale e normativa): entra come **candidato con il delta
+fatto**, e la parte di mestiere (colonne, chi vidima, conservazione) resta
+marcata di seconda mano.
+
+---
+
+# Ricerca continua — Core Deepwork (il primo schermo di un titolare multi-cava)
+
+**Data ricerca:** 17/09/2026
+**Commit verificato:** d7a4bb19
+
+⚠️ **Dichiarazione obbligatoria**: `WebSearch` ha funzionato regolarmente (nessun blocco di rete). Ogni affermazione sul mondo qui sotto viene dai **risultati di ricerca** (titoli/estratti restituiti da `WebSearch`), non dal testo integrale delle pagine — `WebFetch` non è stato provato perché già documentato `EGRESS_BLOCKED` in questo repository, e comunque non serviva: gli estratti bastavano a rispondere alla domanda. Ogni riga porta la marcatura «di seconda mano».
+
+## Che cosa esiste già nel core (letto prima di proporre, per nome di funzione — non per parola cercata)
+
+Il primo schermo che un utente vede aprendo il core è `renderHome()` (`index.html:1697`), **non** un cruscotto multi-cava: è una griglia di tessere che cambia in base al ruolo (fochino/operatore/ufficio/admin) — rapportino in evidenza, volata, storico, cave, macchine, deposito, personale, chat, e — solo per chi `can('dashboard')` — una tessera «Dashboard» (`:1751`). Non è un difetto nuovo da correggere: è il punto di partenza da cui misuro il delta.
+
+- **«Il Quadro» (cruscotto del titolare) non è mai stato costruito.** `docs/DECISIONI_WEEKEND.md` §15 registra che il 07/08 il ciclo ha *deciso dove* vivrà (nel core) ma dichiara esplicitamente «**Il Quadro NON è costruito**»; `grep -c "Quadro" index.html` → le uniche due occorrenze di «cruscotto» nel file (righe 4083, 8359) sono commenti su un difetto già corretto del cruscotto KPI, non sul progetto del titolare. Il progetto stesso vive in `docs/RICERCA_CRUSCOTTO_TITOLARE_202607.md` (1096 righe, non riletto qui per intero: la domanda di questa sessione è diversa — «come dovrebbe essere», non «che cosa prevede già il progetto fermo»). Quindi questa ricerca non propone «serve un cruscotto»: quello è già un candidato aperto e deciso. Propone **che cosa quel cruscotto dovrebbe mostrare per primo**, sulla base di come lo fanno i prodotti comparabili, visto che il progetto del 07/08 non è stato scritto guardando quel confronto.
+- **Multi-tenant nel core: preparato, non attivo — dichiarato nel codice stesso.** `index.html:141-155`: `const MULTI_TENANT = false; let ORG_ID = null;` con il commento che spiega che si accende solo insieme a autenticazione server-side e migrazione dati (Fasi 3-4). Non è un buco silenzioso: è una fase dichiarata. Il cambio-organizzazione **esiste già** altrove nell'ecosistema — `switchOrg(orgId)` in `shared/deepwork-id-client/index.js:310-318`, chiamato da `apps/deepwork-id/profilo.html:159` — e azzera `entitlement` **prima** del reload proprio per non lasciar filtrare i permessi dell'org precedente, poi fa `location.reload()` (ricarica intera della pagina, non uno swap di stato in-place). Il core non lo usa ancora (Fase 1). Non propongo di «aggiungerlo adesso»: è governato da una fase esplicita, e il meccanismo — quando servirà — esiste già in `shared/` con la difesa giusta contro lo stato residuo, riusabile invece che da reinventare (è la regola di questo file sulle funzioni condivise).
+- **Una forma di confronto multi-cava esiste già**, ma è distinta da quella che manca: `renderDashboard()` (`index.html:4050`) filtra per `_dashFiltri.cavaId` (una cava alla volta o «tutte»), e quando non si filtra mostra una torta e un elenco «Dettaglio per cava» ordinato per mc prodotti, con `quotaMc(c.mc,totMc)` (`:651`, `:4177`) che stampa la quota percentuale di ciascuna cava sul totale. **È un confronto di volume**, non di stato: risponde a «quale cava ha prodotto di più», non a «quale cava ha un problema adesso». Ed è dietro un permesso (`can('dashboard')`, riservato ad admin/ufficio, `:4051-4054`) e a un tocco dalla home, non il primo schermo.
+- **Un pattern di badge d'eccezione per riga esiste già, applicato a metà.** `renderMacStrada()` (`index.html:3104-3116`, mezzi da strada/camion) calcola per ogni mezzo un badge RAG vero e proprio (`danger`/`warn`/`ok`) dalla scadenza più vicina fra i documenti (`statoScadenzaCore`), e lo stampa **nella riga dell'elenco**, prima ancora di aprire il mezzo. È esattamente il pattern che il mondo usa per un elenco multi-sito (vedi sotto). Ma il suo elenco gemello, `renderMacLavoro()` (`:3087-3103`, mezzi da lavoro — perforatrici, escavatori), **non lo fa**: la riga mostra solo modello, targa, ore, cava, operatore assegnato — nessun indicatore, pur avendo dati d'eccezione già registrati sullo stesso mezzo (vedi punto sotto sui guasti).
+
+## Il mondo — cosa mostrano i cruscotti multi-sito comparabili sul primo schermo (tutto di seconda mano)
+
+- **Fleet/mining ops (Trimble Insight/InsightHQ)**: i dati confluiscono in uno storage cloud centralizzato «così tutte le operazioni dei clienti sono visibili in un posto solo», con un sistema di *scheduling* che permette di fissare **obiettivi di produzione/efficienza per giorno o turno** e confrontare durante la giornata **quanto ci si sta avvicinando a quell'obiettivo**, con visibilità su «in-feed, tutti i prodotti, o tutti i siti» da un browser qualunque. Fonti: [Trimble Insight — Aggregates Business](https://www.aggbusiness.com/game-changing-operations-productivity-made-visible-new-trimble-insight/), [Trimble LOADRITE InsightHQ — PRNewswire](https://www.prnewswire.com/news-releases/trimble-provides-centralized-reporting-for-quarries-with-loadrite-insighthq-to-improve-productivity-300034335.html).
+- **Fleet management di cava/miniera in generale**: gli allarmi «exception-based» (soglie di inattività superate, geofence, violazioni di velocità, salute del mezzo) danno «un quadro istantaneo di ogni rischio attivo sul sito», e i sistemi arrivano a segnalare o pianificare da soli manutenzioni/interventi in base a condizioni live. Fonte: [FleetRabbit — Best Mining Fleet Analytics Dashboards 2026](https://fleetrabbit.com/industry/mining-fleet-software/best-mining-fleet-analytics-dashboards-mine-managers-2026).
+- **Dashboard industriali IoT / EAM**: la convenzione rosso/ambra/verde per stato macchina/sito è descritta come «radicata negli operatori industriali» — rosso guasto/fermo, ambra degradato/attenzione, verde in funzione — usata per dare «una vista unificata di asset, sito e flotta». Fonte: [AutomateXLab — Industrial IoT Dashboard Architecture](https://automatexlab.com/industrial-iot-dashboard/), [Traffic light rating system — Wikipedia](https://en.wikipedia.org/wiki/Traffic_light_rating_system).
+- **«Single pane of glass» / centri operativi**: la raccomandazione è che ruoli diversi vogliano viste diverse dello stesso pannello — «gli admin vogliono il dettaglio, gli operatori un pannello di allarmi, i manager un riepilogo di alto livello di spesa, conformità e produttività» — e che il pannello sia *service-centric* (organizzato per ciò che conta per il business, non per singolo asset). Fonte: [NinjaOne — Single Pane of Glass Software Explained](https://www.ninjaone.com/blog/single-pane-of-glass-software-explained/).
+- **Cambio organizzazione/workspace in SaaS multi-tenant**: descritto come «un controllo piccolo con un potere spropositato — decide quale realtà ogni altra schermata renderizza», e i requisiti che lo rendono affidabile sono: mostrare sempre in quale contesto ci si trova, rendere il cambio veloce e inconfondibile, e **mantenere l'app orientata dopo il cambio così che nulla agisca silenziosamente sul tenant sbagliato**. Fonte: risultati di ricerca su pattern di workspace switcher enterprise SaaS (nessun singolo articolo primario citabile per nome — sintesi di più risultati concordanti).
+
+## Il delta
+
+| Schermata | Che cosa non va | Come si vede | Quanto costa | Come si misura |
+|---|---|---|---|---|
+| Home (`renderHome`, `:1697`) e badge notifiche (`aggiornaNotifBadge`, `:1380`) | Il pallino rosso che dovrebbe dire «qualcosa richiede attenzione» conta **solo** `DB.promemoria` scaduti (`contaScaduti()`, `:1774`, filtra letteralmente solo quella collezione). Le scadenze documentali dei mezzi (`mzScad`, calcolate in `renderNotificheFull` `:1791`) e i guasti aperti dei mezzi da lavoro (`m.guasti`, `gravita:'critica'`, `:3354-3356`) **non entrano mai** in quel conto, né in nessun altro riepilogo visibile prima di aprire lo specifico mezzo | Apri il core con, ad esempio, 3 documenti-mezzo scaduti e un guasto critica «segnalato»: il pallino rosso in home può dire «0» (nessun promemoria) mentre esistono tre eccezioni vere, visibili solo entrando in Macchine → il singolo mezzo → tab Guasti | Piccolo: `contaScaduti` già esiste come pattern, va solo **allargato** a sommare `mzScad.length` e i `guasti` con `stato!=='riparato'` (idealmente pesati per `gravita`), riusando le funzioni che già calcolano ciascuno stato (`statoScadenzaCore`, lo stesso filtro di `renderMacGuasti`) — nessuna nuova collezione dati | Con dati di dimostrazione che includono almeno un documento-mezzo scaduto e un guasto `gravita:'critica'` **non riparato**, il badge in home deve mostrare un numero ≥1 anche se `DB.promemoria` è vuoto; test: il numero del badge deve essere la somma di tre fonti dichiarate per nome (promemoria, scadenze mezzi, guasti aperti), non di una sola |
+| Macchine → mezzi da lavoro (`renderMacLavoro`, `:3087-3103`) | La riga dell'elenco non porta **nessun indicatore d'eccezione**, mentre il mezzo gemello (`renderMacStrada`, `:3104-3116`) lo fa già per le scadenze documentali con lo stesso linguaggio visivo (`scad-badge danger/warn/ok`) | Apri «Macchine»: un escavatore con un guasto `gravita:'critica'` `stato:'segnalato'` appare in elenco **identico** a uno senza nessun guasto — stesso avatar, stessa riga, nessun colore diverso; bisogna toccarlo e aprire la tab GUASTI per saperlo | Piccolo: il dato (`m.guasti`) e il vocabolario di stato/gravità (`stLab`,`stCls` già scritti in `renderMacGuasti`, `:3354`) esistono; serve solo calcolare in `renderMacLavoro` lo stesso genere di badge che `renderMacStrada` calcola già per le scadenze, e applicarlo alla riga | Con un mezzo da lavoro che ha un guasto aperto `gravita:'critica'`, la sua riga in elenco deve portare un badge/colore diverso da un mezzo senza guasti aperti — misurabile confrontando `outerHTML` delle due righe, senza aprire il dettaglio |
+| Home / Cave (`renderCave`, `:2422-2426`) e Dashboard (`renderDashboard`, `:4050`) | L'unica vista che elenca **tutte** le cave insieme (`renderCave`) mostra solo nome, indirizzo e conteggio rapportini — zero stato; l'unica vista con un vero confronto fra cave (`renderDashboard`, dietro `can('dashboard')`, non il primo schermo) confronta **quanto ha prodotto** ciascuna cava (`quotaMc`, `:651`) ma non ha alcun concetto di **obiettivo/target**: `grep -n "obiettivo\|target\b\|previsto.*mese\|budget" index.html` → nessuna occorrenza legata alla produzione. Quindi nessuna schermata del core può dire «la cava X è indietro rispetto al piano»: può solo dire «la cava X ha prodotto meno delle altre», che è un'informazione diversa | Con tre cave attive, un titolare che apre Dashboard vede una torta e una lista ordinate per mc — la cava con meno output appare in fondo alla lista, ma può essere quella più piccola per progetto, non quella in difficoltà: nessun modo di distinguere i due casi | Grande (serve un concetto di obiettivo di produzione per cava/periodo che oggi non esiste in nessuna collezione — non è un ritocco di UI, è un nuovo dato da introdurre, con decisione su chi lo imposta) | Non è una proposta da 5 minuti: si misura chiedendo, prima di scrivere codice, «chi decide l'obiettivo mensile di una cava, oggi, fuori dal prodotto (a voce, su un foglio)?» — se la risposta è nessuno/informale, il costo reale include anche il processo, non solo lo schermo |
+
+## Nota sul confine del delta
+
+Le prime due righe sono economiche e concrete perché **riusano dati e pattern che il core ha già scritto altrove** (esattamente il principio di questo file: prima si cerca il meccanismo in casa). La terza riga (target di produzione) è dichiarata **grande** di proposito: introdurrebbe un concetto nuovo (obiettivo pianificato) che oggi non esiste in nessuna app dell'ecosistema per quanto verificato in questa sessione — non è stato cercato a tappeto nelle altre sei app, quindi resta un candidato aperto e non un «non c'è» definitivo sull'intero ecosistema.
+
+Nessuna delle tre righe tocca la separazione (a)/(b)/(c) già decisa in `DECISIONI_WEEKEND.md` §15, né la fase multi-tenant: sono miglioramenti al materiale che esiste **oggi**, applicabili sia se «Il Quadro» resta un progetto futuro sia se viene costruito prima.
+
+---
+
+*Documento di ricerca — candidati da verificare, non diagnosi finali. Le citazioni dal mondo sono di seconda mano (estratti di ricerca), marcate per singola fonte.*
+
+
+---
+
+# Ricerca continua — Core Deepwork (il core come porta d'ingresso dell'ecosistema: ricerca, hub, identità, offline)
+
+**Data ricerca:** 18/09/2026
+**Commit verificato:** 687a6c73dfd6756315d186f46b582bbdfdb7b0c0
+
+## Dichiarazione di ciò che esiste già (per non riproporre una mancanza già coperta)
+
+Ho letto per intero le tre sezioni precedenti di questo documento prima di
+proporre qualunque cosa:
+- la sezione del 03/08 sul rapportino di fine turno (esplosivo, firma di
+  chiusura) — non riguarda questa domanda;
+- quella del 06/08 sulla dichiarazione dei dati d'esempio nei CSV — non
+  riguarda questa domanda;
+- quella del 04/09 sul registro carico/scarico esplosivi — non riguarda
+  questa domanda;
+- **quella del 17/09**, la più vicina: tratta già **il cambio-organizzazione**
+  (`switchOrg` in `shared/deepwork-id-client/index.js:310-318`, i suoi
+  `entitlement` azzerati prima del reload) e **`MULTI_TENANT=false` nel
+  core** (`index.html:141-155`, Fase 1-2, dichiarato nel commento). **Non
+  ripropongo queste due cose.** Quella sezione guardava anche `renderHome()` e
+  il primo schermo per **contenuto** (badge, KPI, target); questa guarda il
+  primo schermo per **navigazione**: come si esce dal core verso il resto
+  dell'ecosistema, e come si cerca dentro di esso.
+
+## Il mondo (tutto di seconda mano, marcato per fonte — `WebSearch` usato regolarmente, `WebFetch` non usato perché già documentato bloccato in questo repository)
+
+- **App launcher / «waffle menu»** (Google Workspace, Microsoft 365): un'icona
+  fissa in un angolo della barra apre una griglia di app dello stesso account
+  — permette di «saltare fra gli strumenti nello stesso account» **senza
+  lasciare l'app corrente** e senza un secondo login. [di seconda mano — Google
+  Workspace Guides, "Organize Your Workspace"; Microsoft Learn Q&A "O365
+  waffle apps"]
+- **Ricerca/command palette unificata** (Slack, Notion, e la tendenza SaaS
+  2026 in generale): «una buona casella di ricerca/palette di comando può
+  trovare progetti, impostazioni, record, documenti e persone in tutto lo
+  spazio di lavoro» — la ricerca cresce a coprire *tutto* l'account, non un
+  modulo solo, proprio perché nessun albero di menu tiene il passo con
+  un'app che accumula moduli. [di seconda mano — SaaSUI.design, "SaaS Search &
+  Command Palette UX: Real Examples & Patterns"]
+- **SSO unico per la suite**: la pratica raccomandata per un portafoglio
+  multi-prodotto è «login una volta sola attraverso un provider di identità
+  unificato», con branding e flusso di login/logout **standardizzati fra
+  tutte le applicazioni**. [di seconda mano — WorkOS, "The complete guide to
+  user management for B2B SaaS"; Reco.ai, "SSO in SaaS"]
+- **PWA offline**: l'aspettativa base di un service worker è fare da «proxy
+  virtuale fra il browser e la rete» e servire l'app shell da cache quando
+  la rete manca; le funzionalità che si aggiungono con l'installazione
+  condivisa di una suite includono badge sull'icona, notifiche push,
+  sincronizzazione in background. Nessuna fonte trovata descrive
+  esplicitamente «una suite con più prodotti installabili separatamente
+  condivide un solo service worker»: è un caso limite non documentato nelle
+  fonti generiche su PWA, quindi qui sotto il confronto è con l'aspettativa
+  di base (offline = stessa pagina, non una pagina sbagliata), non con una
+  prassi specifica citata. [di seconda mano — MDN Web Docs, "Progressive web
+  apps"; dev.to, "Frontend System Design: Offline Support and PWAs"]
+
+## Il delta — cercato nel MECCANISMO del core, comando e uscita accanto a ogni affermazione
+
+### 1. La ricerca in barra si chiama «globale» ma è locale al core
+
+```
+$ grep -n "function globalSearch" -A15 /home/user/Mining-Tech-Platform/index.html | head -8
+3830:function globalSearch(q){
+3831:  q=(q||'').trim().toLowerCase();...
+3832:  const cave=DB.cave.filter(...)
+3833:  const macLav=DB.mezziLav.filter(...)
+3834:  const pers=DB.personale.filter(...)
+3835:  const cli=DB.clienti.filter(...)
+3836:  const rapp=DB.rapportini.filter(...)
+```
+
+Il nome della funzione è `globalSearch` (usata nell'`<input>` di barra,
+riga 9890: `placeholder="Cerca cave, mezzi, rapportini..."`), ma cerca
+**solo** in cinque collezioni proprie del core (`DB.cave`, `DB.mezziLav`,
+`DB.personale`, `DB.clienti`, `DB.rapportini`). Nessuna menzione di dati di
+un'altra app. Il "globale" del nome è il globale **della pagina** (cerca in
+tutte le sezioni del core), non dell'ecosistema — una distinzione che
+l'utente non ha modo di conoscere aprendo la casella.
+
+### 2. Il core non ha nessun link verso il resto dell'ecosistema
+
+```
+$ grep -n 'href="apps\|href="/apps\|apps/deepwork-id\|apps/genesi\|apps/scudo\|apps/campo\|apps/flotta\|apps/conti\|apps/sentinella\|apps/terra' /home/user/Mining-Tech-Platform/index.html
+(nessuna riga)
+
+$ grep -n "apps/index\|vetrina\|/apps/'" /home/user/Mining-Tech-Platform/index.html
+(nessuna riga)
+```
+
+Zero occorrenze. Le 119 corrispondenze di un `grep -ciE` più largo sui nomi
+delle app sono tutte parole italiane comuni o commenti di sviluppo (`campo`,
+`conti`, «genesi.html» citato in un commento sulla numerazione degli
+inneschi) — nessuna è un link cliccabile. **Il core non offre nessuna via
+per raggiungere Genesi, Scudo, Campo, Flotta, Conti, Sentinella, Terra o
+anche solo la vetrina dell'ecosistema (`apps/index.html`).** Chi apre il
+core e non conosce già l'URL della vetrina non scopre che esistono altre
+sei app.
+
+La vetrina esiste (`apps/index.html`) e collega tutte le app:
+
+```
+$ grep -o '<a href="/apps/[a-z-]*/"[^>]*>[A-Za-z]*</a>' /home/user/Mining-Tech-Platform/apps/index.html | head -8
+<a href="/apps/campo/" target="_blank" rel="noopener">Campo</a>
+<a href="/apps/flotta/" target="_blank" rel="noopener">Flotta</a>
+<a href="/apps/scudo/" target="_blank" rel="noopener">Scudo</a>
+<a href="/apps/terra/" target="_blank" rel="noopener">Terra</a>
+<a href="/apps/conti/" target="_blank" rel="noopener">Conti</a>
+<a href="/apps/sentinella/" target="_blank" rel="noopener">Sentinella</a>
+```
+
+Ma **non c'è nessun collegamento nella direzione opposta**: né dal core
+verso la vetrina, né da nessuna delle sei app verso la vetrina o verso il
+core (verificato su Scudo: `grep -n 'href="/"\|vetrina' apps/scudo/index.html`
+→ nessuna riga). E ogni link della vetrina apre `target="_blank"`: una
+scheda nuova, senza contesto di sessione portato con sé — coerente con
+l'assenza di SSO nel core (punto 3), ma un limite in più anche fra le sei
+app che l'SSO ce l'hanno già.
+
+### 3. Il core non usa l'identità condivisa che le sei app usano già
+
+```
+$ grep -n "deepwork-id-client" /home/user/Mining-Tech-Platform/index.html
+111:import { numeroScritto, ... } from "./shared/deepwork-id-client/dw-shell.js";
+```
+
+Un'unica riga, e importa **solo funzioni pure di calcolo** (formattazione
+numeri/date, misure volata) da `dw-shell.js` — non l'SDK di identità
+(`shared/deepwork-id-client/index.js`, quello con `switchOrg`,
+`entitlement`, l'organizzazione attiva). Confronto con le sei app verticali:
+
+```
+$ for a in scudo campo flotta conti sentinella terra; do
+    echo -n "$a: "; grep -c "deepwork-id-client/index.js\|from ['\"]\.\./\.\./shared/deepwork-id-client" apps/$a/index.html
+  done
+scudo: 2
+campo: 2
+flotta: 2
+conti: 2
+sentinella: 2
+terra: 2
+```
+
+Tutte e sei le app verticali importano già l'SDK di identità; il core no.
+Il core ha un proprio login separato, con una propria collezione `DB.users`
+e `state.user` (verificato: `grep -c "signInWithEmailAndPassword\|state.user" index.html`
+→ decine di occorrenze di `state.user`, zero di un login passato da
+`deepwork-id-client`). **Il core — che è la porta d'ingresso storica
+dell'ecosistema — è oggi l'unica superficie NON collegata all'identità
+condivisa che le sei app già usano fra loro.** Non è un difetto nuovo (è
+coerente con `MULTI_TENANT=false`, Fase 1, già dichiarato nel codice e già
+scritto nella sezione del 17/09): è il fatto che rende concreta, con un
+numero, la distanza dal pattern SSO del mondo (punto 3 sopra) — sei app su
+sette ci sono già, manca proprio quella che l'utente incontra per prima.
+
+### 4. Il service worker del core copre anche i path delle altre app, e nel fallback offline le sostituisce con sé stesso
+
+```
+$ grep -n "register('./sw.js')" -B3 /home/user/Mining-Tech-Platform/index.html
+1078:      navigator.serviceWorker.register('./sw.js').then(reg => {
+```
+
+Registrato **senza** l'opzione `{scope:...}`: lo scope di default di un
+service worker è la cartella dello script, cioè la radice del sito
+(`sw.js` sta in `/`). Quindi, una volta installato aprendo il core, quel
+service worker intercetta anche le richieste di navigazione verso
+`/apps/scudo/`, `/apps/campo/`, ecc. — sono nello stesso dominio, nessuno
+scope più stretto lo esclude.
+
+```
+$ grep -n "e.request.mode === 'navigate'" -A3 /home/user/Mining-Tech-Platform/sw.js
+109:        if (e.request.mode === 'navigate') {
+110:          return caches.match('./index.html').then(r => r || caches.match('./'));
+```
+
+Il fallback offline per **qualunque** richiesta di navigazione non trovata
+in cache è sempre `./index.html` — che, risolto contro l'URL di `sw.js`
+(la radice), è **il core**, non l'app richiesta. Nessuna delle sei app
+verticali registra un proprio service worker (verificato:
+`grep -c serviceWorker apps/*/index.html` → 0 su tutte e sei). Quindi lo
+scenario verificabile è: un utente visita il core (installa il SW), poi
+prova ad aprire per la prima volta `/apps/scudo/` mentre è offline o con
+rete instabile, e **prima che quella pagina sia mai stata messa in cache**
+— il service worker del core intercetta la navigazione, la rete fallisce,
+e il fallback restituisce silenziosamente **l'app shell del core** al posto
+di Scudo. Nessun errore, nessun messaggio: la pagina che compare è quella
+sbagliata, con la faccia di quella giusta.
+
+## Tabella delle proposte
+
+| Schermata | Che cosa non va | Come si vede | Quanto costa | Come si misura |
+|---|---|---|---|---|
+| Barra di ricerca del core (`globalSearch`, `index.html:3830`) | Il nome della funzione e il placeholder («Cerca cave, mezzi, rapportini...») non promettono di cercare fuori dal core, ma nessuna schermata dice esplicitamente all'utente che la ricerca **non** copre le altre sei app — un utente abituato ai pattern del mondo (ricerca unificata, punto 2 del mondo) può aspettarsi di trovare lì anche un documento di Scudo o un mezzo di Flotta | Digitare in ricerca il nome di un cliente presente solo in Conti (non nel core): zero risultati, nessuna indicazione che «per Conti/Scudo/... apri l'app dedicata» | Piccolo: non serve federare la ricerca (richiederebbe un indice cross-app che oggi non esiste in nessuna app), basta dichiarare il perimetro nell'interfaccia | Nell'elenco vuoto di `globalSearch`, quando la query non produce risultati in nessuna delle cinque collezioni, si può aggiungere un suggerimento statico («Cerca anche personale/mezzi/documenti nelle altre app dell'ecosistema»); si misura verificando che compaia solo su risultati vuoti, non sempre |
+| Home del core (`renderHome`, già letta nella sezione 17/09) e vetrina (`apps/index.html`) | Nessun percorso, in nessuna delle due direzioni, collega il core alla vetrina o alle altre app: un utente che vive solo nel core non sa che l'ecosistema esiste, e chi arriva dalla vetrina apre ogni app in una scheda scollegata | Aprire il core, cercare in tutta la UI (menu, home, impostazioni) un link o un riferimento testuale a un'altra app: nessuno (`grep` sopra, zero righe) | Medio: un semplice link testuale è piccolo, ma decidere **quale** contenuto mostrare (link fisso? solo le app a cui l'organizzazione è abbonata? serve `entitlement`, che il core non legge — punto 3) tocca la decisione sul multi-tenant, non è un ritocco isolato | Con un link aggiunto (es. in una sezione «Ecosistema» o nel menu utente), verificare che porti a un URL valido e che, se aperto, non rompa la sessione del core (nessun logout involontario) |
+| Service worker del core (`sw.js`, fallback su `navigate`) | Il fallback offline di **qualunque** navigazione fallita nello stesso dominio restituisce l'app shell del core, anche per un URL che appartiene a un'altra app mai visitata | Con il SW del core già installato: disattivare la rete, aprire per la prima volta `/apps/scudo/` (mai visitato prima, non in cache) → si vede la home del core, non un messaggio "Scudo non è disponibile offline" | Piccolo: nel fallback, prima di restituire `./index.html`, controllare se `e.request.url` inizia per `/apps/` e in quel caso restituire una risposta 503 dichiarata invece del contenuto di un'altra app (o, se si vuole precachare anche le app, un lavoro più grande e separato) | Iniettare nella risposta HTTP (non nel file) un caso di navigazione verso `/apps/scudo/` con la cache vuota e la rete disattivata in un banco Playwright: oggi il body ricevuto contiene i testi del core («Deepwork — Field Operations»); dopo la correzione deve contenere una pagina di errore dichiarata o nessun contenuto del core |
+
+## Onestà sulla distanza dai leader di settore
+
+Il confronto è impietoso e va detto senza attenuarlo: Google Workspace e
+Microsoft 365 risolvono la navigazione fra prodotti con un'icona sempre
+visibile e una ricerca che sa di preciso quali strumenti coprire; l'unico
+ecosistema Deepwork non ha **nessuna** delle due cose collegate al core, e
+il pezzo più vicino a un hub (la vetrina) è tecnicamente un sito di
+marketing separato, non un punto di ingresso funzionale — apre ogni app
+`target="_blank"`, senza portare né sessione né organizzazione. Questo è
+coerente con la fase dichiarata nel codice stesso (`MULTI_TENANT=false`,
+Fase 1-2 di `ARCHITETTURA.md`), quindi **non è un difetto imprevisto**: è la
+misura di quanta strada resta fra "oggi" e "un ecosistema" nel senso in cui
+lo intendono i prodotti presi a riferimento. Il pezzo del fallback offline
+(punto 4) è diverso: quello è un effetto collaterale non dichiarato di uno
+scope di service worker più largo di quanto chi l'ha scritto probabilmente
+intendeva, e non dipende dalla fase multi-tenant — è riproducibile oggi.
+
+---
+
+## Fonti
+
+- [Google Workspace Guides — Organize Your Workspace: How To Customize The Google App Launcher](https://googleworkspaceguides.com/organize-your-workspace-how-to-customize-the-google-app-launcher/)
+- [Microsoft Learn Q&A — O365 waffle apps](https://learn.microsoft.com/en-us/answers/questions/4966645/o365-waffle-apps)
+- [SaaSUI.design — SaaS Search & Command Palette UX: Real Examples & Patterns](https://www.saasui.design/blog/saas-search-command-palette-ux-patterns)
+- [WorkOS — The complete guide to user management for B2B SaaS](https://workos.com/blog/user-management-for-b2b-saas)
+- [Reco.ai — SSO in SaaS: Key Features, Pros, Cons, and Best Practices](https://www.reco.ai/learn/sso-saas)
+- [MDN Web Docs — Progressive web apps](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps)
+- [dev.to — Frontend System Design: Offline Support and Progressive Web Apps (PWAs)](https://dev.to/zeeshanali0704/frontend-system-design-offline-support-and-progressive-web-apps-pwas-4k8m)
+
+---
+
+*Documento di ricerca — candidati da verificare, non diagnosi finali. Le citazioni dal mondo sono di seconda mano (estratti di ricerca), marcate per singola fonte. Nessun file di codice è stato modificato durante questa ricerca.*

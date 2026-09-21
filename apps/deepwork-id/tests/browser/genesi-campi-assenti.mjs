@@ -231,6 +231,15 @@ async function apriSenza(chiave, extra) {
     localStorage.setItem("genesiVolate", JSON.stringify([{ id: "v1", nome: "Fronte Nord",
       data: "2026-07-12", sintesi: "12 fori", design: dd }]));
   }, d);
+  /* senza rete vera in questo contenitore, l'import da gstatic morirebbe da
+     solo dopo ~13 s PER OGNI pagina aperta (sono sedici): lo si taglia
+     subito, come già fa `genesi-locale.mjs` per lo stesso identico import.
+     Trovato il 14/09 scrivendo `genesi-maglia-assente.mjs`: senza questa
+     riga il banco impiegava minuti invece di secondi per aprire una sola
+     volata, in un contenitore dove la rete verso gstatic non fallisce
+     subito ma resta appesa — un ambiente diverso da quello in cui questo
+     banco era stato scritto e verificato l'ultima volta. */
+  await pg.route("https://www.gstatic.com/**", (r) => r.abort());
   await pg.goto(`http://127.0.0.1:${PORTA}/apps/genesi/genesi.html`, { waitUntil: "domcontentloaded" });
   await pg.waitForTimeout(2200);
   await pg.evaluate(() => {
@@ -282,11 +291,27 @@ for (const [id, chiave, inventato, extra] of SORVEGLIATI) {
      `measureGeom2D` fa `null.toFixed(2)`, `setScreen('design')` muore, la
      scheda validatori resta a ZERO righe e — peggio — il toast che NOMINA il
      valore mancante (`volataSenzaValori`) non viene mai mostrato, perché sta
-     nella riga dopo `setScreen`. */
-  const vive = await pg.evaluate(() => document.querySelectorAll("#d2-scheda .sv-row").length);
-  dice(pg.__errori.length === 0 && vive > 20,
-    `${id}: aprire la volata senza questo valore NON uccide il 2D (${vive} righe di scheda)`,
-    pg.__errori[0] || `righe: ${vive}`);
+     nella riga dopo `setScreen`.
+     ⏱️ 14/09 (B0-septies, cantiere G37): per B e S QUESTA riga è cambiata di
+     proposito, non è un regresso — `magliaAssenteMotivo` fa uscire
+     `renderScheda2D` PRIMA di disegnare qualunque riga, con la sola frase
+     dichiarata («Pianta non disegnabile: manca burden/interasse»), invece di
+     una scheda a metà su una geometria degenere. Zero `.sv-row` è adesso il
+     comportamento GIUSTO per questi due campi soli — non per gli altri
+     quattordici, dove la vecchia aspettativa resta quella vera. */
+  const magliaAssenteAttesa = id === "dB" ? "burden" : id === "dS" ? "interasse" : null;
+  if (magliaAssenteAttesa) {
+    const vive = await pg.evaluate(() => document.querySelectorAll("#d2-scheda .sv-row").length);
+    const scheda = await pg.evaluate(() => (document.getElementById("d2-scheda") || {}).textContent || "");
+    dice(pg.__errori.length === 0 && vive === 0 && /non disegnabile/.test(scheda) && new RegExp(`manca ${magliaAssenteAttesa}\\b`).test(scheda),
+      `${id}: senza ${chiave} la pianta si dichiara non disegnabile (0 righe, ragione nominata), non una scheda a metà`,
+      pg.__errori[0] || `righe: ${vive}, testo: ${scheda.slice(0, 120)}`);
+  } else {
+    const vive = await pg.evaluate(() => document.querySelectorAll("#d2-scheda .sv-row").length);
+    dice(pg.__errori.length === 0 && vive > 20,
+      `${id}: aprire la volata senza questo valore NON uccide il 2D (${vive} righe di scheda)`,
+      pg.__errori[0] || `righe: ${vive}`);
+  }
   await pg.close();
 }
 
@@ -376,6 +401,24 @@ console.log("\n· la seconda domanda: con la carica assente, nessuna riga della 
    mediana di **107 m** di gittata, cioè 428 m di sgombero persone. Misurato sul
    prodotto: stessa cava Ø102, spalla vera 1,5 m → «133 m, sgombero 267/533 m»;
    spalla assente col vecchio ripiego → «101 m, 202/404 m». */
+/* ⏱️ 14/09 (B0-septies, cantiere G37) — QUESTA SEZIONE PUÒ DICHIARARE "NON
+   MISURATO", E NON È UN GUASTO DEL BANCO: è la stessa conseguenza già
+   annotata sopra per i campi B/S. `apriSenza("B")` apre un progetto SALVATO
+   senza burden: `genMaglia2D` lo vede subito (nessun foro esiste ancora al
+   primo giro), imposta `D2.magliaAssente='burden'` con `D2.holes=[]`, e
+   `renderScheda2D` esce PRIMA di disegnare qualunque `.sv-row` — quindi
+   `vivaEsana` (che pretende >20 righe) risponde `false` per costruzione, e
+   il banco dichiara onestamente "non misurato" invece di misurare una
+   pagina che non ha righe da leggere. Non è un test da riscrivere alla
+   cieca: la domanda che poneva ("con la spalla assente ma la maglia già
+   disegnata, la gittata flyrock inventa un burden?") oggi richiederebbe uno
+   scenario diverso — B che sparisce DOPO che i fori esistono già, non prima
+   — e se quello scenario è ancora raggiungibile nel prodotto reale (es. un
+   progetto con fori importati da un rilievo boretrack, gated per decisione
+   del fondatore, sezione 6 di DECISIONI_WEEKEND.md) è una domanda aperta,
+   non presa qui. La dichiarazione "non misurato" è la risposta onesta:
+   meglio di un falso "a posto" o di un test riscritto senza aver capito
+   se il caso che difendeva è ancora raggiungibile. */
 console.log("\n· la terza domanda: con la spalla assente, la gittata non esce da un burden inventato");
 {
   const testoDi = (pg, re) => pg.evaluate((r) => {

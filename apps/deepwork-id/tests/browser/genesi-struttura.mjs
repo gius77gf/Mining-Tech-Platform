@@ -26,8 +26,15 @@
    Nessuna delle tre è un errore di sintassi. Per questo si prova qui, aprendo
    la pagina e toccandola.
 
-   Genesi NON importa Firebase (misurato: zero riferimenti a gstatic), quindi
-   non serve il finto-firebase come per il core. */
+   ⚠️ Corretto il 14/09: la riga diceva «Genesi NON importa Firebase
+   (misurato: zero riferimenti a gstatic)», misurato con un `grep` sul
+   SORGENTE di `genesi.html` — che è vero alla lettera (la stringa "gstatic"
+   non ci compare) e falso nella sostanza: `genesiData()`, importato da
+   `genesi-data.js`, chiama `DeepworkID.init()`, che importa Firebase da
+   gstatic.com — la stessa catena del core, un salto più in là. Non serve un
+   `finto-firebase.mjs` completo (Genesi degrada da sola a locale/demo senza
+   Firebase, non muore come il core), ma senza tagliare la richiesta la
+   pagina aspetta comunque ~13 s che l'import fallisca da solo. */
 import { createServer } from "node:http";
 import { readFileSync, existsSync, statSync } from "node:fs";
 import { join, extname } from "node:path";
@@ -114,8 +121,32 @@ console.log(`\n════════ Genesi: la struttura è quella del core?
 const pg = await b.newPage({ viewport: { width: 1400, height: 950 } });
 const errori = [];
 pg.on("pageerror", (e) => errori.push(e.message));
+/* senza rete vera in questo contenitore, l'import da gstatic morirebbe da
+   solo dopo ~13 s: lo si taglia subito, come in `genesi-locale.mjs`. */
+await pg.route("https://www.gstatic.com/**", (r) => r.abort());
 await pg.goto(`http://127.0.0.1:${PORTA}/apps/genesi/genesi.html`, { waitUntil: "domcontentloaded" });
-await pg.waitForTimeout(2500);
+/* ⏱️ 12/09: LO SCRIPT DELLA PAGINA IMPIEGA 13-20s A FINIRE DI CABLARE TUTTO
+   IN QUESTO AMBIENTE (senza GPU: la scena 3D iniziale è lenta), non i
+   ~2,5s che un'attesa fissa concedeva — misurato altrove in questa stessa
+   sessione (vedi `genesi-numeri-tranquilli.mjs`, `genesi-frasi-limite.mjs`)
+   con `elementFromPoint` sullo splash e col contatore della Home. Qui
+   l'effetto è che `$('disclaimerChk').onchange=...` (riga ~4838 di
+   genesi.html) non è ancora assegnato quando il banco spunta la casella:
+   il bottone del consenso resta "disabled" anche dopo, perché nessun
+   gestore ha mai ascoltato il `change`. Si aspetta che lo splash sia
+   sparito (segno che il grosso del cablaggio è fatto) invece di un tempo
+   fisso, con un tetto di 25s per non restare appesi se qualcosa è
+   genuinamente rotto.
+   ⚠️ 14/09: parte di quei 13-20s non era la scena 3D — era l'import da
+   gstatic (vedi la nota in cima al file). Misurato aggiungendo la stessa
+   guardia di `genesi-locale.mjs`: **29,2s → 17,0s**, stesse 18 prove
+   passate. La diagnosi "senza GPU" non era sbagliata, era incompleta: due
+   cause si sommavano e la seconda non era mai stata cercata. */
+const scadenzaSplash = Date.now() + 25000;
+while (await pg.evaluate(() => !!document.getElementById("splash")) && Date.now() < scadenzaSplash) {
+  await pg.waitForTimeout(500);
+}
+await pg.waitForTimeout(300);
 
 dice(errori.length === 0, "la pagina non solleva errori", errori.slice(0, 2));
 

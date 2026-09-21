@@ -513,7 +513,7 @@ input[type=date].dw-input::-webkit-calendar-picker-indicator:hover{
 .chgs{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px}
 .chg{
   background:var(--card); border:1px solid var(--border); color:var(--muted2);
-  padding:7px 13px; min-height:var(--tap); border-radius:7px;
+  padding:7px 13px; min-height:var(--tap); min-width:var(--tap); border-radius:7px;
   font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:700;
   letter-spacing:1px; text-transform:uppercase; cursor:pointer; display:inline-flex;
   align-items:center; justify-content:center; box-shadow:var(--edge);
@@ -709,6 +709,20 @@ input[type=date].dw-input::-webkit-calendar-picker-indicator:hover{
   user-select:text;
 }
 .modal-body b{color:var(--text)}
+/* ETICHETTA DI CAMPO (`.fl`): la forma del core (index.html, «Font minimi
+   leggibili»), qui perché serve a più app. ⛔ Fino al 10/09 il foglio condiviso
+   la vestiva SOLO dentro `.modal-body` (margine), e le app che non se la
+   ridicevano — Conti, Scudo — la disegnavano fuori dalle modali come testo
+   nudo da 16 px: «Righe dell'offerta» e «Prezzi a scaglioni» in Conti, sette
+   etichette del DUVRI e del registro infortuni in Scudo. Misurato con
+   getComputedStyle su sei app: 9 etichette nude, tutte in quelle due. Terra la
+   ridice a 10 px e a parità di specificità vince perché il suo foglio viene
+   dopo (divergenza dichiarata lì); Campo la ridice sotto `.fermo`, che vince
+   per specificità; dentro le modali vincono i `.modal-body .fl` delle app. */
+.fl{
+  display:block; font-family:'Barlow',sans-serif; font-size:13px; font-weight:600;
+  letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:6px;
+}
 .modal-body .fl{margin:12px 0 6px}
 .modal-foot{
   padding:12px 18px; border-top:1px solid var(--border); background:var(--dark);
@@ -1043,7 +1057,15 @@ body.dw.outdoor-mode .dw-btn{font-size:15px;}
    d'accento — stessa struttura, colore diverso, come vuole la direttiva. */
 .dw-senza-rete{
   background:var(--card2); border:1px solid var(--border);
-  border-left:3px solid var(--warn); border-radius:var(--r-sm);
+  /* ⛔ 19/09, dal deep-pass UX su Campo: usava `--warn` DIRETTO, che non ha
+     mai un override per light-mode/outdoor-mode — a differenza di ogni
+     altro bordo di stato dello stesso foglio (`.kpi.warn`, `.item.st-warn`,
+     `.note.avviso`), che passano tutti da `--bar-wr` (= `--num-wr` se l'app
+     lo scurisce nei temi chiari, altrimenti `--warn` com'era). Misurato:
+     8,52:1 nel buio, ma 1,69:1 nel chiaro e 1,73:1 nel sole — proprio il
+     tema pensato per la leggibilità in pieno cantiere, sul banner che
+     avvisa un capoturno di essere senza rete. */
+  border-left:3px solid var(--bar-wr); border-radius:var(--r-sm);
   color:var(--muted2); font-size:12px; line-height:1.5; padding:10px 13px;
   margin:14px 16px 0; text-align:left; box-shadow:var(--edge);
 }

@@ -64,13 +64,21 @@ const DIFETTI = [
 
 /* I NOVE CASI. Ogni riga rotta porta con sé la ragione che il modulo deve
    dire, così una ragione cambiata in silenzio fa cadere il banco invece di
-   passare inosservata. L'etichetta «riga N» conta le righe di DATI
-   (l'intestazione non si conta): è quello che serve a chi apre il file. */
+   passare inosservata.
+   ⛔ 17/09: l'etichetta «riga N» conta la posizione FISICA nel file,
+   intestazione compresa — non più le righe di DATI da sole. È il rovescio
+   di `righeCsvNumerate` in `shared/dw-shell.js` (15/09): «riga 1» sparisce
+   apposta, perché un file con intestazione ha sempre la prima riga rotta
+   almeno alla 2, e un numero che conta solo i dati fa cercare la riga nel
+   posto sbagliato quando si apre lo stesso file in un foglio elettronico.
+   Misurato premendo i banchi e leggendo l'esito vero prima di correggere
+   le quattro etichette rimaste indietro (squadre, listino, mezzi, fronti):
+   non un difetto di prodotto, la stessa correzione applicata al contrario. */
 const CASI = [
   { app: "campo", campo: "squ-file", esito: "squ-esito", nome: "squadre",
     intest: "nome;persone;area;stato",
     buone: ["Squadra Alfa;4;Fronte Nord;operativa"],
-    rotte: [[";6;Fronte Sud;operativa", "riga 2", "manca il nome della squadra"]] },
+    rotte: [[";6;Fronte Sud;operativa", "riga 3", "manca il nome della squadra"]] },
   { app: "conti", campo: "fat-file", esito: "ft-esito", nome: "fatture",
     intest: "numero;cliente;importo;emessa;scadenza;incassata",
     buone: ["2099/001;Prova Srl;4400;2026-06-18;2026-07-18;no"],
@@ -80,7 +88,7 @@ const CASI = [
     intest: "nome;unita;prezzo;densita;iva",
     buone: ["Misto di prova;t;8,50;1,9;22"],
     rotte: [["Stabilizzato di prova;t;;1,9;22", "Stabilizzato di prova", "il prezzo non è stato scritto"],
-            [";t;12,00;1,9;22", "riga 3", "manca il nome del prodotto"]] },
+            [";t;12,00;1,9;22", "riga 4", "manca il nome del prodotto"]] },
   { app: "conti", campo: "pes-file", esito: "pes-esito", nome: "pesate (ripristino)",
     intest: "numero;data;clienteId;cliente;prodottoId;prodotto;lordo;tara;netto;unitaVendita;"
       + "quantita;densita;prezzoUnitario;scontoPct;aliquotaIva;mezzo;destinatario;fatturaId;ordineId;fontePrezzo",
@@ -95,16 +103,18 @@ const CASI = [
   { app: "flotta", campo: "mez-file", esito: "ore-esito", nome: "parco mezzi",
     intest: "nome;area;ore;stato",
     buone: ["Escavatore di prova;Fronte Nord;6375;operativo"],
-    rotte: [[";Piazzale;100;operativo", "riga 2", "manca il nome del mezzo"]] },
+    rotte: [[";Piazzale;100;operativo", "riga 3", "manca il nome del mezzo"]] },
   { app: "flotta", campo: "tele-file", esito: "ore-esito", nome: "telemetria",
     intest: "mezzo;ore;carburante",
+    /* (05/09) l'esito dice da quali colonne vengono mezzo, ore e carburante */
+    extra: [/Colonne riconosciute: mezzo ← «mezzo», ore ← «ore», carburante ← «carburante»\./, "e dice da quali colonne ha letto mezzo, ore e carburante"],
     buone: ["Escavatore di prova;9000;120"],
     rotte: [["Pala di prova;;95", "Pala di prova", "le ore motore non sono state scritte"],
             ["Dumper di prova;abc;80", "Dumper di prova", "le ore motore non si leggono"]] },
   { app: "terra", campo: "fro-file", esito: "fro-esito", nome: "fronti",
     intest: "nome;banco;quota;stato",
     buone: ["Fronte di prova;Banco A;340;attivo"],
-    rotte: [[";Banco D;300;attivo", "riga 2", "manca il nome del fronte"]] },
+    rotte: [[";Banco D;300;attivo", "riga 3", "manca il nome del fronte"]] },
   { app: "terra", campo: "ril-file", esito: "ril-esito", nome: "rilievi",
     intest: "data;volumeM3;metodo;gsd;fronte",
     buone: ["2026-03-01;1200;RTK;2;"],
@@ -209,6 +219,8 @@ for (const c of CASI) {
   /* 4 · le righe SANE sono entrate davvero: senza questa, un import che non
      importa niente passerebbe tutte le prove qui sopra. */
   dice(!/^Nessun/.test(testo), "e le righe buone sono entrate (non è il caso «non è entrato niente»)", testo);
+  /* 5 · e, dove il caso lo dichiara, la frase in più che l'import deve dire */
+  if (c.extra) dice(c.extra[0].test(testo), c.extra[1], testo);
 }
 
 /* ⛔ LE RIGHE «NON HO GUARDATO» SI LEGGONO PRIME DEI KO, e il banco non può
@@ -231,12 +243,20 @@ if (CONTROPROVA) {
   /* ⛔ LA SOGLIA SI DERIVA, NON SI SCRIVE. Un numero atteso scritto a mano
      invecchia al primo caso aggiunto e accusa il prodotto per una cosa che ha
      fatto il banco (07/08). Qui la regola è esatta: con la frase tolta cade
-     OGNI prova tranne l'ultima di ciascun caso — «le righe buone sono
-     entrate», che guarda l'import e non il messaggio, e che resta
-     giustamente verde. Quindi le cadute attese sono `prove - CASI.length`,
-     e sono anche il modo di accorgersi se una prova che NON punta al difetto
-     cadesse lo stesso. Misura del 13/08: 57 prove, 48 cadute, 9 in piedi. */
-  const SOGLIA = prove - CASI.length;
+     OGNI prova tranne quelle che non guardano il messaggio — «le righe buone
+     sono entrate» (guarda l'import, non la frase) e, dove il caso la
+     dichiara, la prova `extra` (guarda le colonne riconosciute, un'altra
+     frase che il difetto iniettato qui non tocca). Quindi le cadute attese
+     sono `prove - CASI.length - quanti casi hanno un extra`, non solo
+     `prove - CASI.length`.
+     ⛔ 17/09: la SOGLIA era rimasta alla prima forma, e da quando la
+     telemetria ha guadagnato il suo `extra` (05/09) la sua prova sopravvive
+     sempre alla controprova — la soglia contava 49 cadute attese e ne
+     arrivano davvero 48, misurato premendo il banco prima di correggere la
+     formula (non abbassando il numero a mano, che è la stessa toppa che
+     questa riga vieta). Misura del 13/08, corretta: 58 prove, 48 cadute, 10
+     in piedi (9 «righe buone» + 1 «colonne riconosciute»). */
+  const SOGLIA = prove - CASI.length - CASI.filter((c) => c.extra).length;
   console.log(ko >= SOGLIA ? "✓ il banco SA fallire: rimessi i difetti cadono le prove giuste"
                            : `⚠️ troppo poche cadute (${ko}, ne servono ${SOGLIA})`);
   process.exit(ko >= SOGLIA && !nonMisurati.length ? 0 : 1);
