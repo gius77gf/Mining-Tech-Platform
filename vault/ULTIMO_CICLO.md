@@ -1,16 +1,20 @@
 # Ultimo ciclo
 
-- **Quando**: 2026-09-21T10:13:10Z (letta da `date -u`, non predetta).
-- **Commit di partenza**: 31803e2e (chore(vault): completa il commit
-  precedente — SCUSATI e data interna del checkpoint).
-- **Cosa sto per fare**: propagato il numero vero di asserzioni del
-  giro `node` completo (4284, confermato da un run pulito con
-  `date-checkpoint.mjs` di nuovo a 10/0 — 41 comandi a posto, 0
-  caduti) in `docs/DEVELOPMENT.md` e `docs/STATO_PRODOTTO.md`.
-- **Prossimo passo atomico**: dopo questo commit, tornare a cercare
-  altre funzioni Genesi verificabili dal vivo (metodo produttivo di
-  questo blocco: bottoni di export/import senza banco — già esaurito
-  per i 12 bottoni censiti; considerare aree diverse, es. i layer
-  `dlIso`/`dlRel`/`dlEne`/`dlInn` del Progetto 2D, o le funzioni di
-  validazione che disegnano badge nella scheda). Mandato del fondatore
+- **Quando**: 2026-09-21T10:14:14Z (letta da `date -u`, non predetta)
+- **Commit di partenza**: fc8bb528 (chore(vault): propaga il numero
+  vero di asserzioni (4284), giro-node pulito)
+- **Cosa sto per fare**: controllati i layer del Progetto 2D
+  (Isocrone/Energia/Innesco/Griglia) come ultimo candidato per il
+  metodo "verifica dal vivo": nessun segno di difetto storico non
+  coperto, a differenza di tratti/innesco-xml — non scritto un banco
+  senza un difetto noto da riprodurre. Chiuso il blocco con un
+  checkpoint di bilancio:
+  `vault/checkpoints/20260921-101414_genesi-blocco-esaurito-giro-pulito.md`.
+  Stato misurato: giro-node.mjs 41/41, 0 caduti, 4284 asserzioni,
+  documenti coerenti.
+- **Prossimo passo atomico**: cambiare area — la scena 3D (`buildSim`/
+  `renderSim`) e la timeline dello sparo, cercando azioni utente senza
+  copertura browser (play/pausa/scrub, cambio qualità, cambio look),
+  invece di continuare su RICERCA_CONTINUA_GENESI.md o gli export 2D
+  (entrambi già esauriti in questo blocco). Mandato del fondatore
   invariato: solo Genesi, massimo sforzo.
