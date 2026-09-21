@@ -555,9 +555,9 @@ vuota**, e nessuno ha riletto quel messaggio d'errore perché **la spiegazione
 c'era già**. Il segno da riconoscere non è l'errore: è la **rinuncia scritta
 accanto**.
 
-**451 esecuzioni che aprono davvero le pagine** in Chromium *(ricontato il
-19/09 con `suite-collegate.mjs`, dopo l'annulla premuto a metà di un
-trascinamento, G56b)* —
+**453 esecuzioni che aprono davvero le pagine** in Chromium *(21/09,
+aggiunto il banco su Genesi che verifica Ruota/Scala tratti nascosti
+mentre si disegna, G57/G58)* —
 banchi distinti, ognuno seguito dalla sua **controprova** (Chromium è già
 installato in `/opt/pw-browsers/chromium`, **non** si lancia
 `playwright install`):

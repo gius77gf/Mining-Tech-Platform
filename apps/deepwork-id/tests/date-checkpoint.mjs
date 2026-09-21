@@ -243,6 +243,18 @@ const SCUSATI = new Map([
     + "(`20260919-155943_…`, stesso contenuto); resta il PERCORSO vecchio nella storia. Quinta volta della stessa "
     + "causa in poche settimane: la disciplina resta la stessa, leggere `date -u` immediatamente prima di ogni "
     + "scrittura del nome, mai riusare un orario letto anche solo qualche minuto prima."],
+  ["vault/checkpoints/20260921-043500_genesi-scansione-doc-esaurita-cambio-metodo.md",
+    "21/09: stessa causa, sesta volta — il nome usava \"circa\" (04:35:00Z) invece di leggere `date -u` appena "
+    + "prima di scrivere il file: era entrato alle 2026-09-21T04:32:02Z, tre minuti avanti. Rinominato col nome "
+    + "giusto (`20260921-043200_…`, stesso contenuto); resta il PERCORSO vecchio nella storia. Sesta volta della "
+    + "stessa causa: scrivere \"circa\" in un nome di file è la stessa stima vietata dalle cinque volte precedenti, "
+    + "solo con una parola diversa a nasconderla."],
+  ["vault/checkpoints/20260921-042500_genesi-nota-scadenza-decisione-28.md",
+    "21/09: stessa causa, settima volta, stesso blocco della sesta — un altro nome scritto con \"circa\" "
+    + "(04:25:00Z) nella stessa sessione in cui la sesta volta era già stata trovata E corretta, prova che "
+    + "correggere UN nome non basta a fermare l'abitudine che li scrive tutti: era entrato alle "
+    + "2026-09-21T04:23:17Z, un minuto e 43 secondi avanti. Rinominato col nome giusto "
+    + "(`20260921-042317_…`, stesso contenuto); resta il PERCORSO vecchio nella storia."],
 ]);
 
 test("nessun checkpoint NUOVO è datato dopo il giorno in cui è entrato in git", () => {

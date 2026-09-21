@@ -219,7 +219,7 @@ claims, 9 sul manifesto, 8 sulla demo, 7 sulle rivendicazioni del
 primo avvio, 3 sulle superfici che stampano e su chi le preme — più **144** che
 girano con l'emulatore Firestore (**93** sulle
 **regole di sicurezza**, 19 sull'SDK, 24 sulle funzioni, 8 sul primo avvio) e
-**451 esecuzioni** che aprono davvero le pagine in un browser *(ricontato il 19/09, dopo l'annulla premuto a metà di un trascinamento, G56b)*.
+**453 esecuzioni** che aprono davvero le pagine in un browser *(21/09, aggiunto il banco su Genesi che verifica Ruota/Scala tratti nascosti mentre si disegna, G57/G58)*.
 ⚠️ *Il primo avvio è tornato da 10 a **8** l'08/08, e non è un passo indietro:
 le due prove aggiunte quel giorno chiedevano lo* stato finale *delle
 rivendicazioni, che dove le Cloud Functions girano è di* `rebuildClaims` *e non
