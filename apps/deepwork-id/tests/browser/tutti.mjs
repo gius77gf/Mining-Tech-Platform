@@ -446,6 +446,8 @@ const BANCHI = [
      su quelli disegnati sulla tela, divergendo da schermo e Report. */
   ['la scheda volata (CSV) di Genesi conta i fori disegnati, non la griglia', 'genesi-csv-fori-disegnati.mjs', []],
   ['scheda volata di Genesi, fori disegnati · controprova', 'genesi-csv-fori-disegnati.mjs', ['--controprova'], true],
+  ['il giro di andata e ritorno del piano di innesco XML di Genesi non perde l\'innesco', 'genesi-innesco-xml-roundtrip.mjs', []],
+  ['innesco XML di Genesi, andata e ritorno · controprova', 'genesi-innesco-xml-roundtrip.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 17/09 — dal terzo giro di deep-pass su Genesi: la terza
      riga di "Ponti con le altre app" nella Home veniva tagliata a metà
      senza affordance di scroll (172px vs 214px di contenuto reale). */
