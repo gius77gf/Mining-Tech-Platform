@@ -1,20 +1,17 @@
 # Ultimo ciclo
 
-- **Quando**: 2026-09-19T23:16:28Z (letta da `date -u`, non predetta)
-- **Commit di partenza**: 1ac43f69 (chore(vault): chiudi l'indagine sul "NON MISURATO" residuo di genesi-campi-assenti.mjs)
-- **Cosa sto per fare**: rilanciato `tutti.mjs --solo=genesi` per intero
-  (una volta a fine blocco) dopo la correzione di `syncTrattoUI` e la
-  chiusura dell'indagine sulla "spalla". Risultato: 74 banchi a posto
-  (era 73), 21 da guardare (era 22) — esattamente il delta atteso.
-  Letti tutti e 21 per nome: 20 sono controprove che funzionano, 1 è la
-  "spalla" già indagata e confermata corretta. Zero KO nuovi o non
-  spiegati. Checkpoint:
-  `vault/checkpoints/20260919-231628_genesi-batch-confermato-pulito.md`.
-  Il blocco aperto dopo G58/G59 (leggere il batch, trovare e correggere
-  ciò che è vero) è chiuso.
-- **Prossimo passo atomico**: nuova unità su Genesi con lo stesso
-  metodo (lettura diretta del codice + verifica dal vivo con
-  Playwright). Le ricerche specifiche su Genesi (CAD, JKSimBlast) sono
-  esaurite; i prossimi candidati vanno cercati per famiglie di difetti
-  già note in questo file, o in un'area di Genesi non ancora passata al
-  setaccio in questa sessione.
+- **Quando**: 2026-09-21T00:47:55Z (letta da `date -u`, non predetta)
+- **Commit di partenza**: 7eba3c54 (chore(vault): conferma con il giro completo che il blocco G58/G59 è pulito)
+- **Cosa sto per fare**: canarino di avvio del nuovo ciclo. Riprendo dal
+  "Prossimo passo atomico" del checkpoint più recente (per data vera,
+  non per nome file): una nuova unità di sviluppo/verifica su Genesi con
+  lo stesso metodo delle precedenti (lettura diretta del codice +
+  verifica dal vivo con Playwright, mai sulla parola di un agente).
+  Mandato del fondatore (dato in chat, ancora invariato salvo nuova
+  indicazione): solo Genesi, massimo sforzo.
+- **Prossimo passo atomico**: leggere `vault/ROADMAP_SETTIMANA.md` e il
+  checkpoint più recente con `node apps/deepwork-id/tests/date-checkpoint.mjs`,
+  poi scegliere la prossima area di Genesi da passare al setaccio (le
+  ricerche specifiche CAD/JKSimBlast sono esaurite: si cerca per
+  famiglie di difetti già note in CLAUDE.md, o in un'area non ancora
+  passata al setaccio in questa sessione).
