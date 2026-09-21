@@ -2917,7 +2917,9 @@ function readParams(){
   clearFrontMesh();                               // rimuove l'eventuale fronte 3D reale caricato
 }
 for(const id of Object.keys(layers)){
-  $(id).onchange = e=>{ layers[id] = e.target.checked; if(id==='lQuote') quotaApplica(); renderSim(simT, true); if(id==='lAudio'&&playing){ cancelAudio(); if(layers.lAudio) scheduleBooms(); } };
+  $(id).onchange = e=>{ layers[id] = e.target.checked; if(id==='lQuote') quotaApplica();
+    if(id==='lXray' && !layers.lXray) holeInfoHide();   // 21/09: senza i raggi-X il foro selezionato non è più visibile, il popup non deve restare orfano
+    renderSim(simT, true); if(id==='lAudio'&&playing){ cancelAudio(); if(layers.lAudio) scheduleBooms(); } };
 }
 if($('xrOp')) $('xrOp').oninput = e=>{ xrayOp = (+e.target.value||32)/100;
   if(!layers.lXray){ layers.lXray=true; if($('lXray')) $('lXray').checked=true; }   // il cursore mostra i fori da solo (fondatore 25/07)
@@ -8341,6 +8343,10 @@ if(location.hostname==='localhost'||location.hostname==='127.0.0.1'){
     get d2UndoLen(){return d2UndoStack.length}, get d2RedoLen(){return d2RedoStack.length}, D2_UNDO_MAX,
     get frontMesh(){return frontMesh},
     get xrayCyls(){return xrayCyls}, holeInfoShow, buildTicks,
+    holeScreenPos:(i)=>{ const g=xrayCyls[i]; if(!g) return null;
+      const v=g.position.clone().project(cam), r=renderer.domElement.getBoundingClientRect();
+      return { x: r.left+(v.x+1)/2*r.width, y: r.top+(1-v.y)/2*r.height }; },
+    get holeSel(){return holeSel ? { i: holeSel.userData.f && holeSel.userData.f.i } : null},
     get modella(){return modella},
     get mdlUndoLen(){return mdlUndoStack.length}, get mdlRedoLen(){return mdlRedoStack.length},
     mdlHandleScreenPos:(i, tipo)=>{ const set = tipo==='piede' ? mdlPie : mdlHandles; const h=set[i]; if(!h) return null;
