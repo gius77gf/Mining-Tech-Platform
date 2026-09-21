@@ -1,4 +1,4 @@
-# Checkpoint — 2026-09-21T09:54:30Z
+# Checkpoint — 2026-09-21T09:51:19Z
 
 ## Tipo
 documentazione (nessun codice di prodotto toccato)

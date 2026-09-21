@@ -255,6 +255,15 @@ const SCUSATI = new Map([
     + "correggere UN nome non basta a fermare l'abitudine che li scrive tutti: era entrato alle "
     + "2026-09-21T04:23:17Z, un minuto e 43 secondi avanti. Rinominato col nome giusto "
     + "(`20260921-042317_…`, stesso contenuto); resta il PERCORSO vecchio nella storia."],
+  ["vault/checkpoints/20260921-095430_genesi-piano3d-chiuso.md",
+    "21/09: ottava volta, stesso blocco delle due precedenti — questa volta senza nemmeno la parola "
+    + "\"circa\": il nome è stato scritto stimando l'ora invece di chiamare lo strumento `date -u` come "
+    + "azione dedicata immediatamente prima di scrivere il file. Era entrato alle 2026-09-21T09:51:19Z, il "
+    + "nome diceva 09:54:30, tre minuti e undici secondi avanti. Rinominato col nome giusto "
+    + "(`20260921-095119_…`, stesso contenuto); resta il PERCORSO vecchio nella storia. Tre volte nello "
+    + "stesso blocco di lavoro: la causa non è la disattenzione su un singolo file, è che la lettura di "
+    + "`date -u` non era diventata un passo obbligato e separato prima di OGNI nome — non un'ora ricordata "
+    + "da un comando lanciato in un passo precedente, per quanto vicino nel tempo."],
 ]);
 
 test("nessun checkpoint NUOVO è datato dopo il giorno in cui è entrato in git", () => {
