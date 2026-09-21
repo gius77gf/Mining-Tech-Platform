@@ -1,21 +1,20 @@
 # Ultimo ciclo
 
-- **Quando**: 2026-09-21T10:47:08Z (letta da `date -u`, non predetta)
-- **Commit di partenza**: 7169086a (chore(vault): bilancio del blocco,
-  giro-node pulito (41/41, 0 caduti, 4284 asserzioni))
+- **Quando**: 2026-09-21T11:11:37Z (letta da `date -u`, non predetta)
+- **Commit di partenza**: 919d5469 (test(genesi): copertura browser per
+  play/pausa/scrub della timeline)
 - **Cosa sto per fare**: scritto un nuovo banco browser su Genesi per la
-  timeline dello sparo (`#play`/`#track`/`[data-spd]`, zero copertura
-  prima), 13/0, senza `DIFETTI`/`--controprova` (nessun bug storico da
-  riprodurre, scelta dichiarata nel file). Controllato anche
-  qualità/look: non sono controlli utente reali, nessun banco da
-  scrivere lì. Propagati banchi 455→456, file distinti 207→208,
-  asserzioni 4284→4285 nei quattro documenti tracciati. Checkpoint:
-  `vault/checkpoints/20260921-104708_genesi-banco-timeline-play-scrub.md`.
-  Stato misurato: giro-node.mjs 41/41, 0 caduti, 4285 asserzioni,
-  documenti coerenti.
-- **Prossimo passo atomico**: col metodo "bottoni/funzioni senza banco"
-  esaurito su design 2D/export/timeline, guardare i livelli/layer del
-  pannello 3D (`lMuck`/`lFly`/`lXray`/`lQuote`/`lAudio`, `xrOp`) per un
-  difetto di RENDERING, oppure un secondo passaggio su
-  `docs/GENESI_ROADMAP_COMPETITOR.md`/`docs/RICERCA_CONTINUA_GENESI.md`.
-  Mandato del fondatore invariato: solo Genesi, massimo sforzo.
+  modellazione 3D del fronte (`#btnModella`, trascinamento delle
+  maniglie cresta/piede, 13/0), aggiungendo al ponte di debug
+  `window.__genesi` gli helper minimi necessari per proiettare una
+  maniglia Three.js sullo schermo (`mdlHandleScreenPos`) e leggere lo
+  stato (`modella`/`mdlUndoLen`/`mdlRedoLen`). Nessun `DIFETTI`/
+  `--controprova`: nessun bug storico da riprodurre. Propagati banchi
+  456→457, file distinti 208→209, asserzioni 4285→4286 (da confermare
+  con l'ultimo giro dopo questo checkpoint). Checkpoint:
+  `vault/checkpoints/20260921-111137_genesi-banco-modella-fronte-3d.md`.
+- **Prossimo passo atomico**: bottoni camera (`[data-cam]`) e selezione
+  del singolo foro (`holeInfoShow`), oppure secondo passaggio su
+  `docs/GENESI_ROADMAP_COMPETITOR.md`/`docs/RICERCA_CONTINUA_GENESI.md`
+  se quell'area risultasse priva di bersagli. Mandato del fondatore
+  invariato: solo Genesi, massimo sforzo.
