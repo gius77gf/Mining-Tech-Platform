@@ -5710,3 +5710,84 @@ titolo di una sezione precedente dello stesso file.
   sorteggiato (G16). È la quarta mancanza di questa ricerca che si rivela
   falsa cercando il MECCANISMO invece del nome — la stessa lezione già scritta
   in CLAUDE.md a proposito di questa stessa ricerca sulle isocrone.
+
+## Ricerca del 21/09 — Il mestiere della cava: che cosa contiene davvero un blast report
+
+_Angolo mai provato per Genesi finora (le ricerche precedenti erano tutte
+"i concorrenti"). Metà sul mondo consegnata da un agente con SOLO WebSearch,
+nessun WebFetch (bloccato/non necessario), nessun confronto col codice —
+quello, come da regola, l'ho fatto io aprendo `genesi.html`/`genesi-data.js`
+e verificando ogni claim con un `grep`, non sulla parola dell'agente._
+
+### Il mondo (di seconda mano, WebSearch, fonti citate dall'agente)
+
+- **Campi tipici di un blast report** (PennDOT TR-41, OSMRE BLEP v2.0,
+  CoreSafety, SafetyCulture DNAP): identificazione/data/ora, distanza e
+  direzione dalla struttura protetta più vicina, esplosivo (peso totale,
+  carica massima per ritardo), schizzo del piano (fori/burden/spaziatura/
+  decks/ritardi), **condizioni meteo al momento dello sparo**, **misfire**
+  (presenza/ubicazione di esplosivo non detonato).
+- **30 CFR 816.68/816.67** (USA, miniere di carbone di superficie): registro
+  di volata con meteo e schizzo del piano; **tracciato sismografico per ogni
+  volata**. **30 CFR 56.6306** (miniere metallifere/non metallifere USA):
+  **esame post-volata da persona competente** prima di riprendere il lavoro;
+  notifica al distretto MSHA se un foro caricato non spara entro 72 ore.
+- **Italia**: D.Lgs 624/96 (Documento di Sicurezza e Salute, figure
+  obbligatorie), procedure regionali con registro di carico/scarico
+  esplosivo; **UNI 9916:2014** per le vibrazioni (rimanda a DIN 4150 in
+  appendice); nessun modulo nazionale unico equivalente al 816.68 trovato
+  via WebSearch (assenza di risultato, non conferma di assenza — l'agente
+  lo dichiara esplicitamente).
+- Limiti dichiarati dall'agente: nessuna pagina letta per intero (solo
+  riassunti di WebSearch); i nomi di software specifici (Blastware,
+  ShotPlus, IBlast) non hanno dato risultati con dettaglio sui template.
+
+### Il delta — verificato di persona, per meccanismo, non per nome
+
+- ❌ **"Misfire non tracciato" — FALSO, e già ottimo.** `grep -in misfire
+  apps/genesi/genesi-data.js apps/genesi/genesi.html` → decine di righe:
+  G52 (già un'unità completata) legge l'esito «misfire» dal consuntivo di
+  Campo, lo dichiara "non si sa" quando la colonna manca (mai "nessuno"),
+  elenca gli ID dei fori inesplosi con l'avviso di sicurezza, e lo porta
+  nel riepilogo, nello storico e nel CSV — esattamente il "documentare
+  l'ubicazione di esplosivo non detonato" del mondo.
+- ⚠️ **"Condizioni meteo non registrate" — vero ma il caso è debole, NON
+  implementato.** `grep -in "vento\|pioggia\|temperatura"` trova solo
+  `pVento`, che è l'input della SIMULAZIONE 3D (deriva del pennacchio di
+  polvere nell'animazione), non un campo di registrazione post-volata. La
+  riconciliazione (`riconSave`, genesi.html:4535) ha però già un campo
+  **Note libero** (`ric-note`) dove le condizioni meteo si possono scrivere
+  oggi stesso. Non aggiunto un campo dedicato perché: (1) il caso d'uso è
+  già coperto, solo non "prompt-ato"; (2) la citazione regolatoria è
+  debole per il mercato reale di Genesi — il requisito meteo trovato è
+  specifico del 30 CFR USA per il carbone di superficie, e la ricerca
+  sull'Italia non ha confermato un obbligo equivalente (l'ha dichiarato
+  lei stessa "più debole"); citare una legge USA per giustificare una
+  feature italiana sarebbe il "numero di legge di seconda mano, peggio di
+  un numero assente" che questo file mette in guardia. Se in futuro
+  qualcuno vuole un campo dedicato, è una scelta di prodotto (anche se
+  piccola): va con una conferma, non implementata di iniziativa su una
+  citazione debole.
+- ⛔ **"Esame post-volata da persona competente" e "notifica 72 ore" — FUORI
+  SCOPO per Genesi, non un "non c'è" da colmare qui.** Sono adempimenti
+  OPERATIVI del turno/cantiere (chi rientra nell'area, chi firma la
+  ripresa lavori), non del progetto della volata: il posto naturale è
+  Campo (l'app di turno/operazioni), non Genesi. Con il mandato del
+  fondatore "solo Genesi" attivo, non è stato indagato oltre — è una
+  domanda per una futura ricerca su Campo, non su Genesi.
+- ⚠️ **"Tracciato sismografico per ogni volata" — parziale, non
+  implementato.** Genesi importa la registrazione di UN foro-firma
+  (`ondaDaCsv`, G23) come INPUT di previsione, e la riconciliazione
+  registra il PPV reale come numero digitato a mano — non conserva il
+  file/tracciato del sismografo della volata intera come allegato
+  permanente. Non implementato: l'archiviazione del file grezzo del
+  sismografo è ragionevolmente compito del servizio di monitoraggio
+  esterno (chi fa le misure tiene le proprie tracce), e Genesi già fa la
+  sua parte confrontando previsto e reale — costruire un archivio file
+  dentro Genesi sarebbe un cantiere di storage, non una riga.
+
+**Conclusione onesta**: di quattro candidati, uno era già ottimamente
+coperto (misfire), due sono deboli/fuori scope per essere costruiti senza
+conferma (meteo, sismografo grezzo), uno è di un'altra app (esame
+post-volata). **Zero righe di codice in questa unità** — ed è la risposta
+corretta quando il delta, verificato con cura, non regge.

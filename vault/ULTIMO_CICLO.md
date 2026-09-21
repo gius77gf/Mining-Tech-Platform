@@ -1,21 +1,21 @@
 # Ultimo ciclo
 
-- **Quando**: 2026-09-21T00:55:40Z (letta da `date -u`, non predetta)
-- **Commit di partenza**: b0326f97 (canarino: ciclo automatico vivo, 2026-09-21T00:47:55Z)
-- **Cosa sto per fare**: con le ricerche CAD/JKSimBlast esaurite,
-  seguite due strade: (1) audit di codice sulla famiglia di ripiego
-  `D2.X || valoreGlobale` in punti non ancora controllati — nessun
-  difetto nuovo, tutte le istanze rimaste sono storiche, cosmetiche, o
-  già guardate a monte; (2) audit visivo diretto delle schermate di
-  Genesi con screenshot GUARDATI — tutto pulito, un'apparente anomalia
-  (riga "Flyrock inverso" che sembrava tagliata) smentita rifacendo lo
-  scatto senza il toast sovrapposto: era quello, non un difetto.
-  Lanciata in background una ricerca su un angolo mai provato per
-  Genesi ("il mestiere della cava": contenuto reale di un blast report
-  professionale e requisiti regolatori post-volata) — solo WebSearch,
-  solo il mondo con fonti, nessun confronto col codice fatto
-  dall'agente. Checkpoint:
-  `vault/checkpoints/20260921-005540_genesi-audit-visivo-e-ricerca-mestiere.md`.
-- **Prossimo passo atomico**: quando la ricerca torna, leggerla e fare
-  IO il confronto col codice del report di Genesi (partendo dal
-  meccanismo, verificando ogni "non c'è" con un grep prima di crederci).
+- **Quando**: 2026-09-21T01:02:23Z (letta da `date -u`, non predetta)
+- **Commit di partenza**: 20bfa8e3 (chore(vault): audit visivo + audit ripiego || su Genesi, nessun difetto nuovo; ricerca "mestiere della cava" avviata)
+- **Cosa sto per fare**: chiusa la ricerca "il mestiere della cava"
+  (contenuto di un blast report professionale). Delta fatto io stesso,
+  verificato con grep: misfire già ottimamente coperto (G52); meteo,
+  esame post-volata e tracciato sismografico grezzo non implementati
+  con motivazione (rispettivamente: già coperto da un campo Note
+  esistente + citazione regolatoria debole per l'Italia; fuori scope,
+  è di Campo; ragionevolmente compito del servizio di monitoraggio
+  esterno). Zero righe di codice — risposta corretta quando il delta
+  verificato non regge. Scritta la ricerca completa in
+  `docs/RICERCA_CONTINUA_GENESI.md`. Checkpoint:
+  `vault/checkpoints/20260921-010223_genesi-ricerca-blast-report-chiusa.md`.
+- **Prossimo passo atomico**: scegliere un nuovo angolo (leggere per
+  intero UNI 9916/ISEE invece dei soli riassunti WebSearch, o un'altra
+  delle cinque direzioni di CLAUDE.md), oppure tornare all'audit diretto
+  del codice su un'area di Genesi non ancora passata al setaccio
+  (comparatore A/B, export XML piano innesco, calcolo economico
+  costoVolata/margine).
