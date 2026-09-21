@@ -1,19 +1,19 @@
 # Ultimo ciclo
 
-- **Quando**: 2026-09-21T04:15:00Z circa (letta da `date -u`, non predetta)
-- **Commit di partenza**: e578db12 (docs(genesi): misura accesso testo
-  ISEE, corregge generalizzazione WebFetch, delta zero)
-- **Cosa sto per fare**: continuato a scorrere
-  `docs/RICERCA_CONTINUA_GENESI.md` col metodo delle unità precedenti.
-  Chiusa la ricerca del 13/09 sulla convenzione assi DXF (Genesi ha già
-  una difesa più forte del mondo: import DXF mai usato nei calcoli di
-  sicurezza, G47d 14/09). Trovate due candidate di sicurezza dalla
-  ricerca del 18/09 (finestra MIC su tempo nominale invece che scatter;
-  scatter fisso dell'innesco elettrico incoerente col catalogo) mai
-  portate in `docs/DECISIONI_WEEKEND.md` come da regola — aggiunte come
-  sezioni 29 e 30, nessun codice cambiato. Checkpoint:
-  `vault/checkpoints/20260921-041500_genesi-mic-scatter-in-decisioni-weekend.md`.
-- **Prossimo passo atomico**: continuare a scorrere le sezioni più
-  vecchie di `docs/RICERCA_CONTINUA_GENESI.md` (righe 683-2262) con lo
-  stesso metodo, o passare a un'unità di codice vera se il rendimento
-  cala.
+- **Quando**: 2026-09-21T04:25:00Z circa (letta da `date -u`, non predetta)
+- **Commit di partenza**: 5e88e4fb (docs(genesi): chiude ricerca
+  assi-DXF, porta MIC/scatter in DECISIONI_WEEKEND)
+- **Cosa sto per fare**: rileggendo la ricerca sulla frammentazione da
+  foto (12/09, feeds decisione 28), ho notato che il termine dei "sette
+  giorni senza risposta" scritto in quella decisione è scaduto da tempo,
+  ma il meccanismo di auto-decisione è stato usato una volta sola
+  (07/08) e non si è mai ripetuto. Non ho costruito la "misura assistita
+  da foto" (sarebbe un'inferenza su un permesso, non un permesso vero) —
+  ho solo aggiunto una nota datata 21/09 che pone la domanda di governo
+  esplicitamente al fondatore. Checkpoint:
+  `vault/checkpoints/20260921-042500_genesi-nota-scadenza-decisione-28.md`.
+- **Prossimo passo atomico**: proseguire lo scorrimento delle sezioni
+  più vecchie di `docs/RICERCA_CONTINUA_GENESI.md` (righe 683-1397) o
+  passare a un'unità di codice vera se il rendimento continua a calare.
+  Non costruire la misura assistita da foto finché il fondatore non
+  risponde alla domanda appena posta.

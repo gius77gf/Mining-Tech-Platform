@@ -833,6 +833,24 @@ su Genesi.*
   risposta di default più solida se il termine dei sette giorni scade
   senza risposta.*
 
+  ⚠️ **Nota del 21/09, e resta una domanda, non una decisione presa da
+  sola.** Il termine dei sette giorni **è scaduto** (questa voce è del
+  12-14/09, oggi è il 21/09) senza risposta. Ma il meccanismo «senza
+  risposta entro la settimana procedo con la mia risposta e lo dichiaro
+  nel commit» è stato **esercitato una volta sola**, il 07/08, su un
+  lotto di decisioni nate insieme — non si è mai ripetuto da solo da
+  allora, nemmeno su decisioni più vecchie di questa (19-27, dal 02/09
+  al 16/09, tutte ancora aperte). Trattarlo come una regola che si
+  rinnova ogni settimana per sempre, e usarlo per costruire da solo la
+  "misura assistita da foto" — che non è una riga, è una funzione UI
+  nuova — sarebbe esattamente ciò che la regola "niente entra sulla
+  parola dell'agente" vieta: un'inferenza su un permesso, non un
+  permesso. Non costruito. Resta la domanda **al fondatore**: la
+  concessione del 01/08 vale solo per quel lotto, o è una regola
+  permanente che si rinnova ogni volta che passa una settimana senza
+  risposta? Finché non lo dici, questa voce e le altre con lo stesso
+  termine scaduto restano ferme.
+
 ---
 
 ## 🟡 02/09 — tre decisioni nuove, nate dai ponti e dalle ricerche di oggi
