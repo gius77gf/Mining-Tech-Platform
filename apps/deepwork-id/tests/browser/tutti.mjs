@@ -488,6 +488,7 @@ const BANCHI = [
   ["i quattro bottoni camera della scena 3D di Genesi", 'genesi-camere-3d.mjs', []],
   ["selezione di un foro nella vista Raggi-X di Genesi", 'genesi-selezione-foro-3d.mjs', []],
   ['selezione foro Raggi-X di Genesi · controprova', 'genesi-selezione-foro-3d.mjs', ['--controprova'], true],
+  ["il cursore di trasparenza del fronte in vista Raggi-X di Genesi", 'genesi-trasparenza-xray.mjs', []],
   ["la selezione multipla dei fori di Genesi (G49)", 'genesi-selezione-multipla.mjs', []],
   ['selezione multipla di Genesi · controprova', 'genesi-selezione-multipla.mjs', ['--controprova'], true],
   ["rifletti la selezione dei fori di Genesi (G50)", 'genesi-rifletti-selezione.mjs', []],

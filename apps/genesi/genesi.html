@@ -8347,6 +8347,7 @@ if(location.hostname==='localhost'||location.hostname==='127.0.0.1'){
       const v=g.position.clone().project(cam), r=renderer.domElement.getBoundingClientRect();
       return { x: r.left+(v.x+1)/2*r.width, y: r.top+(1-v.y)/2*r.height }; },
     get holeSel(){return holeSel ? { i: holeSel.userData.f && holeSel.userData.f.i } : null},
+    get xrayOp(){return xrayOp}, get ghostOpacity(){return ghostWall ? ghostWall.material.opacity : null},
     get modella(){return modella},
     get mdlUndoLen(){return mdlUndoStack.length}, get mdlRedoLen(){return mdlRedoStack.length},
     mdlHandleScreenPos:(i, tipo)=>{ const set = tipo==='piede' ? mdlPie : mdlHandles; const h=set[i]; if(!h) return null;

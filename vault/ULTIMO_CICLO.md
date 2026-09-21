@@ -1,20 +1,20 @@
 # Ultimo ciclo
 
-- **Quando**: 2026-09-21T12:06:34Z (letta da `date -u`, non predetta)
-- **Commit di partenza**: 6fa2a4e2 (test(genesi): copertura browser per
-  i bottoni camera, trovato difetto reale (decisione 31))
-- **Cosa sto per fare**: scritto un nuovo banco browser sulla selezione
-  di un foro nella vista Raggi-X (10/0 + controprova), trovando e
-  CORREGGENDO un difetto reale: spegnere "Raggi-X progetto" con un
-  foro selezionato lasciava il popup del foro orfano (puntava a un
-  oggetto ormai invisibile). Corretto con una riga
-  (`holeInfoHide()` sull'onchange di `lXray`), a differenza delle
-  unità precedenti su questa scena (dove la scelta giusta non era
-  ovvia e quindi non ho corretto). Propagati banchi 458→460, file
-  distinti 210→211. Checkpoint:
-  `vault/checkpoints/20260921-120634_genesi-fix-holeinfo-orfano-xray.md`.
-- **Prossimo passo atomico**: il cursore di trasparenza `#xrOp`
-  (righe 2922-2924, mai testato) è l'ultimo candidato non guardato
-  sulla scena 3D; se privo di bersagli, secondo passaggio su
-  `docs/GENESI_ROADMAP_COMPETITOR.md`/`docs/RICERCA_CONTINUA_GENESI.md`.
+- **Quando**: 2026-09-21T12:18:30Z (letta da `date -u`, non predetta)
+- **Commit di partenza**: b0f146c5 (fix(genesi): il popup del foro
+  selezionato restava orfano spegnendo i raggi-X)
+- **Cosa sto per fare**: scritto un nuovo banco browser sul cursore di
+  trasparenza del fronte in vista Raggi-X (`#xrOp`, 7/0), nessun
+  difetto trovato (comportamento coerente su tutto l'intervallo,
+  incluso il fatto che il cursore riaccende da solo il layer se
+  spento). Con questo, il metodo "azioni utente senza banco" sulla
+  scena 3D di Genesi è ESAURITO: timeline, modellazione 3D, camere,
+  selezione foro (con un fix vero), cursore trasparenza — tutti
+  coperti partendo da zero. Propagati banchi 460→461, file distinti
+  211→212. Checkpoint:
+  `vault/checkpoints/20260921-121830_genesi-banco-trasparenza-xray.md`.
+- **Prossimo passo atomico**: tornare a un secondo passaggio su
+  `docs/GENESI_ROADMAP_COMPETITOR.md`/`docs/RICERCA_CONTINUA_GENESI.md`,
+  oppure applicare lo stesso metodo sistematico all'editor 2D del
+  fronte (già ben coperto, ma non ricensito con questo metodo).
   Mandato del fondatore invariato: solo Genesi, massimo sforzo.
