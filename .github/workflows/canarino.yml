@@ -12,12 +12,21 @@
 # branch di default. Il lavoro vive sui branch di sessione e main resta indietro
 # per giorni: cercare su main farebbe scattare un allarme falso ogni giorno.
 # Qui si cerca su TUTTI i branch.
+#
+# ⛔ PAUSA, 25/10: il fondatore ha fermato la routine di proposito il 21/09,
+# fino a nuovo ordine — non è un guasto. Il trigger programmato qui sotto è
+# disattivato (resta solo l'avvio manuale) per non continuare ad allarmare
+# per una cosa voluta: nel frattempo aveva aperto 101 issue, una per ogni
+# giro, perché l'etichetta "routine-ferma" che usa per deduplicare non
+# esisteva ancora nel repository (creata ora, quindi la deduplica funziona
+# anche se si riattiva senza accorgersene). Per far ripartire l'allarme
+# quando la routine riprende: togliere il commento dalla riga "schedule".
 
 name: Canarino — la routine sta lavorando?
 
 on:
-  schedule:
-    - cron: "35 5,17 * * *"   # due volte al giorno (UTC)
+  # schedule:
+  #   - cron: "35 5,17 * * *"   # due volte al giorno (UTC) — RIATTIVARE insieme alla routine
   workflow_dispatch:           # avviabile a mano per collaudo
 
 permissions:
