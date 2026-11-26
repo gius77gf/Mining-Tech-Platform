@@ -22,8 +22,18 @@
    CHE COSA PRETENDE, per ogni campione (da `verita.json`, scritto dal
    generatore e non da questa suite):
      · quanti tratti entrano, e con quali punti in coordinate mondo;
-     · che cosa viene DICHIARATO come non letto (`nonLette`, `spazioCarta`,
-       `archiComeCorde`, `binario`, `unita`): ciò che non entra si conta.
+     · dal 26/11, per gli ARCHI (ARC, CIRCLE, tratti curvi delle polilinee):
+       che la spezzata con cui Genesi li rende stia SULLA curva vera. La
+       curva vera la dice ezdxf come elenco di primitive esatte (segmenti,
+       archi con centro e raggio, cerchi): ogni vertice letto deve starci
+       sopra, il punto di mezzo di ogni lato non deve scostarsene più della
+       freccia dichiarata (`DXF_FRECCIA_ARCO_M`), e la lunghezza deve tornare.
+       ⚠️ Il primo riferimento provato era la curva «appiattita» da ezdxf:
+       su un cerchio di 100 m sbagliava di 27 mm (curve di Bézier), più della
+       tolleranza che doveva giudicare. Un righello va misurato anche lui;
+     · che cosa viene DICHIARATO come non letto o reso in altra forma
+       (`nonLette`, `spazioCarta`, `archiSpezzati`, `binario`, `unita`): ciò
+       che non entra si conta.
    E il denominatore: quanti campioni ci sono sul disco e quanti ne ha
    guardati — un campione aggiunto senza la sua verità (o il contrario) ferma
    la suite invece di passare inosservato.
@@ -51,6 +61,32 @@ const vicino = (a, b) => Math.abs(a - b) < 1e-6;
 /* come fa la pagina: `await file.text()`, cioè UTF-8 — anche sul binario */
 const testoDi = (nome) => new TextDecoder("utf-8").decode(readFileSync(join(CAMPIONI, nome + ".dxf")));
 
+/* ───────── la geometria esatta: distanza di un punto dalle primitive di ezdxf ───────── */
+const TAU = 2 * Math.PI, norm = (a) => ((a % TAU) + TAU) % TAU;
+function versoArco(q) {            // da che parte gira l'arco: lo dice il punto di passaggio
+  const ang = (v) => Math.atan2(v[1] - q.c[1], v[0] - q.c[0]), a0 = ang(q.da), am = ang(q.per), a1 = ang(q.a);
+  const antiorario = norm(am - a0) <= norm(a1 - a0);
+  return { ang, a0, antiorario, ampiezza: antiorario ? norm(a1 - a0) : norm(a0 - a1) };
+}
+function distPrimitiva(p, q) {
+  if (q.t === "linea") { const dx = q.b[0] - q.a[0], dy = q.b[1] - q.a[1], L = dx * dx + dy * dy; let t = L ? ((p[0] - q.a[0]) * dx + (p[1] - q.a[1]) * dy) / L : 0; t = Math.max(0, Math.min(1, t)); return Math.hypot(p[0] - q.a[0] - t * dx, p[1] - q.a[1] - t * dy); }
+  const d = Math.hypot(p[0] - q.c[0], p[1] - q.c[1]);
+  if (q.t === "cerchio") return Math.abs(d - q.r);
+  const v = versoArco(q), ap = v.ang(p), pos = v.antiorario ? norm(ap - v.a0) : norm(v.a0 - ap);
+  if (pos <= v.ampiezza + 1e-12) return Math.abs(d - q.r);
+  return Math.min(Math.hypot(p[0] - q.da[0], p[1] - q.da[1]), Math.hypot(p[0] - q.a[0], p[1] - q.a[1]));
+}
+const lunghezzaPrimitiva = (q) => q.t === "linea" ? Math.hypot(q.b[0] - q.a[0], q.b[1] - q.a[1]) : q.t === "cerchio" ? TAU * q.r : q.r * versoArco(q).ampiezza;
+/* una spezzata letta contro la curva vera: i VERTICI (devono starci sopra), i
+   punti di MEZZO dei lati (la freccia), la lunghezza */
+function confronta(pl, prim) {
+  const dist = (p) => Math.min(...prim.map((q) => distPrimitiva(p, q)));
+  let vertici = 0, freccia = 0, L = 0;
+  for (let i = 0; i < pl.length; i++) { vertici = Math.max(vertici, dist(pl[i]));
+    if (i) { freccia = Math.max(freccia, dist([(pl[i][0] + pl[i - 1][0]) / 2, (pl[i][1] + pl[i - 1][1]) / 2])); L += Math.hypot(pl[i][0] - pl[i - 1][0], pl[i][1] - pl[i - 1][1]); } }
+  return { vertici, freccia, L, Lvera: prim.reduce((t, q) => t + lunghezzaPrimitiva(q), 0), punti: pl.length };
+}
+
 /* che cosa non torna, per un campione: elenco di frasi (vuoto = a posto) */
 function giudica(genesi, nome) {
   const att = verita[nome].attesi, guai = [];
@@ -64,11 +100,23 @@ function giudica(genesi, nome) {
       if (!c) guai.push("manca la polilinea " + JSON.stringify(pa) + " — letto " + JSON.stringify(letti).slice(0, 160));
     }
   }
+  /* gli archi: per ogni curva vera, il tratto letto che le somiglia di più deve starle addosso */
+  if (att.curve) {
+    const letti = r.tratti.map((t) => t.pts.map((p) => [p.x, p.y])), tol = genesi.DXF_FRECCIA_ARCO_M;
+    att.curve.forEach((prim, k) => {
+      let m = null;
+      for (const pl of letti) { const c = confronta(pl, prim), voto = c.vertici + Math.abs(c.L - c.Lvera); if (!m || voto < m.voto) m = { ...c, voto }; }
+      if (!m) { guai.push(`curva ${k + 1}: nessun tratto letto`); return; }
+      if (m.vertici > 1e-6) guai.push(`curva ${k + 1}: un vertice è fuori dalla curva vera di ${m.vertici.toFixed(6)} m`);
+      if (m.freccia > tol + 1e-9) guai.push(`curva ${k + 1}: la spezzata si scosta dalla curva di ${(m.freccia * 1000).toFixed(1)} mm (massimo ${tol * 1000})`);
+      if (m.L > m.Lvera + 1e-6 || m.L < m.Lvera * 0.98) guai.push(`curva ${k + 1}: lunga ${m.L.toFixed(3)} m, la curva vera ${m.Lvera.toFixed(3)}`);
+    });
+  }
   const nl = att.nonLette || {};
   if (JSON.stringify(Object.entries(r.nonLette).sort()) !== JSON.stringify(Object.entries(nl).sort()))
     guai.push("non lette: dichiarate " + JSON.stringify(r.nonLette) + ", nel disegno " + JSON.stringify(nl));
   if (r.spazioCarta !== (att.spazioCarta || 0)) guai.push(`spazio carta: dichiarate ${r.spazioCarta}, sono ${att.spazioCarta || 0}`);
-  if (r.archiComeCorde !== (att.archiComeCorde || 0)) guai.push(`archi come corde: dichiarati ${r.archiComeCorde}, sono ${att.archiComeCorde || 0}`);
+  if (r.archiSpezzati !== (att.archiSpezzati || 0)) guai.push(`archi resi a spezzata: dichiarati ${r.archiSpezzati}, sono ${att.archiSpezzati || 0}`);
   if (r.binario !== !!att.binario) guai.push(`binario: dichiarato ${r.binario}, è ${!!att.binario}`);
   if (att.unita && (!r.unita || r.unita.nome !== att.unita)) guai.push(`unità: dichiarata ${r.unita && r.unita.nome}, il file dice ${att.unita}`);
   if (att.larghezza != null && (!r.ingombro || !vicino(r.ingombro.larghezza, att.larghezza))) guai.push(`ingombro: ${r.ingombro && r.ingombro.larghezza}, atteso ${att.larghezza}`);
@@ -95,8 +143,23 @@ const DIFETTI = [
    "if(t.slice(0,18)==='AutoCAD Binary DXF'){ st.binario=true; return st; }", ""],
   ["ciò che non si legge non si conta",
    "const nonLetta = (tipo)=>{ esito.nonLette[tipo]=(esito.nonLette[tipo]||0)+1; esito.nNonLette++; };", "const nonLetta = (tipo)=>{};"],
-  ["gli archi diventano corde senza dirlo",
-   "esito.archiComeCorde += buoni.filter((p,i)=>p.arco && (chiusa || i<buoni.length-1)).length;", ""],
+  /* gli archi (26/11): la curvatura ignorata (l'arco torna una corda), il verso
+     sbagliato, l'ARC letto in senso orario, l'estrusione non applicata agli
+     archi, il passo fisso invece della freccia, gli archi non contati */
+  ["il tratto ad arco torna una corda dritta",
+   "if(a.bulge && (a.x!==z.x || a.y!==z.y)){ archi++; for(const q of _dxfBulge(a, z, a.bulge)) pts.push(q); }",
+   "if(a.bulge && (a.x!==z.x || a.y!==z.y)){ archi++; }"],
+  ["la curvatura gira dalla parte sbagliata",
+   "const amp=4*Math.atan(bulge), r=c/(2*Math.sin(Math.abs(amp)/2)), h=(c/2)/Math.tan(amp/2);",
+   "const amp=-4*Math.atan(bulge), r=c/(2*Math.sin(Math.abs(amp)/2)), h=(c/2)/Math.tan(amp/2);"],
+  ["un ARC che attraversa lo zero viene letto all'indietro",
+   "let amp=((a1-a0)%360+360)%360; if(amp===0) amp=360;", "let amp=a1-a0;"],
+  ["l'estrusione non si applica agli archi",
+   "esito.tratti.push({pts: ocs ? pts.map(q=>ocs(q)) : pts});\n      esito.archiSpezzati++;", "esito.tratti.push({pts});\n      esito.archiSpezzati++;"],
+  ["i lati si contano a passo fisso, non dalla freccia",
+   "const passoMax = Math.min(Math.PI/6, 2*Math.acos(1 - t/r));", "const passoMax = Math.PI/6;"],
+  ["gli archi resi a spezzata non si contano",
+   "esito.archiSpezzati += r.archi;", ""],
 ];
 
 async function moduloCon(sostituzioni) {
@@ -139,7 +202,7 @@ const conVerita = Object.keys(verita).sort();
 dice(JSON.stringify(sulDisco) === JSON.stringify(conVerita),
   `ogni campione ha la sua verità e viceversa (${sulDisco.length} file .dxf, ${conVerita.length} verità)`,
   "solo sul disco: " + sulDisco.filter((n) => !verita[n]).join(", ") + " · solo in verita.json: " + conVerita.filter((n) => !sulDisco.includes(n)).join(", "));
-dice(sulDisco.length >= 23, `i campioni ci sono tutti (${sulDisco.length}, almeno 23)`);
+dice(sulDisco.length >= 29, `i campioni ci sono tutti (${sulDisco.length}, almeno 29)`);
 
 for (const nome of conVerita) {
   if (!sulDisco.includes(nome)) continue;
@@ -149,8 +212,8 @@ for (const nome of conVerita) {
 
 /* la frase che arriva all'utente, sul campione che la mette più alla prova */
 const miste = genesi.dxfLeggi(testoDi("curve_miste"));
-dice(genesi.dxfFraseNonLette(miste.nonLette) === "2 archi, 1 cerchio, 1 curva spline, 1 punto",
-  "curve_miste: la frase dice che cosa è rimasto fuori, con le parole di chi disegna", genesi.dxfFraseNonLette(miste.nonLette));
+dice(genesi.dxfFraseNonLette(miste.nonLette) === "1 curva spline, 1 punto" && miste.archiSpezzati === 3,
+  "curve_miste: i due archi e il cerchio sono entrati (3 archi resi a spezzata), e la frase dice che cosa è rimasto fuori — la spline e il punto — con le parole di chi disegna", genesi.dxfFraseNonLette(miste.nonLette) + " · archi " + miste.archiSpezzati);
 
 console.log(`\nRisultato DXF da CAD: ${passed} passati, ${failed} falliti  ·  ${sulDisco.length} campioni scritti da ezdxf guardati`);
 process.exit(failed > 0 ? 1 : 0);

@@ -20,6 +20,27 @@ def salva(nome, doc, attesi, nota=''):
     doc.saveas(p)
     verita[nome] = {'attesi': attesi, 'nota': nota}
 
+# la CURVA VERA di un'entita, detta da ezdxf (non da Genesi) come elenco di PRIMITIVE esatte in
+# coordinate mondo: segmenti, archi (centro, raggio, punto iniziale, un punto di passaggio, punto
+# finale) e cerchi. La suite misura contro queste la spezzata che Genesi ricava.
+# ⚠️ NON si usa `ezdxf.path...flattening`: rende i cerchi con curve di Bezier, che su un raggio di
+# 100 m si scostano dal cerchio vero di 27 mm — misurato: il «riferimento» sbagliava piu della
+# tolleranza che doveva giudicare. Centro, raggio e angoli invece sono esatti.
+def _p(v): return [round(v.x, 9), round(v.y, 9)]
+def _arco(a):
+    c = a.ocs().to_wcs(a.dxf.center)
+    pts = list(a.vertices(list(a.angles(3))))          # inizio, mezzo, fine — gia in coordinate mondo
+    return {'t': 'arco', 'c': _p(c), 'r': a.dxf.radius, 'da': _p(pts[0]), 'per': _p(pts[1]), 'a': _p(pts[2])}
+def curva(entita):
+    t = entita.dxftype()
+    if t == 'ARC': return [_arco(entita)]
+    if t == 'CIRCLE': return [{'t': 'cerchio', 'c': _p(entita.ocs().to_wcs(entita.dxf.center)), 'r': entita.dxf.radius}]
+    out = []
+    for v in entita.virtual_entities():                # LWPOLYLINE / POLYLINE: i suoi lati, dritti o ad arco
+        if v.dxftype() == 'ARC': out.append(_arco(v))
+        elif v.dxftype() == 'LINE': out.append({'t': 'linea', 'a': _p(v.dxf.start), 'b': _p(v.dxf.end)})
+    return out
+
 def seg(a, b):
     return [[round(a[0], 6), round(a[1], 6)], [round(b[0], 6), round(b[1], 6)]]
 
@@ -80,17 +101,17 @@ salva('unita_mm', d, {'tratti': 1, 'polilinee': [[[0, 0], [10000, 0]]], 'unita':
 # 9. Archi e cerchi (curve di livello, raccordi): entita che Genesi non legge
 d = ezdxf.new('R2010'); m = d.modelspace()
 m.add_line((0, 0), (10, 0))
-m.add_arc((5, 5), 3, 0, 90); m.add_arc((15, 5), 3, 0, 180); m.add_circle((20, 20), 2)
+a1 = m.add_arc((5, 5), 3, 0, 90); a2 = m.add_arc((15, 5), 3, 0, 180); c1 = m.add_circle((20, 20), 2)
 m.add_spline([(0, 0), (5, 3), (10, 0), (15, -3)])
 m.add_point((3, 3))
-salva('curve_miste', d, {'tratti': 1, 'polilinee': [[[0, 0], [10, 0]]], 'nonLette': {'ARC': 2, 'CIRCLE': 1, 'SPLINE': 1, 'POINT': 1}},
-      '1 linea letta su 6 entita: le altre 5 vanno CONTATE, non fatte sparire')
+salva('curve_miste', d, {'tratti': 4, 'polilinee': [[[0, 0], [10, 0]]], 'curve': [curva(a1), curva(a2), curva(c1)], 'archiSpezzati': 3, 'nonLette': {'SPLINE': 1, 'POINT': 1}},
+      'la linea, i due archi e il cerchio entrano (gli archi come spezzate); spline e punto vanno CONTATI, non fatti sparire')
 
 # 10. LWPOLYLINE con bulge (tratto ad arco)
 d = ezdxf.new('R2010'); m = d.modelspace()
-m.add_lwpolyline([(0, 0, 1.0), (10, 0, 0)], format='xyb')  # semicerchio fra (0,0) e (10,0)
-salva('lwpoly_bulge', d, {'tratti': 1, 'polilinee': [[[0, 0], [10, 0]]], 'archiComeCorde': 1},
-      'il tratto e un semicerchio di raggio 5: entra come corda dritta, e va dichiarato')
+pb = m.add_lwpolyline([(0, 0, 1.0), (10, 0, 0)], format='xyb')  # semicerchio fra (0,0) e (10,0)
+salva('lwpoly_bulge', d, {'tratti': 1, 'curve': [curva(pb)], 'archiSpezzati': 1},
+      'il tratto e un semicerchio di raggio 5: entra come spezzata sulla curva vera, non come corda di 10 m')
 
 # 11. LWPOLYLINE specchiata (estrusione 0,0,-1): in mondo le X sono negate
 d = ezdxf.new('R2010'); m = d.modelspace()
@@ -143,8 +164,8 @@ salva('blocco_con_attributi', d, {'tratti': 1, 'polilinee': [[[0, 0], [10, 0]]],
 
 # 18. LWPOLYLINE chiusa con l arco sul lato di chiusura (un piazzale col bordo tondo)
 d = ezdxf.new('R2010'); m = d.modelspace()
-m.add_lwpolyline([(0, 0, 0), (10, 0, 0), (10, 10, 0), (0, 10, 1.0)], format='xyb', close=True)
-salva('lwpoly_chiusa_arco', d, {'tratti': 1, 'polilinee': [[[0, 0], [10, 0], [10, 10], [0, 10], [0, 0]]], 'archiComeCorde': 1},
+pc = m.add_lwpolyline([(0, 0, 0), (10, 0, 0), (10, 10, 0), (0, 10, 1.0)], format='xyb', close=True)
+salva('lwpoly_chiusa_arco', d, {'tratti': 1, 'curve': [curva(pc)], 'archiSpezzati': 1},
       'l arco sta sul lato che chiude: su una polilinea CHIUSA conta, su una aperta no')
 
 # 19. POLYLINE 2D specchiata (R12): stessa regola dell OCS della LWPOLYLINE
@@ -153,5 +174,47 @@ pl = m.add_polyline2d([(0, 0), (10, 0), (10, 5)]); pl.dxf.extrusion = (0, 0, -1)
 salva('poly2d_specchiata_R12', d, {'tratti': 1, 'polilinee': [[[0, 0], [-10, 0], [-10, 5]]]},
       'estrusione (0,0,-1) su una POLYLINE 2D: il mondo ha X negata')
 
-json.dump(verita, open(os.path.join(OUT, 'verita.json'), 'w'), indent=1, ensure_ascii=False)
+# ── GLI ARCHI (26/11): le forme in cui un CAD scrive una curva ──────────────────────────
+# 20. ARC specchiato (estrusione 0,0,-1): centro e angoli sono nel sistema dell oggetto
+d = ezdxf.new('R2010'); m = d.modelspace()
+a = m.add_arc((5, 5), 3, 0, 90, dxfattribs={'extrusion': (0, 0, -1)})
+salva('arco_specchiato', d, {'tratti': 1, 'curve': [curva(a)], 'archiSpezzati': 1},
+      'ARC con estrusione (0,0,-1): nel mondo il centro e a x = -5 e l arco gira dall altra parte')
+
+# 21. POLYLINE 2D vecchio stile (R12) con un tratto ad arco e uno dritto
+d = ezdxf.new('R12'); m = d.modelspace()
+pl = m.add_polyline2d([(0, 0, 0.5), (10, 0, 0), (10, 8, 0)], format='xyb')
+salva('poly2d_bulge_R12', d, {'tratti': 1, 'curve': [curva(pl)], 'archiSpezzati': 1},
+      'la curvatura sta sul VERTEX (codice 42) di una POLYLINE vecchio stile: stesso arco della LWPOLYLINE')
+
+# 22. Curvatura NEGATIVA (arco in senso orario) seguita da un tratto dritto
+d = ezdxf.new('R2010'); m = d.modelspace()
+pn = m.add_lwpolyline([(0, 0, -0.5), (10, 0, 0), (10, 10, 0)], format='xyb')
+salva('lwpoly_bulge_negativo', d, {'tratti': 1, 'curve': [curva(pn)], 'archiSpezzati': 1},
+      'bulge negativo: l arco sta dall ALTRA parte della corda rispetto a uno positivo')
+
+# 23. LWPOLYLINE con arco E specchiata
+d = ezdxf.new('R2010'); m = d.modelspace()
+ps = m.add_lwpolyline([(0, 0, 1.0), (10, 0, 0), (10, 5, 0)], format='xyb', dxfattribs={'extrusion': (0, 0, -1)})
+salva('lwpoly_specchiata_bulge', d, {'tratti': 1, 'curve': [curva(ps)], 'archiSpezzati': 1},
+      'arco dentro una polilinea specchiata: si rende l arco nel sistema dell oggetto e POI si specchia')
+
+# 24. Cerchio grande (raggio 100 m) e cerchio piccolissimo (1 cm): la freccia decide i lati, non un passo fisso
+d = ezdxf.new('R2010'); m = d.modelspace()
+cg = m.add_circle((0, 0), 100); cp = m.add_circle((300, 0), 0.01)
+salva('cerchi_grande_e_piccolo', d, {'tratti': 2, 'curve': [curva(cg), curva(cp)], 'archiSpezzati': 2},
+      'raggio 100 m e raggio 1 cm: la spezzata non si scosta dalla curva piu di 2 cm nel primo, e il secondo non diventa un triangolo')
+
+# 25. ARC che attraversa lo zero (da 300 a 60 gradi) e polilinea con DUE archi di segno opposto (una S)
+d = ezdxf.new('R2010'); m = d.modelspace()
+az = m.add_arc((0, 0), 4, 300, 60)
+pS = m.add_lwpolyline([(20, 0, 0.6), (26, 0, -0.6), (32, 0, 0)], format='xyb')
+salva('arco_attraverso_zero_e_esse', d, {'tratti': 2, 'curve': [curva(az), curva(pS)], 'archiSpezzati': 3},
+      'un ARC da 300 a 60 gradi e lungo 120 gradi, non -240; e due archi di segno opposto di fila fanno una S')
+
+# un campione per riga: le curve di riferimento sono centinaia di punti, e con un rientro per
+# numero il file peserebbe tre volte tanto senza essere piu leggibile
+with open(os.path.join(OUT, 'verita.json'), 'w', encoding='utf-8') as f:
+    righe = [' ' + json.dumps(k, ensure_ascii=False) + ': ' + json.dumps(v, ensure_ascii=False, separators=(',', ':')) for k, v in verita.items()]
+    f.write('{\n' + ',\n'.join(righe) + '\n}\n')
 print(len(verita), 'file scritti in', OUT)

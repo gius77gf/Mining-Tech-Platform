@@ -4340,8 +4340,9 @@ function _dxfPolilinea(layer, punti){
    E ciò che NON si legge si CONTA e si dichiara (`nonLette`), invece di
    sparire: 1 linea letta su 6 entità non è «1 tratto importato».
    ⚠️ COSA RESTA FUORI, DICHIARATO: il contenuto dei blocchi INSERITI (si
-   contano, non si espandono); archi, cerchi, spline, ellissi; i tratti ad
-   arco di una polilinea (`bulge`) entrano come CORDE dritte e si contano.
+   contano, non si espandono); spline ed ellissi. Archi, cerchi e tratti ad
+   arco delle polilinee (`bulge`) dal 26/11 ENTRANO, come spezzate (vedi
+   «GLI ARCHI DEL DXF» più sotto), e si contano in `archiSpezzati`.
    ⚠️ LE UNITÀ NON SI CONVERTONO DA SOLE, e non per pigrizia: il modello
    metrico di AutoCAD (`acadiso.dwt`) dichiara `$INSUNITS = 4` (millimetri),
    e un topografo che ci disegna in metri consegna un file che «dichiara
@@ -4386,9 +4387,9 @@ function _dxfStruttura(testo){
          array, un vertice per ogni "10" incontrato (l'ordine del formato
          DXF garantisce che il gruppo 10 di un vertice precede sempre il
          suo 20, e il suo eventuale 42 — la curvatura — li segue). */
-      if(cur.tipo==='LWPOLYLINE' && codice==='10') cur.verts.push({x:+valore, y:NaN, arco:false});
+      if(cur.tipo==='LWPOLYLINE' && codice==='10') cur.verts.push({x:+valore, y:NaN, bulge:0});
       else if(cur.tipo==='LWPOLYLINE' && codice==='20' && cur.verts.length) cur.verts[cur.verts.length-1].y = +valore;
-      else if(cur.tipo==='LWPOLYLINE' && codice==='42' && cur.verts.length){ if(+valore) cur.verts[cur.verts.length-1].arco = true; }
+      else if(cur.tipo==='LWPOLYLINE' && codice==='42' && cur.verts.length){ const b=+valore; if(Number.isFinite(b)) cur.verts[cur.verts.length-1].bulge = b; }
       else cur.campi[codice]=valore;
     }
   }
@@ -4414,12 +4415,70 @@ function _dxfOcs(campi, quota){
   const q=Number.isFinite(+quota) ? +quota : 0;
   return (p)=>({ x:p.x*ax+p.y*bx+q*nx, y:p.x*ay+p.y*by+q*ny });
 }
+/* ══════════════════════════════════════════════════════════════════════
+   GLI ARCHI DEL DXF (26/11) — letti, non più solo dichiarati.
+   ══════════════════════════════════════════════════════════════════════
+   Fino al 26/11 un ARC e un CIRCLE finivano fra le entità «non lette» e un
+   tratto ad arco di una polilinea (`bulge`) entrava come CORDA dritta fra i
+   suoi estremi, dichiarata. Onesto, ma una curva di livello, un raccordo di
+   pista o il bordo tondo di un piazzale arrivavano mozzi: un semicerchio di
+   5 m di raggio diventava un segmento di 10 m, cioè 5 m di terreno spariti.
+   Adesso un arco entra come SPEZZATA che non si scosta dalla curva vera più
+   di `DXF_FRECCIA_ARCO_M` (2 cm: sotto la precisione con cui si traccia un
+   foro), e si conta in `archiSpezzati` — la pagina dice quanti e con che
+   scarto, perché una spezzata non è l'arco.
+    · il numero di lati viene dalla FRECCIA, non da un passo fisso: un arco
+      di 100 m di raggio e uno di 1 m con lo stesso passo angolare
+      sbaglierebbero di cento volte tanto; mai meno di un lato ogni 30°
+      (un cerchio piccolo non deve diventare un triangolo);
+    · gli estremi sono ESATTI (quelli del file), i punti in mezzo stanno
+      sulla circonferenza;
+    · `bulge` = tangente di un quarto dell'angolo al centro, positivo in
+      senso antiorario da un vertice al successivo;
+    · si lavora nel sistema dell'oggetto e l'estrusione si applica DOPO, a
+      ogni punto: un arco specchiato esce specchiato senza un caso a parte.
+   Spline ed ellissi restano fra le non lette, dichiarate. */
+export const DXF_FRECCIA_ARCO_M = 0.02;
+function _dxfLati(r, ampiezza){
+  const t = Math.min(DXF_FRECCIA_ARCO_M, r);
+  const passoMax = Math.min(Math.PI/6, 2*Math.acos(1 - t/r));
+  return Math.max(1, Math.min(1440, Math.ceil(ampiezza/passoMax - 1e-9)));
+}
+/* arco di centro (cx,cy) e raggio r, dall'angolo a0 per `ampiezza` radianti
+   (positiva = antiorario): i punti, estremi compresi */
+function _dxfArco(cx, cy, r, a0, ampiezza){
+  const n=_dxfLati(r, Math.abs(ampiezza)), pts=[];
+  for(let k=0;k<=n;k++){ const a=a0+ampiezza*k/n; pts.push({x:cx+r*Math.cos(a), y:cy+r*Math.sin(a)}); }
+  return pts;
+}
+/* i punti IN MEZZO del tratto ad arco fra p1 e p2 (gli estremi restano quelli del file) */
+function _dxfBulge(p1, p2, bulge){
+  const dx=p2.x-p1.x, dy=p2.y-p1.y, c=Math.hypot(dx,dy);
+  if(!(c>0) || !Number.isFinite(bulge) || bulge===0) return [];
+  const amp=4*Math.atan(bulge), r=c/(2*Math.sin(Math.abs(amp)/2)), h=(c/2)/Math.tan(amp/2);
+  const cx=(p1.x+p2.x)/2 - h*dy/c, cy=(p1.y+p2.y)/2 + h*dx/c;
+  return _dxfArco(cx, cy, r, Math.atan2(p1.y-cy, p1.x-cx), amp).slice(1, -1);
+}
+/* una polilinea coi suoi tratti ad arco resi a spezzata. La curvatura
+   sull'ULTIMO vertice vale solo se la polilinea è chiusa (descrive il tratto
+   che torna al primo): su una aperta non disegna niente. */
+function _dxfPoliConArchi(verts, chiusa){
+  const pts=[]; let archi=0;
+  for(let i=0;i<verts.length;i++){
+    const a=verts[i], ultimo=(i===verts.length-1);
+    pts.push({x:a.x, y:a.y});
+    if(ultimo && !chiusa) break;
+    const z=ultimo ? verts[0] : verts[i+1];
+    if(a.bulge && (a.x!==z.x || a.y!==z.y)){ archi++; for(const q of _dxfBulge(a, z, a.bulge)) pts.push(q); }
+  }
+  if(chiusa && pts.length>=3){ const a=pts[0], z=pts[pts.length-1]; if(a.x!==z.x || a.y!==z.y) pts.push({x:a.x, y:a.y}); }
+  return { pts, archi };
+}
 export function dxfLeggi(testo){
   const st = _dxfStruttura(testo);
-  const esito = { tratti:[], nonLette:{}, nNonLette:0, spazioCarta:0, archiComeCorde:0, binario:st.binario, unita:null, ingombro:null };
+  const esito = { tratti:[], nonLette:{}, nNonLette:0, spazioCarta:0, archiSpezzati:0, binario:st.binario, unita:null, ingombro:null };
   if(st.insunits!=null && _DXF_UNITA[st.insunits]) esito.unita = { codice:st.insunits, nome:_DXF_UNITA[st.insunits].nome, inMetri:_DXF_UNITA[st.insunits].inMetri };
   const nonLetta = (tipo)=>{ esito.nonLette[tipo]=(esito.nonLette[tipo]||0)+1; esito.nNonLette++; };
-  const chiudi = (pts, chiusa)=>{ if(chiusa && pts.length>=3){ const a=pts[0], z=pts[pts.length-1]; if(a.x!==z.x || a.y!==z.y) pts.push({x:a.x, y:a.y}); } return pts; };
   let poli = null;        // la POLYLINE in corso (i suoi VERTEX arrivano come entità a sé, fino a SEQEND)
   let appesa = false;     // dopo un INSERT con attributi: i suoi ATTRIB e il suo SEQEND non sono entità del disegno
   for(const e of st.entita){
@@ -4429,14 +4488,15 @@ export function dxfLeggi(testo){
       if((fv&128) && !(fv&64)) continue;                         // record-faccia di una mesh: non è un punto
       let p={x:+e.campi['10'], y:+e.campi['20']};
       if(!Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
-      if(poli.ocs) p=poli.ocs(p);
-      poli.pts.push(p); poli.archi.push(!!+e.campi['42']);
+      const bv=+e.campi['42'];
+      poli.verts.push({x:p.x, y:p.y, bulge:(poli.piana && Number.isFinite(bv)) ? bv : 0});
       continue;
     }
     if(e.tipo==='SEQEND'){
-      if(poli && poli.pts.length>=2){
-        esito.archiComeCorde += poli.archi.filter((arco,i)=>arco && (poli.chiusa || i<poli.archi.length-1)).length;
-        esito.tratti.push({pts:chiudi(poli.pts, poli.chiusa)});
+      if(poli && poli.verts.length>=2){
+        const r=_dxfPoliConArchi(poli.verts, poli.chiusa);
+        esito.archiSpezzati += r.archi;
+        esito.tratti.push({pts: poli.ocs ? r.pts.map(q=>poli.ocs(q)) : r.pts});
       }
       poli=null; appesa=false; continue;
     }
@@ -4454,7 +4514,8 @@ export function dxfLeggi(testo){
          i loro VERTEX sono nodi di una SUPERFICIE, non i punti di una linea.
          Unirli in fila disegnerebbe uno scarabocchio che nel file non c'è. */
       if(f&(16|64)){ nonLetta('POLYLINE (superficie)'); continue; }
-      poli={ pts:[], chiusa:!!(f&1), archi:[], ocs:(f&8)?null:_dxfOcs(e.campi, e.campi['30']) };
+      /* 8 = polilinea 3D: i suoi vertici sono già nel mondo e la curvatura non ha senso */
+      poli={ verts:[], chiusa:!!(f&1), piana:!(f&8), ocs:(f&8)?null:_dxfOcs(e.campi, e.campi['30']) };
     } else if(e.tipo==='LWPOLYLINE'){
       /* ⛔ 19/09, dal quarto giro di deep-pass QA: LWPOLYLINE è l'entità
          polilinea di DEFAULT scritta da AutoCAD (dal R14/1997), LibreCAD e
@@ -4465,11 +4526,26 @@ export function dxfLeggi(testo){
       const f=parseInt(e.campi['70'],10)||0, chiusa=!!(f&1), ocs=_dxfOcs(e.campi, e.campi['38']);
       const buoni=e.verts.filter(p=>Number.isFinite(p.x) && Number.isFinite(p.y));
       if(buoni.length>=2){
-        /* la curvatura sull'ULTIMO vertice vale solo se la polilinea è chiusa
-           (descrive il tratto che torna al primo): su una aperta non disegna niente */
-        esito.archiComeCorde += buoni.filter((p,i)=>p.arco && (chiusa || i<buoni.length-1)).length;
-        esito.tratti.push({pts:chiudi(buoni.map(p=> ocs ? ocs(p) : {x:p.x, y:p.y}), chiusa)});
+        const r=_dxfPoliConArchi(buoni, chiusa);
+        esito.archiSpezzati += r.archi;
+        esito.tratti.push({pts: ocs ? r.pts.map(q=>ocs(q)) : r.pts});
       }
+    } else if(e.tipo==='ARC' || e.tipo==='CIRCLE'){
+      const cx=+e.campi['10'], cy=+e.campi['20'], r=+e.campi['40'];
+      /* un arco senza centro o senza raggio non è un arco: si conta fra le non lette, non si inventa */
+      if(![cx,cy,r].every(Number.isFinite) || !(r>0)){ nonLetta(e.tipo); continue; }
+      let pts;
+      if(e.tipo==='CIRCLE'){ pts=_dxfArco(cx, cy, r, 0, 2*Math.PI); pts[pts.length-1]={x:pts[0].x, y:pts[0].y}; }
+      else {
+        const a0=+e.campi['50'], a1=+e.campi['51'];
+        if(!Number.isFinite(a0) || !Number.isFinite(a1)){ nonLetta('ARC'); continue; }
+        /* un ARC va SEMPRE in senso antiorario dall'angolo iniziale a quello finale (in gradi) */
+        let amp=((a1-a0)%360+360)%360; if(amp===0) amp=360;
+        pts=_dxfArco(cx, cy, r, a0*Math.PI/180, amp*Math.PI/180);
+      }
+      const ocs=_dxfOcs(e.campi, e.campi['30']);
+      esito.tratti.push({pts: ocs ? pts.map(q=>ocs(q)) : pts});
+      esito.archiSpezzati++;
     } else {
       if(e.tipo==='INSERT' && String(e.campi['66']||'').trim()==='1') appesa=true;
       nonLetta(e.tipo);

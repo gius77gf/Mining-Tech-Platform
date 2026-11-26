@@ -85,9 +85,16 @@ perché un foro senza valori suoi continua a usare quelli del progetto.
 ### Dopo, nell'ordine in cui conviene
 1. **Nuvola di punti LAZ** — è il formato con cui esce di default
    OpenDroneMap; oggi Genesi lo rifiuta (con un messaggio chiaro) e legge
-   solo LAS. Non dipende da nessuna decisione.
-2. **DXF: blocchi inseriti, archi, tratti curvi** — oggi dichiarati e non
-   letti; l'oracolo per farli giusti c'è già (`dxf-da-cad.mjs`).
+   solo LAS. ⏱️ *Il 26/11 a sera: «non dipende da nessuna decisione» era
+   sbagliato.* Leggerlo vuol dire far entrare un decodificatore di terzi:
+   è la **decisione 34**. Fatto intanto ciò che non dipende da lei: il
+   lettore LAS provato su nove file veri, e i nove LAZ gemelli riconosciuti
+   e mai letti come punti.
+2. **DXF: archi e tratti curvi ✅ 26/11** — ARC, cerchi e tratti ad arco
+   delle polilinee entrano come spezzate che non si scostano dalla curva
+   vera più di 2 cm (29 campioni scritti da ezdxf, geometria esatta come
+   verità). **Restano i blocchi inseriti** (INSERT: scala, rotazione,
+   nidificazione), spline ed ellissi: dichiarati e non letti.
 3. **Aggancio al cantiere e scambio dei fori** (decisione 32, rimandata).
 4. **Pezzatura da foto** (P2.1 qui sotto) e **modello ML** (P2.2): restano
    dove stavano.

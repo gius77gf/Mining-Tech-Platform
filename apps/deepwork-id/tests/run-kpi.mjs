@@ -17237,12 +17237,26 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     /* andata e ritorno contro il nostro STESSO export (dxfPianoFori,
        livello FRONTE): un profilo di quattro punti esce come POLYLINE e
        deve rientrare come UN tratto con gli stessi quattro punti,
-       nell'ordine — non i cerchi/testi dei fori sullo stesso file. */
+       nell'ordine. ⏱️ Fino al 26/11 i cerchi dei fori restavano fuori («UN
+       tratto solo»): da quando il lettore legge archi e cerchi, entrano
+       anche loro, come piccoli contorni chiusi dove sono i fori — è ciò che
+       un CAD mostra aprendo lo stesso file. I TESTI no. */
     const profilo = [{x:5,y:0},{x:20,y:3},{x:35,y:1},{x:50,y:2}];
     const fori = [{id:1,mx:0,my:3},{id:2,mx:3.5,my:3}];
     const dxf = genesi.dxfPianoFori(fori, 102, profilo);
-    const tratti = genesi.dxfLeggi(dxf).tratti;
-    eq(tratti.length, 1, "un file con fori+fronte porta dentro UN tratto solo (i cerchi/testi dei fori non diventano tratti)");
+    const rientro = genesi.dxfLeggi(dxf), tuttiITratti = rientro.tratti;
+    eq(tuttiITratti.length, 3, "un file con due fori e il fronte porta dentro TRE tratti: il fronte e i due cerchi dei fori");
+    eq(rientro.nonLette, { TEXT: 2 }, "le due etichette dei fori restano fuori, e si contano");
+    eq(rientro.archiSpezzati, 2, "e i due cerchi sono dichiarati come resi a spezzata");
+    const cerchi = tuttiITratti.filter((t) => t.pts.length > 4);
+    eq(cerchi.length, 2, "i due cerchi");
+    cerchi.forEach((c, k) => {
+      const cx = fori[k].mx, cy = fori[k].my;
+      ok(c.pts.every((q) => Math.abs(Math.hypot(q.x - cx, q.y - cy) - 0.051) < 1e-9), `il cerchio ${k + 1} sta attorno al SUO foro (${cx}; ${cy}) col raggio del diametro esportato (51 mm)`);
+      ok(c.pts[0].x === c.pts[c.pts.length - 1].x && c.pts[0].y === c.pts[c.pts.length - 1].y, `ed è chiuso`);
+    });
+    const tratti = tuttiITratti.filter((t) => t.pts.length === 4);
+    eq(tratti.length, 1, "il fronte è un tratto solo");
     eq(tratti[0].pts.length, 4, "il tratto ha i quattro punti del profilo esportato");
     for(let i=0;i<profilo.length;i++){
       ok(Math.abs(tratti[0].pts[i].x-profilo[i].x)<0.001 && Math.abs(tratti[0].pts[i].y-profilo[i].y)<0.001,
@@ -17324,7 +17338,13 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     eq(genesi.dxfLeggi(chiusa).binario, false, "un DXF di testo non è binario");
 
     const arco = dxf("0","SECTION","2","ENTITIES","0","LWPOLYLINE","90","2","70","0","10","0","20","0","42","1.0","10","10","20","0","0","ENDSEC","0","EOF");
-    eq(genesi.dxfLeggi(arco).archiComeCorde, 1, "un tratto ad arco (curvatura 42) entra come corda, e si conta");
+    const letArco = genesi.dxfLeggi(arco);
+    eq(letArco.archiSpezzati, 1, "un tratto ad arco (curvatura 42) entra come spezzata, e si conta");
+    ok(letArco.tratti[0].pts.length > 10 && letArco.tratti[0].pts.every((q) => Math.abs(Math.hypot(q.x - 5, q.y) - 5) < 1e-9), "⛔ non più come corda di 10 m: ogni punto sta sul semicerchio di raggio 5 attorno a (5; 0)");
+    eq([letArco.tratti[0].pts[0], letArco.tratti[0].pts[letArco.tratti[0].pts.length - 1]], [{ x: 0, y: 0 }, { x: 10, y: 0 }], "e gli estremi sono quelli del file, esatti");
+    ok(letArco.tratti[0].pts.every((q) => q.y <= 1e-12), "curvatura positiva = antiorario andando dal primo vertice al secondo: il semicerchio passa SOTTO la corda");
+    ok(!("archiComeCorde" in letArco), "il vecchio conto degli archi-come-corde non esiste più: nessun arco entra come corda");
+    eq(genesi.DXF_FRECCIA_ARCO_M, 0.02, "la freccia massima dichiarata: 2 cm");
 
     const vuoto = genesi.dxfLeggi("");
     eq([vuoto.tratti.length, vuoto.nNonLette, vuoto.ingombro, vuoto.unita, vuoto.binario], [0, 0, null, null, false], "un file vuoto: niente letto, niente dichiarato, nessun ingombro inventato");

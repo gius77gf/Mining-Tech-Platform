@@ -48,6 +48,8 @@ const TIPI = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/jav
 const DIFETTI = [
   [`d2PushUndo();\n  tratti.forEach(t=> D2.tratti.push({ pts:t.pts, aperto:false, origine:'dxf' }));`,
    `tratti.forEach(t=>{ d2PushUndo(); D2.tratti.push({ pts:t.pts, aperto:false, origine:'dxf' }); });`],
+  /* gli archi (26/11): la pagina smette di dire che sono entrati come spezzate */
+  [`if(letto.archiSpezzati) righe.push(`, `if(false) righe.push(`],
 ];
 
 const colpiti = new Set();
@@ -135,7 +137,10 @@ try {
   dice(nForiDopo === nForiPrima, `⛔ il CIRCLE/TEXT del foro NON diventa un foro (fori: ${nForiPrima} -> ${nForiDopo})`, nForiDopo);
 
   const tratti = await pg.evaluate(() => window.__genesi.D2.tratti);
-  dice(tratti.length === nTrattiPrima + 2, `LINE + POLYLINE diventano DUE tratti (${nTrattiPrima} -> ${tratti.length})`, tratti.length);
+  /* ⏱️ fino al 26/11 erano DUE: il cerchio del foro restava fuori. Da quando il
+     lettore legge archi e cerchi entra anche lui — come CONTORNO, un tratto di
+     riferimento: la riga qui sopra pretende che non diventi mai un foro. */
+  dice(tratti.length === nTrattiPrima + 3, `LINE + POLYLINE + il cerchio diventano TRE tratti: il cerchio entra come contorno, non come foro (${nTrattiPrima} -> ${tratti.length})`, tratti.length);
   const importati = tratti.slice(-2);
   dice(importati.every((t) => t.origine === "dxf"), "i tratti importati portano origine:'dxf' (per il tratteggio in disegno)", importati.map((t) => t.origine));
   dice(importati[0].pts.length === 2 && importati[1].pts.length === 3,
@@ -207,9 +212,17 @@ try {
     };
   };
   const miste = await importa("curve_miste");
-  dice(miste.aggiunti === 1, `curve_miste (1 linea, 2 archi, 1 cerchio, 1 spline, 1 punto): entra UN tratto (letti ${miste.aggiunti})`, miste.aggiunti);
-  dice(/Non importati: 2 archi, 1 cerchio, 1 curva spline, 1 punto/.test(miste.esito),
-    "⛔ e la pagina DICE che cosa è rimasto fuori, con le parole di chi disegna", miste.esito.slice(-260));
+  dice(miste.aggiunti === 4, `curve_miste (1 linea, 2 archi, 1 cerchio, 1 spline, 1 punto): entrano QUATTRO tratti — la linea, i due archi e il cerchio (letti ${miste.aggiunti})`, miste.aggiunti);
+  dice(/Non importati: 1 curva spline, 1 punto/.test(miste.esito),
+    "⛔ e la pagina DICE che cosa è rimasto fuori, con le parole di chi disegna: la spline e il punto", miste.esito.slice(-260));
+  dice(/3 archi o cerchi sono entrati come spezzate: dalla curva vera non si scosta più di 2 cm/.test(miste.esito),
+    "⛔ e dice che i tre archi sono entrati come SPEZZATE, con lo scarto massimo: una spezzata non è l'arco", miste.esito.slice(-200));
+  /* il tratto ad arco di una polilinea: sulla pianta deve esserci la curva, non la corda */
+  const arco = await importa("lwpoly_bulge");
+  const punti = await pg.evaluate(() => window.__genesi.D2.tratti.at(-1).pts.map((q) => [q.x, q.y]));
+  dice(arco.aggiunti === 1 && punti.length > 10 && punti.every((q) => Math.abs(Math.hypot(q[0] - 5, q[1]) - 5) < 1e-9),
+    `⛔ un semicerchio di 5 m di raggio entra come semicerchio (${punti.length} punti, tutti a 5 m dal centro) — non come una corda dritta di 10 m`, punti.slice(0, 3));
+  dice(/1 arco o cerchio è entrato come spezzata/.test(arco.esito), "e al singolare la frase torna («1 arco o cerchio è entrato come spezzata»)", arco.esito.slice(-140));
   dice(/orientamento/i.test(miste.esito), "l'avviso sull'orientamento resta, sopra il bilancio", miste.esito.slice(0, 60));
 
   const blocco = await importa("blocco_non_inserito");

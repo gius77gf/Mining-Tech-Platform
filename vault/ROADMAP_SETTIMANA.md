@@ -2478,6 +2478,28 @@
   ⛔ Il decodificatore LAZ NON è entrato: è codice di terzi (`laz-perf`,
   Apache 2.0, ~300 kB) e la regola di sicurezza della sessione ne ha fermato
   l'esecuzione. È la decisione 34 in `docs/DECISIONI_WEEKEND.md`.
+- [x] **26/11 · Genesi — il lettore DXF legge gli ARCHI.** Prima un ARC e un
+  cerchio finivano fra le entità «non lette» e un tratto ad arco di una
+  polilinea entrava come corda dritta (un semicerchio di 5 m di raggio
+  diventava un segmento di 10 m). Ora entrano come spezzate: i lati si
+  contano dalla FRECCIA (scarto massimo 2 cm, `DXF_FRECCIA_ARCO_M`), mai
+  meno di uno ogni 30°; estremi esatti; l'estrusione (disegni specchiati) si
+  applica dopo, a ogni punto. La pagina dice quanti archi sono entrati come
+  spezzate e con che scarto. Verità scritta da ezdxf come GEOMETRIA ESATTA
+  (segmenti, archi con centro e raggio, cerchi): 29 campioni (6 nuovi:
+  arco specchiato, POLYLINE R12 con curvatura, curvatura negativa,
+  polilinea specchiata con arco, cerchio da 100 m e da 1 cm, ARC attraverso
+  lo zero e curva a S). ⚠️ Il primo riferimento provato — la curva
+  «appiattita» da ezdxf — su un cerchio di 100 m sbagliava di 27 mm (curve
+  di Bézier): più della tolleranza che doveva giudicare. `dxf-da-cad.mjs`
+  26 → 32, controprova 8 → 13 difetti tutti distinti; banco
+  `genesi-dxf-import.mjs` 22 → 25. ⏱️ Conseguenza dichiarata: riaprendo il
+  NOSTRO DXF dei fori, i cerchi dei fori ora entrano come contorni (mai come
+  fori). Restano fuori, dichiarati: blocchi inseriti, spline, ellissi.
+- [ ] **Genesi — DXF: i blocchi inseriti (INSERT)**: oggi contati e non
+  espansi. Serve la definizione del blocco (sezione BLOCKS, oggi saltata di
+  proposito), poi scala, rotazione, traslazione e nidificazione; la verità
+  la scrive ezdxf (`virtual_entities()` di un INSERT).
 - [ ] **Genesi, foro per foro — F6b: l'INCLINAZIONE per foro** (l'ultimo
   campo). 14 letture di `D2.incl`: la proiezione del piede sulla pianta 2D
   (che oggi usa `D2.prof` per tutti i fori — va almeno portata alla
@@ -3124,6 +3146,7 @@ nome. Un nome si cerca con `grep`; una riga si sposta.
 grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 ```
 
+- `Genesi — DXF: i blocchi inseriti (INSERT)`
 - `Genesi, foro per foro — F6b: l'INCLINAZIONE per foro`
 - `Genesi — il progetto FORO PER FORO`
 - `F1. \`vitaComponenti\` non distingue un componente sostituito da`

@@ -1344,7 +1344,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, reliefCls, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino, activeProf, d2HitTest, d2HitTestPt,
-         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfLeggi, dxfFraseNonLette, valoriPropriDiForo, valoreDiForo, LIMITI_PER_FORO, foriConValoreProprio, foriSenzaValoriPropri, valoreComuneDiFori, contaValoriPropri, tabellaFori, valoriPerForoDaPiano, capienzaFori, MARGINE_CAPIENZA_FORO, scartoCaricheProprie, scartoProfonditaProprie, caricaProgettoDaTotale, firmaMaglia, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, foriRiflessi, trattiRuotati, trattiScalati, coordinataRelativa, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
+         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfLeggi, dxfFraseNonLette, DXF_FRECCIA_ARCO_M, valoriPropriDiForo, valoreDiForo, LIMITI_PER_FORO, foriConValoreProprio, foriSenzaValoriPropri, valoreComuneDiFori, contaValoriPropri, tabellaFori, valoriPerForoDaPiano, capienzaFori, MARGINE_CAPIENZA_FORO, scartoCaricheProprie, scartoProfonditaProprie, caricaProgettoDaTotale, firmaMaglia, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, foriRiflessi, trattiRuotati, trattiScalati, coordinataRelativa, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -5819,9 +5819,12 @@ function _dxfBilancioHtml(letto, fuori){
   const righe=[];
   if(letto.ingombro) righe.push('Ingombro letto: <b>'+gnum(letto.ingombro.larghezza,2)+' × '+gnum(letto.ingombro.altezza,2)+'</b> nelle unità del file, che Genesi prende per metri.');
   if(letto.unita && letto.unita.inMetri!==1) righe.push('Il file dichiara <b>'+_rEsc(letto.unita.nome)+'</b>: se la pianta risulta fuori misura, premi «⤢ Scala tratti» (il fattore '+gnum(letto.unita.inMetri,6)+' è già nel campo). La conversione non è automatica: molti disegni dichiarano un\'unità e sono in un\'altra.');
-  if(fuori) righe.push('Non importati: <b>'+_rEsc(fuori)+'</b> — entrano solo linee e polilinee.');
+  if(fuori) righe.push('Non importati: <b>'+_rEsc(fuori)+'</b> — entrano linee, polilinee, archi e cerchi.');
   if(letto.spazioCarta) righe.push(_ricPlur(letto.spazioCarta,'entità del foglio di stampa (cartiglio) lasciata fuori','entità del foglio di stampa (cartiglio) lasciate fuori')+'.');
-  if(letto.archiComeCorde) righe.push(_ricPlur(letto.archiComeCorde,'tratto ad arco è entrato','tratti ad arco sono entrati')+' come corda dritta fra i suoi due estremi.');
+  /* dal 26/11 gli archi ENTRANO (prima un tratto ad arco entrava come corda
+     dritta): come spezzate, e lo si dice con lo scarto massimo — una
+     spezzata non è l'arco, e chi misura sulla pianta deve saperlo */
+  if(letto.archiSpezzati) righe.push(_ricPlur(letto.archiSpezzati,'arco o cerchio è entrato come spezzata','archi o cerchi sono entrati come spezzate')+': dalla curva vera non si scosta più di '+gnum(DXF_FRECCIA_ARCO_M*100,0)+' cm.');
   if(!righe.length) return '';
   return '<div id="d2-dxf-bilancio" style="margin-top:6px;padding:8px 10px;border:1px solid var(--line,rgba(255,255,255,.12));border-radius:8px;color:var(--mut);font-size:12px;line-height:1.5;">'+righe.join('<br>')+'</div>';
 }
