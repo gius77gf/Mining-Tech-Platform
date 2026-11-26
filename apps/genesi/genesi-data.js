@@ -2738,6 +2738,50 @@ export function contaValoriPropri(holes){
 }
 
 /* ══════════════════════════════════════════════════════════════════════
+   LA CARICA CHE NON ENTRA NEL FORO (26/11) — foro per foro.
+   ══════════════════════════════════════════════════════════════════════
+   Da quando un foro può avere carica, profondità e borraggio suoi (F3, F4)
+   si può scrivere un foro impossibile senza accorgersene, in due modi:
+    · dare a un foro una carica più grande di quella che la sua colonna
+      può contenere;
+    · ACCORCIARE un foro (o allungargli il borraggio) lasciandogli la carica
+      del progetto — il caso più facile da non vedere, perché la carica non
+      l'ha toccata nessuno.
+   La capienza è quella che il prodotto usa già altrove (`caricaForoDaGeometria`:
+   carica lineare dal diametro e dalla densità dell'esplosivo × colonna
+   caricabile `prof + sottoperforazione − borraggio`), calcolata coi valori
+   che valgono PER QUEL FORO. Diametro, sottoperforazione ed esplosivo sono
+   del progetto (per foro è F6).
+   ⛔ È UN AVVISO, NON UN RIFIUTO, e la soglia è dichiarata. La capienza è
+   una STIMA: densità di caricamento, fori più larghi del nominale e cariche
+   spezzate la spostano. Quindi due gradini: sopra la capienza il foro è
+   `alLimite`; sopra il 110% è `nonEntra`. Il 10% non è una norma: è il
+   margine entro cui la stima può sbagliare, scritto qui per essere cambiato
+   con una misura e non a sentimento.
+   ⛔ «NON LO SO» NON È «ENTRA»: un foro di cui manca la carica, la
+   profondità, il borraggio — o il diametro e la densità del progetto — è
+   `nonVerificabili`, e non entra nel conto dei fori a posto. */
+export const MARGINE_CAPIENZA_FORO = 1.10;
+export function capienzaFori(holes, progetto){
+  const H = Array.isArray(holes) ? holes : [];
+  const p = progetto || {};
+  const out = { fori: H.length, verificati: 0, nonVerificabili: 0, alLimite: [], nonEntra: [], piuPieno: null };
+  H.forEach((h, i) => {
+    const kg = valoreDiForo(h, 'kg', p), prof = valoreDiForo(h, 'prof', p), stem = valoreDiForo(h, 'stem', p);
+    const capienza = (prof === null || stem === null) ? null
+      : caricaForoDaGeometria({ diam: p.diam, prof, sub: p.sub, stem, densita: p.densita });
+    if (kg === null || capienza === null){ out.nonVerificabili++; return; }
+    out.verificati++;
+    const rapporto = kg / capienza;
+    const riga = { i, kg, capienza, rapporto, prof, stem };
+    if (out.piuPieno === null || rapporto > out.piuPieno.rapporto) out.piuPieno = riga;
+    if (rapporto > MARGINE_CAPIENZA_FORO) out.nonEntra.push(riga);
+    else if (kg > capienza) out.alLimite.push(riga);
+  });
+  return out;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
    F4 (26/11) — LA TABELLA DEI FORI: una riga per foro, tutti insieme.
    ══════════════════════════════════════════════════════════════════════
    La scheda del foro (F3) ne mostra uno; chi progetta vuole vederli TUTTI

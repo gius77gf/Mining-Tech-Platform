@@ -575,12 +575,13 @@ body.scr-sim #tl{bottom:80px}
 .ft-corpo{padding:0 0 12px}
 .ft-scorri{overflow-x:auto;border:1px solid rgba(255,228,180,.14);border-radius:10px;background:#17120a}
 /* le colonne sono misurate perché a 430 px la tabella ci stia INTERA (356 px
-   utili: 326 di colonne + 24 di spazi); sotto, scorre nel suo riquadro e il
+   utili: 326 di colonne + 24 di spazi; la prima è larga 40 perché deve
+   tenere «12» più i due segni, rombo e avviso, senza toccare la colonna dopo); sotto, scorre nel suo riquadro e il
    numero del foro resta fermo a sinistra (`sticky`), se no scorrendo verso il
    borraggio non si sa più di quale foro è la riga. I fondi delle righe sono
    PIENI e la cella ferma eredita quello della sua riga: con un fondo
    trasparente lascerebbe vedere sotto le celle che le scorrono dietro. */
-.ft-h,.ft-r{display:grid;grid-template-columns:34px 42px 46px 54px repeat(3,minmax(50px,1fr));gap:4px;align-items:center;min-width:350px;background-color:#17120a}
+.ft-h,.ft-r{display:grid;grid-template-columns:40px 40px 42px 54px repeat(3,minmax(50px,1fr));gap:4px;align-items:center;min-width:350px;background-color:#17120a}
 .ft-h{background-color:#100c06;padding:2px 8px;border-bottom:1px solid rgba(255,228,180,.14)}
 .ft-h button{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:1px;background-color:transparent;border:none;padding:0;cursor:pointer;font-family:'Barlow',sans-serif;font-size:9px;line-height:1.2;letter-spacing:.07em;text-transform:uppercase;color:var(--mut);text-align:left;white-space:nowrap;min-height:40px}
 .ft-h button small{font-size:9px;letter-spacing:0;text-transform:none;min-height:11px}
@@ -590,12 +591,14 @@ body.scr-sim #tl{bottom:80px}
 .ft-r.sel{background-color:#2b200b}
 .ft-num,.ft-h button:first-child{position:sticky;left:0;z-index:1;background-color:inherit}
 .ft-num{border:none;padding:0;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;color:var(--mut2);text-align:left;min-height:40px;white-space:nowrap}
-.ft-num i,.ft-v i{font-style:normal;font-size:10px;color:#ffd54f;margin-left:3px}
+.ft-num i,.ft-v i{font-style:normal;font-size:9px;color:#ffd54f;margin-left:2px}
 .ft-r.sel .ft-num{color:var(--cu)}
 .ft-v{font-size:13px;color:var(--tx);font-variant-numeric:tabular-nums;white-space:nowrap}
 .ft-r input{background:#241d12;border:1px solid #473a1f;color:var(--tx);font-family:'Barlow',sans-serif;font-size:16px;padding:6px;border-radius:8px;outline:none;width:100%;min-width:0;min-height:40px;font-variant-numeric:tabular-nums;transition:border-color .15s,box-shadow .15s}
 .ft-r input:focus{border-color:var(--cu);box-shadow:0 0 0 3px rgba(255,171,0,.12)}
 .ft-r input.suo{border-color:#ffd54f}
+.ft-r input.oltre{border-color:#ef5350;box-shadow:0 0 0 2px rgba(239,83,80,.18)}
+.ft-num i.ft-no{color:#ef5350}
 .ft-nota{margin-top:8px;font-size:11.5px;line-height:1.45;color:var(--mut2)}
 /* Sotto i 380 px le tre colonne che si SCRIVONO (carica, profondità,
    borraggio) devono stare tutte a schermo senza scorrere: visto nello scatto a
@@ -603,7 +606,7 @@ body.scr-sim #tl{bottom:80px}
    lato dentro una pagina che già scorre in verticale. Escono x e spalla, che
    qui si leggono soltanto e restano nella scheda del foro (un tocco sul numero). */
 @media(max-width:380px){
-  .ft-h,.ft-r{grid-template-columns:30px 50px repeat(3,minmax(50px,1fr));min-width:0}
+  .ft-h,.ft-r{grid-template-columns:40px 46px repeat(3,minmax(48px,1fr));min-width:0}
   .ft-pos{display:none!important}
 }
 /* Fase 0 — scheda volata (validatore di progetto) */
@@ -1315,7 +1318,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, reliefCls, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino, activeProf, d2HitTest, d2HitTestPt,
-         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfLeggi, dxfFraseNonLette, valoriPropriDiForo, valoreDiForo, LIMITI_PER_FORO, foriConValoreProprio, foriSenzaValoriPropri, valoreComuneDiFori, contaValoriPropri, tabellaFori, valoriPerForoDaPiano, scartoCaricheProprie, scartoProfonditaProprie, caricaProgettoDaTotale, firmaMaglia, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, foriRiflessi, trattiRuotati, trattiScalati, coordinataRelativa, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
+         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfLeggi, dxfFraseNonLette, valoriPropriDiForo, valoreDiForo, LIMITI_PER_FORO, foriConValoreProprio, foriSenzaValoriPropri, valoreComuneDiFori, contaValoriPropri, tabellaFori, valoriPerForoDaPiano, capienzaFori, MARGINE_CAPIENZA_FORO, scartoCaricheProprie, scartoProfonditaProprie, caricaProgettoDaTotale, firmaMaglia, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, foriRiflessi, trattiRuotati, trattiScalati, coordinataRelativa, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -6862,6 +6865,18 @@ const _VAL_FORO=[['kg','diKg','carica',true],['prof','diProf','profondità',true
    scatto, non nel codice). Lo usano anche x e spalla, che avevano lo stesso difetto. */
 const _DI_GRUPPO='display:inline-flex;align-items:center;gap:6px;white-space:nowrap';
 const _valForoTx=(campo,v)=>{ const L=LIMITI_PER_FORO[campo]; return (v===null||v===undefined)?'—':(perCampo(v,2)+' '+L.unita); };
+/* LA CARICA ENTRA NEL FORO? (26/11) — la domanda la fa il modulo
+   (`capienzaFori`), coi valori che valgono per ogni foro; qui c'è il progetto
+   da passargli e la frase. La usano la scheda del foro, la tabella dei fori,
+   la scheda volata e il messaggio di chi ha appena scritto un valore: un
+   conto solo, quattro posti che lo dicono. */
+function capienzaD2(){
+  return capienzaFori(D2.holes, { diam:D2.diam, prof:D2.prof, sub:D2.sub, stem:D2.stem, kg:D2.kg, densita:(selEsplosivo()||{}).densita_gcc });
+}
+function capienzaFrase(q, soggetto){
+  return gnum(q.kg,0)+' kg in '+(soggetto||'un foro')+' che ne tiene circa '+gnum(q.capienza,0)
+    +' ('+gfix(q.prof,1)+' m di foro, '+gfix(q.stem,1)+' m di borraggio, Ø'+gnum(D2.diam,0)+' mm)';
+}
 function valoriForoHtml(indici){
   const piu=indici.length>1, note=[];
   let campi='';
@@ -6906,9 +6921,13 @@ function applicaValoreForo(indici, campo, testo){
   if(!es.toccati){ toast(es.segueProgetto ? ('È già '+(fem?'la ':'il ')+nome+' del progetto ('+prog+')') : (chi+': '+nome+' già a '+_valForoTx(campo, es.valore))); renderInspectorDopo(); return; }
   d2PushUndo(); D2.holes=es.fori;
   computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspectorDopo();
-  toast(es.segueProgetto
+  /* chi ha appena scritto un valore deve sapere SUBITO se ha fatto un foro
+     impossibile: fra i fori toccati, quanti hanno ora una carica che non entra */
+  const _capDopo=capienzaD2().nonEntra.filter(q=>indici.includes(q.i));
+  const _capAvviso=_capDopo.length ? ' — ⚠ '+(piu ? (_capDopo.length+' '+plurale(_capDopo.length,'foro ha','fori hanno')+' ora una carica che non entra') : ('non entra: '+capienzaFrase(_capDopo[0],'un foro'))) : '';
+  toast((es.segueProgetto
     ? (chi+': '+nome+' di nuovo '+quel+' del progetto ('+prog+')')
-    : (chi+': '+nome+' '+_valForoTx(campo, es.valore)+' — non più '+quel+' del progetto ('+prog+')'));
+    : (chi+': '+nome+' '+_valForoTx(campo, es.valore)+' — non più '+quel+' del progetto ('+prog+')'))+_capAvviso, _capDopo.length?'err':undefined);
 }
 function valoriForoCollega(indici){
   for(const [campo,id] of _VAL_FORO){
@@ -6949,16 +6968,19 @@ function renderTabellaFori(){
   const testa=_FT_COL.map(([c,nome,u,lungo])=>{ const on=_ftOrdine.campo===c;
     return '<button type="button" data-ord="'+c+'" class="'+((c==='x'||c==='spalla')?'ft-pos':'')+(on?' on':'')+'" title="Ordina per '+lungo+(on?(_ftOrdine.verso==='giu'?' (ora dal più grande)':' (ora dal più piccolo)'):'')+'">'
       +'<span>'+nome+'</span><small>'+u+(on?((u?' ':'')+(_ftOrdine.verso==='giu'?'▼':'▲')):'')+'</small></button>'; }).join('');
-  const cella=(r,campo,lungo,fem)=>'<input type="text" inputmode="decimal" id="ft-'+campo+'-'+r.i+'" data-i="'+r.i+'" data-campo="'+campo+'" value="'+(r[campo]===null?'':perCampo(r[campo],2))+'"'
-    +(r.propri[campo]?' class="suo"':'')+' aria-label="'+lungo+' del foro '+r.n+(r.propri[campo]?(fem?', sua':', suo'):', dal progetto')+'">';
+  const _cap=capienzaD2(), _nonEntra=new Map(_cap.nonEntra.map(q=>[q.i,q]));
+  const cella=(r,campo,lungo,fem)=>{ const no=(campo==='kg' && _nonEntra.has(r.i));
+    return '<input type="text" inputmode="decimal" id="ft-'+campo+'-'+r.i+'" data-i="'+r.i+'" data-campo="'+campo+'" value="'+(r[campo]===null?'':perCampo(r[campo],2))+'"'
+    +((r.propri[campo]||no)?' class="'+(r.propri[campo]?'suo':'')+(no?' oltre':'')+'"':'')+(no?' title="Non entra: '+capienzaFrase(_nonEntra.get(r.i),'un foro')+'"':'')
+    +' aria-label="'+lungo+' del foro '+r.n+(r.propri[campo]?(fem?', sua':', suo'):', dal progetto')+(no?', non entra nel foro':'')+'">'; };
   corpo.innerHTML='<div class="ft-scorri"><div class="ft-h">'+testa+'</div>'
     +tabellaFori(D2.holes, D2, _ftOrdine).map(r=>'<div class="ft-r'+(r.i===D2.sel?' sel':'')+'" data-i="'+r.i+'">'
-      +'<button type="button" class="ft-num" data-sel="'+r.i+'" title="Apri la scheda del foro '+r.n+' e mostralo sulla pianta">'+r.n+((r.propri.kg||r.propri.prof||r.propri.stem)?'<i title="Ha valori suoi, diversi da quelli del progetto">◆</i>':'')+'</button>'
+      +'<button type="button" class="ft-num" data-sel="'+r.i+'" title="Apri la scheda del foro '+r.n+' e mostralo sulla pianta">'+r.n+((r.propri.kg||r.propri.prof||r.propri.stem)?'<i title="Ha valori suoi, diversi da quelli del progetto">◆</i>':'')+(_nonEntra.has(r.i)?'<i class="ft-no" title="La carica non entra in questo foro">⚠</i>':'')+'</button>'
       +'<span class="ft-v ft-pos">'+(r.x===null?'—':gfix(r.x,2))+'</span>'
       +'<span class="ft-v ft-pos">'+(r.spalla===null?'—':gfix(r.spalla,2))+'</span>'
       +'<span class="ft-v">'+(r.tDet===null?'—':fmtMs(r.tDet))+(r.aMano?'<i title="Ritardo messo a mano">✎</i>':'')+'</span>'
       +cella(r,'kg','carica',true)+cella(r,'prof','profondità',true)+cella(r,'stem','borraggio',false)+'</div>').join('')
-    +'</div><div class="ft-nota">Scrivi in una cella per dare a quel foro un valore suo; cella vuota = torna al progetto. ◆ ha valori suoi · ✎ ritardo messo a mano. Posizione e ritardo si leggono e si cambiano nella scheda del foro: tocca il suo numero.</div>';
+    +'</div><div class="ft-nota">'+(_cap.nonEntra.length?'<b id="ft-cap" style="color:#ef9a9a">⚠ In '+_cap.nonEntra.length+' '+plurale(_cap.nonEntra.length,'foro','fori')+' la carica non entra</b> (cella della carica bordata di rosso). ':'')+'Scrivi in una cella per dare a quel foro un valore suo; cella vuota = torna al progetto. ◆ ha valori suoi · ✎ ritardo messo a mano. Posizione e ritardo si leggono e si cambiano nella scheda del foro: tocca il suo numero.</div>';
   const daRifocalizzare=fuoco && $(fuoco);
   if(daRifocalizzare){ daRifocalizzare.focus(); if(typeof daRifocalizzare.select==='function') daRifocalizzare.select(); }
 }
@@ -7085,10 +7107,18 @@ function renderInspector(){
       ? '<button class="btn sm" id="diAllinea" style="padding:2px 8px" title="Porta la spalla di questo foro alla stessa distanza dal fronte del foro '+((D2.holes[D2.selPrev].seq!=null?D2.holes[D2.selPrev].seq:D2.selPrev)+1)+', senza toccare la posizione lungo la fila">⊥ allinea al '+((D2.holes[D2.selPrev].seq!=null?D2.holes[D2.selPrev].seq:D2.selPrev)+1)+'</button>'
       : '')
     +'</div>';
+  /* la carica di QUESTO foro entra nella sua colonna? Si dice solo quando no:
+     il caso che non si vede da soli è il foro accorciato che si tiene la
+     carica del progetto. */
+  const _cap=capienzaD2(), _capNo=_cap.nonEntra.find(q=>q.i===D2.sel), _capLim=_cap.alLimite.find(q=>q.i===D2.sel);
+  const capTx = _capNo
+    ? '<div id="diCap" style="margin-top:5px;font-size:12px;color:#ef9a9a">⚠ <b style="color:inherit;margin-right:0">Non entra:</b> '+capienzaFrase(_capNo,'questo foro')+'. Riduci la carica, accorcia il borraggio o allunga il foro.</div>'
+    : (_capLim ? '<div id="diCap" style="margin-top:5px;font-size:12px;color:#ffd54f">⚠ Al limite della capienza: '+capienzaFrase(_capLim,'questo foro')+'.</div>' : '');
   el.innerHTML='<div class="di-info"><b>Foro '+((h.seq!=null?h.seq:D2.sel)+1)+'</b><span>x '+gfix(h.mx,2)+' m · spalla '+gfix(h.my,1)+' m · vicino '+(isFinite(nn)?gfix(nn,1):'—')+' m'+distPrevTx+' · t '+gnum(h.tDet||0,1)+' ms'+(aMano?' (a mano)':'')+'</span>'
     +posTx
     +ritTx
     +valoriForoHtml([D2.sel])
+    +capTx
     +'<div style="margin-top:4px;display:flex;align-items:baseline;flex-wrap:wrap;gap:2px">'+relTx+'</div>'+eneTx+'</div><button class="di-del" id="diDel">✕ Elimina</button>';
   valoriForoCollega([D2.sel]);
   /* ⚠️ `D2.selPrev` va azzerato QUI, non solo dove nasce un array nuovo:
@@ -7599,6 +7629,29 @@ function renderScheda2D(){
                    :'Tutti i fori stanno entro il ±15% del progetto: la carica è distribuita in modo uniforme. ')
         +bVero
         +'L\'altezza del banco è considerata costante: se il fronte ha altezze molto diverse, il dato locale va letto come indicativo.'});
+  })();
+  /* LA CARICA ENTRA NEI FORI? (26/11) — con carica, profondità e borraggio per
+     foro si può scrivere un foro impossibile: una carica più grande della sua
+     colonna, o un foro accorciato che si tiene la carica del progetto. Il
+     conto è del modulo (`capienzaFori`); la capienza è una STIMA e la riga lo
+     dice. Un foro che non si può verificare non è un foro a posto: si conta. */
+  (function(){
+    const c=capienzaD2();
+    if(!c.fori) return;
+    if(!c.verificati){ rows.push(nonCalcolabile('Carica nel foro',
+      'per sapere se la carica entra servono carica, profondità e borraggio del foro, il diametro e la densità dell\'esplosivo: qui ne manca almeno uno per tutti i '+_ricPlur(c.fori,'foro','fori')+'.')); return; }
+    const pieno=c.piuPieno, nNo=c.nonEntra.length, nLim=c.alLimite.length;
+    const nomeForo=(q)=>'foro '+(((D2.holes[q.i]||{}).seq!=null?D2.holes[q.i].seq:q.i)+1);
+    const elenco=(arr)=>arr.slice(0,3).map(q=>nomeForo(q)+': '+capienzaFrase(q,'un foro')).join('; ')+(arr.length>3?'; e altri '+(arr.length-3):'');
+    rows.push({lab:'Carica nel foro',
+      valStr:(nNo?nNo+' <span>'+plurale(nNo,'foro','fori')+' in cui non entra</span>':(nLim?nLim+' <span>al limite</span>':gnum(pieno.rapporto*100,0)+' <span>% il più pieno</span>')),
+      cls:nNo?'sv-bad':(nLim?'sv-warn':'sv-ok'),
+      why:'la carica di ogni foro confrontata con quella che la sua colonna può contenere: carica lineare (dal diametro e dalla densità dell\'esplosivo) per la lunghezza caricabile, cioè profondità più sottoperforazione meno borraggio — coi valori di QUEL foro. '
+        +(nNo?'<b>Non entra</b> in '+_ricPlur(nNo,'foro','fori')+' (oltre il '+gnum(MARGINE_CAPIENZA_FORO*100,0)+'% della capienza stimata) — '+elenco(c.nonEntra)+'. Succede dando a un foro una carica troppo grande, ma anche ACCORCIANDO un foro o allungandogli il borraggio senza ridurre la carica. ':'')
+        +(nLim?'<b>Al limite</b> '+_ricPlur(nLim,'foro','fori')+' (sopra la capienza stimata, entro il margine) — '+elenco(c.alLimite)+'. ':'')
+        +(!nNo&&!nLim?'Entra in tutti i '+_ricPlur(c.verificati,'foro verificato','fori verificati')+': il più pieno è il '+nomeForo(pieno)+', al '+gnum(pieno.rapporto*100,0)+'% della sua capienza. ':'')
+        +(c.nonVerificabili?'<b>'+_ricPlur(c.nonVerificabili,'foro','fori')+' non verificabili</b>: manca la carica, la profondità o il borraggio, e non contano fra quelli a posto. ':'')
+        +'La capienza è una stima (densità di caricamento, diametro reale del foro e cariche spezzate la spostano): va letta come un avviso, non come una misura.'});
   })();
   /* G6 — di quanto può sbagliare la previsione, per colpa della perforazione */
   (function(){

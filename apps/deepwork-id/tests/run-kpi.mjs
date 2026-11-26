@@ -43380,6 +43380,32 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     const tornati = genesi.valoriPerForoDaPiano(letti, fori.map((h) => ({ id: h.id, mx: h.mx, my: h.my })), P);
     eq(tornati.fori.map((h) => genesi.valoriPropriDiForo(h)), fori.map((h) => genesi.valoriPropriDiForo(h)), "⛔ scritto e riletto: ogni foro riprende ESATTAMENTE i suoi valori propri, e nessun altro ne guadagna");
   });
+  test("Genesi · capienzaFori: la carica di ogni foro confrontata con quella che la SUA colonna può contenere — e «non lo so» non è «entra»", () => {
+    const P = { diam: 102, prof: 10, sub: 0.9, stem: 2.2, densita: 0.82 };
+    P.kg = genesi.caricaForoDaGeometria(P);
+    eq(P.kg, 58, "il foro tipo di prova tiene 58 kg (Ø102, 10 m + 0,9 − 2,2 m di colonna, ANFO a 0,82)");
+    const tutti = genesi.capienzaFori([{}, {}, {}], P);
+    eq([tutti.fori, tutti.verificati, tutti.nonVerificabili, tutti.alLimite.length, tutti.nonEntra.length], [3, 3, 0, 0, 0], "⛔ NESSUN FALSO ALLARME: il progetto con la carica derivata dalla geometria è esattamente alla capienza, e non è «al limite»");
+    eq(Math.round(tutti.piuPieno.rapporto * 100), 100, "il più pieno è al 100%");
+    const H = [{ id: "a" }, { id: "b", kg: 61 }, { id: "c", kg: 100 }, { id: "d", prof: 4 }, { id: "e", stem: 5 }, { id: "f", kg: 0 }, { id: "g", prof: 4, kg: 10 }];
+    const r = genesi.capienzaFori(H, P);
+    eq(r.alLimite.map((q) => H[q.i].id), ["b"], "61 kg in un foro da 58: sopra la capienza ma entro il margine → al limite");
+    eq(r.nonEntra.map((q) => H[q.i].id), ["c", "d", "e"], "⛔ non entra: i 100 kg scritti a mano, MA ANCHE il foro accorciato a 4 m e quello col borraggio a 5 m, che la carica del progetto se la sono tenuta");
+    eq(r.nonEntra.find((q) => H[q.i].id === "d"), { i: 3, kg: 58, capienza: 18, rapporto: 58 / 18, prof: 4, stem: 2.2 }, "il foro accorciato: 58 kg dove ne stanno 18, coi valori di QUEL foro (4 m, 2,2 m di borraggio)");
+    eq([r.verificati, r.nonVerificabili], [7, 0], "sette fori verificati");
+    eq(H[r.piuPieno.i].id, "d", "il più pieno è il foro accorciato");
+    ok(!r.nonEntra.concat(r.alLimite).some((q) => H[q.i].id === "f" || H[q.i].id === "g"), "un foro scarico e un foro corto con una carica piccola entrano");
+    eq(genesi.MARGINE_CAPIENZA_FORO, 1.1, "il margine dichiarato: 10% sopra la capienza stimata");
+    eq(genesi.capienzaFori([{ kg: 63.8 }], P).alLimite.length, 1, "il 110% esatto è ancora «al limite»");
+    eq(genesi.capienzaFori([{ kg: 63.9 }], P).nonEntra.length, 1, "appena sopra il 110% non entra");
+    /* non lo so non è entra */
+    const senzaDens = genesi.capienzaFori(H, { ...P, densita: null });
+    eq([senzaDens.verificati, senzaDens.nonVerificabili, senzaDens.nonEntra.length, senzaDens.piuPieno], [0, 7, 0, null], "⛔ senza la densità dell'esplosivo nessun foro è verificabile: sette «non lo so», non sette «a posto»");
+    const senzaKg = genesi.capienzaFori(H, { ...P, kg: null });
+    eq([senzaKg.verificati, senzaKg.nonVerificabili], [4, 3], "⛔ senza la carica del progetto si verificano solo i fori che ne hanno una loro; gli altri tre si CONTANO");
+    eq(genesi.capienzaFori(null, P), { fori: 0, verificati: 0, nonVerificabili: 0, alLimite: [], nonEntra: [], piuPieno: null }, "nessun foro");
+    eq(genesi.capienzaFori([{ kg: 30 }], null).nonVerificabili, 1, "nessun progetto: non verificabile, non un crollo");
+  });
   test("Genesi · foriDaDesign: il foro illeggibile si conta, quello senza id ne prende uno senza doppioni, il ritardo non numerico cade", () => {
     const r = genesi.foriDaDesign({ holes: [{ id: "f1-1", mx: "0", my: "3" }, { mx: null, my: 3 }, { mx: 2, my: "abc" }, { mx: 5, my: 3, tMano: "boh" }, { id: "", mx: 6, my: 3 }, { id: "m1", mx: 8, my: 3 }] });
     eq(r.scartati, 2, "⛔ due fori senza posizione leggibile si CONTANO, non spariscono");

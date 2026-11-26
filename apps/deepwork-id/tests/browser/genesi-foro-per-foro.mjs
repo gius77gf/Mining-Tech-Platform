@@ -84,7 +84,7 @@ const DIFETTI = [
   [PAGINA, `if(daRifocalizzare){ daRifocalizzare.focus(); if(typeof daRifocalizzare.select==='function') daRifocalizzare.select(); }`, ``],
   [PAGINA, `if(sec.classList.contains('closed')) return;`, ``],
   [PAGINA, `.ft-pos{display:none!important}`, `.ft-pos{}`],
-  [PAGINA, `+(r.propri[campo]?' class="suo"':'')+' aria-label="'`, `+' aria-label="'`],
+  [PAGINA, `' class="'+(r.propri[campo]?'suo':'')+(no?' oltre':'')+'"'`, `' class="'+(no?' oltre':'')+'"'`],
   /* F5 — il piano d'innesco XML: ogni foro torna a uscire con la carica del
      progetto, il lettore torna a prendere per progetto i valori del primo
      foro, i valori per foro riletti non vengono riportati sulla maglia */
@@ -99,6 +99,15 @@ const DIFETTI = [
   [PAGINA, `zoff:hh.zoff||0, kg:P.kg, suoi:hh.suoi||null });`, `zoff:hh.zoff||0, kg:(hh.suoi&&('kg' in hh.suoi))?hh.suoi.kg:P.kg, suoi:hh.suoi||null });`],
   /* e la scena che smette di dire su che cosa è calcolata */
   [PAGINA, `const _nSuoiScena = SIM.fori.filter(f=>f.suoi && Object.keys(f.suoi).length).length;`, `const _nSuoiScena = 0;`],
+  /* la carica che non entra nel foro: nessun foro risulta mai «non entra», la
+     capienza torna quella del foro TIPO (il foro accorciato non si vede), il
+     messaggio tace, la riga della scheda resta verde */
+  [MODULO, `if (rapporto > MARGINE_CAPIENZA_FORO) out.nonEntra.push(riga);`, `if (false) out.nonEntra.push(riga);`],
+  [MODULO, `: caricaForoDaGeometria({ diam: p.diam, prof, sub: p.sub, stem, densita: p.densita });`, `: caricaForoDaGeometria({ diam: p.diam, prof: p.prof, sub: p.sub, stem: p.stem, densita: p.densita });`],
+  [PAGINA, `+_capAvviso, _capDopo.length?'err':undefined);`, `, undefined);`],
+  [PAGINA, `cls:nNo?'sv-bad':(nLim?'sv-warn':'sv-ok'),`, `cls:'sv-ok',`],
+  /* e la colonna del numero stretta com'era: rombo e avviso insieme toccano il ritardo */
+  [PAGINA, `.ft-h,.ft-r{grid-template-columns:40px 46px repeat(3,minmax(48px,1fr));min-width:0}`, `.ft-h,.ft-r{grid-template-columns:22px 50px repeat(3,minmax(50px,1fr));min-width:0}`],
 ];
 
 const colpiti = new Set();
@@ -743,6 +752,59 @@ if (prima && prima.colonneTrovate) {
     dice(!!j2 && per(j2, a).kg === 35, "cambiato il progetto 2D SENZA risimulare, il file dice ancora la scena simulata (35 kg, non 99)", j2 && per(j2, a));
   }
   await pg.evaluate(() => { for (const h of window.__genesi.D2.holes) { delete h.kg; delete h.prof; delete h.stem; } });
+}
+/* 12. LA CARICA CHE NON ENTRA NEL FORO. Il caso che non si vede da soli:
+   si ACCORCIA un foro e la carica — che nessuno ha toccato — non ci sta più. */
+{
+  console.log("\n── la carica che non entra nel foro ──");
+  await pg.click('#bottomnav button[data-scr="design"]'); await pg.waitForTimeout(500);
+  await pg.evaluate(() => { const D = window.__genesi.D2; for (const h of D.holes) { delete h.kg; delete h.prof; delete h.stem; } window.__genesi.renderScheda2D(); if (document.getElementById("ft-sec").classList.contains("closed")) document.getElementById("ft-apri").click(); });
+  await pg.waitForTimeout(350);
+  const stato = () => pg.evaluate(() => { const riga = document.querySelector('#d2-scheda .sv-row[data-lab="Carica nel foro"]'), sch = document.getElementById("d2-scheda").innerText;
+    const m = /(\d+) indicator[ei] fuori fascia/.exec(sch);
+    return { riga: riga ? { cls: riga.querySelector(".sv-dot").className.replace("sv-dot", "").trim(), val: riga.querySelector(".sv-val").innerText.replace(/\s+/g, " ").trim(), why: riga.querySelector(".sv-why").innerText } : null,
+      gravi: m ? +m[1] : 0, oltre: [...document.querySelectorAll("#ft-corpo input.oltre")].map((e) => e.id), segni: document.querySelectorAll("#ft-corpo .ft-no").length,
+      nota: (document.getElementById("ft-cap") || {}).innerText || "", scheda: (document.getElementById("diCap") || {}).innerText || "", toast: window.__toasts.join(" | "),
+      fori: window.__genesi.D2.holes.map((h) => ({ kg: h.kg, prof: h.prof, stem: h.stem })) }; });
+  let s = await stato();
+  dice(!!s.riga, "nella scheda volata c'è la riga «Carica nel foro»", s.riga);
+  if (s.riga) {
+    const prima = s;
+    dice(prima.riga.cls === "sv-ok" && prima.oltre.length === 0 && prima.segni === 0 && /% il più pieno/.test(prima.riga.val), `col progetto com'è la carica entra in tutti i fori: riga verde («${prima.riga.val}»), nessun segno in tabella`, prima.riga);
+    /* si accorcia il secondo foro a 3 m, con la tastiera, dalla tabella: la carica non la tocca nessuno */
+    await pg.evaluate(() => { window.__toasts.length = 0; });
+    await pg.click("#ft-prof-1", { clickCount: 3 }); await pg.keyboard.type("3"); await pg.keyboard.press("Tab"); await pg.waitForTimeout(400);
+    s = await stato();
+    dice(s.fori[1].prof === 3 && s.fori[1].kg === undefined, "accorciato il secondo foro a 3 m dalla tabella (la sua carica resta quella del progetto: nessuno l'ha toccata)", s.fori[1]);
+    dice(/non entra: \d+ kg in un foro che ne tiene circa \d+/.test(s.toast), "⛔ e chi l'ha appena scritto lo sa SUBITO: il messaggio dice che la carica non entra, coi due numeri", s.toast);
+    dice(s.riga.cls === "sv-bad" && /^1 foro in cui non entra/.test(s.riga.val), `⛔ la riga della scheda volata diventa ROSSA: «${s.riga.val}»`, s.riga);
+    dice(/ACCORCIANDO un foro/.test(s.riga.why) && /foro \d+: \d+ kg in un foro che ne tiene circa \d+ \(3,0 m di foro/.test(s.riga.why), "e la spiegazione nomina il foro, i due numeri e i suoi 3 m", s.riga.why.slice(0, 420));
+    dice(s.gravi === prima.gravi + 1, `⛔ e conta fra gli indicatori gravi della volata (${prima.gravi} → ${s.gravi}): è lo stesso conto che finisce nei file che escono`, [prima.gravi, s.gravi]);
+    dice(JSON.stringify(s.oltre) === JSON.stringify(["ft-kg-1"]) && s.segni === 1 && /In 1 foro la carica non entra/.test(s.nota), "⛔ in tabella la cella della carica di QUEL foro è segnata, la riga ha il suo ⚠ e la nota li conta", [s.oltre, s.segni, s.nota]);
+    /* ⛔ visto nello scatto a 320 px: con rombo E avviso sulla stessa riga i due segni uscivano
+       dalla colonna del numero e toccavano il ritardo. Si misura a tutt'e due le larghezze. */
+    for (const W of [430, 320]) {
+      await pg.setViewportSize({ width: W, height: 900 }); await pg.waitForTimeout(300);
+      const mis = await pg.evaluate(() => { const riga = document.querySelector('#ft-corpo .ft-r[data-i="1"]'), n = riga.querySelector(".ft-num");
+        const dopo = [...riga.children].find((c) => c !== n && c.getBoundingClientRect().width > 0);
+        const rg = document.createRange(); rg.selectNodeContents(n); const t = rg.getBoundingClientRect();
+        return { testo: n.innerText.replace(/\s+/g, ""), fineSegni: Math.round(t.right * 10) / 10, inizioDopo: Math.round(dopo.getBoundingClientRect().left * 10) / 10, sc: [document.querySelector(".ft-scorri").scrollWidth, document.querySelector(".ft-scorri").clientWidth] }; });
+      dice(/◆/.test(mis.testo) && /⚠/.test(mis.testo) && mis.fineSegni <= mis.inizioDopo && mis.sc[0] <= mis.sc[1],
+        `a ${W} px il numero coi suoi DUE segni («${mis.testo}») finisce prima della colonna accanto (${mis.fineSegni} ≤ ${mis.inizioDopo}) e la tabella non scorre di lato`, mis);
+    }
+    await pg.setViewportSize({ width: 430, height: 900 }); await pg.waitForTimeout(250);
+    await pg.click('.ft-num[data-sel="1"]'); await pg.waitForTimeout(350);
+    s = await stato();
+    dice(/Non entra: \d+ kg in questo foro che ne tiene circa \d+/.test(s.scheda), "⛔ e la scheda del foro lo dice: «Non entra: … kg in questo foro che ne tiene circa …»", s.scheda);
+    /* si riduce la carica: torna tutto a posto */
+    await pg.evaluate(() => { window.__toasts.length = 0; });
+    await pg.click("#ft-kg-1", { clickCount: 3 }); await pg.keyboard.type("5"); await pg.keyboard.press("Tab"); await pg.waitForTimeout(400);
+    s = await stato();
+    dice(s.riga.cls !== "sv-bad" && s.oltre.length === 0 && s.segni === 0 && s.scheda === "" && s.gravi === prima.gravi && !/non entra/.test(s.toast),
+      "ridotta la carica a 5 kg: la riga non è più rossa, i segni spariscono, gli indicatori gravi tornano quelli di prima", [s.riga, s.oltre, s.gravi, s.toast]);
+  }
+  await pg.evaluate(() => { for (const h of window.__genesi.D2.holes) { delete h.kg; delete h.prof; delete h.stem; } window.__genesi.renderScheda2D(); });
+  await pg.waitForTimeout(250);
 }
 dice(pg.__err.length === 0, "la pagina non solleva errori", pg.__err.slice(0, 2));
 
