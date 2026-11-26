@@ -599,7 +599,7 @@ body.scr-sim #tl{bottom:80px}
    borraggio non si sa più di quale foro è la riga. I fondi delle righe sono
    PIENI e la cella ferma eredita quello della sua riga: con un fondo
    trasparente lascerebbe vedere sotto le celle che le scorrono dietro. */
-.ft-h,.ft-r{display:grid;grid-template-columns:40px 40px 42px 54px repeat(4,minmax(50px,1fr));gap:4px;align-items:center;min-width:408px;background-color:#17120a}
+.ft-h,.ft-r{display:grid;grid-template-columns:40px 40px 42px 54px repeat(5,minmax(50px,1fr));gap:4px;align-items:center;min-width:462px;background-color:#17120a}
 .ft-h{background-color:#100c06;padding:2px 8px;border-bottom:1px solid rgba(255,228,180,.14)}
 .ft-h button{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:1px;background-color:transparent;border:none;padding:0;cursor:pointer;font-family:'Barlow',sans-serif;font-size:9px;line-height:1.2;letter-spacing:.07em;text-transform:uppercase;color:var(--mut);text-align:left;white-space:nowrap;min-height:40px}
 .ft-h button small{font-size:9px;letter-spacing:0;text-transform:none;min-height:11px}
@@ -627,6 +627,16 @@ body.scr-sim #tl{bottom:80px}
    480 px la tabella ha otto colonne; su un telefono a 430 px le sette di prima
    ci stanno al pixel (350 su 356), e un'ottava farebbe scorrere tutto di lato.
    Lì il diametro si scrive dalla scheda del foro, e la nota lo dice. */
+/* F6b — l'inclinazione (`.ft-incl`) è la nona: ci sta sopra i 560 px. Sotto
+   resta nella scheda del foro, come il diametro sotto i 480.
+   ⚠️ La griglia di base ha NOVE colonne e ogni soglia ne toglie: la prima
+   stesura aveva aggiunto la soglia senza toccare la base (rimasta a otto), e
+   la nona cella andava a capo sotto ogni riga — nessun errore, il banco
+   diceva «la colonna c'è e non scorre»; l'ha fatto vedere lo scatto. */
+@media(max-width:560px){
+  .ft-h,.ft-r{grid-template-columns:40px 40px 42px 54px repeat(4,minmax(50px,1fr));min-width:408px}
+  .ft-incl{display:none!important}
+}
 @media(max-width:480px){
   .ft-h,.ft-r{grid-template-columns:40px 40px 42px 54px repeat(3,minmax(50px,1fr));min-width:350px}
   .ft-largo{display:none!important}
@@ -1344,7 +1354,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, reliefCls, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino, activeProf, d2HitTest, d2HitTestPt,
-         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfLeggi, dxfFraseNonLette, DXF_FRECCIA_ARCO_M, valoriPropriDiForo, valoreDiForo, LIMITI_PER_FORO, foriConValoreProprio, foriSenzaValoriPropri, valoreComuneDiFori, contaValoriPropri, tabellaFori, valoriPerForoDaPiano, capienzaFori, MARGINE_CAPIENZA_FORO, scartoCaricheProprie, scartoProfonditaProprie, caricaProgettoDaTotale, firmaMaglia, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, foriRiflessi, trattiRuotati, trattiScalati, coordinataRelativa, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
+         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfLeggi, dxfFraseNonLette, DXF_FRECCIA_ARCO_M, valoriPropriDiForo, valoreDiForo, scostamentoPiedeForo, LIMITI_PER_FORO, foriConValoreProprio, foriSenzaValoriPropri, valoreComuneDiFori, contaValoriPropri, tabellaFori, valoriPerForoDaPiano, capienzaFori, MARGINE_CAPIENZA_FORO, scartoCaricheProprie, scartoProfonditaProprie, caricaProgettoDaTotale, firmaMaglia, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, foriRiflessi, trattiRuotati, trattiScalati, coordinataRelativa, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -2426,7 +2436,11 @@ function buildScene(){
         new THREE.MeshStandardMaterial({ color:fc, emissive:fc, emissiveIntensity:0.35 }));
       ring.position.y=0.06;                                      // anello al colletto, colore = fila
       g.add(ring);
-      if(D2.incl) g.rotation.x=-D2.incl*Math.PI/180;             // inclinazione verso la faccia
+      /* F6b — inclinazione verso la faccia: quella del foro se ne ha una sua
+         (`f.suoi`, anche zero: un foro verticale in una volata inclinata),
+         se no quella del progetto */
+      const _incl=(f.suoi && 'incl' in f.suoi) ? f.suoi.incl : (D2.incl||0);
+      if(_incl) g.rotation.x=-_incl*Math.PI/180;
       g.position.set(f.x, f.h, zc);
       g.userData.f=f;
       xrayGroup.add(g); xrayCyls.push(g);
@@ -3296,13 +3310,17 @@ $('btnExport').onclick = ()=>{
      foro il file esce identico a prima, chiave per chiave. */
   const fori = SIM.fori.map(f=>{ const suoi=f.suoi||{};
     return { id:f.id||('foro_'+(f.i+1)), num:f.i+1, x:+f.x.toFixed(2), prof:('prof' in suoi)?suoi.prof:(_vj(f.prof)!==null?_vj(f.prof):_vj(P.prof)), diam:('diam' in suoi)?suoi.diam:P.diam,
-    kg:('kg' in suoi)?suoi.kg:P.kg, ...(('stem' in suoi)?{ borraggio_m:suoi.stem }:{}), esplosivo:(selEsplosivo()||{}).nome||'',
+    kg:('kg' in suoi)?suoi.kg:P.kg, ...(('stem' in suoi)?{ borraggio_m:suoi.stem }:{}), ...(('incl' in suoi)?{ inclinazione_gradi:suoi.incl }:{}), esplosivo:(selEsplosivo()||{}).nome||'',
     ritardo:+((f.tNom!=null?f.tNom:f.tDet)||0).toFixed(1),
     innesco:(selInnesco()||{}).short||'', sequenza:f.i+1, fila:Math.round((f.zoff||0)/Math.max(1,SPALLA))+1 }; });
   const out = { schemaV:1, tipo:'volata-deepwork',
     volata:{ id:'vol_demo_genesi', sitoId:null, tipo:'cava', numero:1, data:oggiISO(),
       fronte:{ lunghezza_m:SIM.Lm, altezza_m:SIM.H, profilo:(P.profilo||[]).map(p=>({x:+p.x.toFixed(2),y:+p.z.toFixed(2)})) },
-      geometria:{ spalla_m:SPALLA, interasse_m:INTERASSE, borraggio_m:D2.stem, file:Math.max(1, D2.file||1) },
+      /* F6b (26/11) — l'inclinazione dei fori NON usciva: chi riceveva il file
+         non poteva sapere se i fori erano verticali o a 20°, e riaprendolo
+         restava quella che il progetto aveva per caso. Sta con la geometria,
+         in gradi dalla verticale. */
+      geometria:{ spalla_m:SPALLA, interasse_m:INTERASSE, borraggio_m:D2.stem, inclinazione_gradi:D2.incl, file:Math.max(1, D2.file||1) },
       default:{ diametro_mm:P.diam, profondita_m:P.prof, esplosivo:(selEsplosivo()||{}).nome||'', ritardo_ms:P.ritardo, innesco:(selInnesco()||{}).short||'' },
       fori, connessioni:[] },
     sim:{ frontePath:null, fronteFormato:null,
@@ -3348,6 +3366,14 @@ $('fileIn').onchange = async e=>{
        (SDOB) e il rischio di proiezioni. Stesso contratto degli altri tre
        campi qui sopra, stesso range del campo `#dStem` (0,5–6 m). */
     D2.stem = valoreCampo(parseFloat(geom.borraggio_m), D2.stem, 0.5, 6);
+    /* F6b — stesso contratto per l'inclinazione (0–30°, come il campo `#dIncl`):
+       quella del file se c'è, quella di prima se il file è di ieri e non la porta */
+    D2.incl = valoreCampo(parseFloat(geom.inclinazione_gradi), D2.incl, 0, 30);
+    /* i due campi che la mostrano vanno riallineati SUBITO: il progetto 2D si
+       rilegge dai suoi campi a ogni modifica, e un campo rimasto indietro
+       riscriverebbe l'inclinazione di prima sopra quella appena letta */
+    if($('pIncl')) $('pIncl').value = D2.incl;
+    if($('dIncl')) $('dIncl').value = D2.incl;
     /* ⛔ 18/09, dal backlog QA: `def.esplosivo`/`def.innesco` — scritti
        dall'export come nome pieno e sigla breve (righe più sotto,
        `esplosivo:(selEsplosivo()||{}).nome`, `innesco:(selInnesco()||{}).short`)
@@ -5893,7 +5919,7 @@ if($('btn-innesco-xml')) $('btn-innesco-xml').onclick=()=>{
   const rows=D2.holes.slice().sort((a,b)=>(a.tDet||0)-(b.tDet||0));
   const xml=xmlPianoInnesco({ B:D2.B, S:D2.S, diam:D2.diam, esplosivo:D2.esplosivo,
     innesco:{ id:inn.id, nome:inn.nome }, sequenza:D2.sequenza, ritardo:D2.ritardo,
-    ritardoFila:D2.ritardoFila, lastDet:last, mic, prof:D2.prof, kg:D2.kg, stem:D2.stem,
+    ritardoFila:D2.ritardoFila, lastDet:last, mic, prof:D2.prof, kg:D2.kg, stem:D2.stem, incl:D2.incl,
     fori:D2.holes });
   const a=document.createElement('a');
   a.href='data:application/xml;charset=utf-8,'+encodeURIComponent(xml);
@@ -5967,6 +5993,8 @@ if($('fileXmlIn')) $('fileXmlIn').onchange=async e=>{
     const depth=_conDesign ? numOf(plan,'DesignDepth') : numOf(holes[0],'Depth'); if(depth!=null) D2.prof=Math.max(6,Math.min(18,depth));
     const charge=_conDesign ? numOf(plan,'DesignCharge') : numOf(holes[0],'Charge'); if(charge!=null){ D2.kg=Math.max(5,Math.min(200,charge)); D2.kgAuto=false; if($('dKgAuto')) $('dKgAuto').checked=false; }
     const stem=_conDesign ? numOf(plan,'DesignStemming') : numOf(holes[0],'Stemming'); if(stem!=null) D2.stem=Math.max(0.5,Math.min(6,stem));
+    /* F6b — l'inclinazione del progetto c'è nel piano solo se un foro ne ha una sua (se no il piano non la porta, e resta quella che c'è) */
+    const _inclPiano=numOf(plan,'DesignInclination'); if(_inclPiano!=null) D2.incl=Math.max(0,Math.min(30,_inclPiano));
     // file/perRow dalle posizioni; direzione da chi detona per primo (Delay minore)
     const pos=holes.map(h=>{ const p=first(h,'Position'); const dEl=first(h,'Delay');
       return { x:p?parseFloat(p.getAttribute('x')||'0'):0, y:p?parseFloat(p.getAttribute('y')||'0'):0, t:dEl?parseFloat(dEl.textContent||'0'):0 }; });
@@ -5985,7 +6013,7 @@ if($('fileXmlIn')) $('fileXmlIn').onchange=async e=>{
     let _pf=null;
     if(_conDesign){
       _pf=valoriPerForoDaPiano(holes.map(h=>{ const q=first(h,'Position');
-        return { x:q?parseFloat(q.getAttribute('x')||''):NaN, y:q?parseFloat(q.getAttribute('y')||''):NaN, prof:numOf(h,'Depth'), kg:numOf(h,'Charge'), stem:numOf(h,'Stemming'), diam:numOf(h,'HoleDiameter') }; }), D2.holes, D2);
+        return { x:q?parseFloat(q.getAttribute('x')||''):NaN, y:q?parseFloat(q.getAttribute('y')||''):NaN, prof:numOf(h,'Depth'), kg:numOf(h,'Charge'), stem:numOf(h,'Stemming'), diam:numOf(h,'HoleDiameter'), incl:numOf(h,'Inclination') }; }), D2.holes, D2);
       if(_pf.riportati){ D2.holes=_pf.fori; computeSeq2D(); }
     }
     const _pfPersi=_pf ? (_pf.nonRiportati+_pf.scartati) : 0;
@@ -6619,7 +6647,12 @@ function drawDesign2D(){
       ctx.save(); ctx.strokeStyle='#ef5350'; ctx.lineWidth=2.2; ctx.globalAlpha=.95;
       ctx.shadowColor='#ef5350'; ctx.shadowBlur=9;
       ctx.beginPath(); ctx.arc(cx,cy,15.5,0,7); ctx.stroke(); ctx.restore(); }
-    if(D2.incl>0){ const off=D2.prof*Math.sin(D2.incl*Math.PI/180)*scale; ctx.strokeStyle='rgba(255,213,121,.5)'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx,cy-off); ctx.stroke(); ctx.fillStyle='rgba(255,213,121,.85)'; ctx.beginPath(); ctx.arc(cx,cy-off,2.2,0,7); ctx.fill(); }
+    /* F6b (26/11) — il piede sta dove lo porta QUEL foro: la sua lunghezza e la
+       sua inclinazione (`scostamentoPiedeForo`). Prima valeva la profondità
+       del progetto per tutti, e un foro accorciato mostrava il piede di uno
+       lungo. Senza inclinazione nota, o a zero, non si disegna niente. */
+    const _piede=scostamentoPiedeForo(h, D2);
+    if(_piede>0){ const off=_piede*scale; ctx.strokeStyle='rgba(255,213,121,.5)'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx,cy-off); ctx.stroke(); ctx.fillStyle='rgba(255,213,121,.85)'; ctx.beginPath(); ctx.arc(cx,cy-off,2.2,0,7); ctx.fill(); }
     if(i===D2.sel){ ctx.save(); ctx.shadowColor='rgba(255,255,255,.55)'; ctx.shadowBlur=15; ctx.beginPath(); ctx.arc(cx,cy,12,0,7); ctx.fillStyle='rgba(255,255,255,.10)'; ctx.fill(); ctx.restore(); }
     /* G49 — un anello tratteggiato ciano distingue la selezione multipla
        (destinata a un'azione batch) da quella singola qui sopra (destinata
@@ -6896,12 +6929,13 @@ function d2Up(){ if(d2AlignGuide!=null){ d2AlignGuide=null; drawDesign2D(); } d2
    borraggio mai più lungo del foro, tutto o niente); qui c'è solo il
    disegno e le frasi. Si applica al `change`, come il ritardo: digitando
    «35» non si passa da 3 kg. Un campo svuotato toglie il valore proprio. */
-const _VAL_FORO=[['kg','diKg','carica',true],['prof','diProf','profondità',true],['stem','diStem','borraggio',false],['diam','diDiam','diametro',false]];   // campo, id del campo, nome, femminile? (il diametro dal 26/11, F6)
+const _VAL_FORO=[['kg','diKg','carica',true],['prof','diProf','profondità',true],['stem','diStem','borraggio',false],['diam','diDiam','diametro',false],['incl','diIncl','inclinazione',true]];   // campo, id del campo, nome, femminile? (diametro e inclinazione dal 26/11, F6 e F6b)
 /* etichetta, campo e unità vanno a capo INSIEME: a 320 px «profondità» restava
    in fondo a una riga e il suo campo cominciava quella dopo (visto nello
    scatto, non nel codice). Lo usano anche x e spalla, che avevano lo stesso difetto. */
 const _DI_GRUPPO='display:inline-flex;align-items:center;gap:6px;white-space:nowrap';
-const _valForoTx=(campo,v)=>{ const L=LIMITI_PER_FORO[campo]; return (v===null||v===undefined)?'—':(perCampo(v,2)+' '+L.unita); };
+/* i gradi si scrivono attaccati al numero («20°»), le altre unità staccate («58 kg») */
+const _valForoTx=(campo,v)=>{ const L=LIMITI_PER_FORO[campo]; return (v===null||v===undefined)?'—':(perCampo(v,2)+(L.unita==='°'?'':' ')+L.unita); };
 /* LA CARICA ENTRA NEL FORO? (26/11) — la domanda la fa il modulo
    (`capienzaFori`), coi valori che valgono per ogni foro; qui c'è il progetto
    da passargli e la frase. La usano la scheda del foro, la tabella dei fori,
@@ -6928,7 +6962,7 @@ function valoriForoHtml(indici){
   }
   return '<div id="diVal" style="margin-top:5px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">'+campi
     +(note.length
-      ? '<span id="diValNota" style="color:#ffd54f;font-size:11.5px">◆ '+note.join(' · ')+'</span><button class="btn sm" id="diValProg" style="padding:2px 8px" title="Toglie carica, profondità, borraggio e diametro propri: '+(piu?'i fori tornano':'il foro torna')+' ai valori del progetto">↺ valori del progetto</button>'
+      ? '<span id="diValNota" style="color:#ffd54f;font-size:11.5px">◆ '+note.join(' · ')+'</span><button class="btn sm" id="diValProg" style="padding:2px 8px" title="Toglie carica, profondità, borraggio, diametro e inclinazione propri: '+(piu?'i fori tornano':'il foro torna')+' ai valori del progetto">↺ valori del progetto</button>'
       : '<span id="diValNota" style="color:var(--mut2);font-size:11.5px">dal progetto — scrivi un numero per dare '+(piu?'ai fori':'al foro')+' un valore '+(piu?'loro':'suo')+'</span>')
     +'</div>';
 }
@@ -6994,7 +7028,9 @@ function valoriForoCollega(indici){
    la tabella non costa niente: si aggiorna solo il conto accanto al titolo. */
 let _ftOrdine={ campo:'n', verso:'su' }, _ftInCoda=false;
 const _FT_COL=[['n','N°','','numero del foro'],['x','x','m','posizione lungo la fila'],['spalla','spalla','m','distanza dal fronte'],['tDet','ritardo','ms','ritardo'],
-  ['kg','carica','kg','carica'],['prof','prof.','m','profondità'],['stem','borr.','m','borraggio'],['diam','Ø','mm','diametro']];
+  ['kg','carica','kg','carica'],['prof','prof.','m','profondità'],['stem','borr.','m','borraggio'],['diam','Ø','mm','diametro'],['incl','incl.','°','inclinazione']];
+/* le due colonne che c'è posto di mostrare solo su uno schermo largo: il diametro sopra i 480 px, l'inclinazione sopra i 560 */
+const _FT_LARGA={ diam:'ft-largo', incl:'ft-incl' };
 function renderTabellaFori(){
   const sec=$('ft-sec'), corpo=$('ft-corpo'); if(!sec || !corpo) return;
   const nf=D2.holes.length, vp=contaValoriPropri(D2.holes), cnt=$('ft-n');
@@ -7003,21 +7039,21 @@ function renderTabellaFori(){
   if(!nf){ corpo.innerHTML='<div class="ft-nota">Nessun foro in pianta: cambia i parametri della maglia o clicca sulla tela per aggiungerne uno.</div>'; return; }
   const att=document.activeElement, fuoco=(att && att.id && corpo.contains(att)) ? att.id : '';
   const testa=_FT_COL.map(([c,nome,u,lungo])=>{ const on=_ftOrdine.campo===c;
-    return '<button type="button" data-ord="'+c+'" class="'+((c==='x'||c==='spalla')?'ft-pos':(c==='diam'?'ft-largo':''))+(on?' on':'')+'" title="Ordina per '+lungo+(on?(_ftOrdine.verso==='giu'?' (ora dal più grande)':' (ora dal più piccolo)'):'')+'">'
+    return '<button type="button" data-ord="'+c+'" class="'+((c==='x'||c==='spalla')?'ft-pos':(_FT_LARGA[c]||''))+(on?' on':'')+'" title="Ordina per '+lungo+(on?(_ftOrdine.verso==='giu'?' (ora dal più grande)':' (ora dal più piccolo)'):'')+'">'
       +'<span>'+nome+'</span><small>'+u+(on?((u?' ':'')+(_ftOrdine.verso==='giu'?'▼':'▲')):'')+'</small></button>'; }).join('');
   const _cap=capienzaD2(), _nonEntra=new Map(_cap.nonEntra.map(q=>[q.i,q]));
   const cella=(r,campo,lungo,fem)=>{ const no=(campo==='kg' && _nonEntra.has(r.i));
     return '<input type="text" inputmode="decimal" id="ft-'+campo+'-'+r.i+'" data-i="'+r.i+'" data-campo="'+campo+'" value="'+(r[campo]===null?'':perCampo(r[campo],2))+'"'
-    +((r.propri[campo]||no||campo==='diam')?' class="'+(r.propri[campo]?'suo':'')+(no?' oltre':'')+(campo==='diam'?' ft-largo':'')+'"':'')+(no?' title="Non entra: '+capienzaFrase(_nonEntra.get(r.i),'un foro')+'"':'')
+    +((r.propri[campo]||no||_FT_LARGA[campo])?' class="'+(r.propri[campo]?'suo':'')+(no?' oltre':'')+(_FT_LARGA[campo]?' '+_FT_LARGA[campo]:'')+'"':'')+(no?' title="Non entra: '+capienzaFrase(_nonEntra.get(r.i),'un foro')+'"':'')
     +' aria-label="'+lungo+' del foro '+r.n+(r.propri[campo]?(fem?', sua':', suo'):', dal progetto')+(no?', non entra nel foro':'')+'">'; };
   corpo.innerHTML='<div class="ft-scorri"><div class="ft-h">'+testa+'</div>'
     +tabellaFori(D2.holes, D2, _ftOrdine).map(r=>'<div class="ft-r'+(r.i===D2.sel?' sel':'')+'" data-i="'+r.i+'">'
-      +'<button type="button" class="ft-num" data-sel="'+r.i+'" title="Apri la scheda del foro '+r.n+' e mostralo sulla pianta">'+r.n+((r.propri.kg||r.propri.prof||r.propri.stem)?'<i title="Ha valori suoi, diversi da quelli del progetto">◆</i>':'')+(_nonEntra.has(r.i)?'<i class="ft-no" title="La carica non entra in questo foro">⚠</i>':'')+'</button>'
+      +'<button type="button" class="ft-num" data-sel="'+r.i+'" title="Apri la scheda del foro '+r.n+' e mostralo sulla pianta">'+r.n+(Object.values(r.propri).some(Boolean)?'<i title="Ha valori suoi, diversi da quelli del progetto">◆</i>':'')+(_nonEntra.has(r.i)?'<i class="ft-no" title="La carica non entra in questo foro">⚠</i>':'')+'</button>'
       +'<span class="ft-v ft-pos">'+(r.x===null?'—':gfix(r.x,2))+'</span>'
       +'<span class="ft-v ft-pos">'+(r.spalla===null?'—':gfix(r.spalla,2))+'</span>'
       +'<span class="ft-v">'+(r.tDet===null?'—':fmtMs(r.tDet))+(r.aMano?'<i title="Ritardo messo a mano">✎</i>':'')+'</span>'
-      +cella(r,'kg','carica',true)+cella(r,'prof','profondità',true)+cella(r,'stem','borraggio',false)+cella(r,'diam','diametro',false)+'</div>').join('')
-    +'</div><div class="ft-nota">'+(_cap.nonEntra.length?'<b id="ft-cap" style="color:#ef9a9a">⚠ In '+_cap.nonEntra.length+' '+plurale(_cap.nonEntra.length,'foro','fori')+' la carica non entra</b> (cella della carica bordata di rosso). ':'')+'Scrivi in una cella per dare a quel foro un valore suo; cella vuota = torna al progetto. ◆ ha valori suoi · ✎ ritardo messo a mano. Posizione e ritardo — e, su uno schermo stretto, il diametro — si leggono e si cambiano nella scheda del foro: tocca il suo numero.</div>';
+      +cella(r,'kg','carica',true)+cella(r,'prof','profondità',true)+cella(r,'stem','borraggio',false)+cella(r,'diam','diametro',false)+cella(r,'incl','inclinazione',true)+'</div>').join('')
+    +'</div><div class="ft-nota">'+(_cap.nonEntra.length?'<b id="ft-cap" style="color:#ef9a9a">⚠ In '+_cap.nonEntra.length+' '+plurale(_cap.nonEntra.length,'foro','fori')+' la carica non entra</b> (cella della carica bordata di rosso). ':'')+'Scrivi in una cella per dare a quel foro un valore suo; cella vuota = torna al progetto. ◆ ha valori suoi · ✎ ritardo messo a mano. Posizione e ritardo — e, su uno schermo stretto, diametro e inclinazione — si leggono e si cambiano nella scheda del foro: tocca il suo numero.</div>';
   const daRifocalizzare=fuoco && $(fuoco);
   if(daRifocalizzare){ daRifocalizzare.focus(); if(typeof daRifocalizzare.select==='function') daRifocalizzare.select(); }
 }

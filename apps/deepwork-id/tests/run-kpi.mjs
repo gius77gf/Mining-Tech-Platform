@@ -43411,7 +43411,7 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
   });
   test("Genesi · F1, valoreDiForo: il valore suo se il foro ne ha uno, se no quello del progetto, e null se non lo sa nessuno", () => {
     const D2 = { kg: 50, prof: 10, stem: 2.2 };
-    eq(genesi.CAMPI_PER_FORO, ["kg", "prof", "stem", "diam"], "i quattro campi che oggi un foro può portare — il diametro dal 26/11 (F6), in fondo; l'inclinazione non ancora");
+    eq(genesi.CAMPI_PER_FORO, ["kg", "prof", "stem", "diam", "incl"], "i cinque campi che un foro può portare — il diametro dal 26/11 (F6) e l'inclinazione (F6b), in fondo");
     eq(genesi.valoreDiForo({ mx: 1, my: 3 }, "kg", D2), 50, "senza valore suo: quello del progetto — ogni progetto di ieri resta identico");
     eq(genesi.valoreDiForo({ kg: 35 }, "kg", D2), 35, "col valore suo: il suo");
     eq(genesi.valoreDiForo({ kg: 0 }, "kg", D2), 0, "⛔ un foro lasciato SCARICO (0 kg dichiarato) resta zero: è una scelta, non un buco");
@@ -43423,7 +43423,7 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(genesi.valoreDiForo({}, "kg", { kg: null }), null, "⛔ né il foro né il progetto: null, MAI zero");
     eq(genesi.valoreDiForo({}, "kg", null), null, "progetto assente: null");
     eq(genesi.valoreDiForo(null, "kg", D2), 50, "foro null: progetto");
-    eq(genesi.valoreDiForo({ incl: 12 }, "incl", { incl: 5 }), null, "⛔ un campo che NON è ancora per foro (l'inclinazione) risponde null, non il progetto di nascosto");
+    eq(genesi.valoreDiForo({ sub: 1.2 }, "sub", { sub: 0.9 }), null, "⛔ un campo che NON è per foro (la sottoperforazione) risponde null, non il progetto di nascosto");
     eq([genesi.valoreDiForo({ diam: 89 }, "diam", { diam: 102 }), genesi.valoreDiForo({}, "diam", { diam: 102 }), genesi.valoreDiForo({ diam: 0 }, "diam", { diam: 102 })], [89, 102, 102], "F6: il diametro suo se il foro ne ha uno, se no quello del progetto; un diametro di zero non è un foro e non è un valore proprio");
     eq(genesi.valoreProprioDiForo({ kg: 35 }, "kg"), 35, "valoreProprioDiForo: solo ciò che è scritto SUL foro");
     eq(genesi.valoreProprioDiForo({}, "kg"), null, "e null se il foro non dice niente (qui il progetto non c'entra)");
@@ -43465,7 +43465,7 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(["kg", "prof", "stem"].map((c) => genesi.foriConValoreProprio(H, [0], c, ({ kg: 200.5, prof: 18.1, stem: 6.1 })[c], P).motivo), ["fuori-limiti", "fuori-limiti", "fuori-limiti"], "in alto i limiti sono quelli del progetto: 200 kg, 18 m, 6 m");
     eq(["kg", "prof", "stem"].map((c) => genesi.foriConValoreProprio(H, [0], c, ({ kg: 200, prof: 18, stem: 6 })[c], P).motivo), [null, null, null], "e il limite stesso si può scrivere");
     eq([genesi.foriConValoreProprio(H, [0], "kg", -1, P).motivo, genesi.foriConValoreProprio(H, [0], "kg", "abc", P).motivo, genesi.foriConValoreProprio(H, [0], "kg", Infinity, P).motivo], ["fuori-limiti", "fuori-limiti", "fuori-limiti"], "negativo, non numero, infinito: niente");
-    eq(genesi.foriConValoreProprio(H, [0], "incl", 12, P).motivo, "campo-non-per-foro", "l'inclinazione non è (ancora) un campo per foro: non si scrive di nascosto");
+    eq(genesi.foriConValoreProprio(H, [0], "sub", 1.2, P).motivo, "campo-non-per-foro", "la sottoperforazione non è un campo per foro: non si scrive di nascosto");
     eq([genesi.foriConValoreProprio(H, [], "kg", 30, P).motivo, genesi.foriConValoreProprio(H, [7, -1, 1.5, "0"], "kg", 30, P).motivo, genesi.foriConValoreProprio(null, [0], "kg", 30, P).motivo], ["nessun-foro", "nessun-foro", "nessun-foro"], "senza un foro vero su cui scrivere lo dice");
     eq(genesi.foriConValoreProprio(H, [0, 0, 0], "kg", 30, P).toccati, 1, "un indice ripetuto conta una volta");
     /* il borraggio mai più lungo del foro */
@@ -43502,10 +43502,10 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(genesi.valoreComuneDiFori(H, [0, 1], "prof", P), { n: 2, valore: 10, diversi: false, propri: 0 }, "la profondità è la stessa per tutti e due");
     eq(genesi.valoreComuneDiFori(H, [0], "kg", {}), { n: 1, valore: null, diversi: false, propri: 0 }, "⛔ non lo sa né il foro né il progetto: null, non zero — e non è «diversi»");
     eq(genesi.valoreComuneDiFori(H, [], "kg", P), { n: 0, valore: null, diversi: false, propri: 0 }, "nessun foro scelto");
-    eq(genesi.valoreComuneDiFori(H, [0], "incl", P), { n: 0, valore: null, diversi: false, propri: 0 }, "un campo che non è per foro");
-    eq(genesi.contaValoriPropri(H), { fori: 3, kg: 2, prof: 1, stem: 1, diam: 0 }, "tre fori con qualcosa di loro: due con la carica, uno con profondità e borraggio");
-    eq(genesi.contaValoriPropri([{ kg: "abc" }, {}, { prof: 0 }]), { fori: 0, kg: 0, prof: 0, stem: 0, diam: 0 }, "un valore illeggibile non è un valore proprio");
-    eq(genesi.contaValoriPropri(null), { fori: 0, kg: 0, prof: 0, stem: 0, diam: 0 }, "senza fori: zero, non un crollo");
+    eq(genesi.valoreComuneDiFori(H, [0], "sub", P), { n: 0, valore: null, diversi: false, propri: 0 }, "un campo che non è per foro");
+    eq(genesi.contaValoriPropri(H), { fori: 3, kg: 2, prof: 1, stem: 1, diam: 0, incl: 0 }, "tre fori con qualcosa di loro: due con la carica, uno con profondità e borraggio");
+    eq(genesi.contaValoriPropri([{ kg: "abc" }, {}, { prof: 0 }]), { fori: 0, kg: 0, prof: 0, stem: 0, diam: 0, incl: 0 }, "un valore illeggibile non è un valore proprio");
+    eq(genesi.contaValoriPropri(null), { fori: 0, kg: 0, prof: 0, stem: 0, diam: 0, incl: 0 }, "senza fori: zero, non un crollo");
     /* il conto deve tornare con quello che il file salvato porterebbe */
     eq(genesi.contaValoriPropri(H).fori, H.filter((h) => Object.keys(genesi.valoriPropriDiForo(h)).length).length, "lo stesso numero che si ottiene guardando che cosa si salva di ogni foro");
   });
@@ -43515,7 +43515,7 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     const copia = JSON.stringify(H);
     const t = genesi.tabellaFori(H, P);
     eq(t.map((r) => r.id + r.n), ["b1", "c2", "a3", "d4"], "senza un ordine chiesto: per numero del foro (l'ordine di sparo), e chi non ha un numero prende il suo posto in elenco");
-    eq(t.find((r) => r.id === "c"), { i: 2, n: 2, id: "c", x: 7, spalla: 3, tDet: 42, aMano: true, kg: 58, prof: 8, stem: 0, diam: null, propri: { kg: false, prof: true, stem: true, diam: false } },
+    eq(t.find((r) => r.id === "c"), { i: 2, n: 2, id: "c", x: 7, spalla: 3, tDet: 42, aMano: true, kg: 58, prof: 8, stem: 0, diam: null, incl: null, propri: { kg: false, prof: true, stem: true, diam: false, incl: false } },
       "la riga porta l'indice del foro, i valori che valgono per lui (la carica del progetto, profondità e borraggio suoi) e quali sono suoi");
     eq(t.map((r) => r.i).sort(), [0, 1, 2, 3], "⛔ ogni riga dice su quale foro si scrive: l'indice in `holes`, non la posizione in tabella");
     eq(genesi.tabellaFori(H, P, { campo: "kg", verso: "su" }).map((r) => r.id), ["b", "a", "c", "d"], "per carica crescente: il foro da 35 kg per primo; a parità resta l'ordine dei fori (stabile)");
@@ -43527,7 +43527,7 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(genesi.tabellaFori(H, P, { campo: "x" }).map((r) => r.x), [0, 3.5, 7, 10.5], "per posizione lungo la fila");
     eq([genesi.tabellaFori(null, P), genesi.tabellaFori([], P)], [[], []], "nessun foro: nessuna riga, non un crollo");
     eq(JSON.stringify(H), copia, "i fori ricevuti non sono stati toccati né riordinati");
-    eq(genesi.COLONNE_TABELLA_FORI, ["n", "x", "spalla", "tDet", "kg", "prof", "stem", "diam"], "le otto colonne, nell'ordine in cui si leggono (il diametro in fondo, dal 26/11)");
+    eq(genesi.COLONNE_TABELLA_FORI, ["n", "x", "spalla", "tDet", "kg", "prof", "stem", "diam", "incl"], "le nove colonne, nell'ordine in cui si leggono (diametro e inclinazione in fondo, dal 26/11)");
     eq(genesi.COLONNE_TABELLA_FORI.filter((c) => genesi.CAMPI_PER_FORO.includes(c)), genesi.CAMPI_PER_FORO, "e quelle che si possono scrivere sono esattamente i campi per foro, nello stesso ordine");
   });
   test("Genesi · F5, xmlPianoInnesco: ogni <Hole> porta i valori che valgono PER LUI, e senza valori per foro il file non cambia", () => {
@@ -43633,12 +43633,53 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(genesi.valoriPerForoDaPiano([{ x: 3.5, y: 3, diam: 300 }], lisci, P).scartati, 1, "un diametro fuori dai limiti letto da un file si scarta e si conta");
     eq(genesi.foriDaDesign({ holes: [{ id: "q", mx: 0, my: 3, diam: 76 }, { id: "z", mx: 1, my: 3, diam: "abc" }] }), { fori: [{ id: "q", mx: 0, my: 3, diam: 76 }, { id: "z", mx: 1, my: 3 }], scartati: 0, valoriScartati: 1 }, "si salva e si riapre col progetto; quello illeggibile si conta");
     eq(lisci.map((h) => genesi.valoriPropriDiForo(h)), [{}, {}, {}], "⛔ un progetto senza diametri per foro non guadagna chiavi nel file salvato");
-    eq(genesi.contaValoriPropri(coi), { fori: 1, kg: 0, prof: 0, stem: 0, diam: 1 }, "un foro col diametro suo");
+    eq(genesi.contaValoriPropri(coi), { fori: 1, kg: 0, prof: 0, stem: 0, diam: 1, incl: 0 }, "un foro col diametro suo");
     eq(genesi.tabellaFori(coi, P, { campo: "diam" }).map((r) => r.id + r.diam), ["b76", "a102", "c102"], "la tabella porta il diametro di ogni foro e ci si può ordinare");
     /* ⛔ la capienza: il foro più stretto che si tiene la carica del progetto */
     const c = genesi.capienzaFori(coi, P);
     eq(c.nonEntra.map((q) => [coi[q.i].id, q.kg, q.capienza, q.diam]), [["b", 58, 32, 76]], "⛔ ristretto un foro a 76 mm senza toccare la carica: i 58 kg del progetto non entrano più (ne stanno 32) — la capienza usa il diametro di QUEL foro");
     eq(genesi.capienzaFori(lisci, P).nonEntra.length, 0, "e senza diametri per foro la capienza è quella di sempre");
+  });
+  test("Genesi · F6b, l'INCLINAZIONE per foro: sposta il piede e va nei file; nessun conto di carica la legge, e senza inclinazioni per foro non cambia niente", () => {
+    const P = { diam: 102, prof: 10, sub: 0.9, stem: 2.2, densita: 0.82, kg: 58, incl: 10, B: 3, S: 3.5, esplosivo: "anfo-standard", innesco: { id: "nonel", nome: "Nonel" }, sequenza: "riga", ritardo: 42, ritardoFila: 84, lastDet: 84, mic: 58 };
+    const lisci = [{ id: "a", mx: 0, my: 3, tDet: 0, seq: 0 }, { id: "b", mx: 3.5, my: 3, tDet: 42, seq: 1 }, { id: "c", mx: 7, my: 3, tDet: 84, seq: 2 }];
+    const coi = lisci.map((h) => (h.id === "b" ? { ...h, incl: 20 } : h));
+    const seno = (gradi) => Math.sin(gradi * Math.PI / 180), circa = (a, b) => a !== null && Math.abs(a - b) < 1e-12;
+    /* scrivere */
+    eq(genesi.foriConValoreProprio(lisci, [1], "incl", 20, P).fori[1].incl, 20, "20° sul secondo foro");
+    eq(genesi.foriConValoreProprio(lisci, [1], "incl", 12.5, P).fori[1].incl, 12.5, "anche col mezzo grado: un'inclinazione non è la misura di un utensile");
+    eq([genesi.foriConValoreProprio(lisci, [1], "incl", -1, P).motivo, genesi.foriConValoreProprio(lisci, [1], "incl", 31, P).motivo, genesi.foriConValoreProprio(lisci, [1], "incl", "abc", P).motivo], ["fuori-limiti", "fuori-limiti", "fuori-limiti"],
+      "fra 0 e 30° dalla verticale, come quella del progetto; «abc» non è un'inclinazione");
+    eq([genesi.foriConValoreProprio(lisci, [1], "incl", 0, P).fori[1].incl, genesi.foriConValoreProprio(lisci, [1], "incl", 30, P).fori[1].incl], [0, 30], "⛔ ZERO è un valore: un foro verticale in una volata inclinata di 10° è una scelta, non un campo vuoto");
+    ok(!("incl" in genesi.foriConValoreProprio(coi, [1], "incl", 10, P).fori[1]), "uguale a quella del progetto: il foro torna a seguirlo");
+    eq(genesi.LIMITI_PER_FORO.incl, { min: 0, max: 30, unita: "°", nome: "l'inclinazione del foro" }, "i limiti dichiarati");
+    /* il piede: lunghezza del foro × seno dell'inclinazione, coi valori di QUEL foro */
+    ok(circa(genesi.scostamentoPiedeForo(lisci[0], P), 10 * seno(10)), "un foro di 10 m inclinato di 10° ha il piede 1,74 m più avanti", genesi.scostamentoPiedeForo(lisci[0], P));
+    ok(circa(genesi.scostamentoPiedeForo(coi[1], P), 10 * seno(20)), "quello a 20°, 3,42 m", genesi.scostamentoPiedeForo(coi[1], P));
+    ok(circa(genesi.scostamentoPiedeForo({ prof: 6 }, P), 6 * seno(10)), "⛔ un foro ACCORCIATO a 6 m ha il piede a 1,04 m, non agli 1,74 di un foro da 10: la pianta usava la profondità del progetto per tutti", genesi.scostamentoPiedeForo({ prof: 6 }, P));
+    eq(genesi.scostamentoPiedeForo({ incl: 0 }, P), 0, "un foro verticale: zero (il piede sta sotto il colletto)");
+    eq([genesi.scostamentoPiedeForo({}, { prof: 10 }), genesi.scostamentoPiedeForo({}, { incl: 10 }), genesi.scostamentoPiedeForo({ incl: "abc" }, { prof: 10 })], [null, null, null], "⛔ se non si sa l'inclinazione o la lunghezza la risposta è null: «non lo so» non è «verticale»");
+    ok(circa(genesi.scostamentoPiedeForo({ incl: 15 }, { prof: 10 }), 10 * seno(15)), "l'inclinazione del foro basta anche se il progetto non ne dichiara una");
+    /* contare, salvare, la tabella */
+    eq(genesi.contaValoriPropri(coi), { fori: 1, kg: 0, prof: 0, stem: 0, diam: 0, incl: 1 }, "un foro con l'inclinazione sua");
+    eq([genesi.valoriPropriDiForo(coi[1]), lisci.map((h) => genesi.valoriPropriDiForo(h))], [{ incl: 20 }, [{}, {}, {}]], "si salva col foro; ⛔ e un progetto senza inclinazioni per foro non guadagna chiavi nel file salvato");
+    eq(genesi.foriDaDesign({ holes: [{ id: "q", mx: 0, my: 3, incl: 20 }, { id: "z", mx: 1, my: 3, incl: -5 }, { id: "w", mx: 2, my: 3, incl: 0 }] }),
+      { fori: [{ id: "q", mx: 0, my: 3, incl: 20 }, { id: "z", mx: 1, my: 3 }, { id: "w", mx: 2, my: 3, incl: 0 }], scartati: 0, valoriScartati: 1 }, "si riapre col progetto: quella negativa si conta fra i valori scartati, lo zero resta");
+    eq(genesi.tabellaFori(coi, P, { campo: "incl", verso: "giu" }).map((r) => r.id + r.incl + (r.propri.incl ? "*" : "")), ["b20*", "a10", "c10"], "la tabella porta l'inclinazione di ogni foro, dice di chi è sua, e ci si può ordinare");
+    /* ⛔ i conti di carica NON la leggono */
+    eq(genesi.capienzaFori(coi, P), genesi.capienzaFori(lisci, P), "⛔ la capienza del foro è la stessa con e senza inclinazione propria: è geometria, non entra in nessun conto di carica");
+    eq(genesi.scartoCaricheProprie(coi, P.kg), genesi.scartoCaricheProprie(lisci, P.kg), "e nemmeno la carica totale");
+    /* il piano d'innesco XML */
+    const liscio = genesi.xmlPianoInnesco({ ...P, fori: lisci }), xml = genesi.xmlPianoInnesco({ ...P, fori: coi });
+    ok(!/Inclination/.test(liscio), "⛔ NEUTRALITÀ: senza inclinazioni per foro nel piano non compare niente di nuovo");
+    eq(genesi.xmlPianoInnesco({ ...P, fori: lisci.map((h) => (h.id === "b" ? { ...h, kg: 30 } : h)) }).includes("Inclination"), false, "nemmeno quando un foro ha un ALTRO valore suo (la carica): il piano di ieri esce com'era");
+    eq((xml.match(/<(Design)?Inclination unit="deg">(\d+)</g) || []).map((x) => x.replace(/unit="deg"|[<>]/g, "").trim()), ["DesignInclination 10", "Inclination 20"], "⛔ col foro a 20°: l'inclinazione del progetto dichiarata a parte e, dentro QUEL foro, la sua");
+    eq(xml.split("<Hole ").filter((b) => b.includes("<Inclination")).length, 1, "negli altri due fori non compare: seguono il progetto");
+    ok(genesi.xmlPianoInnesco({ B: 3, S: 3.5, diam: 102, prof: 10, kg: 58, stem: 2.2, fori: coi }).includes('<DesignInclination unit="deg" status="non-calcolabile"/>'), "e se il progetto non dichiara la sua, il file lo dice («non calcolabile») invece di scrivere zero");
+    /* rileggere un piano */
+    eq(genesi.valoriPerForoDaPiano([{ x: 3.5, y: 3, incl: 20, kg: 58, prof: 10, stem: 2.2 }], lisci, P).fori[1].incl, 20, "l'inclinazione riletta da un piano torna sul foro in quella posizione");
+    eq(genesi.valoriPerForoDaPiano([{ x: 3.5, y: 3, incl: 45 }], lisci, P).scartati, 1, "una fuori dai limiti letta da un file si scarta e si conta");
+    eq(genesi.valoriPerForoDaPiano([{ x: 3.5, y: 3, incl: 10 }], lisci, P).riportati, 0, "una uguale a quella del progetto non è un valore proprio");
   });
   test("Genesi · foriDaDesign: il foro illeggibile si conta, quello senza id ne prende uno senza doppioni, il ritardo non numerico cade", () => {
     const r = genesi.foriDaDesign({ holes: [{ id: "f1-1", mx: "0", my: "3" }, { mx: null, my: 3 }, { mx: 2, my: "abc" }, { mx: 5, my: 3, tMano: "boh" }, { id: "", mx: 6, my: 3 }, { id: "m1", mx: 8, my: 3 }] });

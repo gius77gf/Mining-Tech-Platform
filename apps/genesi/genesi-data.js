@@ -1311,6 +1311,10 @@ export function xmlPianoInnesco(p){
     xml+='    '+_tag('DesignDepth','m',p.prof)+'\n';
     xml+='    '+_tag('DesignCharge','kg',p.kg)+'\n';
     xml+='    '+_tag('DesignStemming','m',p.stem)+'\n';
+    /* F6b — l'inclinazione del progetto compare SOLO se un foro ne ha una sua
+       (serve a chi rilegge per sapere da che cosa quel foro si scosta): un
+       piano con valori per foro ma senza inclinazioni esce com'era ieri */
+    if(contaValoriPropri((p&&p.fori)||[]).incl) xml+='    '+_tag('DesignInclination','deg',p.incl)+'\n';
     xml+='    <HolesWithOwnValues>'+_nPropriXml+'</HolesWithOwnValues>\n';
   }
   xml+='  </PlanData>\n';
@@ -1326,6 +1330,8 @@ export function xmlPianoInnesco(p){
        il foro compare SOLO quando è suo, così un piano senza diametri per
        foro esce com'era */
     if(valoreProprioDiForo(h,'diam')!==null) xml+='      '+_tag('HoleDiameter','mm',valoreProprioDiForo(h,'diam'))+'\n';
+    /* F6b — gradi dalla verticale, verso la faccia; solo quando è del foro */
+    if(valoreProprioDiForo(h,'incl')!==null) xml+='      '+_tag('Inclination','deg',valoreProprioDiForo(h,'incl'))+'\n';
     xml+='      <Delay unit="ms">'+e((+h.tDet||0).toFixed(1))+'</Delay>\n';
     xml+='    </Hole>\n';
   });
@@ -2556,10 +2562,10 @@ export function idForoNuovo(holes){
       (0 kg) o non borrato (0 m) è una scelta, non un buco. Solo la
       profondità zero non è un foro;
     · se non lo sa né il foro né il progetto la risposta è `null`, mai zero.
-   Diametro e inclinazione NON sono in elenco di proposito (F6: toccano la
-   geometria 3D): chiesti qui rispondono `null`, non il valore del progetto
-   di nascosto — un campo che sembra «per foro» e non lo è sarebbe peggio di
-   un campo che manca. */
+   Un campo che NON è in elenco, chiesto qui, risponde `null` e non il valore
+   del progetto di nascosto — un campo che sembra «per foro» e non lo è
+   sarebbe peggio di un campo che manca. (Diametro e inclinazione sono
+   entrati con F6 e F6b, più sotto.) */
 /* F6 (26/11) — il DIAMETRO è il quarto campo per foro (fori di contorno o di
    presplit più piccoli, un foro riperforato più largo). È in fondo
    all'elenco di proposito: chi scorre i campi trova prima i tre di sempre.
@@ -2567,8 +2573,15 @@ export function idForoNuovo(holes){
    piano d'innesco, file di scambio); le PREVISIONI sulla volata (pezzatura,
    proiezioni, confinamento del colletto, rapporti geometrici) restano sul
    diametro del progetto, come per la carica (decisione 33).
-   L'inclinazione NON c'è ancora: cambia la geometria del foro nello spazio. */
-const _REGOLE_PER_FORO = { kg: (v) => v >= 0, prof: (v) => v > 0, stem: (v) => v >= 0, diam: (v) => v > 0 };
+   F6b (26/11) — l'INCLINAZIONE è il quinto, e l'ultimo: gradi dalla
+   verticale, verso la faccia, come quella del progetto (un foro di contorno
+   più inclinato, uno raddrizzato perché il fronte lì è rientrato). È
+   GEOMETRIA: sposta il piede del foro in pianta e ruota il foro nella scena
+   3D; la legge chi disegna e chi scrive i file. Nessun conto di carica la
+   usa (nemmeno quello del progetto), e le PREVISIONI — la gittata — restano
+   sull'inclinazione del progetto, come per carica e diametro (decisione 33).
+   Zero è un valore: un foro verticale in una volata inclinata è una scelta. */
+const _REGOLE_PER_FORO = { kg: (v) => v >= 0, prof: (v) => v > 0, stem: (v) => v >= 0, diam: (v) => v > 0, incl: (v) => v >= 0 };
 export const CAMPI_PER_FORO = Object.keys(_REGOLE_PER_FORO);
 const _numForo = (x) => (x === null || x === undefined || x === '') ? NaN : +x;
 export function valoreProprioDiForo(h, campo){
@@ -2583,6 +2596,18 @@ export function valoreDiForo(h, campo, progetto){
   if (suo !== null) return suo;
   const p = _numForo(progetto && progetto[campo]);
   return Number.isFinite(p) ? p : null;
+}
+/* F6b — DOVE STA IL PIEDE DEL FORO, in pianta, rispetto al colletto: un foro
+   lungo L e inclinato di θ dalla verticale ha il piede L·sin θ più avanti,
+   verso la faccia. Lunghezza e inclinazione sono quelle che VALGONO per quel
+   foro. ⛔ Fino al 26/11 la pianta lo disegnava con la profondità del
+   PROGETTO per tutti: un foro accorciato a 6 m in una volata da 10 mostrava
+   il piede dove sarebbe arrivato a 10. `null` se una delle due non si sa
+   (non zero: «non lo so» non è «verticale»); zero se il foro è verticale. */
+export function scostamentoPiedeForo(h, progetto){
+  const L = valoreDiForo(h, 'prof', progetto), a = valoreDiForo(h, 'incl', progetto);
+  if (L === null || a === null) return null;
+  return L * Math.sin(a * Math.PI / 180);
 }
 /* ciò che di un foro va nel file salvato OLTRE a id/posizione/ritardo: solo i
    valori suoi validi. Un foro senza valori suoi non guadagna chiavi — il
@@ -2630,6 +2655,8 @@ export const LIMITI_PER_FORO = {
   /* gli stessi del campo di progetto (50–160 mm, intero): un diametro è la
      misura di un utensile, non si sceglie al decimo di millimetro */
   diam: { min: 50, max: 160, unita: 'mm', nome: 'il diametro del foro', intero: true },
+  /* gli stessi del campo di progetto: da 0 (verticale) a 30° dalla verticale */
+  incl: { min: 0, max: 30, unita: '°', nome: "l'inclinazione del foro" },
 };
 /* «questo numero può essere il valore di un foro?»: una domanda, due posti che
    la fanno (il comando dalla tastiera e il piano riletto da un file) */
@@ -2814,7 +2841,7 @@ export function capienzaFori(holes, progetto){
       non sperato: due righe uguali non si scambiano di posto a ogni clic);
     · una colonna che non esiste ordina per numero del foro: una tabella
       in un ordine a caso sarebbe peggio di una nell'ordine di sparo. */
-export const COLONNE_TABELLA_FORI = ['n', 'x', 'spalla', 'tDet', 'kg', 'prof', 'stem', 'diam'];
+export const COLONNE_TABELLA_FORI = ['n', 'x', 'spalla', 'tDet', 'kg', 'prof', 'stem', 'diam', 'incl'];
 export function tabellaFori(holes, progetto, ordine){
   const H = Array.isArray(holes) ? holes : [];
   const fin = (v) => (v === null || v === undefined || v === '' || !Number.isFinite(+v)) ? null : +v;
@@ -2823,8 +2850,8 @@ export function tabellaFori(holes, progetto, ordine){
     const seq = fin(h && h.seq);
     return { i, n: (seq === null ? i : seq) + 1, id: (h && h.id) || null,
       x: fin(h && h.mx), spalla: fin(h && h.my), tDet: fin(h && h.tDet), aMano: !!(h && h.tMano != null),
-      kg: valoreDiForo(h, 'kg', progetto), prof: valoreDiForo(h, 'prof', progetto), stem: valoreDiForo(h, 'stem', progetto), diam: valoreDiForo(h, 'diam', progetto),
-      propri: { kg: 'kg' in suoi, prof: 'prof' in suoi, stem: 'stem' in suoi, diam: 'diam' in suoi } };
+      kg: valoreDiForo(h, 'kg', progetto), prof: valoreDiForo(h, 'prof', progetto), stem: valoreDiForo(h, 'stem', progetto), diam: valoreDiForo(h, 'diam', progetto), incl: valoreDiForo(h, 'incl', progetto),
+      propri: { kg: 'kg' in suoi, prof: 'prof' in suoi, stem: 'stem' in suoi, diam: 'diam' in suoi, incl: 'incl' in suoi } };
   });
   const campo = (ordine && COLONNE_TABELLA_FORI.includes(ordine.campo)) ? ordine.campo : 'n';
   const verso = (ordine && ordine.verso === 'giu') ? -1 : 1;

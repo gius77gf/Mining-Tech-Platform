@@ -174,8 +174,8 @@ const DIFETTI = [
   // 13 · il .volata.json su multi-fila: "file:1" a prescindere dalle file vere
   //      (18/09, secondo giro di deep-pass) — dedicata, prima esercitata solo
   //      di riflesso dal difetto 4 (lo scatter dell'export)
-  [`geometria:{ spalla_m:SPALLA, interasse_m:INTERASSE, borraggio_m:D2.stem, file:Math.max(1, D2.file||1) },`,
-   `geometria:{ spalla_m:SPALLA, interasse_m:INTERASSE, borraggio_m:D2.stem, file:1 },`],
+  [`geometria:{ spalla_m:SPALLA, interasse_m:INTERASSE, borraggio_m:D2.stem, inclinazione_gradi:D2.incl, file:Math.max(1, D2.file||1) },`,
+   `geometria:{ spalla_m:SPALLA, interasse_m:INTERASSE, borraggio_m:D2.stem, inclinazione_gradi:D2.incl, file:1 },`],
 ];
 
 const colpiti = new Set();

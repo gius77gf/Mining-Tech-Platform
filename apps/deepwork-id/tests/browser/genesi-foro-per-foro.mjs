@@ -117,6 +117,23 @@ const DIFETTI = [
   [PAGINA, `#d2-insp input[type=text]{background:#241d12;border:1px solid #473a1f;`, `#d2-insp input[type=nessuno]{background:#241d12;border:1px solid #473a1f;`],
   /* e la colonna del numero stretta com'era: rombo e avviso insieme toccano il ritardo */
   [PAGINA, `.ft-h,.ft-r{grid-template-columns:40px 46px repeat(3,minmax(48px,1fr));min-width:0}`, `.ft-h,.ft-r{grid-template-columns:22px 50px repeat(3,minmax(50px,1fr));min-width:0}`],
+  /* F6b — l'inclinazione per foro: il piede torna quello del progetto per tutti
+     (profondità e inclinazione del foro ignorate), la scena 3D ruota tutti i
+     fori uguali, i due file non la scrivono, il piano riletto la perde, la
+     nona colonna compare dove non c'è posto, e il foro con la sola
+     inclinazione sua resta senza rombo in tabella */
+  [PAGINA, `const _piede=scostamentoPiedeForo(h, D2);`, `const _piede=scostamentoPiedeForo({}, D2);`],
+  [MODULO, `const L = valoreDiForo(h, 'prof', progetto), a = valoreDiForo(h, 'incl', progetto);`, `const L = valoreDiForo({}, 'prof', progetto), a = valoreDiForo(h, 'incl', progetto);`],
+  [PAGINA, `const _incl=(f.suoi && 'incl' in f.suoi) ? f.suoi.incl : (D2.incl||0);`, `const _incl=(D2.incl||0);`],
+  [MODULO, `if(valoreProprioDiForo(h,'incl')!==null) xml+='      '+_tag('Inclination'`, `if(false) xml+='      '+_tag('Inclination'`],
+  [MODULO, `if(contaValoriPropri((p&&p.fori)||[]).incl) xml+='    '+_tag('DesignInclination','deg',p.incl)+'\\n';`, ``],
+  [PAGINA, `diam:numOf(h,'HoleDiameter'), incl:numOf(h,'Inclination') };`, `diam:numOf(h,'HoleDiameter') };`],
+  [PAGINA, `...(('incl' in suoi)?{ inclinazione_gradi:suoi.incl }:{}),`, ``],
+  [PAGINA, `borraggio_m:D2.stem, inclinazione_gradi:D2.incl, file:`, `borraggio_m:D2.stem, file:`],
+  [PAGINA, `D2.incl = valoreCampo(parseFloat(geom.inclinazione_gradi), D2.incl, 0, 30);`, ``],
+  [PAGINA, `.ft-incl{display:none!important}`, `.ft-incl{}`],
+  [PAGINA, `grid-template-columns:40px 40px 42px 54px repeat(5,minmax(50px,1fr));gap:4px`, `grid-template-columns:40px 40px 42px 54px repeat(4,minmax(50px,1fr));gap:4px`],
+  [PAGINA, `(Object.values(r.propri).some(Boolean)?'<i title="Ha valori suoi`, `((r.propri.kg||r.propri.prof||r.propri.stem)?'<i title="Ha valori suoi`],
 ];
 
 const colpiti = new Set();
@@ -885,6 +902,144 @@ if (prima && prima.colonneTrovate) {
   await pg.click('#bottomnav button[data-scr="design"]'); await pg.waitForTimeout(400);
   await pg.evaluate(() => { for (const h of window.__genesi.D2.holes) { delete h.kg; delete h.prof; delete h.stem; delete h.diam; } window.__genesi.renderScheda2D(); });
   await pg.waitForTimeout(250);
+}
+/* 14. F6b — L'INCLINAZIONE PER FORO: si scrive dalla scheda; sposta il piede
+   sulla pianta e ruota il foro nella scena; va nei due file e torna dal piano. */
+{
+  console.log("\n── F6b: l'inclinazione per foro ──");
+  await pg.setViewportSize({ width: 430, height: 900 });
+  await pg.click('#bottomnav button[data-scr="design"]'); await pg.waitForTimeout(500);
+  const campi = ["kg", "prof", "stem", "diam", "incl"];
+  const pulisci = (gradi) => pg.evaluate(([campi, gradi]) => { const D = window.__genesi.D2; for (const h of D.holes) for (const c of campi) delete h[c];
+    const e = document.getElementById("dIncl"); e.value = String(gradi); e.dispatchEvent(new Event("input", { bubbles: true })); e.dispatchEvent(new Event("change", { bubbles: true })); }, [campi, gradi]);
+  await pulisci(10); await pg.waitForTimeout(500);
+  const P = await pg.evaluate(() => { const D = window.__genesi.D2; return { incl: D.incl, prof: D.prof, n: D.holes.length, ids: D.holes.map((h) => h.id) }; });
+  dice(P.incl === 10, "il progetto è a 10° (scritti nel campo vero della maglia)", P.incl);
+  /* il piede di un foro sulla pianta: il pallino ambra è dove dico io? */
+  const piede = (i, lung, gradi) => pg.evaluate(([i, lung, gradi]) => { const D = window.__genesi.D2, m = D._m, c = document.getElementById("d2-canvas"), h = D.holes[i];
+    const x = Math.round(m.startX + h.mx * m.scale), y = Math.round(m.faceY + h.my * m.scale - lung * Math.sin(gradi * Math.PI / 180) * m.scale);
+    const d = c.getContext("2d").getImageData(x, y, 1, 1).data; return { ambra: d[0] > 170 && d[1] > 140 && d[2] < 170 && d[0] - d[2] > 50, rgb: [d[0], d[1], d[2]], px: Math.round(lung * Math.sin(gradi * Math.PI / 180) * m.scale) }; }, [i, lung, gradi]);
+  const p0 = await piede(5, P.prof, 10);
+  dice(p0.ambra && p0.px >= 6, `sulla pianta il piede del foro 6 sta ${p0.px} px davanti al colletto: ${P.prof} m di foro a 10°`, p0);
+
+  const uscito = async (bottone, nome) => { await pg.evaluate((b) => { window.__usciti.length = 0; document.getElementById(b).click(); }, bottone); await pg.waitForTimeout(600);
+    const f = (await pg.evaluate(() => window.__usciti)).find((x) => nome.test(x.nome)); return f ? decodeURIComponent(f.href.split(",").slice(1).join(",")) : null; };
+  const xml0 = await uscito("btn-innesco-xml", /piano_innesco\.xml/);
+  dice(!!xml0 && !/Inclination/.test(xml0), "⛔ NEUTRALITÀ: senza inclinazioni per foro il piano d'innesco esce com'era (nessun «Inclination»)", xml0 && (xml0.match(/Inclination/g) || []).length);
+
+  /* dalla scheda del foro, con la tastiera */
+  await pg.evaluate(() => { window.__genesi.D2.sel = -1; });
+  await pg.locator("#d2-canvas").scrollIntoViewIfNeeded(); await pg.waitForTimeout(120);
+  { const bb = await pg.locator("#d2-canvas").boundingBox();
+    const rel = await pg.evaluate(() => { const D = window.__genesi.D2, m = D._m, c = document.getElementById("d2-canvas"), h = D.holes[3]; return { x: (m.startX + h.mx * m.scale) / c.width, y: (m.faceY + h.my * m.scale) / c.height }; });
+    await pg.mouse.click(bb.x + rel.x * bb.width, bb.y + rel.y * bb.height); await pg.waitForTimeout(300); }
+  const campo0 = await pg.evaluate(() => { const e = document.getElementById("diIncl"); if (!e) return null; const q = e.getBoundingClientRect(), g = e.parentElement.getBoundingClientRect();
+    return { valore: e.value, h: Math.round(q.height), unita: e.parentElement.innerText.replace(/\s+/g, " ").trim(), dentro: g.right <= innerWidth + 0.5 && g.left >= 0 }; });
+  dice(!!campo0 && +campo0.valore === 10 && campo0.h >= 40 && /inclinazione\s*°/.test(campo0.unita) && campo0.dentro, "nella scheda del foro c'è il quinto campo, l'inclinazione, col valore del progetto (10°), alto quanto gli altri e dentro lo schermo", campo0);
+  await pg.evaluate(() => { window.__toasts.length = 0; });
+  await pg.click("#diIncl", { clickCount: 3 }); await pg.keyboard.type("31"); await pg.keyboard.press("Tab"); await pg.waitForTimeout(350);
+  let st = await pg.evaluate(() => ({ incl: window.__genesi.D2.holes[3].incl, toast: window.__toasts.join(" | ") }));
+  dice(st.incl === undefined && /30/.test(st.toast) && /inclinazione/.test(st.toast), "31°: rifiutato, e il messaggio dice il limite (30) e di che campo si parla", st);
+  await pg.evaluate(() => { window.__toasts.length = 0; });
+  await pg.click("#diIncl", { clickCount: 3 }); await pg.keyboard.type("20"); await pg.keyboard.press("Tab"); await pg.waitForTimeout(400);
+  st = await pg.evaluate(() => ({ incl: window.__genesi.D2.holes[3].incl, toast: window.__toasts.join(" | "), nota: (document.getElementById("diValNota") || {}).innerText || "", fuoco: (document.activeElement || {}).id || "" }));
+  dice(st.incl === 20 && /inclinazione 20° — non più quella del progetto \(10°\)/.test(st.toast), "⛔ scritto 20: il foro ha 20° suoi, e lo dice coi gradi attaccati al numero e l'inclinazione del progetto accanto", st.toast);
+  dice(/inclinazione sua/.test(st.nota), "la scheda lo segna («inclinazione sua»)", st.nota);
+  const p20 = await piede(3, P.prof, 20), p10 = await piede(3, P.prof, 10);
+  dice(p20.ambra && !p10.ambra && p20.px > p10.px + 3, `⛔ sulla pianta il piede di QUEL foro è andato avanti: ${p20.px} px invece di ${p10.px} (dove stava a 10° non c'è più niente)`, [p20, p10]);
+  const altri = await piede(5, P.prof, 10);
+  dice(altri.ambra, "e gli altri fori hanno il piede dov'era", altri);
+  /* ⛔ il difetto che c'era da prima: un foro ACCORCIATO mostrava il piede di uno lungo */
+  await pg.evaluate(() => { const D = window.__genesi.D2; D.holes[7].prof = 6; window.__genesi.renderScheda2D(); document.getElementById("dIncl").dispatchEvent(new Event("change", { bubbles: true })); });
+  await pg.waitForTimeout(400);
+  const corto = await piede(7, 6, 10), lungo = await piede(7, P.prof, 10);
+  dice(corto.ambra && !lungo.ambra, `⛔ un foro accorciato a 6 m ha il piede a ${corto.px} px, non ai ${lungo.px} di un foro da ${P.prof} m: prima la pianta usava la profondità del progetto per tutti`, [corto, lungo]);
+  await pg.evaluate(() => { delete window.__genesi.D2.holes[7].prof; });
+
+  /* zero è un valore: un foro VERTICALE in una volata inclinata */
+  await pg.evaluate(() => { window.__genesi.D2.sel = -1; });
+  await pg.locator("#d2-canvas").scrollIntoViewIfNeeded(); await pg.waitForTimeout(120);
+  { const bb = await pg.locator("#d2-canvas").boundingBox();
+    const rel = await pg.evaluate(() => { const D = window.__genesi.D2, m = D._m, c = document.getElementById("d2-canvas"), h = D.holes[9]; return { x: (m.startX + h.mx * m.scale) / c.width, y: (m.faceY + h.my * m.scale) / c.height }; });
+    await pg.mouse.click(bb.x + rel.x * bb.width, bb.y + rel.y * bb.height); await pg.waitForTimeout(300); }
+  await pg.evaluate(() => { window.__toasts.length = 0; });
+  await pg.click("#diIncl", { clickCount: 3 }); await pg.keyboard.type("0"); await pg.keyboard.press("Tab"); await pg.waitForTimeout(400);
+  const zero = await pg.evaluate(() => ({ incl: window.__genesi.D2.holes[9].incl, toast: window.__toasts.join(" | ") }));
+  const senzaPiede = await piede(9, P.prof, 10);
+  dice(zero.incl === 0 && /inclinazione 0° — non più quella del progetto \(10°\)/.test(zero.toast) && !senzaPiede.ambra, "⛔ ZERO è un valore: un foro verticale in una volata a 10° resta a zero (non «torna al progetto»), e sulla pianta il suo piede non c'è più", [zero, senzaPiede]);
+  await pg.evaluate(() => { delete window.__genesi.D2.holes[9].incl; });
+
+  /* i file */
+  const pos = await pg.evaluate(() => { const h = window.__genesi.D2.holes[3]; return { x: h.mx, y: h.my, id: h.id }; });
+  const xml = await uscito("btn-innesco-xml", /piano_innesco\.xml/);
+  const blocco = xml ? xml.split("<Hole ").slice(1).find((b) => { const q = /<Position x="([^"]*)" y="([^"]*)"/.exec(b); return q && Math.abs(+q[1] - pos.x) < 0.006 && Math.abs(+q[2] - pos.y) < 0.006; }) : null;
+  dice(!!blocco && /<Inclination unit="deg">20<\/Inclination>/.test(blocco) && (xml.match(/<Inclination /g) || []).length === 1 && /<DesignInclination unit="deg">10<\/DesignInclination>/.test(xml),
+    "⛔ nel piano d'innesco quel foro porta la SUA inclinazione (solo lui), e il piano dichiara a parte quella del progetto", blocco && blocco.slice(0, 300));
+  /* rileggere il piano: si cambia il progetto, si riapre il file dal bottone vero, e il foro riprende i suoi 20° */
+  await pg.evaluate(() => { const D = window.__genesi.D2; for (const h of D.holes) delete h.incl; const e = document.getElementById("dIncl"); e.value = "0"; e.dispatchEvent(new Event("change", { bubbles: true })); });
+  await pg.waitForTimeout(300);
+  const fxml = join(R, "__genesi-f6b-" + process.pid + ".xml");
+  writeFileSync(fxml, xml || "");
+  try {
+    const ingresso = "fileXmlIn";
+    await pg.setInputFiles("#" + ingresso, fxml); await pg.waitForTimeout(900);
+    const riletto = await pg.evaluate((pos) => { const D = window.__genesi.D2, h = D.holes.find((q) => Math.abs(q.mx - pos.x) < 0.006 && Math.abs(q.my - pos.y) < 0.006);
+      return { progetto: D.incl, campo: document.getElementById("dIncl").value, foro: h ? h.incl : "non trovato", conIncl: D.holes.filter((q) => "incl" in q).length }; }, pos);
+    dice(!!ingresso && riletto.progetto === 10 && +riletto.campo === 10 && riletto.foro === 20 && riletto.conIncl === 1,
+      "⛔ riaperto il piano: il progetto torna a 10° (anche nel campo), e QUEL foro riprende i suoi 20° — lui solo", riletto);
+  } finally { try { unlinkSync(fxml); } catch (e) {} }
+
+  /* la tabella: la nona colonna c'è dove c'è posto */
+  if (await pg.evaluate(() => document.getElementById("ft-sec").classList.contains("closed"))) { await pg.evaluate(() => document.getElementById("ft-apri").click()); await pg.waitForTimeout(300); }
+  const colonna = async (W) => { await pg.setViewportSize({ width: W, height: 900 }); await pg.waitForTimeout(350);
+    return pg.evaluate(() => { const e = document.getElementById("ft-incl-3"), d = document.getElementById("ft-diam-3"), sc = document.querySelector(".ft-scorri"), q = e.getBoundingClientRect(), riga = e.closest(".ft-r");
+      const visti = [...riga.children].filter((c) => c.getBoundingClientRect().width > 0), alti = visti.map((c) => { const r = c.getBoundingClientRect(); return Math.round(r.top + r.height / 2); });
+      return { visibile: q.width > 30, diametro: d.getBoundingClientRect().width > 30, valore: e.value, suo: e.classList.contains("suo"), rombo: /◆/.test(riga.querySelector(".ft-num").innerText), celle: visti.length, unaRiga: Math.max(...alti) - Math.min(...alti) <= 2, altaRiga: Math.round(riga.getBoundingClientRect().height),
+        scorre: [sc.scrollWidth, sc.clientWidth], pagina: [document.documentElement.scrollWidth, innerWidth] }; }); };
+  const largo = await colonna(900);
+  dice(largo.visibile && largo.valore === "20" && largo.suo && largo.scorre[0] <= largo.scorre[1], "⛔ su uno schermo largo la tabella ha la colonna dell'inclinazione: 20 su quel foro, segnata come sua, e la tabella non scorre di lato", largo);
+  dice(largo.celle === 9 && largo.unaRiga && largo.altaRiga < 60, `⛔ e le nove celle stanno su UNA riga (alta ${largo.altaRiga} px): visto nello scatto, la nona andava a capo sotto ogni foro perché la griglia di base era rimasta a otto colonne`, largo);
+  const soglia = await colonna(570);
+  dice(soglia.visibile && soglia.celle === 9 && soglia.unaRiga && soglia.scorre[0] <= soglia.scorre[1] && soglia.pagina[0] <= soglia.pagina[1], `appena sopra la soglia (570 px) le nove colonne ci stanno, su una riga, senza scorrere (${soglia.scorre})`, soglia);
+  dice(largo.rombo, "⛔ e la riga ha il suo ROMBO anche se di suo il foro ha SOLO l'inclinazione (prima il rombo in tabella guardava carica, profondità e borraggio)", largo);
+  const medio = await colonna(540);
+  dice(!medio.visibile && medio.diametro && medio.celle === 8 && medio.unaRiga && medio.scorre[0] <= medio.scorre[1] && medio.pagina[0] <= medio.pagina[1], `a 540 px l'inclinazione esce e il diametro resta: la tabella ci sta intera (${medio.scorre})`, medio);
+  const tel = await colonna(430);
+  dice(!tel.visibile && !tel.diametro && tel.celle === 7 && tel.unaRiga && tel.scorre[0] <= tel.scorre[1] && tel.pagina[0] <= tel.pagina[1], `⛔ su un telefono (430 px) non c'è né l'una né l'altra, e la tabella ci sta ancora INTERA (${tel.scorre})`, tel);
+
+  /* la scena 3D e il file di scambio */
+  await pg.evaluate(() => document.getElementById("d2-cta").click()); await pg.waitForTimeout(2500);
+  const scena = await pg.evaluate((id) => { const G = window.__genesi; const rot = (G.xrayCyls || []).map((g) => ({ id: g.userData.f && g.userData.f.id, gradi: Math.round(-g.rotation.x * 180 / Math.PI * 100) / 100 }));
+    return { n: rot.length, suo: (rot.find((r) => r.id === id) || {}).gradi, altri: [...new Set(rot.filter((r) => r.id !== id).map((r) => r.gradi))] }; }, pos.id);
+  dice(scena.n === 0 || (scena.suo === 20 && scena.altri.length === 1 && scena.altri[0] === 10), scena.n ? "⛔ nella scena 3D quel foro è ruotato di 20°, gli altri di 10°" : "(la scena non espone i fori in trasparenza: rotazione non misurata qui)", scena);
+  await pg.evaluate(() => { window.__usciti.length = 0; document.getElementById("btnExport").click(); }); await pg.waitForTimeout(700);
+  const fj = (await pg.evaluate(() => window.__usciti)).find((x) => /\.volata\.json$/.test(x.nome));
+  let j = null; try { j = fj ? JSON.parse(await pg.evaluate(async (h) => (await fetch(h)).text(), fj.href)) : null; } catch (e) {}
+  dice(!!j && j.volata.geometria.inclinazione_gradi === 10, "⛔ il .volata.json dice l'inclinazione dei fori (10°): prima non usciva, e chi riceveva il file non sapeva se erano verticali", j && j.volata.geometria);
+  dice(!!j && j.volata.fori.find((f) => f.id === pos.id).inclinazione_gradi === 20 && j.volata.fori.filter((f) => "inclinazione_gradi" in f).length === 1, "⛔ e QUEL foro esce coi suoi 20°; gli altri non portano la chiave (seguono la geometria)", j && j.volata.fori.find((f) => f.id === pos.id));
+  /* e il giro di andata e ritorno: si porta il progetto a 0°, si riapre QUEL file dal bottone vero, torna a 10° */
+  if (j) {
+    await pg.evaluate(() => { const e = document.getElementById("pIncl"); e.value = "0"; e.dispatchEvent(new Event("change", { bubbles: true })); });
+    await pg.waitForTimeout(600);
+    const prima = await pg.evaluate(() => window.__genesi.D2.incl);
+    const fjson = join(R, "__genesi-f6b-" + process.pid + ".volata.json");
+    writeFileSync(fjson, JSON.stringify(j));
+    try {
+      await pg.setInputFiles("#fileIn", fjson); await pg.waitForTimeout(1500);
+      const dopo = await pg.evaluate(() => ({ incl: window.__genesi.D2.incl, p: document.getElementById("pIncl").value, d: document.getElementById("dIncl").value }));
+      dice(prima === 0 && dopo.incl === 10 && +dopo.p === 10 && +dopo.d === 10, "⛔ riaperto il file di scambio l'inclinazione del progetto torna a 10°, nei due campi che la mostrano: prima il giro di andata e ritorno la perdeva", [prima, dopo]);
+      /* un file di IERI, senza la chiave: resta l'inclinazione che c'è, non uno zero inventato */
+      const ieri = JSON.parse(JSON.stringify(j)); delete ieri.volata.geometria.inclinazione_gradi;
+      writeFileSync(fjson, JSON.stringify(ieri));
+      await pg.setInputFiles("#fileIn", fjson); await pg.waitForTimeout(1500);
+      const tenuta = await pg.evaluate(() => window.__genesi.D2.incl);
+      dice(tenuta === 10, "e un file di ieri, che la chiave non ce l'ha, lascia l'inclinazione che c'è (10°): non la azzera", tenuta);
+    } finally { try { unlinkSync(fjson); } catch (e) {} }
+  }
+  await pg.click('#bottomnav button[data-scr="design"]'); await pg.waitForTimeout(400);
+  await pulisci(0); await pg.waitForTimeout(400);
+  await pg.evaluate(() => window.__genesi.renderScheda2D());
+  await pg.setViewportSize({ width: 430, height: 900 }); await pg.waitForTimeout(250);
 }
 dice(pg.__err.length === 0, "la pagina non solleva errori", pg.__err.slice(0, 2));
 
