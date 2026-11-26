@@ -44,9 +44,17 @@ const TIPI = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/jav
    il valore del PROGETTO, ignorando quello del foro. È esattamente lo stato
    di prima: su un progetto senza valori per foro non si vede niente — ed è
    per questo che la prova di neutralità da sola non basterebbe. */
+/* E DAL F2: la carica massima per ritardo torna a contare i fori invece di
+   sommarne le cariche (lo scarto del foro dalla carica del progetto messo a
+   zero). Ogni difetto dichiara il FILE in cui vive, e il server lo applica
+   lì: un'iniezione sul bersaglio giusto che il banco non applica è una
+   controprova spenta (CLAUDE.md, 05/09). */
+const PAGINA = "apps/genesi/genesi.html", MODULO = "apps/genesi/genesi-data.js";
 const DIFETTI = [
-  [`prof:valoreDiForo(h,'prof',D2), prog:valoreDiForo(h,'kg',D2), borr:valoreDiForo(h,'stem',D2),`,
+  [PAGINA, `prof:valoreDiForo(h,'prof',D2), prog:valoreDiForo(h,'kg',D2), borr:valoreDiForo(h,'stem',D2),`,
    `prof:valoreDiForo(null,'prof',D2), prog:valoreDiForo(null,'kg',D2), borr:valoreDiForo(null,'stem',D2),`],
+  [MODULO, `const suo = valoreProprioDiForo(h, 'kg'); return suo === null ? 0 : suo - kg; });`,
+   `return 0; });`],
 ];
 
 const colpiti = new Set();
@@ -55,9 +63,9 @@ const srv = createServer((q, s) => {
   if (existsSync(p) && statSync(p).isDirectory()) p = join(p, "index.html");
   if (!existsSync(p)) { s.writeHead(404); return s.end("no"); }
   let corpo = readFileSync(p);
-  if (CONTROPROVA && p.endsWith("apps/genesi/genesi.html")) {
+  if (CONTROPROVA && DIFETTI.some(([file]) => p.endsWith(file))) {
     let t = corpo.toString("utf8");
-    for (const [a, b] of DIFETTI) { if (t.includes(a)) { colpiti.add(a); t = t.split(a).join(b); } }
+    for (const [file, a, b] of DIFETTI) { if (p.endsWith(file) && t.includes(a)) { colpiti.add(a); t = t.split(a).join(b); } }
     corpo = Buffer.from(t, "utf8");
   }
   s.writeHead(200, { "content-type": TIPI[extname(p)] || "application/octet-stream" });
@@ -158,6 +166,19 @@ if (prima && prima.colonneTrovate) {
     dice(altri.length === 0, `gli altri ${D2.n - 2} fori escono identici a prima: la modifica di due fori non tocca il resto`, altri);
     dice(dopo.perId[c].riga === prima.perId[c].riga, `(il foro ${c}, per nome: identico)`, dopo.perId[c].riga);
   }
+
+  /* 3. F2 — LA CARICA MASSIMA PER RITARDO SEGUE LE CARICHE VERE. Si legge il
+     numero che la scheda usa (`computeMIC`, dal ponte di debug) prima e dopo
+     aver dato a UN foro una carica più alta di tutte le finestre. */
+  const micDopoDue = await pg.evaluate(() => window.__genesi.mic);
+  await pg.evaluate((c) => { window.__genesi.D2.holes.find((h) => h.id === c).kg = 500; }, c);
+  const micCon500 = await pg.evaluate(() => window.__genesi.mic);
+  await pg.evaluate((c) => { delete window.__genesi.D2.holes.find((h) => h.id === c).kg; }, c);
+  const micTolto = await pg.evaluate(() => window.__genesi.mic);
+  dice(Number.isFinite(micDopoDue) && micDopoDue > 0, `la carica massima per ritardo si calcola (${micDopoDue} kg)`, micDopoDue);
+  dice(micCon500 >= 500 && micCon500 > micDopoDue,
+    `⛔ dato a un foro 500 kg, la carica massima per ritardo sale ad almeno 500 (${micDopoDue} → ${micCon500}): la finestra somma le cariche vere`, micCon500);
+  dice(micTolto === micDopoDue, `e tolta quella carica propria torna esattamente dov'era (${micTolto})`, micTolto);
 }
 dice(pg.__err.length === 0, "la pagina non solleva errori", pg.__err.slice(0, 2));
 

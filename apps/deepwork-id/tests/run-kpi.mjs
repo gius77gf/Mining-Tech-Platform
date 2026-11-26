@@ -29055,6 +29055,33 @@ console.log("\n— Campo: i file che escono —");
     eq(v.micFinestra(_fori(0, 8.001), 60), 60, "e oltre nemmeno");
   });
 
+  test("⛔ Genesi · F2, micFinestra: la finestra somma le cariche VERE dei fori — e senza cariche proprie il numero è quello di prima, alla cifra", () => {
+    /* NEUTRALITÀ, il vincolo del cantiere foro per foro: un progetto senza
+       valori per foro deve dare ESATTAMENTE `fori nella finestra × carica`,
+       decimali compresi. Con 58,3 kg una somma foro per foro darebbe
+       174,89999999999998 dove il prodotto dà 174,9: si confronta con
+       Object.is, non con una tolleranza. */
+    for (const kg of [58.3, 12.75, 33.333333, 0.1, 199.99]) {
+      for (const tempi of [[0, 0, 0], [0, 3, 6, 42], [0, 7, 14, 21, 28], [0, 0, 0, 0, 0, 0, 0]]) {
+        const H = _fori(...tempi);
+        let n = 1; for (const t0 of tempi) { const c = tempi.filter((t) => t >= t0 && t < t0 + 8).length; if (c > n) n = c; }
+        ok(Object.is(v.micFinestra(H, kg), n * kg), `senza cariche proprie: ${n} × ${kg} alla cifra (${v.micFinestra(H, kg)} contro ${n * kg})`);
+      }
+    }
+    /* CON cariche proprie */
+    const tempi = [0, 3, 42, 45, 84];
+    const con = (mod) => tempi.map((t, i) => ({ tDet: t, ...(mod[i] || {}) }));
+    eq(v.micFinestra(con({}), 58), 116, "la base: due fori nella stessa finestra, 2 × 58");
+    eq(v.micFinestra(con({ 0: { kg: 80 } }), 58), 138, "un foro della prima coppia a 80 kg: 80 + 58");
+    eq(v.micFinestra(con({ 4: { kg: 200 } }), 58), 200, "⛔ il foro ISOLATO a 200 kg vince su due fori da 58: si confrontano i chili delle finestre, non i conteggi");
+    eq(v.micFinestra(con({ 0: { kg: 0 }, 2: { kg: 0 }, 3: { kg: 0 } }), 58), 58, "un foro SCARICO non conta nella sua finestra: resta il foro vero che sta con lui");
+    eq(v.micFinestra(tempi.map((t) => ({ tDet: t, kg: 0 })), 58), 0, "tutti scarichi: zero chili per ritardo, ed è un numero vero (non null)");
+    eq(v.micFinestra(con({ 1: { kg: null }, 2: { kg: "" } }), 58), 116, "null e stringa vuota sul foro sono «non dichiarato»: carica del progetto");
+    eq(v.micFinestra(con({ 0: { kg: -5 } }), 58), 116, "una carica negativa sul foro non è una carica: progetto");
+    eq(v.micFinestra(con({ 0: { kg: 80 } }), null), null, "⛔ senza la carica del progetto la MIC resta non calcolabile anche se un foro ha la sua: gli altri fori non si sanno");
+    eq(v.micFinestra([], 58), null, "e senza fori resta null");
+  });
+
   test("⛔ Genesi · micFinestra: senza sequenza la volata è tutta simultanea — il verso PRUDENTE", () => {
     /* `h.tDet || 0`: finché nessuno ha calcolato la sequenza, tutti i fori
        valgono zero, cioè partono insieme e la MIC è la più ALTA possibile.

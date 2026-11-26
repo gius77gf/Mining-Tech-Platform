@@ -8377,6 +8377,8 @@ if(location.hostname==='localhost'||location.hostname==='127.0.0.1'){
     get d2UndoLen(){return d2UndoStack.length}, get d2RedoLen(){return d2RedoStack.length}, D2_UNDO_MAX,
     get frontMesh(){return frontMesh},
     get xrayCyls(){return xrayCyls}, holeInfoShow, buildTicks,
+    get mic(){return micDaMostrare().mic},   // F2 (26/11): sola lettura, per il banco del foro per foro — dalla stessa porta dei sette lettori della pagina, non da un ottavo
+
     holeScreenPos:(i)=>{ const g=xrayCyls[i]; if(!g) return null;
       const v=g.position.clone().project(cam), r=renderer.domElement.getBoundingClientRect();
       return { x: r.left+(v.x+1)/2*r.width, y: r.top+(1-v.y)/2*r.height }; },

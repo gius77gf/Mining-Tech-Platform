@@ -1570,13 +1570,29 @@ export function micFinestra(holes, kg) {
   const H = holes;
   if (micSenzaConto(H, kg)) return null;
   const ts = H.map((h) => h.tDet || 0);
-  let n = 1;
+  /* F2 (26/11) — LA FINESTRA SOMMA LE CARICHE VERE DEI FORI. Fino a oggi la
+     MIC era «quanti fori nella finestra» × la carica unica della volata. Un
+     foro può ora portare una carica sua (F1, `valoreProprioDiForo`), e la
+     carica massima per ritardo è per definizione una SOMMA di cariche.
+     ⛔ NON si sommano le cariche una per una: n volte 58,3 sommate non danno
+     gli stessi decimali di n × 58,3, e un progetto di ieri deve restare
+     identico ALLA CIFRA. Per ogni finestra si calcola `fori × carica del
+     progetto` più gli SCARTI dei soli fori che hanno una carica loro: senza
+     cariche proprie lo scarto è zero ed esce esattamente il numero di prima
+     (provato in scratchpad su 4000 volate a caso, confronto con `Object.is`:
+     zero differenze).
+     ⚠️ E con cariche proprie la finestra che vince può NON essere quella con
+     più fori: un foro isolato da 200 kg batte due fori da 58. Per questo si
+     confrontano i chili di ogni finestra, non i conteggi. */
+  const scarti = H.map((h) => { const suo = valoreProprioDiForo(h, 'kg'); return suo === null ? 0 : suo - kg; });
+  let mic = null;
   for (const t0 of ts) {
-    let c = 0;
-    for (const t of ts) if (t >= t0 && t < t0 + 8) c++;
-    if (c > n) n = c;
+    let c = 0, s = 0;
+    for (let j = 0; j < ts.length; j++) if (ts[j] >= t0 && ts[j] < t0 + 8) { c++; s += scarti[j]; }
+    const q = c * kg + s;
+    if (mic === null || q > mic) mic = q;
   }
-  return n * kg;
+  return mic;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
