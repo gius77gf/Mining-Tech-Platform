@@ -17434,6 +17434,46 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     eq(genesi.dxfLeggi(dxf("0","SECTION","2","ENTITIES", ...linea(0, 0, 1, 0), "0","ENDSEC","0","EOF")).blocchiEspansi, 0, "un disegno senza blocchi: zero esplosi");
   });
 
+  test("Genesi · dxfLeggi: l'ELLISSE entra come spezzata che le sta addosso — in coordinate mondo, col verso dell'estrusione", () => {
+    /* Le forme vere sono provate contro ezdxf in dxf-da-cad.mjs (intera, ad
+       arco, schiacciata, specchiata, dentro un blocco stirato). Qui le regole
+       una per una, su stringhe minime. */
+    const dxf = (...righe) => righe.join("\n") + "\n";
+    const ellisse = (...campi) => genesi.dxfLeggi(dxf("0","SECTION","2","ENTITIES","0","ELLIPSE", ...campi, "0","ENDSEC","0","EOF"));
+    const vicino = (p, x, y) => Math.abs(p.x - x) < 1e-9 && Math.abs(p.y - y) < 1e-9;
+    const sopra = (pts, cx, cy, a, b) => Math.max(...pts.map((q) => Math.abs(((q.x - cx) / a) ** 2 + ((q.y - cy) / b) ** 2 - 1)));
+
+    const intera = ellisse("10","3","20","1","11","4","21","0","40","0.5","41","0","42",String(2 * Math.PI));
+    const pi = intera.tratti[0].pts;
+    eq([intera.tratti.length, intera.archiSpezzati, intera.nonLette], [1, 1, {}], "un'ellisse entra come UN tratto, contato fra le curve rese a spezzata — non più fra le non lette");
+    ok(sopra(pi, 3, 1, 4, 2) < 1e-12, "ogni punto sta sull'ellisse di semiassi 4 e 2 attorno a (3; 1)", sopra(pi, 3, 1, 4, 2));
+    eq(pi[0], pi[pi.length - 1], "⛔ ed è CHIUSA: l'ultimo punto è il primo, identico (non a un decimillesimo di millimetro)");
+    eq(ellisse("10","3","20","1","11","4","21","0","40","0.5").tratti[0].pts.length, pi.length, "senza i due parametri l'ellisse è intera (i predefiniti del formato)");
+
+    const quarto = ellisse("10","0","20","0","11","4","21","0","40","0.5","41","0","42",String(Math.PI / 2)).tratti[0].pts;
+    ok(vicino(quarto[0], 4, 0) && vicino(quarto[quarto.length - 1], 0, 2), "da 0 a π/2: dall'estremo del semiasse maggiore a quello del minore, in senso antiorario", JSON.stringify([quarto[0], quarto[quarto.length - 1]]));
+    const specchiata = ellisse("10","3","20","0","11","4","21","0","40","0.5","41","0","42",String(Math.PI / 2),"210","0","220","0","230","-1").tratti[0].pts;
+    ok(vicino(specchiata[0], 7, 0) && vicino(specchiata[specchiata.length - 1], 3, -2), "⛔ estrusione (0,0,-1): il centro NON si sposta (un'ELLIPSE è in coordinate mondo, a differenza di un ARC) — cambia solo il verso, e il quarto finisce SOTTO", JSON.stringify([specchiata[0], specchiata[specchiata.length - 1]]));
+    const attraverso = ellisse("10","0","20","0","11","4","21","0","40","0.5","41",String(1.5 * Math.PI),"42",String(0.5 * Math.PI)).tratti[0].pts;
+    ok(vicino(attraverso[0], 0, -2) && vicino(attraverso[attraverso.length - 1], 0, 2) && attraverso.every((q) => q.x > -1e-9), "da 3π/2 a π/2 passa per lo zero: è la metà DESTRA, lunga mezzo giro — non la sinistra letta all'indietro");
+
+    /* la freccia: 2 cm anche dove la curva è quasi dritta e i lati sono lunghi */
+    const grande = ellisse("10","0","20","0","11","40","21","0","40","0.05").tratti[0].pts, n = grande.length - 1;
+    const scarto = Math.max(...grande.slice(1).map((q, i) => { const t = 2 * Math.PI * (i + 0.5) / n; return Math.hypot((q.x + grande[i].x) / 2 - 40 * Math.cos(t), (q.y + grande[i].y) / 2 - 2 * Math.sin(t)); }));
+    ok(scarto <= genesi.DXF_FRECCIA_ARCO_M + 1e-9, "semiassi 40 m e 2 m: il mezzo di ogni lato sta a non più di 2 cm dal punto dell'ellisse che gli corrisponde", "scarto " + scarto);
+    ok(n > 50 && n < 400, "e per starci bastano un centinaio di lati: non i dodici di un cerchio piccolo, non migliaia", n + " lati");
+    const inBlocco = (scala) => genesi.dxfLeggi(dxf("0","SECTION","2","BLOCKS","0","BLOCK","2","O","10","0","20","0","0","ELLIPSE","10","0","20","0","11","2","21","0","40","0.5","0","ENDBLK","0","ENDSEC",
+      "0","SECTION","2","ENTITIES","0","INSERT","2","O","10","0","20","0","41",String(scala),"42",String(scala),"0","ENDSEC","0","EOF")).tratti[0].pts.length;
+    ok(inBlocco(25) > 3 * inBlocco(1), "dentro un blocco a scala 25 la stessa ellisse ha molti più lati: la freccia si misura NEL MONDO", inBlocco(25) + " contro " + inBlocco(1));
+
+    /* ciò che non è un'ellisse si dichiara */
+    eq(ellisse("10","0","20","0","11","4","21","0").nonLette, {ELLIPSE:1}, "senza il rapporto fra i semiassi non è un'ellisse: fra le non lette, non un cerchio inventato");
+    eq(ellisse("10","0","20","0","11","4","21","0","40","0").nonLette, {ELLIPSE:1}, "un rapporto ZERO schiaccerebbe l'ellisse su un segmento percorso due volte: si dichiara");
+    eq(ellisse("10","0","20","0","11","0","21","0","40","0.5").nonLette, {ELLIPSE:1}, "con il semiasse maggiore nullo nemmeno");
+    eq(ellisse("10","0","20","0","11","4","21","0","40","0.5","41","abc").nonLette, {ELLIPSE:1}, "un parametro PRESENTE e illeggibile non vale il predefinito: si dichiara");
+    eq(genesi.dxfFraseNonLette({ELLIPSE:1}), "1 ellisse", "con la sua parola");
+  });
+
   test("Genesi · dxfFraseNonLette: ciò che resta fuori, con le parole di chi disegna", () => {
     eq(genesi.dxfFraseNonLette({}), "", "se è entrato tutto la frase è vuota");
     eq(genesi.dxfFraseNonLette(null), "", "e un conto assente non fa crollare niente");

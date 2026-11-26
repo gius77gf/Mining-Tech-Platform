@@ -14,7 +14,7 @@
    nelle forme che un CAD produce davvero: quattro versioni del formato,
    polilinee chiuse, blocchi definiti e inseriti, spazio carta, superfici a
    maglia, entità specchiate, unità dichiarate, DXF binario; dal 26/11 gli
-   archi e i blocchi inseriti in tutte le loro forme (ruotati, scalati,
+   archi, le ellissi e i blocchi inseriti in tutte le loro forme (ruotati, scalati,
    specchiati, annidati, a schiera, con attributi, riferimenti esterni).
    La prima misura, sul lettore com'era: **9 file su 23 letti male**, tutti in
    silenzio e tutti con una geometria plausibile — simboli comparsi attorno
@@ -24,7 +24,7 @@
    CHE COSA PRETENDE, per ogni campione (da `verita.json`, scritto dal
    generatore e non da questa suite):
      · quanti tratti entrano, e con quali punti in coordinate mondo;
-     · dal 26/11, per gli ARCHI (ARC, CIRCLE, tratti curvi delle polilinee):
+     · dal 26/11, per gli ARCHI (ARC, CIRCLE, ELLIPSE, tratti curvi delle polilinee):
        che la spezzata con cui Genesi li rende stia SULLA curva vera. La
        curva vera la dice ezdxf come elenco di primitive esatte (segmenti,
        archi con centro e raggio, cerchi): ogni vertice letto deve starci
@@ -237,6 +237,23 @@ const DIFETTI = [
    "if(!catena.length) esito.blocchiEspansi++;", ""],
   ["si contano fra gli espansi anche i blocchi annidati",
    "if(!catena.length) esito.blocchiEspansi++;", "esito.blocchiEspansi++;"],
+  /* le ellissi (26/11): l'ellisse che resta fuori, il rapporto e il verso
+     ignorati, l'arco letto all'indietro, l'estrusione presa per uno
+     spostamento, i lati contati sul semiasse sbagliato o nel blocco */
+  ["l'ellisse resta fra le non lette",
+   "if(!ell){ nonLetta('ELLIPSE'); continue; }", "{ nonLetta('ELLIPSE'); continue; }"],
+  ["il rapporto fra i semiassi si ignora (l'ellisse diventa un cerchio)",
+   "const mx=(ny*Mz-nz*My)/nn*k, my=(nz*Mx-nx*Mz)/nn*k;", "const mx=(ny*Mz-nz*My)/nn, my=(nz*Mx-nx*Mz)/nn;"],
+  ["l'estrusione dell'ellisse si ignora: gira sempre in senso antiorario",
+   "const mx=(ny*Mz-nz*My)/nn*k, my=(nz*Mx-nx*Mz)/nn*k;", "const mx=-My*k, my=Mx*k;"],
+  ["un arco d'ellisse che attraversa lo zero viene letto all'indietro",
+   "let amp=((t1-t0)%TAU+TAU)%TAU;", "let amp=t1-t0;"],
+  ["l'ellisse specchiata viene anche spostata, come un arco",
+   "metti(ell);", "{ const ocs=_dxfOcs(e.campi, 0); metti(ocs ? ell.map(q=>ocs(q)) : ell); }"],
+  ["i lati dell'ellisse si contano sul semiasse corto",
+   "const a=Math.sqrt(((qM+qm)+Math.sqrt((qM-qm)*(qM-qm)+4*pm*pm))/2);", "const a=Math.sqrt(((qM+qm)-Math.sqrt((qM-qm)*(qM-qm)+4*pm*pm))/2);"],
+  ["la freccia di un'ellisse dentro un blocco si misura nel blocco, non nel mondo",
+   "const ell=_dxfEllisse(e.campi, scala);", "const ell=_dxfEllisse(e.campi, 1);"],
 ];
 
 async function moduloCon(sostituzioni) {
@@ -279,7 +296,7 @@ const conVerita = Object.keys(verita).sort();
 dice(JSON.stringify(sulDisco) === JSON.stringify(conVerita),
   `ogni campione ha la sua verità e viceversa (${sulDisco.length} file .dxf, ${conVerita.length} verità)`,
   "solo sul disco: " + sulDisco.filter((n) => !verita[n]).join(", ") + " · solo in verita.json: " + conVerita.filter((n) => !sulDisco.includes(n)).join(", "));
-dice(sulDisco.length >= 40, `i campioni ci sono tutti (${sulDisco.length}, almeno 40)`);
+dice(sulDisco.length >= 45, `i campioni ci sono tutti (${sulDisco.length}, almeno 45)`);
 
 for (const nome of conVerita) {
   if (!sulDisco.includes(nome)) continue;

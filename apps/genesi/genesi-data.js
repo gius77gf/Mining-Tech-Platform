@@ -4339,10 +4339,10 @@ function _dxfPolilinea(layer, punti){
    mostra — né di più (blocchi, cartiglio) né di meno (il lato che chiude).
    E ciò che NON si legge si CONTA e si dichiara (`nonLette`), invece di
    sparire: 1 linea letta su 6 entità non è «1 tratto importato».
-   ⚠️ COSA RESTA FUORI, DICHIARATO: spline ed ellissi, testi, retini, quote.
-   Archi, cerchi e tratti ad arco delle polilinee (`bulge`) dal 26/11
-   ENTRANO, come spezzate (vedi «GLI ARCHI DEL DXF» più sotto), e si contano
-   in `archiSpezzati`; e dal 26/11 entra anche il contenuto dei blocchi
+   ⚠️ COSA RESTA FUORI, DICHIARATO: spline, testi, retini, quote.
+   Archi, cerchi, ellissi e tratti ad arco delle polilinee (`bulge`) dal
+   26/11 ENTRANO, come spezzate (vedi «GLI ARCHI DEL DXF» e «L'ELLISSE DEL
+   DXF» più sotto), e si contano in `archiSpezzati`; e dal 26/11 entra anche il contenuto dei blocchi
    INSERITI (vedi «I BLOCCHI INSERITI»), contati in `blocchiEspansi`.
    ⚠️ LE UNITÀ NON SI CONVERTONO DA SOLE, e non per pigrizia: il modello
    metrico di AutoCAD (`acadiso.dwt`) dichiara `$INSUNITS = 4` (millimetri),
@@ -4456,12 +4456,48 @@ function _dxfOcs(campi, quota){
       senso antiorario da un vertice al successivo;
     · si lavora nel sistema dell'oggetto e l'estrusione si applica DOPO, a
       ogni punto: un arco specchiato esce specchiato senza un caso a parte.
-   Spline ed ellissi restano fra le non lette, dichiarate. */
+   Le spline restano fra le non lette, dichiarate. */
 export const DXF_FRECCIA_ARCO_M = 0.02;
 function _dxfLati(r, ampiezza, scala){
   const t = Math.min(DXF_FRECCIA_ARCO_M/(scala>0 ? scala : 1), r);
   const passoMax = Math.min(Math.PI/6, 2*Math.acos(1 - t/r));
   return Math.max(1, Math.min(1440, Math.ceil(ampiezza/passoMax - 1e-9)));
+}
+/* un codice ASSENTE vale il suo predefinito (scala 1, angolo 0, ellisse intera); uno presente e illeggibile no */
+function _dxfOpz(campi, codice, predefinito){ const v=campi[codice]; return (v==null || String(v).trim()==='') ? predefinito : +v; }
+/* ══════════════════════════════════════════════════════════════════════
+   L'ELLISSE DEL DXF (26/11) — letta, non più solo dichiarata.
+   ══════════════════════════════════════════════════════════════════════
+   Un'ELLIPSE è scritta in coordinate MONDO (a differenza di ARC e CIRCLE):
+   centro, ESTREMO del semiasse maggiore relativo al centro, rapporto fra
+   i semiassi, parametro iniziale e finale (radianti, antiorario attorno
+   all'estrusione; 0 e 2π = ellisse intera). Il punto al parametro t è
+     centro + M·cos t + m·sin t      con m = estrusione × M × rapporto
+   — l'estrusione qui non sposta niente: dice solo da che parte sta m, cioè
+   in che verso gira (un'ellisse specchiata ha estrusione (0,0,-1)).
+   I lati si contano come per un CERCHIO di raggio pari al semiasse più
+   lungo, a passi uguali di parametro: l'ellisse è quel cerchio schiacciato
+   lungo una direzione, e schiacciando una spezzata non la si allontana
+   dalla sua curva. Quindi la freccia dichiarata (`DXF_FRECCIA_ARCO_M`) vale
+   anche qui, senza un conto a parte. Restituisce null se non è un'ellisse. */
+function _dxfEllisse(campi, scala){
+  const cx=+campi['10'], cy=+campi['20'], Mx=+campi['11'], My=+campi['21'], k=+campi['40'];
+  const Mz=_dxfOpz(campi,'31',0), t0=_dxfOpz(campi,'41',0), t1=_dxfOpz(campi,'42',2*Math.PI);
+  let nx=_dxfOpz(campi,'210',0), ny=_dxfOpz(campi,'220',0), nz=_dxfOpz(campi,'230',1);
+  if(![cx,cy,Mx,My,Mz,k,t0,t1,nx,ny,nz].every(Number.isFinite) || !(k>0)) return null;
+  const nn=Math.hypot(nx,ny,nz); if(!(nn>0)) return null;
+  const mx=(ny*Mz-nz*My)/nn*k, my=(nz*Mx-nx*Mz)/nn*k;
+  /* il semiasse più lungo della curva COM'È SULLA PIANTA (se l'ellisse è
+     inclinata, M e m proiettati non sono più perpendicolari) */
+  const qM=Mx*Mx+My*My, qm=mx*mx+my*my, pm=Mx*mx+My*my;
+  const a=Math.sqrt(((qM+qm)+Math.sqrt((qM-qm)*(qM-qm)+4*pm*pm))/2);
+  if(!(a>0)) return null;
+  const TAU=2*Math.PI;
+  let amp=((t1-t0)%TAU+TAU)%TAU; const intera = amp<1e-9 || TAU-amp<1e-9; if(intera) amp=TAU;
+  const n=_dxfLati(a, amp, scala), pts=[];
+  for(let j=0;j<=n;j++){ const t=t0+amp*j/n; pts.push({x:cx+Mx*Math.cos(t)+mx*Math.sin(t), y:cy+My*Math.cos(t)+my*Math.sin(t)}); }
+  if(intera) pts[n]={x:pts[0].x, y:pts[0].y};
+  return pts;
 }
 /* arco di centro (cx,cy) e raggio r, dall'angolo a0 per `ampiezza` radianti
    (positiva = antiorario): i punti, estremi compresi */
@@ -4606,11 +4642,16 @@ export function dxfLeggi(testo){
         const ocs=_dxfOcs(e.campi, e.campi['30']);
         metti(ocs ? pts.map(q=>ocs(q)) : pts);
         esito.archiSpezzati++;
+      } else if(e.tipo==='ELLIPSE'){
+        /* un'ellisse senza semiasse o senza rapporto non è un'ellisse: si conta fra le non lette */
+        const ell=_dxfEllisse(e.campi, scala);
+        if(!ell){ nonLetta('ELLIPSE'); continue; }
+        metti(ell);
+        esito.archiSpezzati++;
       } else if(e.tipo==='INSERT'){
         const conAttributi = String(e.campi['66']||'').trim()==='1';
         const nome = String(e.campi['2']||'').trim().toUpperCase(), b = st.blocchi[nome];
-        /* un codice ASSENTE vale il suo predefinito (scala 1, angolo 0); uno presente e illeggibile no */
-        const num = (codice, predefinito)=>{ const v=e.campi[codice]; return (v==null || String(v).trim()==='') ? predefinito : +v; };
+        const num = (codice, predefinito)=>_dxfOpz(e.campi, codice, predefinito);
         const ix=num('10',0), iy=num('20',0), sx=num('41',1), sy=num('42',1), rot=num('50',0)*Math.PI/180;
         const passoC=num('44',0), passoR=num('45',0);
         /* una schiera a passo nullo mette tutte le copie nello stesso posto: è una copia sola */

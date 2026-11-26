@@ -36,6 +36,7 @@ def curva(entita):
     t = entita.dxftype()
     if t == 'ARC': return [_arco(entita)]
     if t == 'CIRCLE': return [{'t': 'cerchio', 'c': _p(entita.ocs().to_wcs(entita.dxf.center)), 'r': entita.dxf.radius}]
+    if t == 'ELLIPSE': return [_ellisse(entita)]
     out = []
     for v in entita.virtual_entities():                # LWPOLYLINE / POLYLINE: i suoi lati, dritti o ad arco
         if v.dxftype() == 'ARC': out.append(_arco(v))
@@ -320,6 +321,38 @@ b = d.blocks.new('CROCE'); b.add_line((0, 0), (1, 1)); b.add_line((1, 0), (0, 1)
 m.add_blockref('croce', (5, 5))
 salva('blocco_nome_minuscolo', d, {'tratti': 2, 'polilinee': [[[5, 5], [6, 6]], [[6, 5], [5, 6]]], 'blocchiEspansi': 1},
       'i nomi dei blocchi non distinguono maiuscole e minuscole')
+
+# ── LE ELLISSI (26/11): scritte in coordinate mondo, col verso deciso dall estrusione ──
+# 37. ellisse intera, col semiasse maggiore storto rispetto agli assi
+d = ezdxf.new('R2010'); m = d.modelspace()
+e1 = m.add_ellipse((10, 5), major_axis=(6, 2), ratio=0.4)
+salva('ellisse_intera', d, {'tratti': 1, 'curve': [curva(e1)], 'archiSpezzati': 1},
+      'ellisse intera (parametri 0 e 2 pi greco): una spezzata CHIUSA che sta sull ellisse vera')
+
+# 38. arco d ellisse, e uno che attraversa lo zero del parametro
+d = ezdxf.new('R2010'); m = d.modelspace()
+e2 = m.add_ellipse((0, 0), major_axis=(8, 0), ratio=0.5, start_param=0.5, end_param=4.0)
+e3 = m.add_ellipse((30, 0), major_axis=(0, 5), ratio=0.6, start_param=5.5, end_param=1.0)
+salva('ellisse_archi', d, {'tratti': 2, 'curve': [curva(e2), curva(e3)], 'archiSpezzati': 2},
+      'da 0,5 a 4,0 radianti; e da 5,5 a 1,0, che passa per lo zero: e lungo 1,78 radianti, non -4,5')
+
+# 39. ellisse molto schiacciata e grande (semiassi 40 m e 2 m)
+d = ezdxf.new('R2010'); m = d.modelspace()
+e4 = m.add_ellipse((100, 100), major_axis=(40, 0), ratio=0.05)
+salva('ellisse_schiacciata', d, {'tratti': 1, 'curve': [curva(e4)], 'archiSpezzati': 1},
+      'semiassi 40 m e 2 m: la freccia di 2 cm deve reggere anche dove la curva e quasi dritta e i lati sono lunghi')
+
+# 40. arco d ellisse specchiato (estrusione 0,0,-1): gira dall altra parte
+d = ezdxf.new('R2010'); m = d.modelspace()
+e5 = m.add_ellipse((5, 5), major_axis=(4, 1), ratio=0.5, start_param=0.3, end_param=2.5, dxfattribs={'extrusion': (0, 0, -1)})
+salva('ellisse_specchiata', d, {'tratti': 1, 'curve': [curva(e5)], 'archiSpezzati': 1},
+      'un ELLIPSE e in coordinate mondo: l estrusione (0,0,-1) NON sposta il centro, cambia solo il verso in cui gira')
+
+# 41. ellisse dentro un blocco ruotato e scalato in modo diverso sui due assi
+d = ezdxf.new('R2010'); m = d.modelspace()
+b = d.blocks.new('OVALE'); b.add_ellipse((1, 1), major_axis=(3, 1), ratio=0.5, start_param=0.2, end_param=5.0); b.add_line((0, 0), (1, 1))
+m.add_blockref('OVALE', (50, 20), dxfattribs={'xscale': 4, 'yscale': 1.5, 'rotation': 40})
+blocchi('ellisse_in_blocco', d, 2, 1, 1, 'un ellisse in un blocco stirato resta un ellisse (un altra): i punti letti devono starle sopra, con la freccia misurata nel mondo')
 
 # un campione per riga: le curve di riferimento sono centinaia di punti, e con un rientro per
 # numero il file peserebbe tre volte tanto senza essere piu leggibile
