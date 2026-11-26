@@ -2868,6 +2868,32 @@ export function tabellaFori(holes, progetto, ordine){
   }).map((c) => c[0]);
 }
 
+/* ══════════════════════════════════════════════════════════════════════
+   IL FOGLIO DICE I FORI DIVERSI (26/11).
+   ══════════════════════════════════════════════════════════════════════
+   Il report di volata — il foglio che si stampa e si porta in cava — scriveva
+   diametro, profondità, borraggio, inclinazione e «carica per foro» DEL
+   PROGETTO, e da nessuna parte i fori che ne hanno di loro: un foro lasciato
+   scarico o accorciato, su quel foglio, non esisteva (i totali sì: erano già
+   quelli veri). Questa funzione prepara ciò che il foglio deve dire; la
+   pagina lo stampa e non decide niente.
+    · `righe`: SOLO i fori con almeno un valore loro, nell'ordine del loro
+      numero; per ciascuno i valori che VALGONO (suo o del progetto) e quali
+      sono suoi;
+    · `campi`: i soli campi in cui almeno un foro si scosta, nell'ordine di
+      sempre — una colonna in cui tutti seguono il progetto non si stampa;
+    · `quanti[campo]`: quanti fori hanno quel valore loro (per la nota
+      accanto alla riga del progetto: «2 fori ne hanno una loro»);
+    · senza valori per foro tutto è vuoto, e il foglio resta com'era. */
+export function foriPropriPerFoglio(holes, progetto){
+  const quanti = contaValoriPropri(holes);
+  const righe = tabellaFori(holes, progetto, { campo: 'n' })
+    .filter((r) => CAMPI_PER_FORO.some((c) => r.propri[c]))
+    .map((r) => { const riga = { n: r.n, id: r.id, propri: r.propri }; for (const c of CAMPI_PER_FORO) riga[c] = r[c]; return riga; });
+  return { fori: Array.isArray(holes) ? holes.length : 0, conPropri: righe.length,
+    campi: CAMPI_PER_FORO.filter((c) => quanti[c] > 0), quanti, righe };
+}
+
 /* ══════════════════════════════════════════════════════════════════════════
    LA FIRMA DELLA MAGLIA (26/11) — quando i fori «non sono più quelli».
    ══════════════════════════════════════════════════════════════════════════

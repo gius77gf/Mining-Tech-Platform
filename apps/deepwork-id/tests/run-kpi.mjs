@@ -43685,6 +43685,23 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(genesi.valoriPerForoDaPiano([{ x: 3.5, y: 3, incl: 45 }], lisci, P).scartati, 1, "una fuori dai limiti letta da un file si scarta e si conta");
     eq(genesi.valoriPerForoDaPiano([{ x: 3.5, y: 3, incl: 10 }], lisci, P).riportati, 0, "una uguale a quella del progetto non è un valore proprio");
   });
+  test("Genesi · foriPropriPerFoglio: il foglio che si porta in cava elenca i fori diversi dal progetto — e solo quelli", () => {
+    const P = { diam: 102, prof: 10, stem: 2.2, kg: 58, incl: 10 };
+    const lisci = [{ id: "a", mx: 0, my: 3, seq: 2 }, { id: "b", mx: 3.5, my: 3, seq: 0 }, { id: "c", mx: 7, my: 3, seq: 1 }, { id: "d", mx: 10.5, my: 3, seq: 3 }];
+    const vuoto = genesi.foriPropriPerFoglio(lisci, P);
+    eq(vuoto, { fori: 4, conPropri: 0, campi: [], quanti: { fori: 0, kg: 0, prof: 0, stem: 0, diam: 0, incl: 0 }, righe: [] }, "⛔ NEUTRALITÀ: senza valori per foro non c'è niente da stampare — nessuna riga, nessuna colonna");
+    /* «a» scarico e accorciato, «c» più inclinato, «d» con un valore illeggibile (non è un valore) */
+    const coi = [{ ...lisci[0], kg: 0, prof: 8.5 }, lisci[1], { ...lisci[2], incl: 20 }, { ...lisci[3], kg: "abc" }];
+    const f = genesi.foriPropriPerFoglio(coi, P);
+    eq([f.fori, f.conPropri], [4, 2], "due fori su quattro hanno valori loro («abc» non è una carica: quel foro segue il progetto)");
+    eq(f.campi, ["kg", "prof", "incl"], "⛔ si stampano SOLO le colonne in cui qualcuno si scosta, nell'ordine di sempre: borraggio e diametro, uguali per tutti, restano fuori");
+    eq([f.quanti.kg, f.quanti.prof, f.quanti.stem, f.quanti.diam, f.quanti.incl], [1, 1, 0, 0, 1], "quanti fori per campo: è il numero che va accanto alla riga del progetto");
+    eq(f.righe.map((r) => r.n), [2, 3], "nell'ordine del NUMERO del foro (quello scritto sulla pianta), non in quello in cui sono stati disegnati");
+    eq(f.righe[0], { n: 2, id: "c", propri: { kg: false, prof: false, stem: false, diam: false, incl: true }, kg: 58, prof: 10, stem: 2.2, diam: 102, incl: 20 }, "ogni riga porta i valori che VALGONO per quel foro — il suo dove ne ha uno, il progetto altrove — e dice quali sono suoi");
+    eq([f.righe[1].kg, f.righe[1].propri.kg, f.righe[1].prof], [0, true, 8.5], "⛔ un foro lasciato SCARICO esce con zero chili, suoi: è la riga che sul foglio non c'era");
+    eq(genesi.foriPropriPerFoglio(null, P).righe, [], "senza fori: vuoto, non un crollo");
+    eq(genesi.foriPropriPerFoglio([{ id: "x", mx: 0, my: 3, kg: 30 }], {}).righe[0].prof, null, "un valore che non sa né il foro né il progetto resta null: lo scrive «non noto» chi stampa, non uno zero");
+  });
   test("Genesi · foriDaDesign: il foro illeggibile si conta, quello senza id ne prende uno senza doppioni, il ritardo non numerico cade", () => {
     const r = genesi.foriDaDesign({ holes: [{ id: "f1-1", mx: "0", my: "3" }, { mx: null, my: 3 }, { mx: 2, my: "abc" }, { mx: 5, my: 3, tMano: "boh" }, { id: "", mx: 6, my: 3 }, { id: "m1", mx: 8, my: 3 }] });
     eq(r.scartati, 2, "⛔ due fori senza posizione leggibile si CONTANO, non spariscono");

@@ -113,6 +113,13 @@ const DIFETTI = [
      corpo si adatta — ma di headroom non ce n'è: basta un `min-width` al posto
      suo perché esca. */
   ["max-width:720px;margin:24px auto", "min-width:1000px;margin:24px auto"],
+  /* i fori con valori loro (26/11): la sezione sparisce, la nota accanto al
+     valore del progetto tace, il grassetto non distingue più di chi è il
+     valore, e il foro scarico torna un «0» qualunque */
+  ["const _fpSez=!_fp.conPropri ? '' : '<h2>Fori con valori propri</h2>'", "const _fpSez=true ? '' : '<h2>Fori con valori propri</h2>'"],
+  ["const _fpNota=(campo,fem)=>_fp.quanti[campo] ? ", "const _fpNota=(campo,fem)=>false ? "],
+  ["return '<td>'+(r.propri[c]?'<b>'+tx+'</b>':tx)+'</td>'; }", "return '<td>'+tx+'</td>'; }"],
+  ["+((c==='kg' && r[c]===0)?' (scarico)':'');", "+'';"],
 ];
 
 const colpiti = new Set();
@@ -483,6 +490,42 @@ console.log("\n· A e B sono lo STESSO progetto, e fra i due scatti si accende l
   dice(/;"3;5 m";/.test(csv2), "   e un `;` dentro una cella non sfonda la riga",
     csv2.split("\n").find((r) => /Maglia/.test(r)));
   if (SCATTI) await pg.screenshot({ path: join(CARTELLA_SCATTI, "confronto-390.png"), fullPage: true });
+  dice(pg.__errori.length === 0, "la pagina non solleva errori", pg.__errori[0]);
+  await pg.close();
+}
+
+// ── I FORI CON VALORI LORO: sul foglio ci devono essere ───────────────────
+console.log("\n· un foro lasciato scarico e accorciato, uno più inclinato: il foglio li elenca?");
+{
+  const pg = await apri(VOLATA, { ...BASE });
+  await apriVolata(pg);
+  const P = await pg.evaluate(() => { const D = window.__genesi.D2; for (const h of D.holes) for (const c of ["kg", "prof", "stem", "diam", "incl"]) delete h[c];
+    return { n: D.holes.length, kg: D.kg, prof: D.prof, incl: D.incl || 0, numeri: D.holes.map((h, i) => (h.seq != null ? h.seq : i) + 1) }; });
+  await pg.evaluate(() => { window.__doc = null; document.getElementById("btn-report").click(); });
+  await pg.waitForTimeout(700);
+  const liscio = await foglio(pg);
+  dice(!/Fori con valori propri/i.test(liscio) && !/del progetto —/.test(rigaFoglio(liscio, /Carica per foro/)) && /Carica per foro/.test(liscio),
+    "⛔ NEUTRALITÀ: senza valori per foro il foglio non ha la sezione nuova né una nota accanto alla carica", rigaFoglio(liscio, /Carica per foro/));
+
+  await pg.evaluate(() => { const H = window.__genesi.D2.holes; H[2].kg = 0; H[2].prof = 8.5; H[4].incl = 20; window.__doc = null; document.getElementById("btn-report").click(); });
+  await pg.waitForTimeout(700);
+  const t = await foglio(pg), html = await pg.evaluate(() => String(window.__doc || ""));
+  const sez = (/<h2>Fori con valori propri<\/h2>([\s\S]*?)<h2>/.exec(html) || [])[1] || "";
+  dice(!!sez, "⛔ il foglio ha la sezione «Fori con valori propri»: prima un foro scarico, sul foglio che si porta in cava, non esisteva", html.slice(0, 80));
+  dice(new RegExp("2 fori su " + P.n + " hanno valori diversi da quelli del progetto").test(t), `e dice quanti: 2 su ${P.n}`, rigaFoglio(t, /hanno valori diversi/) || t.slice(0, 200));
+  const testa = [...sez.matchAll(/<th>([^<]*)<\/th>/g)].map((m) => m[1]);
+  dice(JSON.stringify(testa) === JSON.stringify(["Foro", "Carica (kg)", "Profondità (m)", "Inclinazione (°)"]), "⛔ le colonne sono SOLO quelle in cui qualcuno si scosta (carica, profondità, inclinazione): borraggio e diametro, uguali per tutti, non ci sono", testa);
+  const righe = [...sez.matchAll(/<tr><td>(\d+)<\/td>([\s\S]*?)<\/tr>/g)].map((m) => ({ n: +m[1], celle: [...m[2].matchAll(/<td>([\s\S]*?)<\/td>/g)].map((c) => c[1]) }));
+  const rScarico = righe.find((r) => r.n === P.numeri[2]), rIncl = righe.find((r) => r.n === P.numeri[4]);
+  dice(righe.length === 2 && JSON.stringify(righe.map((r) => r.n)) === JSON.stringify([P.numeri[2], P.numeri[4]].sort((a, b) => a - b)), `due righe, quelle dei due fori toccati (numeri ${P.numeri[2]} e ${P.numeri[4]}), in ordine di numero`, righe.map((r) => r.n));
+  dice(!!rScarico && rScarico.celle[0] === "<b>0 (scarico)</b>" && rScarico.celle[1] === "<b>8,5</b>", "⛔ il foro lasciato scarico è scritto «0 (scarico)», in grassetto, coi suoi 8,5 m", rScarico);
+  dice(!!rScarico && rScarico.celle[2] === String(P.incl), `la sua inclinazione, che è quella del progetto (${P.incl}), NON è in grassetto: il grassetto dice di chi è il valore`, rScarico);
+  dice(!!rIncl && rIncl.celle[2] === "<b>20</b>" && !/<b>/.test(rIncl.celle[0]) && !/<b>/.test(rIncl.celle[1]), "il foro inclinato ha in grassetto i suoi 20° e basta", rIncl);
+  dice(/del progetto — 1 foro ne ha una sua: vedi «Fori con valori propri»/.test(rigaFoglio(t, /Carica per foro/)), "⛔ e accanto a «Carica per foro» il foglio dice che è quella del PROGETTO e che un foro ne ha una sua", rigaFoglio(t, /Carica per foro/));
+  dice(/1 foro ne ha una sua/.test(rigaFoglio(t, /Inclinazione/)) && /1 foro ne ha una sua/.test(rigaFoglio(t, /Profondità \/ sottoperf/)), "lo stesso accanto a profondità e inclinazione", [rigaFoglio(t, /Inclinazione/), rigaFoglio(t, /Profondità \/ sottoperf/)]);
+  dice(!/del progetto —/.test(rigaFoglio(t, /^\s*Borraggio/)) && !/del progetto —/.test(rigaFoglio(t, /Diametro foro/)), "e NON accanto a borraggio e diametro, che nessun foro ha diversi", [rigaFoglio(t, /^\s*Borraggio/), rigaFoglio(t, /Diametro foro/)]);
+  await larghezzaFoglio(b, pg, "il foglio coi fori diversi");
+  if (SCATTI) { const p2 = await b.newPage({ viewport: { width: 390, height: 900 } }); await p2.setContent(html); await p2.screenshot({ path: join(CARTELLA_SCATTI, "fori-propri-390.png"), fullPage: true }); await p2.close(); }
   dice(pg.__errori.length === 0, "la pagina non solleva errori", pg.__errori[0]);
   await pg.close();
 }

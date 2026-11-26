@@ -1354,7 +1354,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, reliefCls, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino, activeProf, d2HitTest, d2HitTestPt,
-         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfLeggi, dxfFraseNonLette, DXF_FRECCIA_ARCO_M, valoriPropriDiForo, valoreDiForo, scostamentoPiedeForo, LIMITI_PER_FORO, foriConValoreProprio, foriSenzaValoriPropri, valoreComuneDiFori, contaValoriPropri, tabellaFori, valoriPerForoDaPiano, capienzaFori, MARGINE_CAPIENZA_FORO, scartoCaricheProprie, scartoProfonditaProprie, caricaProgettoDaTotale, firmaMaglia, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, foriRiflessi, trattiRuotati, trattiScalati, coordinataRelativa, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
+         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfLeggi, dxfFraseNonLette, DXF_FRECCIA_ARCO_M, valoriPropriDiForo, valoreDiForo, scostamentoPiedeForo, foriPropriPerFoglio, LIMITI_PER_FORO, foriConValoreProprio, foriSenzaValoriPropri, valoreComuneDiFori, contaValoriPropri, tabellaFori, valoriPerForoDaPiano, capienzaFori, MARGINE_CAPIENZA_FORO, scartoCaricheProprie, scartoProfonditaProprie, caricaProgettoDaTotale, firmaMaglia, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, foriRiflessi, trattiRuotati, trattiScalati, coordinataRelativa, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -4265,9 +4265,28 @@ if($('btn-report')) $('btn-report').onclick=()=>{
         ? { che:_rM.distChe, come:_rM.distCome }
         : ppvSenzaSoglia(D2.recNorma,D2.recFreq));
   const sec=(t,rows)=>'<h2>'+esc(t)+'</h2><table>'+rows.map(r=>'<tr><td>'+esc(r[0])+'</td><td>'+r[1]+'</td></tr>').join('')+'</table>';
+  /* ⛔ 26/11 — IL FOGLIO DICE I FORI DIVERSI. Diametro, profondità, borraggio,
+     inclinazione e «carica per foro» qui sotto sono quelli del PROGETTO; fino
+     a oggi il foglio non diceva da nessuna parte che qualche foro ne ha di
+     suoi: un foro lasciato scarico o accorciato, sul foglio che si porta in
+     cava, non esisteva. Che cosa stampare lo prepara il modulo
+     (`foriPropriPerFoglio`: i soli fori diversi, le sole colonne in cui
+     qualcuno si scosta); qui c'è la nota accanto alla riga del progetto e la
+     tabella. Senza valori per foro non compare niente: il foglio è com'era. */
+  const _fp=foriPropriPerFoglio(D2.holes, D2);
+  const _fpNota=(campo,fem)=>_fp.quanti[campo] ? ' <span class="fpn">del progetto — '+_ricPlur(_fp.quanti[campo],'foro ne ha '+(fem?'una sua':'uno suo'),'fori ne hanno '+(fem?'una loro':'uno loro'))+': vedi «Fori con valori propri»</span>' : '';
+  const _fpNomi={ kg:'Carica', prof:'Profondità', stem:'Borraggio', diam:'Diametro', incl:'Inclinazione' };
+  const _fpSez=!_fp.conPropri ? '' : '<h2>Fori con valori propri</h2>'
+    +'<p class="fpi">'+_ricPlur(_fp.conPropri,'foro','fori')+' su '+gnum(_fp.fori,0)+' '+(_fp.conPropri===1?'ha':'hanno')+' valori diversi da quelli del progetto, qui in <b>grassetto</b>; tutti gli altri fori seguono il progetto. Il numero è quello scritto dentro il foro sulla pianta.</p>'
+    +'<table class="fp"><tr><th>Foro</th>'+_fp.campi.map(c=>'<th>'+_fpNomi[c]+' ('+LIMITI_PER_FORO[c].unita+')</th>').join('')+'</tr>'
+    +_fp.righe.map(r=>'<tr><td>'+gnum(r.n,0)+'</td>'+_fp.campi.map(c=>{
+        const tx=r[c]===null ? 'non noto' : perCampo(r[c],2)+((c==='kg' && r[c]===0)?' (scarico)':'');
+        return '<td>'+(r.propri[c]?'<b>'+tx+'</b>':tx)+'</td>'; }).join('')+'</tr>').join('')
+    +'</table>';
   const body=
-    sec('Geometria',[['Maglia (spalla × interasse)',gfix(D2.B,1)+' × '+gfix(D2.S,1)+' m'],['Diametro foro',gnum(D2.diam,0)+' mm'],['Fori × file',gnum(nf,0)+' ('+gnum(D2.perRow,0)+' × '+gnum(D2.file,0)+')'],['Profondità / sottoperf.',gnum(D2.prof,1)+' / '+gnum(D2.sub||0,1)+' m'],['Borraggio',gnum(D2.stem,1)+' m'],['Inclinazione',gnum(D2.incl||0,0)+'°'],['Fronte',gnum(g.Lm,1)+' m']])
-   +sec('Carica & sequenza',[['Esplosivo',esc(E.nome||D2.esplosivo)],['Carica per foro',gnum(D2.kg,1)+' kg'],['Carica totale',nc(kgTot,gnum(kgTot,0)+' kg')],['Powder factor',nc(k.pf,gfix(k.pf,2)+' kg/m³')],['Innesco',esc(I.nome||D2.innesco)],['Sequenza',esc(seqL)],['Ritardo foro / fila',gnum(D2.ritardo,1)+' / '+gnum(D2.ritardoFila,1)+' ms']].concat((D2.decks||1)>1?[['Decking',gnum(D2.decks,0)+' cariche/foro (~'+gnum(D2.kg/D2.decks,0)+' kg/deck, borraggio tra deck '+gnum(D2.deckStem,1)+' m)']]:[]))
+    sec('Geometria',[['Maglia (spalla × interasse)',gfix(D2.B,1)+' × '+gfix(D2.S,1)+' m'],['Diametro foro',gnum(D2.diam,0)+' mm'+_fpNota('diam',false)],['Fori × file',gnum(nf,0)+' ('+gnum(D2.perRow,0)+' × '+gnum(D2.file,0)+')'],['Profondità / sottoperf.',gnum(D2.prof,1)+' / '+gnum(D2.sub||0,1)+' m'+_fpNota('prof',true)],['Borraggio',gnum(D2.stem,1)+' m'+_fpNota('stem',false)],['Inclinazione',gnum(D2.incl||0,0)+'°'+_fpNota('incl',true)],['Fronte',gnum(g.Lm,1)+' m']])
+   +sec('Carica & sequenza',[['Esplosivo',esc(E.nome||D2.esplosivo)],['Carica per foro',gnum(D2.kg,1)+' kg'+_fpNota('kg',true)],['Carica totale',nc(kgTot,gnum(kgTot,0)+' kg')],['Powder factor',nc(k.pf,gfix(k.pf,2)+' kg/m³')],['Innesco',esc(I.nome||D2.innesco)],['Sequenza',esc(seqL)],['Ritardo foro / fila',gnum(D2.ritardo,1)+' / '+gnum(D2.ritardoFila,1)+' ms']].concat((D2.decks||1)>1?[['Decking',gnum(D2.decks,0)+' cariche/foro (~'+gnum(D2.kg/D2.decks,0)+' kg/deck, borraggio tra deck '+gnum(D2.deckStem,1)+' m)']]:[]))
+   +_fpSez
    +sec('Roccia',[['Litologia',esc(R.nome||D2.roccia)],['UCS',gnum(D2.ucs,0)+' MPa'],['Fratturazione',esc(D2.frat)],['Fori bagnati',D2.bagnato?'sì':'no']])
    +sec('Previsioni (PREVISTO — non misura)',[['Frammentazione x20 / x50 / x80',
         /* ⛔ IL FOGLIO CHE SI PORTA IN CAVA SCRIVEVA «45 / 97 / 173 cm» su una
@@ -4350,6 +4369,9 @@ if($('btn-report')) $('btn-report').onclick=()=>{
     +'table{width:100%;border-collapse:collapse}td{padding:3px 6px;border-bottom:1px solid #f0f0f0;vertical-align:top;font-variant-numeric:tabular-nums}td:first-child{color:#555;width:52%;font-variant-numeric:normal}'
     +'.firma{margin-top:22px;display:flex;gap:18px;flex-wrap:wrap}.firma div{flex:1 1 180px;font-size:10.5px;color:#666}'
     +'.firma span{display:block;margin-top:22px;border-top:1px solid #999}'
+    +'.fpi{margin:0 0 6px;color:#555;font-size:12px}.fpn{color:#8a5a00;font-size:11.5px}'
+    +'table.fp{width:auto}table.fp th{font-size:11px;font-weight:600;color:#555;text-align:right;padding:3px 14px 3px 6px;border-bottom:1px solid #e0c090}'
+    +'table.fp td{text-align:right;width:auto;padding:3px 14px 3px 6px}table.fp th:first-child,table.fp td:first-child{text-align:left;width:auto;color:#1a1a1a;font-weight:700}'
     +'.foot{margin-top:20px;font-size:10.5px;color:#888;border-top:1px solid #ddd;padding-top:8px}@media print{body{margin:0}}</style></head><body>'
     +'<h1>Report volata — Genesi</h1><div class="sub">Generato il '+esc(now)+' · progetto/stima, non misura di campo</div>'
     +body
