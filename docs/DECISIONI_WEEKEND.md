@@ -1115,6 +1115,7 @@ momento.
 | **32** | Genesi: il progetto non sa dove si trova nel cantiere — i fori vivono in coordinate locali (lungo il fronte / dietro il fronte), e ogni file di scambio del settore viaggia in coordinate di cantiere (26/11) | ⏸️ **Rimandata dal fondatore il 26/11** («un punto a cui pensare in futuro»). Quando si riapre: in che forma dichiarare l'aggancio (due punti del fronte, oppure un punto e una direzione) e quali file veri si possono avere dalle cave. Vedi la sezione 32. |
 | **33** | Genesi: con cariche diverse da foro a foro, quale carica ricevono la previsione di frammentazione e la simulazione 3D? (26/11) | quale delle tre strade: il foro tipo del progetto (dichiarandolo), la media dei fori, oppure la previsione rifatta foro per foro. Vedi la sezione 33. |
 | **34** | Genesi: le nuvole di punti LAZ (LAS compresso) — adottare un decodificatore a sorgente aperto dentro il prodotto, oppure restare al rifiuto con le istruzioni? (26/11) | un sì o un no a far entrare nel prodotto un componente di terzi (gratuito, licenza libera, circa 300 kB). Vedi la sezione 34. |
+| **35** | Genesi: la spalla AL PIEDE dei fori inclinati — Genesi non conosce la pendenza del fronte, quindi non sa dire se il piede di un foro sta troppo vicino alla faccia (o la buca) (26/11) | come vuoi che la conosca: fronte parallelo ai fori del progetto, un campo «pendenza del fronte», oppure niente avviso. Vedi la sezione 35. |
 
 ⚠️ **Correzione, 02/08.** Qui prima c'era scritto che *dieci* di queste
 diciannove erano la stessa domanda. **Sono quattro.** Le ho contate una per una
@@ -2792,6 +2793,54 @@ se quel decodificatore legge giusti i nostri nove file né quanto ci mette.
 cosa che faccio è la misura che mi manca (i nove file, e il tempo su una
 nuvola grande): se non tornano tutti, non entra. Finché non rispondi resta
 la strada 1, che è quella di oggi.
+
+## 35. Genesi: la spalla al piede dei fori inclinati — con che pendenza del fronte la calcolo?
+
+*(26/11, nata facendo l'inclinazione per foro. Qui dentro ciò che ho
+misurato è detto misurato; il resto è una domanda di mestiere, ed è tua.)*
+
+**Il fatto, in parole semplici.** Da oggi ogni foro può avere la sua
+inclinazione, e la pianta disegna il **piede** di ogni foro dove lo porta:
+un foro lungo 10 m inclinato di 20° ha il piede 3,4 m più avanti del
+boccaforo. Nella dimostrazione la spalla è 3 m: sulla pianta quel piede
+finisce **oltre** la linea del fronte. Può essere giustissimo — se la faccia
+del gradone è inclinata anche lei, il piede resta dentro la roccia — oppure
+può essere un foro che sbuca dalla faccia. **Genesi oggi non lo sa dire**,
+perché del fronte conosce la linea in pianta (la cresta) e non la pendenza.
+
+**Che cosa ho misurato.** L'inclinazione, in Genesi, la usano solo il
+disegno (pianta e scena 3D), i file e la previsione della gittata. Nessun
+conto la confronta con la faccia: la «spalla» di ogni foro è quella al
+boccaforo.
+
+**Che cosa NON so, e lo dico.** Come si calcola in cava la spalla al piede
+l'ho solo da una ricerca di seconda mano (estratti, non i manuali letti):
+la relazione riportata è *spalla al piede = spalla alla cresta + altezza ×
+(tangente della pendenza della faccia − tangente dell'inclinazione del
+foro)*, con i due angoli presi dalla verticale. Se foro e faccia sono
+paralleli le due spalle coincidono. **Non ho potuto leggere il testo
+originale**, quindi non la scrivo nel prodotto sulla parola di un estratto.
+E non ho trovato come lo dite voi in italiano: «spalla al piede» è il mio
+modo di chiamarla, correggimi.
+
+**Le tre strade.**
+1. **Il fronte è parallelo ai fori del progetto** (la regola che mi risulta
+   più comune: si perfora parallelo alla faccia). Allora un foro con
+   l'inclinazione del progetto ha al piede la stessa spalla che ha in testa,
+   e un foro che se ne scosta guadagna o perde spalla: Genesi può avvisare
+   quando un foro arriva al piede con meno spalla di una soglia. Non chiede
+   niente di nuovo a chi progetta, ma è un'ipotesi, e andrebbe scritta
+   accanto all'avviso.
+2. **Un campo «pendenza del fronte»** (gradi dalla verticale), che dichiari
+   tu o chi progetta. È il dato vero; costa un campo in più, e finché è
+   vuoto l'avviso dice «non lo so» invece di tacere.
+3. **Nessun avviso**: la pianta mostra il piede e chi progetta giudica a
+   occhio. È com'è oggi.
+
+**Che cosa serve da te.** Quale delle tre — e, se scegli la 1 o la 2, sotto
+quale spalla al piede vuoi l'avviso (una quota della spalla di progetto? un
+numero di diametri?). E come la chiamate in cava. Finché non rispondi resta
+la strada 3: il piede si vede, nessuno lo giudica.
 
 ## Cosa procede intanto SENZA di te
 I cicli automatici continuano su ciò che è sicuro e non gated: seconde

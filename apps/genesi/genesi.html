@@ -5993,8 +5993,12 @@ if($('fileXmlIn')) $('fileXmlIn').onchange=async e=>{
     const depth=_conDesign ? numOf(plan,'DesignDepth') : numOf(holes[0],'Depth'); if(depth!=null) D2.prof=Math.max(6,Math.min(18,depth));
     const charge=_conDesign ? numOf(plan,'DesignCharge') : numOf(holes[0],'Charge'); if(charge!=null){ D2.kg=Math.max(5,Math.min(200,charge)); D2.kgAuto=false; if($('dKgAuto')) $('dKgAuto').checked=false; }
     const stem=_conDesign ? numOf(plan,'DesignStemming') : numOf(holes[0],'Stemming'); if(stem!=null) D2.stem=Math.max(0.5,Math.min(6,stem));
-    /* F6b — l'inclinazione del progetto c'è nel piano solo se un foro ne ha una sua (se no il piano non la porta, e resta quella che c'è) */
-    const _inclPiano=numOf(plan,'DesignInclination'); if(_inclPiano!=null) D2.incl=Math.max(0,Math.min(30,_inclPiano));
+    /* l'inclinazione del progetto: `HoleInclination`, accanto al diametro. Un piano
+       scritto prima del 26/11 non la porta, e allora resta quella che c'è (non
+       uno zero inventato); `DesignInclination` è il nome con cui l'hanno
+       scritta, per poche ore, i piani del 26/11 con inclinazioni per foro. */
+    const _inclPiano=numOf(plan,'HoleInclination')!=null ? numOf(plan,'HoleInclination') : numOf(plan,'DesignInclination');
+    if(_inclPiano!=null) D2.incl=Math.max(0,Math.min(30,_inclPiano));
     // file/perRow dalle posizioni; direzione da chi detona per primo (Delay minore)
     const pos=holes.map(h=>{ const p=first(h,'Position'); const dEl=first(h,'Delay');
       return { x:p?parseFloat(p.getAttribute('x')||'0'):0, y:p?parseFloat(p.getAttribute('y')||'0'):0, t:dEl?parseFloat(dEl.textContent||'0'):0 }; });

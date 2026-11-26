@@ -126,7 +126,8 @@ const DIFETTI = [
   [MODULO, `const L = valoreDiForo(h, 'prof', progetto), a = valoreDiForo(h, 'incl', progetto);`, `const L = valoreDiForo({}, 'prof', progetto), a = valoreDiForo(h, 'incl', progetto);`],
   [PAGINA, `const _incl=(f.suoi && 'incl' in f.suoi) ? f.suoi.incl : (D2.incl||0);`, `const _incl=(D2.incl||0);`],
   [MODULO, `if(valoreProprioDiForo(h,'incl')!==null) xml+='      '+_tag('Inclination'`, `if(false) xml+='      '+_tag('Inclination'`],
-  [MODULO, `if(contaValoriPropri((p&&p.fori)||[]).incl) xml+='    '+_tag('DesignInclination','deg',p.incl)+'\\n';`, ``],
+  [MODULO, `if(_inclNota || _inclDeiFori) xml+='    '+_tag('HoleInclination'`, `if(false) xml+='    '+_tag('HoleInclination'`],
+  [PAGINA, `const _inclPiano=numOf(plan,'HoleInclination')!=null ? numOf(plan,'HoleInclination') : numOf(plan,'DesignInclination');`, `const _inclPiano=null;`],
   [PAGINA, `diam:numOf(h,'HoleDiameter'), incl:numOf(h,'Inclination') };`, `diam:numOf(h,'HoleDiameter') };`],
   [PAGINA, `...(('incl' in suoi)?{ inclinazione_gradi:suoi.incl }:{}),`, ``],
   [PAGINA, `borraggio_m:D2.stem, inclinazione_gradi:D2.incl, file:`, `borraggio_m:D2.stem, file:`],
@@ -925,7 +926,22 @@ if (prima && prima.colonneTrovate) {
   const uscito = async (bottone, nome) => { await pg.evaluate((b) => { window.__usciti.length = 0; document.getElementById(b).click(); }, bottone); await pg.waitForTimeout(600);
     const f = (await pg.evaluate(() => window.__usciti)).find((x) => nome.test(x.nome)); return f ? decodeURIComponent(f.href.split(",").slice(1).join(",")) : null; };
   const xml0 = await uscito("btn-innesco-xml", /piano_innesco\.xml/);
-  dice(!!xml0 && !/Inclination/.test(xml0), "⛔ NEUTRALITÀ: senza inclinazioni per foro il piano d'innesco esce com'era (nessun «Inclination»)", xml0 && (xml0.match(/Inclination/g) || []).length);
+  dice(!!xml0 && (xml0.match(/<HoleInclination unit="deg">10<\/HoleInclination>/g) || []).length === 1 && !/<Inclination /.test(xml0), "⛔ il piano d'innesco dice l'inclinazione del PROGETTO (10°), una volta — prima non la portava — e senza inclinazioni per foro nessun foro la ripete", xml0 && (xml0.match(/Inclination[^>]*>[^<]*/g) || []));
+  /* il giro di andata e ritorno del progetto: lo si porta a 0°, si riapre QUEL piano, torna a 10° */
+  { await pg.evaluate(() => { const e = document.getElementById("dIncl"); e.value = "0"; e.dispatchEvent(new Event("change", { bubbles: true })); }); await pg.waitForTimeout(300);
+    const prima = await pg.evaluate(() => window.__genesi.D2.incl);
+    const f0 = join(R, "__genesi-f6b0-" + process.pid + ".xml"); writeFileSync(f0, xml0 || "");
+    try { await pg.setInputFiles("#fileXmlIn", f0); await pg.waitForTimeout(900);
+      const dopo = await pg.evaluate(() => ({ incl: window.__genesi.D2.incl, campo: document.getElementById("dIncl").value, propri: window.__genesi.D2.holes.filter((h) => "incl" in h).length }));
+      dice(prima === 0 && dopo.incl === 10 && +dopo.campo === 10 && dopo.propri === 0, "⛔ riaperto il piano, il progetto torna a 10° (anche nel campo) e nessun foro ne guadagna una sua: prima riaprendolo restava l'inclinazione che c'era", [prima, dopo]);
+      /* un piano di IERI, che la riga non ce l'ha: resta quella che c'è */
+      writeFileSync(f0, (xml0 || "").replace(/\s*<HoleInclination[^>]*>[^<]*<\/HoleInclination>/, ""));
+      await pg.evaluate(() => { const e = document.getElementById("dIncl"); e.value = "7"; e.dispatchEvent(new Event("change", { bubbles: true })); }); await pg.waitForTimeout(300);
+      await pg.setInputFiles("#fileXmlIn", f0); await pg.waitForTimeout(900);
+      const tenuta = await pg.evaluate(() => window.__genesi.D2.incl);
+      dice(tenuta === 7, "e un piano di ieri, senza quella riga, lascia l'inclinazione che c'è (7°): non la azzera", tenuta);
+    } finally { try { unlinkSync(f0); } catch (e) {} }
+    await pulisci(10); await pg.waitForTimeout(500); }
 
   /* dalla scheda del foro, con la tastiera */
   await pg.evaluate(() => { window.__genesi.D2.sel = -1; });
@@ -973,7 +989,7 @@ if (prima && prima.colonneTrovate) {
   const pos = await pg.evaluate(() => { const h = window.__genesi.D2.holes[3]; return { x: h.mx, y: h.my, id: h.id }; });
   const xml = await uscito("btn-innesco-xml", /piano_innesco\.xml/);
   const blocco = xml ? xml.split("<Hole ").slice(1).find((b) => { const q = /<Position x="([^"]*)" y="([^"]*)"/.exec(b); return q && Math.abs(+q[1] - pos.x) < 0.006 && Math.abs(+q[2] - pos.y) < 0.006; }) : null;
-  dice(!!blocco && /<Inclination unit="deg">20<\/Inclination>/.test(blocco) && (xml.match(/<Inclination /g) || []).length === 1 && /<DesignInclination unit="deg">10<\/DesignInclination>/.test(xml),
+  dice(!!blocco && /<Inclination unit="deg">20<\/Inclination>/.test(blocco) && (xml.match(/<Inclination /g) || []).length === 1 && (xml.match(/<HoleInclination unit="deg">10<\/HoleInclination>/g) || []).length === 1 && !/DesignInclination/.test(xml),
     "⛔ nel piano d'innesco quel foro porta la SUA inclinazione (solo lui), e il piano dichiara a parte quella del progetto", blocco && blocco.slice(0, 300));
   /* rileggere il piano: si cambia il progetto, si riapre il file dal bottone vero, e il foro riprende i suoi 20° */
   await pg.evaluate(() => { const D = window.__genesi.D2; for (const h of D.holes) delete h.incl; const e = document.getElementById("dIncl"); e.value = "0"; e.dispatchEvent(new Event("change", { bubbles: true })); });

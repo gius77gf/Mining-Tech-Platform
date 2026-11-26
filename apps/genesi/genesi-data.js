@@ -1271,6 +1271,16 @@ export function xmlPianoInnesco(p){
   xml+='    '+_tag('MeshBurden','m',p.B,2)+'\n';
   xml+='    '+_tag('MeshSpacing','m',p.S,2)+'\n';
   xml+='    '+_tag('HoleDiameter','mm',p.diam)+'\n';
+  /* L'INCLINAZIONE DEI FORI (26/11): gradi dalla verticale, verso la faccia.
+     Fino al 26/11 il piano non la portava affatto: chi perforava da questo
+     file non sapeva se i fori erano verticali o a 20°, e riaprendolo restava
+     l'inclinazione che il progetto aveva per caso. Sta accanto al diametro.
+     ⛔ Un chiamante che NON la dichiara non la vede inventata a zero: la riga
+     non esce (è il piano di ieri) — tranne quando qualche foro ne ha una SUA:
+     lì chi rilegge deve sapere da che cosa quel foro si scosta, e se non si
+     sa lo si dice («non-calcolabile»). */
+  const _inclNota=_num(p&&p.incl)!==null, _inclDeiFori=contaValoriPropri((p&&p.fori)||[]).incl>0;
+  if(_inclNota || _inclDeiFori) xml+='    '+_tag('HoleInclination','deg',p.incl)+'\n';
   xml+='    <Explosive>'+e(p.esplosivo)+'</Explosive>\n';
   xml+='    <Initiation id="'+e(inn.id)+'">'+e(inn.nome)+'</Initiation>\n';
   xml+='    <Sequence>'+e(p.sequenza||'diagonale')+'</Sequence>\n';
@@ -1311,10 +1321,6 @@ export function xmlPianoInnesco(p){
     xml+='    '+_tag('DesignDepth','m',p.prof)+'\n';
     xml+='    '+_tag('DesignCharge','kg',p.kg)+'\n';
     xml+='    '+_tag('DesignStemming','m',p.stem)+'\n';
-    /* F6b — l'inclinazione del progetto compare SOLO se un foro ne ha una sua
-       (serve a chi rilegge per sapere da che cosa quel foro si scosta): un
-       piano con valori per foro ma senza inclinazioni esce com'era ieri */
-    if(contaValoriPropri((p&&p.fori)||[]).incl) xml+='    '+_tag('DesignInclination','deg',p.incl)+'\n';
     xml+='    <HolesWithOwnValues>'+_nPropriXml+'</HolesWithOwnValues>\n';
   }
   xml+='  </PlanData>\n';

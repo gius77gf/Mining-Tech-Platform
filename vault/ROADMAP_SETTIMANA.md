@@ -2589,21 +2589,39 @@
   capienza) e nei file che escono, e un progetto senza valori per foro è
   identico a prima. Resta UNA cosa, e non è un'unità: quale carica debbano
   usare le PREVISIONI (pezzatura, simulazione) — decisione 33 del fondatore.
-- [ ] **Genesi — il piede che esce dalla faccia**: con l'inclinazione per
-  foro la pianta mostra il piede di ogni foro; in dimostrazione, un foro da
-  10 m a 20° con 3 m di spalla ha il piede 3,4 m più avanti, cioè OLTRE la
-  linea del fronte. Può essere giusto (fronte inclinato quanto il foro) o un
-  foro che sbuca: oggi nessuno lo dice. Prima si legge come Genesi calcola
-  la spalla al piede (`altezzeForiDaPiede`, la «spalla per foro dalla
-  maglia», l'inclinazione del fronte se c'è), POI si decide se è un avviso
-  nella scheda volata — con la soglia dichiarata, e «non lo so» se del
-  fronte non si conosce la pendenza.
-- [ ] **Genesi — il piano d'innesco XML non porta l'inclinazione del
-  progetto** quando nessun foro ne ha una sua (la scrive solo per
-  dichiarare da che cosa un foro si scosta). Chi perfora da quel piano non
-  sa se i fori sono verticali. Aggiungerla a `PlanData` cambia ogni piano
-  che esce (una riga in più): va fatto insieme al lettore, con la prova di
-  andata e ritorno, e detto nel checkpoint come cambio di formato.
+- [ ] **Genesi — il piede che esce dalla faccia** ⏸️ *in attesa della
+  decisione 35*: con l'inclinazione per foro la pianta mostra il piede di
+  ogni foro; in dimostrazione, un foro da 10 m a 20° con 3 m di spalla ha il
+  piede 3,4 m più avanti, cioè OLTRE la linea del fronte. Può essere giusto
+  (fronte inclinato quanto il foro) o un foro che sbuca: oggi nessuno lo
+  dice. Letto il codice il 26/11: Genesi NON conosce la pendenza del fronte
+  (il «piede» modellato nel 3D è un'altra cosa: quanto varia la profondità
+  lungo il fronte), quindi la spalla al piede non si può calcolare senza
+  un'ipotesi o un campo nuovo — scelta del fondatore. Il mondo, di seconda
+  mano, è in `docs/RICERCA_CONTINUA_GENESI.md` (26/11, «spalla al piede»).
+- [ ] **Genesi — il report di volata non dice i fori con valori loro**:
+  trovato leggendo il foglio il 26/11. La sezione «Geometria» e «Carica &
+  sequenza» stampano diametro, profondità, borraggio, inclinazione e
+  «Carica per foro» DEL PROGETTO, e sul foglio non c'è nessun elenco dei
+  fori diversi: un foro lasciato scarico o accorciato, sul foglio che si
+  porta in cava, non esiste (i totali sì, sono già quelli veri). Serve una
+  sezione «Fori con valori propri» (solo quelli, coi campi che cambiano) e
+  la riga «Carica per foro» che la richiama; le righe le prepara il modulo
+  (da `tabellaFori`), la pagina le stampa.
+- [x] **26/11 · Genesi — il piano d'innesco XML porta l'inclinazione del
+  progetto.** Non la portava affatto (da F6b, solo quando un foro ne aveva
+  una sua): chi perforava da quel file non sapeva se i fori erano verticali,
+  e riaprendolo restava l'inclinazione che il progetto aveva per caso. Ora
+  `PlanData` ha `<HoleInclination unit="deg">` accanto al diametro, e il
+  lettore la rilegge (0–30°). ⛔ Cambio di formato dichiarato: ogni piano
+  che esce dalla pagina ha una riga in più. Un chiamante che NON dichiara
+  l'inclinazione non la vede inventata a zero (la riga non esce), tranne
+  quando un foro ne ha una sua: lì esce «non-calcolabile». Un piano di ieri,
+  senza la riga, lascia l'inclinazione che c'è. `DesignInclination` — il
+  nome usato per poche ore il 26/11 — si rilegge ancora e non si scrive
+  più. Prove nel test F6b di `run-kpi` (controprova 4 su 4) e nel banco
+  `genesi-foro-per-foro.mjs` (170 → 172: andata e ritorno dal bottone vero,
+  e il piano di ieri).
 - [ ] checkpoint per ogni unità
 
 ## Sospeso, non annullato
@@ -3239,7 +3257,7 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 ```
 
 - `Genesi — il piede che esce dalla faccia`
-- `Genesi — il piano d'innesco XML non porta l'inclinazione del`
+- `Genesi — il report di volata non dice i fori con valori loro`
 - `F1. \`vitaComponenti\` non distingue un componente sostituito da`
 - `F2. La rampa sequenziale dei grafici (\`--dwg-s1\`) non raggiunge`
 - `Una passata in profondità su un'app`

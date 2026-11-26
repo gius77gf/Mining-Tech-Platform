@@ -6025,3 +6025,33 @@ per Kirra c'è una licenza che chiede un accordo per l'integrazione
 commerciale. Costruirli adesso sarebbe costruire su descrizioni di seconda
 mano. Restano nel rapporto, con le loro fonti, per il giorno in cui arriva
 un file vero.
+
+## Ricerca del 2026-11-26 — la «spalla al piede» dei fori inclinati (solo il mondo, di seconda mano)
+
+*Agente di ricerca con `WebSearch` (9 ricerche), lanciato mentre girava il
+giro di conferma di F6b. ⛔ **Nessuna fonte primaria è stata letta**: tutto
+ciò che segue viene da ESTRATTI di ricerca. Niente di questo è entrato nel
+prodotto; è materiale per la decisione 35 in `docs/DECISIONI_WEEKEND.md`.*
+
+| Che cosa | Che cosa dice l'estratto | Fonte (come riportata) | Stato |
+|---|---|---|---|
+| Spalla alla cresta e al piede | «crest burden» = distanza orizzontale dal boccaforo al ciglio; «toe burden» = spalla al piano del gradone | scheda tecnica Dyno Nobel 2010; Penn State MNG 230, lezione 8.3.1 | proposto da ricerca, non verificato |
+| La relazione per fori inclinati | spalla al piede = (tan(angolo faccia) · H + spalla alla cresta) − tan(angolo foro) · H, angoli dalla verticale, H altezza del gradone | stessa scheda Dyno Nobel (testo del PDF in parte corrotto), ripresa in una dispensa e in un estratto di manuale | ⚠️ non verificato sul testo: NON usarla in un conto prima di averla letta |
+| Fori paralleli alla faccia | allora spalla al piede = spalla alla cresta | deduzione dell'agente dalla relazione sopra | dedotto |
+| Perché si inclinano i fori | utili con molta spalla al piede o dove la faccia è arretrata; molti li evitano per il rischio di proiezioni e perché l'angolo non viene rispettato | un paper di Austin Powder | proposto da ricerca, non verificato |
+| Spalla irregolare | proiezioni e sovrappressione sia con spalla eccessiva sia insufficiente; «misurare la spalla fino alla faccia libera» | un avviso di sicurezza statale e un manuale stradale USA | proposto da ricerca, non verificato |
+| Come lo fanno i programmi | profilazione della faccia (laser o drone) e «spalla minima lungo il foro»; colori per spalla di progetto, eccessiva, minima; limiti come multipli del diametro, i fori sotto il minimo segnalati | pagine dei fornitori (profilatori di faccia, due programmi di progettazione) | fonte non indipendente; NESSUNA soglia numerica trovata |
+| Le parole in italiano | non trovato nessun testo italiano che usi «spalla al piede», «spalla pratica», «zoccolo» in questo senso | — | ⛔ lessico NON verificato: chiederlo al fondatore |
+
+**Non trovati affatto**: i manuali di riferimento (nessuno raggiunto), gli
+angoli tipici in cava, la definizione di «spalla pratica», soglie
+dichiarate, quattro dei programmi cercati.
+
+**Il delta, fatto dal codice e non dalla ricerca** (26/11, partendo dal
+meccanismo: *chi sa dove sta la faccia sotto la cresta?*): nessuno. In
+Genesi l'inclinazione la leggono `scostamentoPiedeForo` (pianta), la
+rotazione del foro nella scena 3D, i file e la gittata; il fronte è una
+linea in pianta più un profilo di cresta, e il «piede» modellato nel 3D è la
+variazione di profondità lungo il fronte (`altezzeForiDaPiede`), non la
+pendenza della faccia. Quindi la spalla al piede oggi **non è calcolabile**
+senza un'ipotesi o un dato nuovo: decisione 35.

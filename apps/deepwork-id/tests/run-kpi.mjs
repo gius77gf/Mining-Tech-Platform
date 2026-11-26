@@ -43671,11 +43671,15 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(genesi.scartoCaricheProprie(coi, P.kg), genesi.scartoCaricheProprie(lisci, P.kg), "e nemmeno la carica totale");
     /* il piano d'innesco XML */
     const liscio = genesi.xmlPianoInnesco({ ...P, fori: lisci }), xml = genesi.xmlPianoInnesco({ ...P, fori: coi });
-    ok(!/Inclination/.test(liscio), "⛔ NEUTRALITÀ: senza inclinazioni per foro nel piano non compare niente di nuovo");
-    eq(genesi.xmlPianoInnesco({ ...P, fori: lisci.map((h) => (h.id === "b" ? { ...h, kg: 30 } : h)) }).includes("Inclination"), false, "nemmeno quando un foro ha un ALTRO valore suo (la carica): il piano di ieri esce com'era");
-    eq((xml.match(/<(Design)?Inclination unit="deg">(\d+)</g) || []).map((x) => x.replace(/unit="deg"|[<>]/g, "").trim()), ["DesignInclination 10", "Inclination 20"], "⛔ col foro a 20°: l'inclinazione del progetto dichiarata a parte e, dentro QUEL foro, la sua");
+    eq([(liscio.match(/<HoleInclination unit="deg">10<\/HoleInclination>/g) || []).length, /<Inclination /.test(liscio)], [1, false], "il piano dice l'inclinazione del PROGETTO (10°), una volta, accanto al diametro — e senza inclinazioni per foro nessun foro la ripete");
+    ok(liscio.indexOf("<HoleInclination") > liscio.indexOf("<HoleDiameter") && liscio.indexOf("<HoleInclination") < liscio.indexOf("<Explosive>"), "sta subito dopo il diametro");
+    const senza = { ...P }; delete senza.incl;
+    ok(!/Inclination/.test(genesi.xmlPianoInnesco({ ...senza, fori: lisci })), "⛔ un chiamante che NON dichiara l'inclinazione non la vede inventata a zero: la riga non esce");
+    eq(genesi.xmlPianoInnesco({ ...P, incl: 0, fori: lisci }).includes('<HoleInclination unit="deg">0</HoleInclination>'), true, "zero dichiarato è un dato: fori verticali, scritto");
+    eq(/<Inclination |DesignInclination/.test(genesi.xmlPianoInnesco({ ...P, fori: lisci.map((h) => (h.id === "b" ? { ...h, kg: 30 } : h)) })), false, "quando un foro ha un ALTRO valore suo (la carica) nessun foro porta un'inclinazione, e il progetto non la dichiara due volte");
+    eq((xml.match(/<(Hole|Design)?Inclination unit="deg">(\d+)</g) || []).map((x) => x.replace(/unit="deg"|[<>]/g, "").trim()), ["HoleInclination 10", "Inclination 20"], "⛔ col foro a 20°: l'inclinazione del progetto in PlanData e, dentro QUEL foro, la sua");
     eq(xml.split("<Hole ").filter((b) => b.includes("<Inclination")).length, 1, "negli altri due fori non compare: seguono il progetto");
-    ok(genesi.xmlPianoInnesco({ B: 3, S: 3.5, diam: 102, prof: 10, kg: 58, stem: 2.2, fori: coi }).includes('<DesignInclination unit="deg" status="non-calcolabile"/>'), "e se il progetto non dichiara la sua, il file lo dice («non calcolabile») invece di scrivere zero");
+    ok(genesi.xmlPianoInnesco({ B: 3, S: 3.5, diam: 102, prof: 10, kg: 58, stem: 2.2, fori: coi }).includes('<HoleInclination unit="deg" status="non-calcolabile"/>'), "e se un foro ha la sua ma il progetto non dichiara la propria, il file lo dice («non calcolabile») invece di tacere o di scrivere zero");
     /* rileggere un piano */
     eq(genesi.valoriPerForoDaPiano([{ x: 3.5, y: 3, incl: 20, kg: 58, prof: 10, stem: 2.2 }], lisci, P).fori[1].incl, 20, "l'inclinazione riletta da un piano torna sul foro in quella posizione");
     eq(genesi.valoriPerForoDaPiano([{ x: 3.5, y: 3, incl: 45 }], lisci, P).scartati, 1, "una fuori dai limiti letta da un file si scarta e si conta");
