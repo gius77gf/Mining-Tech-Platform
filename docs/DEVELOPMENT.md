@@ -146,7 +146,7 @@ esiste.
 
 ⛔ **E il 100% vale per il perimetro misurato, non per tutto il prodotto.**
 Le sei app hanno la loro logica in `apps/<nome>/<nome>-data.js`, che `node`
-importa. **Genesi no**: le sue **141 funzioni** stanno dentro
+importa. **Genesi no**: le sue **142 funzioni** stanno dentro
 `apps/genesi/genesi.html`, e da lì non si importano — di Genesi entrano nel
 conto solo i moduli già tirati fuori (`pointcloud.js`, `genesi-formato.js`,
 `genesi-data.js`, elencati con i loro conti nella tabella dei condivisi qui
@@ -163,16 +163,18 @@ funzioni si possono portare fuori **senza cambiargli la firma**:
 | variabili del modulo che legge | funzioni |
 |---|---|
 | nessuna — si porta fuori com'è | **23** |
-| una o due | **37** |
+| una o due | **38** |
 | da tre a cinque | 17 |
 | da sei a dieci | 19 |
 | più di dieci — lì è un rifacimento | 45 |
 
-Cioè **45 su 141 si estraggono senza rifare il modo in cui Genesi tiene il suo
+Cioè **46 su 142 si estraggono senza rifare il modo in cui Genesi tiene il suo
 stato**, e le restanti 96 sono una decisione di architettura.
-⏱️ *139→141 il 26/11 con F3 del foro per foro: `valoriForoHtml` e
-`valoriForoCollega` (i tre campi della scheda del foro) sono disegno e gesti,
-e restano nella pagina; le regole che applicano stanno nel modulo.*
+⏱️ *139→142 il 26/11 con F3 del foro per foro: `valoriForoHtml` e
+`valoriForoCollega` (i tre campi della scheda del foro) e `renderInspectorDopo`
+(ridisegna la scheda dopo che il fuoco si è spostato: senza, il tasto Tab
+perdeva il campo successivo) sono disegno e gesti, e restano nella pagina; le
+regole che applicano stanno nel modulo.*
 ⏱️ *19→18 e 42→43 il 19/09, correggendo il difetto vero trovato da
 `genesi-snap-estremo.mjs` (G48): `syncTrattoUI` ha guadagnato la guardia
 `!inCorso` su `mostraRuota` (G57/G58 mostravano Ruota/Scala tratti anche

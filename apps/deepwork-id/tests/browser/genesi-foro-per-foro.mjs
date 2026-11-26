@@ -68,10 +68,12 @@ const DIFETTI = [
   [MODULO, `if (Number.isFinite(p) && v === p) v = null;`, ``],
   [MODULO, `if (corti) return fermo('borraggio-oltre-il-foro', { corti });`, ``],
   [PAGINA, `if(Object.keys(valoriPropriDiForo(h)).length){\n      const rx=cx+9.5`, `if(false){\n      const rx=cx+9.5`],
-  [PAGINA, `if(bloccati()){ renderInspector(); return; }`, ``],
+  [PAGINA, `if(bloccati()){ renderInspectorDopo(); return; }`, ``],
   [PAGINA, `valoriForoCollega(_multi);`, `valoriForoCollega([_multi[0]]);`],
   [PAGINA, `(_nPropri?' <span id="x50-foro-tipo">foro tipo</span>':'')`, `''`],
   [PAGINA, `d2PushUndo(); D2.holes=es.fori; dopo();`, `D2.holes=es.fori; dopo();`],
+  /* il tasto Tab: la scheda ridisegnata non ridà il fuoco al campo dopo */
+  [PAGINA, `if(id){ const n=$(id); if(n){ n.focus(); if(typeof n.select==='function') n.select(); } }`, ``],
 ];
 
 const colpiti = new Set();
@@ -466,6 +468,22 @@ if (prima && prima.colonneTrovate) {
   s = await stato();
   dice(s.fori.every((h) => h.kg === undefined && h.prof === undefined && h.stem === undefined) && /3 fori tornati ai valori del progetto/.test(s.toast),
     "⛔ «valori del progetto»: i tre fori tornano tutti, in un colpo", [s.fori.filter((h) => h.kg != null).length, s.toast]);
+
+  /* ⛔ LA TASTIERA VERA. Misurato il 26/11: scritto un valore e premuto Tab,
+     la scheda si ridisegnava prima che il fuoco arrivasse al campo dopo, che
+     quindi non esisteva più — il fuoco finiva sul corpo della pagina e il
+     numero battuto subito dopo andava perso. `change` lanciato a mano (come
+     fanno le prove qui sopra) non lo può vedere: serve premere i tasti. */
+  await clic(4, false);
+  await pg.click("#diProf", { clickCount: 3 }); await pg.keyboard.type("8,5"); await pg.keyboard.press("Tab"); await pg.waitForTimeout(250);
+  const fuoco = await pg.evaluate(() => (document.activeElement && document.activeElement.id) || (document.activeElement && document.activeElement.tagName) || "");
+  dice(fuoco === "diStem", `⛔ scritta la profondità e premuto Tab, il fuoco è sul campo dopo (borraggio) — letto «${fuoco}»`, fuoco);
+  await pg.keyboard.type("1,5"); await pg.keyboard.press("Enter"); await pg.waitForTimeout(350);
+  s = await stato();
+  dice(s.fori[4].prof === 8.5 && s.fori[4].stem === 1.5, "⛔ e il numero battuto subito dopo arriva: profondità 8,5 m e borraggio 1,5 m, senza toccare il mouse", s.fori[4]);
+  await pg.evaluate(() => { const e = document.getElementById("diValProg"); if (e) e.click(); }); await pg.waitForTimeout(350);
+  s = await stato();
+  dice(s.fori[4].prof === undefined && s.fori[4].stem === undefined, "(rimesso il foro ai valori del progetto)", s.fori[4]);
 }
 dice(pg.__err.length === 0, "la pagina non solleva errori", pg.__err.slice(0, 2));
 

@@ -6792,19 +6792,19 @@ function valoriForoCollega(indici){
   const chi=piu ? (indici.length+' fori') : ('Foro '+(((D2.holes[indici[0]]||{}).seq!=null?D2.holes[indici[0]].seq:indici[0])+1));
   const bloccati=()=>{ if(D2.strati.fori.bloccato){ toast('I fori sono bloccati — sblocca dal pannello sopra la tela'); return true; } return false; };
   const troppoCorto=(corti)=> 'Così '+(piu?(corti+' '+plurale(corti,'foro avrebbe','fori avrebbero')):'il foro avrebbe')+' il borraggio più lungo del foro stesso: non ho cambiato niente';
-  const dopo=()=>{ computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector(); };
+  const dopo=()=>{ computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspectorDopo(); };
   for(const [campo,id,nome,fem] of _VAL_FORO){
     const el=$(id); if(!el) continue;
     const quel=fem?'quella':'quello';
     el.onchange=()=>{
-      if(bloccati()){ renderInspector(); return; }
+      if(bloccati()){ renderInspectorDopo(); return; }
       const L=LIMITI_PER_FORO[campo], r=gEsito(el.value, L);
-      if(!r.ok && !r.vuoto){ toast(messaggioNumero(r, piu?L.nome.replace('del foro','dei fori'):L.nome, L)); renderInspector(); return; }
+      if(!r.ok && !r.vuoto){ toast(messaggioNumero(r, piu?L.nome.replace('del foro','dei fori'):L.nome, L)); renderInspectorDopo(); return; }
       const es=foriConValoreProprio(D2.holes, indici, campo, r.vuoto?null:r.valore, D2);
-      if(es.motivo==='borraggio-oltre-il-foro'){ toast(troppoCorto(es.corti)); renderInspector(); return; }
-      if(es.motivo){ renderInspector(); return; }
+      if(es.motivo==='borraggio-oltre-il-foro'){ toast(troppoCorto(es.corti)); renderInspectorDopo(); return; }
+      if(es.motivo){ renderInspectorDopo(); return; }
       const prog=_valForoTx(campo, valoreDiForo({}, campo, D2));
-      if(!es.toccati){ toast(es.segueProgetto ? ('È già '+(fem?'la ':'il ')+nome+' del progetto ('+prog+')') : (chi+': '+nome+' già a '+_valForoTx(campo, es.valore))); renderInspector(); return; }
+      if(!es.toccati){ toast(es.segueProgetto ? ('È già '+(fem?'la ':'il ')+nome+' del progetto ('+prog+')') : (chi+': '+nome+' già a '+_valForoTx(campo, es.valore))); renderInspectorDopo(); return; }
       d2PushUndo(); D2.holes=es.fori; dopo();
       toast(es.segueProgetto
         ? (chi+': '+nome+' di nuovo '+quel+' del progetto ('+prog+')')
@@ -6820,6 +6820,22 @@ function valoriForoCollega(indici){
     d2PushUndo(); D2.holes=es.fori; dopo();
     toast(piu ? (es.toccati+' '+plurale(es.toccati,'foro tornato','fori tornati')+' ai valori del progetto') : (chi+' tornato ai valori del progetto'));
   };
+}
+/* ⛔ IL TASTO TAB PERDEVA IL CAMPO DOPO (misurato il 26/11 nel browser, con la
+   tastiera vera): scritto un valore e premuto Tab, il `change` ridisegnava la
+   scheda PRIMA che il fuoco arrivasse al campo successivo — che quindi non
+   esisteva più: il fuoco finiva sul corpo della pagina e il numero battuto
+   subito dopo non andava da nessuna parte. Valeva per x, spalla e ritardo, e
+   sarebbe valso per i tre campi nuovi. I conti e la tela si aggiornano subito;
+   la scheda si ridisegna un istante dopo, quando il fuoco si è già spostato,
+   e glielo si ridà sul campo con lo stesso nome. */
+function renderInspectorDopo(){
+  setTimeout(()=>{
+    const box=$('d2-insp'), a=document.activeElement;
+    const id=(box && a && a.id && box.contains(a)) ? a.id : '';
+    renderInspector();
+    if(id){ const n=$(id); if(n){ n.focus(); if(typeof n.select==='function') n.select(); } }
+  },0);
 }
 function renderInspector(){
   const el=$('d2-insp'); if(!el) return;
@@ -6949,7 +6965,7 @@ function renderInspector(){
     const v=+String(ri.value).replace(',','.');
     if(!isFinite(v)||v<0){ toast('Il ritardo è un numero di millisecondi, da zero in su'); ri.value=h.tDet||0; return; }
     d2PushUndo(); h.tMano=+v.toFixed(1);
-    computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector();
+    computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspectorDopo();
     toast('Foro a '+fmtMs(h.tMano)+' ms — messo a mano');
   };
   const ra=$('diRitAuto');
@@ -6982,13 +6998,13 @@ function renderInspector(){
     if(rel){
       if(rel.errore){ toast(rel.errore); dx.value=gfix(h.mx,2); return; }
       if(!(rel.my>=0.3)){ toast('La spalla è la distanza dal fronte: un numero da 0,3 m in su'); dx.value=gfix(h.mx,2); return; }
-      d2PushUndo(); h.mx=+rel.mx.toFixed(2); h.my=+rel.my.toFixed(2); computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector();
+      d2PushUndo(); h.mx=+rel.mx.toFixed(2); h.my=+rel.my.toFixed(2); computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspectorDopo();
       toast('Foro spostato a x '+gfix(h.mx,2)+' m, spalla '+gfix(h.my,2)+' m');
       return;
     }
     const v=+String(dx.value).replace(',','.');
     if(!isFinite(v)){ toast('La posizione lungo la fila è un numero, in metri'); dx.value=gfix(h.mx,2); return; }
-    d2PushUndo(); h.mx=+v.toFixed(2); computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector();
+    d2PushUndo(); h.mx=+v.toFixed(2); computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspectorDopo();
     toast('Foro spostato a x '+gfix(h.mx,2)+' m');
   };
   const dy=$('diY');
@@ -6998,13 +7014,13 @@ function renderInspector(){
     if(rel){
       if(rel.errore){ toast(rel.errore); dy.value=gfix(h.my,2); return; }
       if(!(rel.my>=0.3)){ toast('La spalla è la distanza dal fronte: un numero da 0,3 m in su'); dy.value=gfix(h.my,2); return; }
-      d2PushUndo(); h.mx=+rel.mx.toFixed(2); h.my=+rel.my.toFixed(2); computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector();
+      d2PushUndo(); h.mx=+rel.mx.toFixed(2); h.my=+rel.my.toFixed(2); computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspectorDopo();
       toast('Foro spostato a x '+gfix(h.mx,2)+' m, spalla '+gfix(h.my,2)+' m');
       return;
     }
     const v=+String(dy.value).replace(',','.');
     if(!isFinite(v)||v<0.3){ toast('La spalla è la distanza dal fronte: un numero da 0,3 m in su'); dy.value=gfix(h.my,2); return; }
-    d2PushUndo(); h.my=+v.toFixed(2); computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector();
+    d2PushUndo(); h.my=+v.toFixed(2); computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspectorDopo();
     toast('Foro spostato a spalla '+gfix(h.my,2)+' m');
   };
   const da=$('diAllinea');

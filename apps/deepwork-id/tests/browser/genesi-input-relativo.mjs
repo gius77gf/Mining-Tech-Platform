@@ -32,12 +32,12 @@ const TIPI = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/jav
    dov'era, un mezzo spostamento silenzioso (nessun errore, nessun
    toast: il foro finisce su un punto che nessuno ha chiesto). */
 const DIFETTI = [
-  [`d2PushUndo(); h.mx=+rel.mx.toFixed(2); h.my=+rel.my.toFixed(2); computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector();
+  [`d2PushUndo(); h.mx=+rel.mx.toFixed(2); h.my=+rel.my.toFixed(2); computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspectorDopo();
       toast('Foro spostato a x '+gfix(h.mx,2)+' m, spalla '+gfix(h.my,2)+' m');
       return;
     }
     const v=+String(dx.value).replace(',','.');`,
-   `d2PushUndo(); h.mx=+rel.mx.toFixed(2); computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector();
+   `d2PushUndo(); h.mx=+rel.mx.toFixed(2); computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspectorDopo();
       toast('Foro spostato a x '+gfix(h.mx,2)+' m, spalla '+gfix(h.my,2)+' m');
       return;
     }

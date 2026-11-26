@@ -2362,6 +2362,16 @@
   per x e spalla, che avevano lo stesso difetto). run-kpi 3241 → 3244; banco
   `genesi-foro-per-foro.mjs` 42 → 69 (controprova: 15 iniezioni su 15,
   cadono in 34).
+- [x] **26/11 · Genesi — ⛔ difetto vero misurato con la tastiera: il tasto
+  Tab perdeva il campo successivo nella scheda del foro.** Scritto un valore
+  e premuto Tab, il `change` ridisegnava la scheda prima che il fuoco
+  arrivasse al campo dopo, che quindi non esisteva più: fuoco sul corpo
+  della pagina e numero successivo perso. Valeva per x, spalla e ritardo (da
+  sempre) e per i tre campi nuovi. Ora la scheda si ridisegna dopo che il
+  fuoco si è spostato e glielo ridà (`renderInspectorDopo`). Le prove che
+  lanciano `change` a mano non lo potevano vedere: nel banco adesso si
+  premono i tasti (`genesi-foro-per-foro.mjs` 69 → 72; controprova 16
+  iniezioni su 16).
 - [ ] **Genesi, foro per foro — F4: la tabella dei fori** (una riga per
   foro: id, x, spalla, ritardo, carica, profondità, borraggio; modificabile
   con le STESSE regole di F3, ordinabile; i valori propri segnati). È la
