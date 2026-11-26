@@ -117,6 +117,7 @@ export function parsePLY(buf, maxpts = MAXPTS) {
 // compresso) NON è gestito: richiede un decompressore pesante; va riesportato in
 // LAS o PLY. La firma resta "LASF" anche per il LAZ, che si riconosce dal bit 7
 // del formato-punto. ----
+export const LAZ_NON_LETTO = 'questa è una nuvola LAZ, cioè LAS compresso: qui si legge il LAS non compresso. Riesportala in LAS o PLY — in WebODM, CloudCompare o nel programma del drone: «Salva con nome» / «Esporta nuvola» scegliendo LAS — e ricaricala.';
 const LAS_RGB_OFF = { 2: 20, 3: 28, 5: 28, 7: 30, 8: 30, 10: 30 };  // offset RGB nel record, per formato-punto
 export function parseLAS(buf, maxpts = MAXPTS) {
   const dv = new DataView(buf);
@@ -125,7 +126,13 @@ export function parseLAS(buf, maxpts = MAXPTS) {
   const verMinor = dv.getUint8(25);
   const ptOffset = dv.getUint32(96, true);
   let ptFormat = dv.getUint8(104);
-  if (ptFormat & 0x80) throw new Error('LAS compresso (LAZ): riesportalo in LAS o PLY');
+  /* ⛔ UN MESSAGGIO SOLO PER IL LAZ, QUI (26/11). Ce n'erano due: questo, corto,
+     per il LAZ riconosciuto dal contenuto, e uno più utile nel visualizzatore
+     per il file che si CHIAMA .laz — quindi lo stesso file diceva due cose a
+     seconda del nome. Il visualizzatore adesso passa di qui anche il .laz.
+     Misurato su nove LAZ veri scritti da laspy+lazrs (LAS 1.2, 1.3, 1.4;
+     formati 0-3 e 6-8): tutti riconosciuti dal bit 7, nessuno letto come punti. */
+  if (ptFormat & 0x80) throw new Error(LAZ_NON_LETTO);
   ptFormat &= 0x3f;
   const recLen = dv.getUint16(105, true);
   let count = dv.getUint32(107, true);

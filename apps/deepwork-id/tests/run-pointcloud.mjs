@@ -7,6 +7,7 @@
 // ============================================================
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { readFileSync, readdirSync } from "node:fs";
 import { mostra } from "./mostra.mjs";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const pc = await import(join(HERE, "../../genesi/pointcloud.js"));
@@ -182,6 +183,47 @@ test("volumeCumulo: prisma 10×8×2 → ~160 m³ (entro il 12%, errore di bordo 
   const r = pc.volumeCumulo(boxCloud(10, 8, 2, 0.25), 0.5);
   ok(Math.abs(r.volume - 160) / 160 < 0.12, `atteso ~160, ottenuto ${r.volume.toFixed(1)}`);
   ok(r.zBase === 0 && r.celle > 0, "base e celle");
+});
+/* ⛔ I FILE SCRITTI DA UN ALTRO PROGRAMMA (26/11). Fin qui `parseLAS` era
+   provato con buffer costruiti qui dentro da `lasBuf`/`scriviLAS`: se chi
+   scrive il file di prova e chi scrive il lettore sbagliano insieme, la prova
+   resta verde. I campioni in `campioni/las-da-laspy/` li scrive `laspy` (la
+   libreria di riferimento) e, i `.laz`, il compressore `lazrs`; `genera.py`
+   lì accanto dice come rifarli, e la verità (`verita.json`) la scrive lui. */
+const CAMPIONI_LAS = join(HERE, "campioni", "las-da-laspy");
+const veritaLas = JSON.parse(readFileSync(join(CAMPIONI_LAS, "verita.json"), "utf8"));
+const bufDi = (nome) => { const b = readFileSync(join(CAMPIONI_LAS, nome)); return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength); };
+test("parseLAS contro LAS scritti da laspy: tre versioni del formato, sette formati punto — punti e colori esatti", () => {
+  const nomi = Object.keys(veritaLas);
+  const sulDisco = readdirSync(CAMPIONI_LAS).filter((f) => f.endsWith(".las")).map((f) => f.slice(0, -4)).sort();
+  eq(sulDisco, nomi.slice().sort(), "ogni campione ha la sua verità e viceversa: un file aggiunto senza verità non passa inosservato");
+  ok(nomi.length >= 9, `i campioni ci sono tutti (${nomi.length}, almeno 9)`);
+  eq([...new Set(nomi.map((n) => veritaLas[n].versione))].sort(), ["1.2", "1.3", "1.4"], "LAS 1.2, 1.3 e 1.4");
+  eq([...new Set(nomi.map((n) => veritaLas[n].formato))].sort((a, b) => a - b), [0, 1, 2, 3, 6, 7, 8], "formati punto 0, 1, 2, 3 e — quelli del LAS 1.4 — 6, 7, 8");
+  for (const n of nomi) {
+    const v = veritaLas[n], r = pc.parseLAS(bufDi(n + ".las"), 1e9);
+    eq(r.count, v.n, `${n}: tutti i ${v.n} punti`);
+    v.idx.forEach((i, k) => {
+      const q = [r.pos[3 * i], r.pos[3 * i + 1], r.pos[3 * i + 2]];
+      ok(q.every((x, j) => Math.abs(x - v.xyz[k][j]) < 1e-6), `${n}: il punto ${i} è dove lo ha scritto laspy (${v.xyz[k].join(" ")}) — letto ${q.join(" ")}`);
+      if (v.rgb) { ok(!!r.col, `${n}: ha il colore`);
+        const c = [r.col[3 * i], r.col[3 * i + 1], r.col[3 * i + 2]];
+        ok(c.every((x, j) => Math.abs(x - v.rgb[k][j] / 65535) < 1e-6), `${n}: il colore del punto ${i} è quello scritto (${v.rgb[k].join(" ")} su 65535)`); }
+    });
+    if (!v.rgb) ok(!r.col, `${n}: ⛔ un formato senza colore non ne guadagna uno inventato`);
+  }
+});
+test("parseLAS contro LAZ veri (laspy + lazrs): riconosciuti come compressi, MAI letti come punti, e con un messaggio solo", () => {
+  let visti = 0;
+  for (const n of Object.keys(veritaLas)) {
+    let esito = "letto"; try { pc.parseLAS(bufDi(n + ".laz"), 1e9); } catch (e) { esito = e.message; }
+    eq(esito, pc.LAZ_NON_LETTO, `${n}.laz: ⛔ dichiarato compresso — non ${veritaLas[n].n} punti a caso`);
+    visti++;
+  }
+  ok(visti >= 9, `guardati ${visti} LAZ veri: LAS 1.2, 1.3 e 1.4, formati 0-3 e 6-8`);
+  ok(/LAS o PLY/.test(pc.LAZ_NON_LETTO) && /Salva con nome|Esporta/.test(pc.LAZ_NON_LETTO), "il messaggio dice che cosa fare: riesportare in LAS o PLY, e da dove");
+  /* il gemello LAS di ogni LAZ si legge: lo stesso contenuto, non compresso, è la via che il messaggio indica */
+  ok(Object.keys(veritaLas).every((n) => pc.parseLAS(bufDi(n + ".las"), 1e9).count === veritaLas[n].n), "e il gemello non compresso di ognuno si legge per intero");
 });
 test("volumeCumulo: invariante per traslazione (coordinate centrate o UTM)", () => {
   const a = pc.volumeCumulo(boxCloud(10, 8, 2, 0.25), 0.5).volume;

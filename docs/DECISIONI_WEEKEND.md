@@ -1114,6 +1114,7 @@ momento.
 | **31** | Genesi: la camera "Da terra 50 m" non arriva mai a 1,7 m — la barriera anti-sottoterra del trascinamento libero la sposta a 5,5 m, sempre, per costruzione (21/09) | quale delle tre strade (alzare il preset, bypassare la barriera solo per i preset, o solo correggere l'etichetta) — o la conferma che 5,5 m va bene com'è. Vedi la sezione 31. |
 | **32** | Genesi: il progetto non sa dove si trova nel cantiere — i fori vivono in coordinate locali (lungo il fronte / dietro il fronte), e ogni file di scambio del settore viaggia in coordinate di cantiere (26/11) | ⏸️ **Rimandata dal fondatore il 26/11** («un punto a cui pensare in futuro»). Quando si riapre: in che forma dichiarare l'aggancio (due punti del fronte, oppure un punto e una direzione) e quali file veri si possono avere dalle cave. Vedi la sezione 32. |
 | **33** | Genesi: con cariche diverse da foro a foro, quale carica ricevono la previsione di frammentazione e la simulazione 3D? (26/11) | quale delle tre strade: il foro tipo del progetto (dichiarandolo), la media dei fori, oppure la previsione rifatta foro per foro. Vedi la sezione 33. |
+| **34** | Genesi: le nuvole di punti LAZ (LAS compresso) — adottare un decodificatore a sorgente aperto dentro il prodotto, oppure restare al rifiuto con le istruzioni? (26/11) | un sì o un no a far entrare nel prodotto un componente di terzi (gratuito, licenza libera, circa 300 kB). Vedi la sezione 34. |
 
 ⚠️ **Correzione, 02/08.** Qui prima c'era scritto che *dieci* di queste
 diciannove erano la stessa domanda. **Sono quattro.** Le ho contate una per una
@@ -2731,6 +2732,59 @@ con la 3 come lavoro successivo e dichiarato). Finché non scegli, le tre
 previsioni restano sulla carica del progetto e la fetta F3 esce con
 l'avviso della strada 1 — che è il comportamento più prudente.
 
+## 34. Genesi: le nuvole di punti in formato LAZ — facciamo entrare un decodificatore di terzi?
+
+*(26/11, dal piano «portare Genesi al livello dei concorrenti», punto «nuvole
+di punti LAZ». Tutto ciò che è scritto qui sotto come misura l'ho misurato;
+ciò che non ho potuto misurare è detto.)*
+
+**Il fatto, in parole semplici.** I droni e i programmi di fotogrammetria
+salvano la nuvola di punti in due forme: **LAS** (il file così com'è) e
+**LAZ** (lo stesso file, compresso: pesa circa la metà). I programmi
+concorrenti leggono tutt'e due. Genesi legge il LAS; davanti a un LAZ si
+ferma e dice che cosa fare («riesportala in LAS o PLY…»).
+
+**Che cosa ho misurato.**
+- Ho fatto scrivere a `laspy`, la libreria di riferimento per questo formato,
+  **nove coppie di file veri** (stessi punti, una volta LAS e una volta LAZ;
+  LAS 1.2, 1.3 e 1.4; i sette tipi di punto che si incontrano). Il lettore di
+  Genesi legge **giusti tutti e nove i LAS** (punti e colori esatti) e
+  riconosce **tutti e nove i LAZ** come compressi: nessuno viene letto come
+  punti a caso. Questa misura adesso è una prova che gira sempre.
+- Il messaggio del LAZ era scritto due volte, con due testi diversi a seconda
+  che il file si *chiamasse* `.laz` o lo *fosse* soltanto. Ora è uno.
+- Un LAZ pesa il **53–55%** del suo gemello LAS (misurato su due nuvole da
+  180.000 punti).
+
+**Che cosa NON ho potuto misurare, e perché.** Per leggere il LAZ serve un
+decodificatore. Scriverlo in casa è un lavoro lungo e delicato (è un
+compressore aritmetico con una regola diversa per ogni tipo di punto).
+Esiste un decodificatore a sorgente aperto molto usato, `laz-perf`
+(licenza Apache 2.0, gratuito, circa 300 kB), che è quello che usano i
+visualizzatori di nuvole sul web. L'ho scaricato per provarlo sui nove
+file, ma **la regola di sicurezza di questa sessione mi ha fermato prima di
+eseguirlo**, perché è codice di terzi appena scaricato e nessuno me l'aveva
+chiesto. Ha ragione lei: far entrare nel prodotto un componente di altri è
+una scelta tua, non una mia unità automatica. Quindi **non so ancora dire**
+se quel decodificatore legge giusti i nostri nove file né quanto ci mette.
+
+**Le due strade.**
+1. **Restare come siamo** (rifiuto onesto con le istruzioni). Non costa
+   niente e non sbaglia mai. Chi ha un LAZ lo riesporta in LAS dal programma
+   con cui l'ha fatto: un passaggio in più, e file grandi il doppio.
+2. **Adottare `laz-perf`**, tenuto dentro il prodotto come già facciamo col
+   motore 3D (`three.js`, nella cartella `vendor`, con la sua licenza
+   dichiarata in `LICENSES.md`): niente abbonamenti, niente servizi esterni,
+   funziona anche senza rete. Si caricherebbe **solo** quando qualcuno apre
+   un LAZ. Il nostro lettore resterebbe quello di oggi: il decodificatore
+   ricostruisce il LAS e lo passa a lui, e la prova sarebbe la stessa — i
+   nove gemelli devono dare gli stessi punti.
+
+**Che cosa serve da te.** Un sì o un no alla strada 2. Con il sì la prima
+cosa che faccio è la misura che mi manca (i nove file, e il tempo su una
+nuvola grande): se non tornano tutti, non entra. Finché non rispondi resta
+la strada 1, che è quella di oggi.
+
 ## Cosa procede intanto SENZA di te
 I cicli automatici continuano su ciò che è sicuro e non gated: seconde
 iterazioni UX delle app, test aggiuntivi, revisioni di qualità/sicurezza,
@@ -2746,7 +2800,7 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.747** *(il 26/11, +1: Genesi, il diametro per foro; prima — stesso giorno — +1: Genesi, l'avviso quando la carica non entra nel foro; prima — stesso giorno — +2: Genesi, il piano d'innesco XML scrive e rilegge i valori di ogni foro; prima — stesso giorno — +1: Genesi, la tabella dei fori; prima — stesso giorno — +3: Genesi, il comando per dare a un foro la sua carica, la sua profondità e il suo borraggio; prima — stesso giorno — +11: il lettore DXF di Genesi rimisurato contro file scritti da un CAD vero; prima — stesso giro — Genesi, correzione di `syncTrattoUI` trovata da `genesi-snap-estremo.mjs` (G48): Ruota/Scala tratti (G57/G58) restavano visibili mentre si disegnava ancora un tratto, e la barra cresciuta spingeva la tela sotto la barra di navigazione fissa — misurato dal vivo con Playwright: 40 px bastavano a far cadere il clic che chiude il tratto sull'icona della barra invece che sulla tela. E, prima di questo, dopo `deviazioneStatistiche` (G59): media e massima della deviazione RADIALE di perforazione (`Math.hypot(dx,dy)`, non dx/dy col segno — quel segno dipende dalla convenzione di assi del rilievo boretrack, ancora non confermata), segnalata dalla ricerca del 19/09 come mancanza reale rispetto al QC statistico di JKSimBlast, verificata prima con un grep per nome (zero righe). E, prima di questo, dopo `trattiScalati` (G58): terza trasformazione CAD, scala tutti i tratti DALL'ORIGINE (non dal centroide come rotate/mirror — un errore di unità sbaglia ogni coordinata della stessa proporzione, compreso il centroide, misurato prima di scriverla così) per correggere un rilievo DXF disegnato in un'unità diversa dai metri di Genesi — dopo `trattiRuotati` (G57): seconda trasformazione CAD dopo il mirror di G50, ruota tutti i tratti importati/disegnati attorno al loro centroide comune per correggere sul posto l'orientamento di un rilievo DXF con assi diversi da Genesi — resta fuori dal dominio dei fori, dove mx/my sono burden/spaziatura, non coordinate libere — dopo la stessa causa di G56c ritrovata in `innescoSuMaglia` (G56d): `innFrom=-1` diceva sia «primo della volata» sia «nessun raccordo raggiunge questo foro», e la «Rete di innesco» del Validatore contava il secondo caso come inesistente — dopo `relief=null` che distingue il vero primo foro della zona da un vicino già sparato ma oltre la distanza di adiacenza (un foro mancante nella maglia) G56c — trovato con una verifica diretta sugli export CSV/DXF/XML dopo aver tolto un foro con drag+Canc, non da un agente — dopo l'annulla premuto a metà di un trascinamento G56b, dopo la guida di allineamento in Y sul trascinamento di un foro G56, dopo il misfire nel report stampato G55, dopo il limite dello stack di annulla G54, il semaforo di sintesi letto prima di esportare G53, l'esito della detonazione G52, `coordinataRelativa`/input relativo-polare G51, `foriRiflessi`/rifletti la selezione G50, `foriSenzaId`/selezione multipla G49 e `puntoSnapEstremo`/`estremiDisegno` di G48)* *(ricontate il 19/09, dopo il dodicesimo giro — Sentinella, `allerteTaratura`/badge; erano 3.676 il 18/09, dopo il
+**Le prove automatiche sono passate a 3.749** *(il 26/11, +2: Genesi, il lettore di nuvole provato su file LAS e LAZ scritti da un altro programma; prima — stesso giorno — +1: Genesi, il diametro per foro; prima — stesso giorno — +1: Genesi, l'avviso quando la carica non entra nel foro; prima — stesso giorno — +2: Genesi, il piano d'innesco XML scrive e rilegge i valori di ogni foro; prima — stesso giorno — +1: Genesi, la tabella dei fori; prima — stesso giorno — +3: Genesi, il comando per dare a un foro la sua carica, la sua profondità e il suo borraggio; prima — stesso giorno — +11: il lettore DXF di Genesi rimisurato contro file scritti da un CAD vero; prima — stesso giro — Genesi, correzione di `syncTrattoUI` trovata da `genesi-snap-estremo.mjs` (G48): Ruota/Scala tratti (G57/G58) restavano visibili mentre si disegnava ancora un tratto, e la barra cresciuta spingeva la tela sotto la barra di navigazione fissa — misurato dal vivo con Playwright: 40 px bastavano a far cadere il clic che chiude il tratto sull'icona della barra invece che sulla tela. E, prima di questo, dopo `deviazioneStatistiche` (G59): media e massima della deviazione RADIALE di perforazione (`Math.hypot(dx,dy)`, non dx/dy col segno — quel segno dipende dalla convenzione di assi del rilievo boretrack, ancora non confermata), segnalata dalla ricerca del 19/09 come mancanza reale rispetto al QC statistico di JKSimBlast, verificata prima con un grep per nome (zero righe). E, prima di questo, dopo `trattiScalati` (G58): terza trasformazione CAD, scala tutti i tratti DALL'ORIGINE (non dal centroide come rotate/mirror — un errore di unità sbaglia ogni coordinata della stessa proporzione, compreso il centroide, misurato prima di scriverla così) per correggere un rilievo DXF disegnato in un'unità diversa dai metri di Genesi — dopo `trattiRuotati` (G57): seconda trasformazione CAD dopo il mirror di G50, ruota tutti i tratti importati/disegnati attorno al loro centroide comune per correggere sul posto l'orientamento di un rilievo DXF con assi diversi da Genesi — resta fuori dal dominio dei fori, dove mx/my sono burden/spaziatura, non coordinate libere — dopo la stessa causa di G56c ritrovata in `innescoSuMaglia` (G56d): `innFrom=-1` diceva sia «primo della volata» sia «nessun raccordo raggiunge questo foro», e la «Rete di innesco» del Validatore contava il secondo caso come inesistente — dopo `relief=null` che distingue il vero primo foro della zona da un vicino già sparato ma oltre la distanza di adiacenza (un foro mancante nella maglia) G56c — trovato con una verifica diretta sugli export CSV/DXF/XML dopo aver tolto un foro con drag+Canc, non da un agente — dopo l'annulla premuto a metà di un trascinamento G56b, dopo la guida di allineamento in Y sul trascinamento di un foro G56, dopo il misfire nel report stampato G55, dopo il limite dello stack di annulla G54, il semaforo di sintesi letto prima di esportare G53, l'esito della detonazione G52, `coordinataRelativa`/input relativo-polare G51, `foriRiflessi`/rifletti la selezione G50, `foriSenzaId`/selezione multipla G49 e `puntoSnapEstremo`/`estremiDisegno` di G48)* *(ricontate il 19/09, dopo il dodicesimo giro — Sentinella, `allerteTaratura`/badge; erano 3.676 il 18/09, dopo il
 sesto giro di deep-pass QA in parallelo su Sentinella/Genesi/Conti —
 `superamentiAperti` scriveva un valore fabbricato su un superamento vero,
 `muckShape`/il pannello Decking di Genesi stimavano un baricentro del

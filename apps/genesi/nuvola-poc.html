@@ -130,9 +130,11 @@ async function loadFile(f){
     if(name.endsWith('.obj')){ const s=preShiftOBJ(await f.text()); const g=new OBJLoader().parse(s.shifted); placeMesh(g, f.name, s.off); }
     else if(name.endsWith('.glb')||name.endsWith('.gltf')){ const buf=await f.arrayBuffer();
       new GLTFLoader().parse(buf, '', gltf=>placeMesh(gltf.scene, f.name), err=>{ $('info').textContent=''; $('err').textContent='GLB non letto: '+err; }); }
-    else if(name.endsWith('.laz')){ throw new Error('LAZ è la nuvola compressa: riesportala in LAS o PLY (in WebODM/CloudCompare "Salva con nome"). Il visualizzatore legge LAS non compresso.'); }
     else { const buf=await f.arrayBuffer();
-      const p = name.endsWith('.las') ? parseLAS(buf)
+      /* il .laz passa dallo stesso lettore del .las: è lui che riconosce il
+         LAZ dal contenuto e lo dice con UN messaggio solo (nel modulo) —
+         anche quando il file compresso si chiama .las */
+      const p = (name.endsWith('.las')||name.endsWith('.laz')) ? parseLAS(buf)
               : name.endsWith('.ply') ? parsePLY(buf)
               : parseXYZ(new TextDecoder().decode(buf));
       if(!p||!p.count) throw new Error('nessun punto letto');
