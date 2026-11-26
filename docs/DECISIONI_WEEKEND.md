@@ -1113,6 +1113,7 @@ momento.
 | **30** | Genesi: lo scatter dell'innesco «elettrico» è un valore fisso (0,5 ms) mentre il proprio catalogo lo descrive «medio» — quale percentuale usare? (18/09) | una fonte con una percentuale specifica per l'elettrico a ponte resistivo, o la conferma di lasciarlo com'è finché non se ne trova una. Vedi la sezione 30. |
 | **31** | Genesi: la camera "Da terra 50 m" non arriva mai a 1,7 m — la barriera anti-sottoterra del trascinamento libero la sposta a 5,5 m, sempre, per costruzione (21/09) | quale delle tre strade (alzare il preset, bypassare la barriera solo per i preset, o solo correggere l'etichetta) — o la conferma che 5,5 m va bene com'è. Vedi la sezione 31. |
 | **32** | Genesi: il progetto non sa dove si trova nel cantiere — i fori vivono in coordinate locali (lungo il fronte / dietro il fronte), e ogni file di scambio del settore viaggia in coordinate di cantiere (26/11) | ⏸️ **Rimandata dal fondatore il 26/11** («un punto a cui pensare in futuro»). Quando si riapre: in che forma dichiarare l'aggancio (due punti del fronte, oppure un punto e una direzione) e quali file veri si possono avere dalle cave. Vedi la sezione 32. |
+| **33** | Genesi: con cariche diverse da foro a foro, quale carica ricevono la previsione di frammentazione e la simulazione 3D? (26/11) | quale delle tre strade: il foro tipo del progetto (dichiarandolo), la media dei fori, oppure la previsione rifatta foro per foro. Vedi la sezione 33. |
 
 ⚠️ **Correzione, 02/08.** Qui prima c'era scritto che *dieci* di queste
 diciannove erano la stessa domanda. **Sono quattro.** Le ho contate una per una
@@ -2673,6 +2674,50 @@ aggancio, niente tabella dei fori in coordinate di cantiere, niente IREDES
 vero adesso** — restano scritti qui perché chi li riapre non rifaccia la
 ricerca. La priorità scelta al loro posto è nel piano del 26/11 in
 `docs/GENESI_ROADMAP_COMPETITOR.md` (il progetto foro per foro).
+
+## 33. Genesi: con cariche diverse da foro a foro, quale carica usano la previsione di frammentazione e la simulazione 3D?
+
+*(dal 26/11, cantiere «foro per foro»: emersa mentre si collegavano uno per
+uno i punti che usano la carica — letti nel codice, non dedotti)*
+
+**Il fatto, in parole semplici.** Dal 26/11 un foro può avere una carica,
+una profondità e un borraggio suoi. I **conti** seguono già: carica massima
+per ritardo, carica totale, costo dell'esplosivo, volume e consumo
+specifico di ogni foro usano i valori veri (fette F1 e F2, con le prove).
+Restano tre punti che non sono conti ma **previsioni**, e che per come sono
+scritti prendono UNA carica per tutta la volata:
+- la **pezzatura prevista** (il modello di frammentazione: carica per foro e
+  consumo specifico del «foro tipo»);
+- la **simulazione 3D** dello sparo e la forma del **cumulo**;
+- il **consumo specifico «di progetto»** mostrato come numero unico.
+
+**Come stiamo.** Oggi tutti e tre usano la carica scritta nel progetto,
+anche se qualche foro ne ha una diversa. Finché nessun foro ha valori suoi
+non cambia niente. E ancora non esiste il comando con cui l'utente dà a un
+foro un valore suo (è la fetta F3): quindi oggi il caso non può presentarsi
+a nessuno. Va deciso PRIMA che F3 esca.
+
+**Perché serve una decisione, non un'unità automatica.** Non è un errore
+di conto: è il significato di una previsione. Tre strade:
+1. **Il foro tipo del progetto, dichiarato.** Le previsioni continuano a
+   usare la carica del progetto, e quando ci sono fori diversi la schermata
+   lo dice («previsione per il foro tipo: 3 fori hanno una carica diversa»).
+   Costa poco, non tocca nessuna formula, ed è onesto. *È la strada che
+   consiglio per partire.*
+2. **La media dei fori.** Le previsioni usano la carica media vera. Sembra
+   più «giusto», ma una media nasconde proprio i casi per cui si cambia la
+   carica di un foro (i fori di prima fila più leggeri, quelli d'angolo più
+   carichi): la pezzatura prevista sarebbe quella di un foro che non esiste.
+3. **La previsione rifatta foro per foro.** Ogni foro col suo consumo, e la
+   curva della volata come somma. È quello che fanno i programmi maggiori,
+   ed è il traguardo — ma vuol dire far girare il modello tante volte quanti
+   sono i fori e decidere come si sommano le curve: tocca il motore fisico,
+   che per regola non si cambia senza di te.
+
+**Che cosa serve da te.** Scegliere la strada per adesso (consiglio la 1,
+con la 3 come lavoro successivo e dichiarato). Finché non scegli, le tre
+previsioni restano sulla carica del progetto e la fetta F3 esce con
+l'avviso della strada 1 — che è il comportamento più prudente.
 
 ## Cosa procede intanto SENZA di te
 I cicli automatici continuano su ciò che è sicuro e non gated: seconde
