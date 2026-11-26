@@ -1269,7 +1269,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, reliefCls, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino, activeProf, d2HitTest, d2HitTestPt,
-         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfLeggi, dxfFraseNonLette, valoriPropriDiForo, valoreDiForo, scartoCaricheProprie, scartoProfonditaProprie, caricaProgettoDaTotale, firmaMaglia, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, foriRiflessi, trattiRuotati, trattiScalati, coordinataRelativa, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
+         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfLeggi, dxfFraseNonLette, valoriPropriDiForo, valoreDiForo, LIMITI_PER_FORO, foriConValoreProprio, foriSenzaValoriPropri, valoreComuneDiFori, contaValoriPropri, scartoCaricheProprie, scartoProfonditaProprie, caricaProgettoDaTotale, firmaMaglia, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, foriRiflessi, trattiRuotati, trattiScalati, coordinataRelativa, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -5899,7 +5899,7 @@ function genMaglia2D(){
      non sono più quelli. Ma va detto, altrimenti spariscono in silenzio. */
   const aMano=(D2.holes||[]).filter(h=>h.tMano!=null).length;
   /* 26/11: e i valori per foro (carica, profondità, borraggio propri) fanno la stessa fine dei ritardi a mano — si dice */
-  const _conPropri=(D2.holes||[]).filter(h=>Object.keys(valoriPropriDiForo(h)).length).length;
+  const _conPropri=contaValoriPropri(D2.holes).fori;
   D2.firmaMaglia=firmaMaglia(D2);   // la firma si prende quando la maglia NASCE
   D2.holes=holes; D2.sel=-1; D2.selPrev=-1; computeSeq2D();
   const _persi=[aMano && (aMano===1?'il ritardo messo a mano non vale più':'i '+aMano+' ritardi messi a mano non valgono più'),
@@ -6505,6 +6505,16 @@ function drawDesign2D(){
       ctx.beginPath(); ctx.arc(cx,cy,12.5,Math.PI-0.9,Math.PI+0.9); ctx.stroke();
       ctx.restore();
     }
+    /* F3 (26/11) — un foro con un valore SUO (carica, profondità o borraggio
+       diversi da quelli del progetto) si riconosce sulla pianta senza
+       aprirlo: un rombo pieno in alto a destra. Una FORMA, non un colore —
+       il colore del foro dice già un'altra cosa (la vista scelta), e i due
+       archi qui sopra dicono «ritardo a mano»: tre stati, tre segni. */
+    if(Object.keys(valoriPropriDiForo(h)).length){
+      const rx=cx+9.5, ry=cy-9.5, q=4.2;
+      ctx.save(); ctx.beginPath(); ctx.moveTo(rx,ry-q); ctx.lineTo(rx+q,ry); ctx.lineTo(rx,ry+q); ctx.lineTo(rx-q,ry); ctx.closePath();
+      ctx.fillStyle='#fff'; ctx.fill(); ctx.lineWidth=1.3; ctx.strokeStyle='rgba(20,12,4,.95)'; ctx.stroke(); ctx.restore();
+    }
   });
   /* G34ter (13/09) — quota a schermo del foro selezionato: il burden e
      l'interasse VERI (misurati sul foro, non il B/S nominale di progetto,
@@ -6745,8 +6755,87 @@ function d2Move(e){
   for(let k=0;k<D2.holes.length;k++){ if(k===d2drag) continue; const oy=D2.holes[k].my; if(Math.abs(oy-my)<=tolAY){ d2AlignGuide=oy; break; } }
   D2.holes[d2drag].mx=+mx.toFixed(2); D2.holes[d2drag].my=+my.toFixed(2); computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector(); }
 function d2Up(){ if(d2AlignGuide!=null){ d2AlignGuide=null; drawDesign2D(); } d2drag=-1; d2dragPt=-1; }
+/* F3 (26/11) — I VALORI DEL FORO: carica, profondità e borraggio suoi.
+   Tre campi nella scheda del foro (e, con più fori scelti con Maiusc+clic,
+   nella scheda della selezione): quello che si scrive vale per i fori
+   `indici`. Le regole stanno nel modulo (`foriConValoreProprio`,
+   `foriSenzaValoriPropri`: limiti, «uguale al progetto = lo segue», il
+   borraggio mai più lungo del foro, tutto o niente); qui c'è solo il
+   disegno e le frasi. Si applica al `change`, come il ritardo: digitando
+   «35» non si passa da 3 kg. Un campo svuotato toglie il valore proprio. */
+const _VAL_FORO=[['kg','diKg','carica',true],['prof','diProf','profondità',true],['stem','diStem','borraggio',false]];   // campo, id del campo, nome, femminile?
+/* etichetta, campo e unità vanno a capo INSIEME: a 320 px «profondità» restava
+   in fondo a una riga e il suo campo cominciava quella dopo (visto nello
+   scatto, non nel codice). Lo usano anche x e spalla, che avevano lo stesso difetto. */
+const _DI_GRUPPO='display:inline-flex;align-items:center;gap:6px;white-space:nowrap';
+const _valForoTx=(campo,v)=>{ const L=LIMITI_PER_FORO[campo]; return (v===null||v===undefined)?'—':(perCampo(v,2)+' '+L.unita); };
+function valoriForoHtml(indici){
+  const piu=indici.length>1, note=[];
+  let campi='';
+  for(const [campo,id,nome,fem] of _VAL_FORO){
+    const L=LIMITI_PER_FORO[campo], c=valoreComuneDiFori(D2.holes, indici, campo, D2);
+    if(c.propri) note.push(piu ? (c.propri+' su '+c.n+' con '+nome+(fem?' propria':' proprio')+' (progetto '+_valForoTx(campo, valoreDiForo({}, campo, D2))+')')
+                               : (nome+(fem?' sua':' suo')+' (progetto '+_valForoTx(campo, valoreDiForo({}, campo, D2))+')'));
+    campi+='<span style="'+_DI_GRUPPO+'"><span style="color:var(--mut2);font-size:12px">'+nome+'</span>'
+      +'<input id="'+id+'" type="text" inputmode="decimal" value="'+(c.valore===null?'':perCampo(c.valore,2))+'"'+(c.diversi?' placeholder="diversi"':'')
+      +' style="width:58px'+(c.propri?';border-color:#ffd54f':'')+'" title="'+(piu?'Vale per tutti i fori selezionati. ':'')+'Vuoto = torna al valore del progetto">'
+      +'<span style="color:var(--mut2);font-size:12px">'+L.unita+'</span></span>';
+  }
+  return '<div id="diVal" style="margin-top:5px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">'+campi
+    +(note.length
+      ? '<span id="diValNota" style="color:#ffd54f;font-size:11.5px">◆ '+note.join(' · ')+'</span><button class="btn sm" id="diValProg" style="padding:2px 8px" title="Toglie carica, profondità e borraggio propri: '+(piu?'i fori tornano':'il foro torna')+' ai valori del progetto">↺ valori del progetto</button>'
+      : '<span id="diValNota" style="color:var(--mut2);font-size:11.5px">dal progetto — scrivi un numero per dare '+(piu?'ai fori':'al foro')+' un valore '+(piu?'loro':'suo')+'</span>')
+    +'</div>';
+}
+function valoriForoCollega(indici){
+  const piu=indici.length>1;
+  const chi=piu ? (indici.length+' fori') : ('Foro '+(((D2.holes[indici[0]]||{}).seq!=null?D2.holes[indici[0]].seq:indici[0])+1));
+  const bloccati=()=>{ if(D2.strati.fori.bloccato){ toast('I fori sono bloccati — sblocca dal pannello sopra la tela'); return true; } return false; };
+  const troppoCorto=(corti)=> 'Così '+(piu?(corti+' '+plurale(corti,'foro avrebbe','fori avrebbero')):'il foro avrebbe')+' il borraggio più lungo del foro stesso: non ho cambiato niente';
+  const dopo=()=>{ computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector(); };
+  for(const [campo,id,nome,fem] of _VAL_FORO){
+    const el=$(id); if(!el) continue;
+    const quel=fem?'quella':'quello';
+    el.onchange=()=>{
+      if(bloccati()){ renderInspector(); return; }
+      const L=LIMITI_PER_FORO[campo], r=gEsito(el.value, L);
+      if(!r.ok && !r.vuoto){ toast(messaggioNumero(r, piu?L.nome.replace('del foro','dei fori'):L.nome, L)); renderInspector(); return; }
+      const es=foriConValoreProprio(D2.holes, indici, campo, r.vuoto?null:r.valore, D2);
+      if(es.motivo==='borraggio-oltre-il-foro'){ toast(troppoCorto(es.corti)); renderInspector(); return; }
+      if(es.motivo){ renderInspector(); return; }
+      const prog=_valForoTx(campo, valoreDiForo({}, campo, D2));
+      if(!es.toccati){ toast(es.segueProgetto ? ('È già '+(fem?'la ':'il ')+nome+' del progetto ('+prog+')') : (chi+': '+nome+' già a '+_valForoTx(campo, es.valore))); renderInspector(); return; }
+      d2PushUndo(); D2.holes=es.fori; dopo();
+      toast(es.segueProgetto
+        ? (chi+': '+nome+' di nuovo '+quel+' del progetto ('+prog+')')
+        : (chi+': '+nome+' '+_valForoTx(campo, es.valore)+' — non più '+quel+' del progetto ('+prog+')'));
+    };
+  }
+  const rp=$('diValProg');
+  if(rp) rp.onclick=()=>{
+    if(bloccati()) return;
+    const es=foriSenzaValoriPropri(D2.holes, indici, D2);
+    if(es.motivo==='borraggio-oltre-il-foro'){ toast(troppoCorto(es.corti)); return; }
+    if(!es.toccati) return;
+    d2PushUndo(); D2.holes=es.fori; dopo();
+    toast(piu ? (es.toccati+' '+plurale(es.toccati,'foro tornato','fori tornati')+' ai valori del progetto') : (chi+' tornato ai valori del progetto'));
+  };
+}
 function renderInspector(){
   const el=$('d2-insp'); if(!el) return;
+  /* F3 — con dei fori scelti con Maiusc+clic la scheda è quella della
+     SELEZIONE: gli stessi tre campi, che valgono per tutti. Viene prima della
+     scheda del foro singolo: sono due stati diversi (G49), e due schede
+     insieme su un telefono non ci stanno. */
+  const _multi=(D2.tool==='fori' && D2.selMulti.length) ? D2.selMulti.map(id=>D2.holes.findIndex(x=>x.id===id)).filter(i=>i>=0) : [];
+  if(_multi.length){
+    el.style.display='flex';
+    el.innerHTML='<div class="di-info"><b>'+_multi.length+' '+plurale(_multi.length,'foro selezionato','fori selezionati')+'</b>'
+      +'<span>Maiusc+clic per aggiungerne o toglierne · quello che scrivi qui sotto vale per '+(_multi.length>1?'tutti':'questo foro')+'</span>'
+      +valoriForoHtml(_multi)+'</div>';
+    valoriForoCollega(_multi);
+    return;
+  }
   if(D2.sel<0 || !D2.holes[D2.sel]){ el.style.display='none'; el.innerHTML=''; return; }
   const h=D2.holes[D2.sel]; let nn=Infinity;
   for(let i=0;i<D2.holes.length;i++){ if(i===D2.sel) continue; const o=D2.holes[i]; const d=Math.hypot(o.mx-h.mx,o.my-h.my); if(d<nn) nn=d; }
@@ -6824,11 +6913,11 @@ function renderInspector(){
      scrive un numero a mano lo vuole esatto, l'aggancio è per chi
      disegna col mouse. */
   const posTx='<div style="margin-top:5px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">'
-    +'<span style="color:var(--mut2);font-size:12px">x</span>'
-    +'<input id="diX" type="text" inputmode="decimal" value="'+gfix(h.mx,2)+'" style="width:66px" title="Posizione lungo la fila, in metri, dal primo foro. Oppure relativo al foro precedente: @dx;dy oppure @distanza<angolo">'
-    +'<span style="color:var(--mut2);font-size:12px">spalla</span>'
+    +'<span style="'+_DI_GRUPPO+'"><span style="color:var(--mut2);font-size:12px">x</span>'
+    +'<input id="diX" type="text" inputmode="decimal" value="'+gfix(h.mx,2)+'" style="width:66px" title="Posizione lungo la fila, in metri, dal primo foro. Oppure relativo al foro precedente: @dx;dy oppure @distanza<angolo"></span>'
+    +'<span style="'+_DI_GRUPPO+'"><span style="color:var(--mut2);font-size:12px">spalla</span>'
     +'<input id="diY" type="text" inputmode="decimal" value="'+gfix(h.my,2)+'" style="width:66px" title="Distanza dal fronte, in metri. Oppure relativo al foro precedente: @dx;dy oppure @distanza<angolo">'
-    +'<span style="color:var(--mut2);font-size:12px">m</span>'
+    +'<span style="color:var(--mut2);font-size:12px">m</span></span>'
     +(D2.selPrev>=0 && D2.holes[D2.selPrev] && D2.selPrev!==D2.sel
       ? '<button class="btn sm" id="diAllinea" style="padding:2px 8px" title="Porta la spalla di questo foro alla stessa distanza dal fronte del foro '+((D2.holes[D2.selPrev].seq!=null?D2.holes[D2.selPrev].seq:D2.selPrev)+1)+', senza toccare la posizione lungo la fila">⊥ allinea al '+((D2.holes[D2.selPrev].seq!=null?D2.holes[D2.selPrev].seq:D2.selPrev)+1)+'</button>'
       : '')
@@ -6836,7 +6925,9 @@ function renderInspector(){
   el.innerHTML='<div class="di-info"><b>Foro '+((h.seq!=null?h.seq:D2.sel)+1)+'</b><span>x '+gfix(h.mx,2)+' m · spalla '+gfix(h.my,1)+' m · vicino '+(isFinite(nn)?gfix(nn,1):'—')+' m'+distPrevTx+' · t '+gnum(h.tDet||0,1)+' ms'+(aMano?' (a mano)':'')+'</span>'
     +posTx
     +ritTx
+    +valoriForoHtml([D2.sel])
     +'<div style="margin-top:4px;display:flex;align-items:baseline;flex-wrap:wrap;gap:2px">'+relTx+'</div>'+eneTx+'</div><button class="di-del" id="diDel">✕ Elimina</button>';
+  valoriForoCollega([D2.sel]);
   /* ⚠️ `D2.selPrev` va azzerato QUI, non solo dove nasce un array nuovo:
      `splice` sposta tutti gli indici dopo quello tolto, quindi un indice
      vecchio dopo una cancellazione punta a un ALTRO foro, non a "nessuno" —
@@ -7430,13 +7521,20 @@ function renderScheda2D(){
      davanti ai clamp. `_fg` è calcolato in cima a questa funzione, con lo
      stesso RWS effettivo (bagnato incluso) di prima. */
   const _x50=_fg.x50;
+  /* F3 (26/11) — con dei fori che hanno valori loro, carica totale, MIC,
+     consumo specifico per foro e costi li leggono (F2); il modello di
+     frammentazione no: lavora sul foro tipo del progetto (quale carica debba
+     usare è la decisione 33, del fondatore). Finché è così lo si DICE accanto
+     al numero, invece di lasciar credere che la previsione li conosca. */
+  const _nPropri=contaValoriPropri(D2.holes).fori;
   const _Th=rit, _sd=scatterMs(D2), _Rs=_sd/Math.max(1,_Th);   // scatter: unica formula, condivisa col relief per foro
   rows.push({lab:'Brillabilità (BI/A)',valStr:gfix(_A,1)+' <span>A · BI '+gnum(_rf.BI,0)+'</span>',cls:(_A<=6?'sv-ok':(_A<=10?'sv-warn':'sv-bad')),
     why:'rock factor A=0,06·(RMD+JF+RDI+HF) (Lilly/Cunningham): '+_rk.nome+', UCS '+(D2.ucs||_rk.ucs)+' MPa, E '+(D2.eMod||_rk.eMod)+' GPa, fratturazione '+D2.frat+'. RDI '+_rf.RDI+', HF '+_rf.HF+', JF '+_rf.JF+'. '+(_A<=6?'roccia facile: frammenta bene con PF moderato.':(_A<=10?'brillabilità media: cura PF e timing per evitare oversize.':'roccia dura/massiccia: serve PF alto, Ø piccolo o esplosivo ad alta VOD.'))});
   rows.push(_x50===null
     ? nonCalcolabile('X50 prevista', _fg.che+'. '+_fg.come)
-    : {lab:'X50 prevista',valStr:Math.round(_x50)+' <span>cm</span>'+(_penE>0?' <span>↑bagnato</span>':''),cls:'sv-info',
-    why:'frammentazione mediana (Kuz-Ram, '+_rk.nome+' A='+gfix(_A,1)+' calcolato, RWS '+gnum(_RWS,0)+(_penE>0?' effettiva, ridotta da fori bagnati':'')+'): roccia piu dura (A alto) o meno carica/RWS la rende piu grossolana.'});
+    : {lab:'X50 prevista',valStr:Math.round(_x50)+' <span>cm</span>'+(_penE>0?' <span>↑bagnato</span>':'')+(_nPropri?' <span id="x50-foro-tipo">foro tipo</span>':''),cls:'sv-info',
+    why:'frammentazione mediana (Kuz-Ram, '+_rk.nome+' A='+gfix(_A,1)+' calcolato, RWS '+gnum(_RWS,0)+(_penE>0?' effettiva, ridotta da fori bagnati':'')+'): roccia piu dura (A alto) o meno carica/RWS la rende piu grossolana.'
+      +(_nPropri?' ⚠ '+_nPropri+' '+plurale(_nPropri,'foro ha','fori hanno')+' carica, profondità o borraggio propri: questa previsione è calcolata sul FORO TIPO del progetto, non foro per foro.':'')});
   /* === secondo modello: curva KCO/Swebrec (Ouchterlony 2005) — code più realistiche
      del Rosin-Rammler perché il massello è limitato dal blocco in situ e dalla maglia === */
   (function(){
@@ -8292,6 +8390,7 @@ function syncSelMultiUI(){
   const rb2=$('dtRifletti');
   if(rb2){ rb2.hidden=!(D2.tool==='fori' && D2.selMulti.length>=2);
     rb2.textContent='⇋ Rifletti selezionati ('+D2.selMulti.length+')'; }
+  renderInspector();   // F3: la scheda segue la selezione multipla (i tre campi valgono per i fori scelti)
 }
 if($('dtEliminaSel')) $('dtEliminaSel').onclick=()=>{
   if(D2.strati.fori.bloccato){ toast('I fori sono bloccati — sblocca dal pannello sopra la tela'); return; }

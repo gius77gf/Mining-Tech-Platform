@@ -22,7 +22,7 @@ Legenda "fattibile browser": ✅ sì · 🟡 parziale (solo su dati importati/vi
 | Funzione | Chi ce l'ha | Genesi oggi | Fattibile browser | Azione |
 |---|---|---|---|---|
 | Schema fori (drill pattern) 3D | tutti | ✅ sì | ✅ | — già presente |
-| **Progetto FORO PER FORO** (ogni foro con la sua profondità, carica, borraggio, diametro, inclinazione) | tutti | ❌ **no** — un solo valore per tutta la volata (misurato il 26/11) | ✅ | **la priorità n. 1**: piano a sei fette in `GENESI_ROADMAP_COMPETITOR.md` |
+| **Progetto FORO PER FORO** (ogni foro con la sua profondità, carica, borraggio, diametro, inclinazione) | tutti | 🟡 **in corso** (26/11: tre fette su sei) — carica, profondità e borraggio per foro si scrivono dalla scheda del foro o su una selezione, si salvano, e li leggono carica totale, MIC, consumo specifico per foro, metri perforati, costi e piano di carico. **Mancano**: la tabella dei fori, XML/DXF/scena 3D per foro, diametro e inclinazione per foro; frammentazione e simulazione usano ancora il foro tipo (decisione 33) | ✅ | **la priorità n. 1**: piano a sei fette in `GENESI_ROADMAP_COMPETITOR.md` |
 | Simulazione/animazione sequenza innesco | ShotPlus, JKSimBlast | ✅ sì (3D) | ✅ | — già presente (nostro punto forte) |
 | Frammentazione Kuz-Ram/KCO/Swebrec + curva + fini | tutti | ✅ sì | ✅ | — già presente |
 | Vibrazioni scaled-distance/PPV | ShotPlus, RIOBLAST, O-Pitblast | ✅ sì (Devine) | ✅ | — già presente |

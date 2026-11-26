@@ -61,6 +61,17 @@ const DIFETTI = [
   [PAGINA, `const _scartoK = (measureGeom2D(D2).n===nf) ? scartoCaricheProprie(D2.holes, D2.kg) : 0;`, `const _scartoK = 0;`],
   [MODULO, `const _Hb=_profSua===null ? Hb : Math.max(0.5,_profSua), _kg=_kgSua===null ? kg : _kgSua;`, `const _Hb=Hb, _kg=kg;`],
   [MODULO, `if (sua !== null) s += sua - p; }`, `}`],
+  /* F3 — il comando: un valore uguale al progetto che resta «proprio», il
+     borraggio più lungo del foro accettato, il rombo non disegnato, i fori
+     bloccati scritti lo stesso, la selezione che scrive su un foro solo,
+     la previsione che tace, la modifica che non si può annullare */
+  [MODULO, `if (Number.isFinite(p) && v === p) v = null;`, ``],
+  [MODULO, `if (corti) return fermo('borraggio-oltre-il-foro', { corti });`, ``],
+  [PAGINA, `if(Object.keys(valoriPropriDiForo(h)).length){\n      const rx=cx+9.5`, `if(false){\n      const rx=cx+9.5`],
+  [PAGINA, `if(bloccati()){ renderInspector(); return; }`, ``],
+  [PAGINA, `valoriForoCollega(_multi);`, `valoriForoCollega([_multi[0]]);`],
+  [PAGINA, `(_nPropri?' <span id="x50-foro-tipo">foro tipo</span>':'')`, `''`],
+  [PAGINA, `d2PushUndo(); D2.holes=es.fori; dopo();`, `D2.holes=es.fori; dopo();`],
 ];
 
 const colpiti = new Set();
@@ -353,6 +364,108 @@ if (prima && prima.colonneTrovate) {
   dice(dopoS.n === D2.n && dopoS.aMano === 0 && dopoS.conKg === 0, `cambiato l'interasse, la maglia si rigenera: i fori non sono più quelli (${dopoS.n} fori, nessuno a mano)`, dopoS);
   dice(/ritardo messo a mano non vale più/.test(detto) && /foro con valori suoi è tornato a quelli del progetto/.test(detto),
     "⛔ e dice che cosa si è perso: il ritardo a mano E il foro con valori suoi", detto);
+}
+
+/* 8. F3 — IL COMANDO: dare a un foro (o a più fori) carica, profondità e
+   borraggio suoi, dalla scheda del foro. Si usa come lo usa una persona:
+   clic sul foro, si scrive nel campo, si conferma. */
+{
+  console.log("\n── F3: il comando dalla scheda del foro ──");
+  await pg.evaluate(() => { window.__toasts.length = 0; });
+  const P = await pg.evaluate(() => { const d = window.__genesi.D2; return { kg: d.kg, prof: d.prof, stem: d.stem, n: d.holes.length }; });
+  const clic = async (i, shift) => {
+    await pg.locator("#d2-canvas").scrollIntoViewIfNeeded(); await pg.waitForTimeout(120);
+    const box = await pg.locator("#d2-canvas").boundingBox();
+    const rel = await pg.evaluate((i) => { const D = window.__genesi.D2, m = D._m, c = document.getElementById("d2-canvas"), h = D.holes[i];
+      return { x: (m.startX + h.mx * m.scale) / c.width, y: (m.faceY + h.my * m.scale) / c.height }; }, i);
+    if (shift) await pg.keyboard.down("Shift");
+    await pg.mouse.move(box.x + rel.x * box.width, box.y + rel.y * box.height); await pg.mouse.down(); await pg.mouse.up();
+    if (shift) await pg.keyboard.up("Shift");
+    await pg.waitForTimeout(220);
+  };
+  const campo = async (id, v) => { await pg.evaluate(([id, v]) => { window.__toasts.length = 0; const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event("change", { bubbles: true })); }, [id, v]); await pg.waitForTimeout(380); };
+  const stato = () => pg.evaluate(() => { const D = window.__genesi.D2; const v = (id) => { const e = document.getElementById(id); return e ? e.value : null; };
+    return { fori: D.holes.map((h) => ({ kg: h.kg, prof: h.prof, stem: h.stem })), sel: D.sel, kgC: v("diKg"), profC: v("diProf"), stemC: v("diStem"),
+      nota: (document.getElementById("diValNota") || {}).textContent || "", torna: !!document.getElementById("diValProg"), toast: window.__toasts.join(" | "),
+      testo: (document.getElementById("d2-insp") || {}).innerText || "", totale: (document.getElementById("dKgTot") || {}).value } ; });
+  /* il rombo: il pixel al suo centro, sulla tela, è bianco? */
+  const rombo = (i) => pg.evaluate((i) => { const D = window.__genesi.D2, m = D._m, c = document.getElementById("d2-canvas"), h = D.holes[i];
+    const x = Math.round(m.startX + h.mx * m.scale + 9.5), y = Math.round(m.faceY + h.my * m.scale - 9.5);
+    const d = c.getContext("2d").getImageData(x, y, 1, 1).data; return d[0] > 235 && d[1] > 235 && d[2] > 235; }, i);
+  const num = (t) => +String(t).replace(/\./g, "").replace(",", ".");
+
+  await clic(2, false);
+  let s = await stato();
+  dice(s.sel === 2 && s.kgC !== null && s.profC !== null && s.stemC !== null, "cliccato un foro, la sua scheda ha i tre campi: carica, profondità, borraggio", s.testo);
+  dice(num(s.kgC) === P.kg && num(s.profC) === P.prof && num(s.stemC) === P.stem, `e nascono coi valori del progetto (${s.kgC} kg · ${s.profC} m · ${s.stemC} m)`, s);
+  dice(/dal progetto/.test(s.nota) && !s.torna, "e la scheda dice che vengono dal progetto: nessun «torna al progetto» da premere", s.nota);
+  dice(!(await rombo(2)), "sulla pianta il foro non ha nessun segno", "");
+
+  await campo("diKg", "35");
+  s = await stato();
+  dice(s.fori[2].kg === 35 && s.fori.filter((h) => h.kg != null).length === 1, "⛔ scritto 35 nella carica: il foro ha 35 kg suoi, e solo lui", s.fori[2]);
+  dice(/Foro \d+: carica 35 kg/.test(s.toast) && /non più quella del progetto/.test(s.toast), "lo dice, col valore del progetto accanto", s.toast);
+  dice(/carica sua/.test(s.nota) && s.torna, "la scheda lo segna («carica sua») e offre di tornare ai valori del progetto", s.nota);
+  dice(await rombo(2), "⛔ e sulla pianta il foro ha il suo ROMBO: si riconosce senza aprirlo", "");
+  dice(!(await rombo(3)), "il foro accanto, che non ha valori suoi, no", "");
+  dice(num(s.totale) === Math.round(P.n * P.kg + (35 - P.kg)), `l'esplosivo totale segue: ${P.n} × ${P.kg} − ${P.kg - 35} = ${Math.round(P.n * P.kg + (35 - P.kg))} kg (letto ${s.totale})`, s.totale);
+  const x50 = await pg.evaluate(() => { const e = document.getElementById("x50-foro-tipo"); return e ? e.textContent : null; });
+  dice(x50 === "foro tipo", "⛔ e accanto alla X50 prevista compare «foro tipo»: la frammentazione non conosce le cariche per foro, e lo dice", x50);
+  const p3 = await pianoDiCarico();
+  const id2 = await pg.evaluate(() => window.__genesi.D2.holes[2].id);
+  dice(!!p3 && +p3.perId[id2].kg === 35, "il piano di carico esce con 35 kg su quel foro: il comando e il documento dicono lo stesso numero", p3 && p3.perId[id2] && p3.perId[id2].riga);
+
+  /* annulla */
+  await pg.evaluate(() => document.getElementById("d2Undo").click()); await pg.waitForTimeout(350);
+  s = await stato();
+  dice(s.fori[2].kg === undefined, "⛔ «annulla» toglie la carica appena scritta", s.fori[2]);
+  await clic(2, false); await campo("diKg", "35");
+
+  /* uguale al progetto = lo segue */
+  await campo("diKg", String(P.kg).replace(".", ","));
+  s = await stato();
+  dice(s.fori[2].kg === undefined && /di nuovo quella del progetto/.test(s.toast), `⛔ riscritta la carica del progetto (${P.kg}), il foro torna a SEGUIRLO: nessun valore proprio resta`, [s.fori[2], s.toast]);
+  dice(!(await rombo(2)) && !s.torna, "e il rombo sparisce", s.nota);
+  dice((await pg.evaluate(() => !!document.getElementById("x50-foro-tipo"))) === false, "e «foro tipo» accanto alla X50 pure: nessun foro è più diverso", "");
+
+  /* ciò che non si legge e ciò che è fuori limite */
+  await campo("diKg", "abc");
+  s = await stato();
+  dice(s.fori[2].kg === undefined && /non è un numero/.test(s.toast) && num(s.kgC) === P.kg, "«abc» nella carica: rifiutato con la sua frase, e il campo torna al valore vero", [s.toast, s.kgC]);
+  await campo("diKg", "250");
+  s = await stato();
+  dice(s.fori[2].kg === undefined && /massimo è 200/.test(s.toast), "250 kg: oltre il massimo, rifiutato", s.toast);
+  await campo("diProf", "2");
+  s = await stato();
+  dice(s.fori[2].prof === undefined && /borraggio più lungo del foro/.test(s.toast), `⛔ profondità 2 m con ${String(P.stem).replace(".", ",")} m di borraggio: rifiutato, il borraggio non può essere più lungo del foro`, [s.fori[2], s.toast]);
+  await campo("diKg", "0");
+  s = await stato();
+  dice(s.fori[2].kg === 0, "⛔ zero chilogrammi si scrive: è un foro lasciato scarico, non «nessun valore»", s.fori[2]);
+  await campo("diKg", "");
+  s = await stato();
+  dice(s.fori[2].kg === undefined, "campo svuotato: il foro torna alla carica del progetto", s.fori[2]);
+
+  /* più fori insieme */
+  await clic(0, true); await clic(1, true); await clic(3, true);
+  s = await stato();
+  dice(/3 fori selezionati/.test(s.testo) && s.kgC !== null, "con tre fori scelti (Maiusc+clic) la scheda è quella della selezione, con gli stessi tre campi", s.testo.slice(0, 120));
+  await campo("diKg", "40");
+  s = await stato();
+  dice(s.fori[0].kg === 40 && s.fori[1].kg === 40 && s.fori[3].kg === 40 && s.fori.filter((h) => h.kg != null).length === 3,
+    "⛔ scritto 40: tutti e tre i fori scelti hanno 40 kg, e nessun altro", s.fori.map((h) => h.kg));
+  dice(/3 fori: carica 40 kg/.test(s.toast), "e lo dice contandoli", s.toast);
+  dice(num(s.totale) === Math.round(P.n * P.kg + 3 * (40 - P.kg)), `l'esplosivo totale: ${Math.round(P.n * P.kg + 3 * (40 - P.kg))} kg (letto ${s.totale})`, s.totale);
+  /* fori bloccati */
+  await pg.evaluate(() => { window.__genesi.D2.strati.fori.bloccato = true; });
+  await campo("diKg", "45");
+  s = await stato();
+  dice(s.fori[0].kg === 40 && /bloccati/.test(s.toast), "⛔ coi fori BLOCCATI non si scrive: restano a 40, e lo dice", [s.fori[0], s.toast]);
+  await pg.evaluate(() => { window.__genesi.D2.strati.fori.bloccato = false; });
+  /* torna ai valori del progetto */
+  await pg.evaluate(() => { window.__toasts.length = 0; document.getElementById("diValProg").click(); }); await pg.waitForTimeout(380);
+  s = await stato();
+  dice(s.fori.every((h) => h.kg === undefined && h.prof === undefined && h.stem === undefined) && /3 fori tornati ai valori del progetto/.test(s.toast),
+    "⛔ «valori del progetto»: i tre fori tornano tutti, in un colpo", [s.fori.filter((h) => h.kg != null).length, s.toast]);
 }
 dice(pg.__err.length === 0, "la pagina non solleva errori", pg.__err.slice(0, 2));
 

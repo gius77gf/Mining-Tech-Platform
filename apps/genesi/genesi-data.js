@@ -2561,6 +2561,119 @@ export function valoriPropriDiForo(h){
   return out;
 }
 
+/* ══════════════════════════════════════════════════════════════════════
+   F3 (26/11) — DARE A UNO O PIÙ FORI UN VALORE LORO, dalla tastiera.
+   ══════════════════════════════════════════════════════════════════════
+   Fino a qui un foro poteva PORTARE un valore suo (F1) e i conti lo
+   leggevano (F2), ma l'unico modo di scriverlo era aprire un file salvato.
+   Queste sono le regole del comando; la pagina le chiama dalla scheda del
+   foro e non ne tiene una copia.
+   I LIMITI. In alto sono gli stessi del progetto (200 kg, 18 m, 6 m): un
+   secondo modo di scrivere la stessa grandezza non può essere più largo del
+   primo, e lì il limite serve a fermare l'«85» battuto per «8,5». In BASSO
+   sono più larghi di proposito, ed è la ragione per cui il foro per foro
+   esiste: 0 kg è un foro lasciato scarico, 0 m di borraggio un foro non
+   borrato, 2 m di profondità un foro franato. Solo la profondità zero non è
+   un foro (la stessa regola di F1, `_REGOLE_PER_FORO`).
+   LE QUATTRO REGOLE, provate in scratchpad prima di scriverle qui:
+    · un valore UGUALE a quello del progetto non diventa un valore proprio:
+      il foro torna a seguire il progetto (e lo si dice). Se no ogni foro
+      «toccato» resterebbe segnato sulla pianta per un numero che non lo
+      distingue da niente, e il file salvato guadagnerebbe chiavi;
+    · `null` toglie il valore proprio;
+    · il BORRAGGIO NON PUÒ ESSERE PIÙ LUNGO DEL FORO, e si guarda su ogni
+      foro scelto col valore che avrebbe DOPO: vale anche quando il valore
+      «dopo» è quello del progetto. Togliere il solo borraggio proprio a un
+      foro di 2 m lo lascerebbe con i 2,2 m del progetto — trovato dal
+      prototipo, non pensato prima. Per questo «torna ai valori del
+      progetto» è un'operazione sola (`foriSenzaValoriPropri`), non tre;
+    · tutto o niente: se un foro scelto non regge, non si scrive su nessuno.
+   Non si tocca l'array ricevuto né i suoi fori (l'annulla della pagina
+   tiene le fotografie di prima): i fori cambiati sono oggetti nuovi, gli
+   altri gli stessi di prima; se non cambia niente torna lo STESSO array. */
+export const LIMITI_PER_FORO = {
+  kg:   { min: 0, max: 200, unita: 'kg', nome: 'la carica del foro' },
+  prof: { positivo: true, max: 18, unita: 'm', nome: 'la profondità del foro' },
+  stem: { min: 0, max: 6, unita: 'm', nome: 'il borraggio del foro' },
+};
+const _indiciDiFori = (H, indici) => [...new Set((Array.isArray(indici) ? indici : []).filter((i) => Number.isInteger(i) && i >= 0 && i < H.length))];
+/* quanti dei fori `scelti` resterebbero col borraggio più lungo del foro, se diventassero `dopo(h)` */
+const _foriTroppoCorti = (H, scelti, dopo, progetto) => scelti.filter((i) => {
+  const d = dopo(H[i]);
+  const pr = valoreDiForo(d, 'prof', progetto), st = valoreDiForo(d, 'stem', progetto);
+  return pr !== null && st !== null && st > pr;
+}).length;
+export function foriConValoreProprio(holes, indici, campo, valore, progetto){
+  const H = Array.isArray(holes) ? holes : [];
+  const fermo = (motivo, extra) => ({ fori: H, toccati: 0, tornati: 0, valore: null, segueProgetto: false, motivo, ...(extra || {}) });
+  const L = LIMITI_PER_FORO[campo];
+  if (!L) return fermo('campo-non-per-foro');
+  const scelti = _indiciDiFori(H, indici);
+  if (!scelti.length) return fermo('nessun-foro');
+  let v = null;
+  if (valore !== null && valore !== undefined && valore !== ''){
+    v = +valore;
+    if (!Number.isFinite(v) || (L.positivo ? !(v > 0) : v < L.min) || v > L.max) return fermo('fuori-limiti');
+    const p = _numForo(progetto && progetto[campo]);
+    if (Number.isFinite(p) && v === p) v = null;
+  }
+  const dopo = (h) => { const n = { ...h }; if (v === null) delete n[campo]; else n[campo] = v; return n; };
+  if (campo === 'stem' || campo === 'prof'){
+    const corti = _foriTroppoCorti(H, scelti, dopo, progetto);
+    if (corti) return fermo('borraggio-oltre-il-foro', { corti });
+  }
+  let toccati = 0, tornati = 0;
+  const set = new Set(scelti);
+  const fori = H.map((h, i) => {
+    if (!set.has(i)) return h;
+    const prima = valoreProprioDiForo(h, campo);
+    if (v === null ? !(h && campo in h) : prima === v) return h;
+    toccati++; if (v === null && prima !== null) tornati++;
+    return dopo(h);
+  });
+  return { fori: toccati ? fori : H, toccati, tornati, valore: v, segueProgetto: v === null, motivo: null };
+}
+/* «torna ai valori del progetto»: via TUTTI i valori propri dei fori scelti, in un colpo */
+export function foriSenzaValoriPropri(holes, indici, progetto){
+  const H = Array.isArray(holes) ? holes : [];
+  const scelti = _indiciDiFori(H, indici);
+  if (!scelti.length) return { fori: H, toccati: 0, motivo: 'nessun-foro' };
+  const dopo = (h) => { const n = { ...h }; for (const c of CAMPI_PER_FORO) delete n[c]; return n; };
+  const corti = _foriTroppoCorti(H, scelti, dopo, progetto);
+  if (corti) return { fori: H, toccati: 0, motivo: 'borraggio-oltre-il-foro', corti };
+  let toccati = 0;
+  const set = new Set(scelti);
+  const fori = H.map((h, i) => {
+    if (!set.has(i) || !CAMPI_PER_FORO.some((c) => h && c in h)) return h;
+    toccati++; return dopo(h);
+  });
+  return { fori: toccati ? fori : H, toccati, motivo: null };
+}
+/* che cosa scrivere nel campo quando i fori scelti sono più d'uno: il valore
+   se è lo stesso per tutti, `null` + `diversi` se no (il campo resta vuoto e
+   lo dice — una media non è il valore di nessuno di loro) */
+export function valoreComuneDiFori(holes, indici, campo, progetto){
+  const H = Array.isArray(holes) ? holes : [];
+  const scelti = _indiciDiFori(H, indici);
+  if (!LIMITI_PER_FORO[campo] || !scelti.length) return { n: 0, valore: null, diversi: false, propri: 0 };
+  const vals = scelti.map((i) => valoreDiForo(H[i], campo, progetto));
+  const uguali = vals.every((x) => x === vals[0]);
+  return { n: scelti.length, valore: uguali ? vals[0] : null, diversi: !uguali,
+    propri: scelti.filter((i) => valoreProprioDiForo(H[i], campo) !== null).length };
+}
+/* quanti fori hanno un valore loro, in tutto e campo per campo: lo chiedono
+   l'avviso accanto alle previsioni e quello della maglia rigenerata */
+export function contaValoriPropri(holes){
+  const out = { fori: 0 };
+  for (const c of CAMPI_PER_FORO) out[c] = 0;
+  for (const h of (Array.isArray(holes) ? holes : [])){
+    let qualcuno = false;
+    for (const c of CAMPI_PER_FORO) if (valoreProprioDiForo(h, c) !== null){ out[c]++; qualcuno = true; }
+    if (qualcuno) out.fori++;
+  }
+  return out;
+}
+
 /* ══════════════════════════════════════════════════════════════════════════
    LA FIRMA DELLA MAGLIA (26/11) — quando i fori «non sono più quelli».
    ══════════════════════════════════════════════════════════════════════════
