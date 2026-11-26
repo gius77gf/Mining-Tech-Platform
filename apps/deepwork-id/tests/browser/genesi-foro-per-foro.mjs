@@ -59,6 +59,7 @@ const DIFETTI = [
   [MODULO, `return { kg: (T - somma) / liberi, propri, liberi, sommaProprie: somma };`, `return { kg: T / N, propri, liberi, sommaProprie: somma };`],
   [PAGINA, `if(_stessiFori) computeSeq2D(); else genMaglia2D();`, `genMaglia2D();`],
   [PAGINA, `const _scartoK = (measureGeom2D(D2).n===nf) ? scartoCaricheProprie(D2.holes, D2.kg) : 0;`, `const _scartoK = 0;`],
+  [MODULO, `const _Hb=_profSua===null ? Hb : Math.max(0.5,_profSua), _kg=_kgSua===null ? kg : _kgSua;`, `const _Hb=Hb, _kg=kg;`],
 ];
 
 const colpiti = new Set();
@@ -256,6 +257,38 @@ if (prima && prima.colonneTrovate) {
   dice(tutti.kg === 50 && /non c'è nessun foro su cui distribuire/.test(tutti.toast),
     `⛔ tutti i fori con una carica propria: niente da distribuire, lo dice e non divide per zero (carica del progetto ${tutti.kg})`, tutti);
   await pg.evaluate(() => { for (const h of window.__genesi.D2.holes) delete h.kg; });
+
+  /* 6a. F2 — NEL PIANO DI CARICO anche il VOLUME servito e il CONSUMO
+     SPECIFICO della riga sono quelli di QUEL foro: dimezzando la profondità
+     di un foro il suo volume dimezza, e raddoppiandogli la carica il suo
+     consumo raddoppia. Le colonne si cercano per nome, non per posizione. */
+  {
+    const leggiPf = async () => {
+      await pg.evaluate(() => { window.__genesi.renderScheda2D(); window.__usciti.length = 0; document.getElementById("btn-piano-csv").click(); });
+      await pg.waitForTimeout(900);
+      const f = (await pg.evaluate(() => window.__usciti)).find((x) => /piano_carico/.test(x.nome));
+      const righe = decodeURIComponent(f.href.split(",").slice(1).join(",")).split(/\r?\n/).filter((r) => r.trim());
+      const testa = righe[0].split(";"), iId = testa.indexOf("id_foro"), iV = testa.findIndex((c) => /^volume_servito/.test(c)), iP = testa.findIndex((c) => /^pf_/.test(c));
+      const out = {}; for (const r of righe.slice(1)) { const c = r.split(";"); out[c[iId]] = { vol: +c[iV], pf: +c[iP] }; }
+      return { out, trovate: iV >= 0 && iP >= 0 };
+    };
+    const kgP = await pg.evaluate(() => window.__genesi.D2.kg), profP = await pg.evaluate(() => window.__genesi.D2.prof);
+    /* i numeri per foro si ricalcolano con la sequenza: la si fa ripartire come farebbe l'utente,
+       ritoccando un campo che con la geometria non c'entra (e che, dal 26/11, non rigenera i fori) */
+    const ricalcola = async () => { await pg.evaluate(() => { const el = document.getElementById("dStem"); el.dispatchEvent(new Event("change", { bubbles: true })); }); await pg.waitForTimeout(400); };
+    await ricalcola();
+    const p0 = await leggiPf();
+    dice(p0.trovate && p0.out[a].vol > 0 && p0.out[a].pf > 0, `il piano di carico porta volume servito e consumo specifico per foro (${a}: ${p0.out[a] && p0.out[a].vol} m³ · ${p0.out[a] && p0.out[a].pf} kg/m³)`, p0.out[a]);
+    await pg.evaluate(([a, b, kgP, profP]) => { const H = window.__genesi.D2.holes; H.find((h) => h.id === a).kg = kgP * 2; H.find((h) => h.id === b).prof = profP / 2; }, [a, bForo, kgP, profP]);
+    await ricalcola();
+    const p1 = await leggiPf();
+    dice(Math.abs(p1.out[a].pf - 2 * p0.out[a].pf) < 0.003 && p1.out[a].vol === p0.out[a].vol,
+      `⛔ raddoppiata la carica di ${a}, il SUO consumo specifico raddoppia (${p0.out[a].pf} → ${p1.out[a].pf}) e il volume resta ${p1.out[a].vol}`, p1.out[a]);
+    dice(Math.abs(p1.out[bForo].vol - p0.out[bForo].vol / 2) < 0.06,
+      `⛔ dimezzata la profondità di ${bForo}, il SUO volume servito dimezza (${p0.out[bForo].vol} → ${p1.out[bForo].vol})`, p1.out[bForo]);
+    dice(p1.out[c].pf === p0.out[c].pf && p1.out[c].vol === p0.out[c].vol, `e il foro ${c}, che non è stato toccato, ha gli stessi numeri`, p1.out[c]);
+    await pg.evaluate(([a, b]) => { const H = window.__genesi.D2.holes; delete H.find((h) => h.id === a).kg; delete H.find((h) => h.id === b).prof; }, [a, bForo]);
+  }
 
   /* 6b. F2 — LA SCHEDA DEI NUMERI PRINCIPALI (computeKPI) conta sulla GRIGLIA
      di progetto. Finché in pianta i fori sono tanti quanti la griglia, segue

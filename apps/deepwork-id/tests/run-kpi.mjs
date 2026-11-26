@@ -28244,6 +28244,26 @@ console.log("\n— Campo: i file che escono —");
       eq(cB.H, cA.H, `${cA.H.length} fori: la nuova forma deve coincidere byte per byte con la vecchia`);
     }
   });
+  test("⛔ Genesi · F2, energiaSuMaglia: volume e consumo specifico di un foro usano la SUA profondità e la SUA carica — e senza valori propri niente cambia", () => {
+    const nuova = () => genesi.generaMaglia(3, 3.5, 2, 5, 3, false).map((h) => ({ ...h }));
+    const base = nuova(); genesi.energiaSuMaglia(base, 10, 3.5, 58, []);
+    ok(base.every((h) => Number.isFinite(h.pfLoc) && Number.isFinite(h.volLoc)), "la maglia di prova si calcola (ogni foro ha volume e consumo)");
+    /* neutralità: gli stessi fori con chiavi «non dichiarate» danno gli stessi numeri */
+    const vuoti = nuova().map((h) => ({ ...h, kg: null, prof: "" })); genesi.energiaSuMaglia(vuoti, 10, 3.5, 58, []);
+    eq(vuoti.map((h) => [h.volLoc, h.pfLoc]), base.map((h) => [h.volLoc, h.pfLoc]), "null e stringa vuota sul foro non sono valori propri: numeri identici");
+    /* un foro col doppio della carica: il SUO consumo raddoppia, il volume no, gli altri fori non si muovono */
+    const con = nuova(); con[1].kg = 116; genesi.energiaSuMaglia(con, 10, 3.5, 58, []);
+    ok(Math.abs(con[1].pfLoc - 2 * base[1].pfLoc) < 0.002, `⛔ il foro a 116 kg ha il doppio del consumo specifico (${base[1].pfLoc} → ${con[1].pfLoc})`);
+    eq(con[1].volLoc, base[1].volLoc, "il suo volume servito non cambia: la carica non sposta la roccia da rompere");
+    eq(con.filter((_, i) => i !== 1).map((h) => [h.volLoc, h.pfLoc]), base.filter((_, i) => i !== 1).map((h) => [h.volLoc, h.pfLoc]), "gli altri nove fori identici");
+    /* un foro profondo la metà: il SUO volume dimezza, e a parità di carica il consumo raddoppia */
+    const corto = nuova(); corto[2].prof = 5; genesi.energiaSuMaglia(corto, 10, 3.5, 58, []);
+    ok(Math.abs(corto[2].volLoc - base[2].volLoc / 2) < 0.06, `⛔ il foro profondo 5 m serve metà del volume (${base[2].volLoc} → ${corto[2].volLoc})`);
+    ok(Math.abs(corto[2].pfLoc - 2 * base[2].pfLoc) < 0.004, `e con la stessa carica il suo consumo specifico raddoppia (${base[2].pfLoc} → ${corto[2].pfLoc})`);
+    /* un foro scarico: consumo zero, numero vero */
+    const scarico = nuova(); scarico[0].kg = 0; genesi.energiaSuMaglia(scarico, 10, 3.5, 58, []);
+    eq(scarico[0].pfLoc, 0, "un foro scarico ha consumo specifico 0: è un dato, non un «non calcolabile»");
+  });
   test("⛔ Genesi · energiaSuMaglia: senza fori non tocca niente, non solleva errori", () => {
     genesi.energiaSuMaglia(null, 10, 3.5, 45, []);
     genesi.energiaSuMaglia(undefined, 10, 3.5, 45, []);

@@ -3549,9 +3549,15 @@ export function energiaSuMaglia(H, prof, S, kg, profilo){
       const b=Math.max(.2, h.my-yPrec);
       const dPerp = (davanti.length>1) ? distanzaDaSpezzata(h.mx,py,davanti) : null;
       h.burdenVero = dPerp!=null ? +dPerp.toFixed(2) : null;
-      const s=Math.max(.2, sx+dx), vol=b*s*Hb;
+      /* F2 (26/11): il volume servito e il consumo specifico di QUESTO foro
+         usano la SUA profondità e la SUA carica, se ne ha (`valoreProprioDiForo`);
+         se no quelle della volata, e allora il conto è quello di prima, alla
+         cifra — stesse variabili, stessa formula. */
+      const _profSua=valoreProprioDiForo(h,'prof'), _kgSua=valoreProprioDiForo(h,'kg');
+      const _Hb=_profSua===null ? Hb : Math.max(0.5,_profSua), _kg=_kgSua===null ? kg : _kgSua;
+      const s=Math.max(.2, sx+dx), vol=b*s*_Hb;
       h.burdenLoc=+b.toFixed(2); h.spazLoc=+s.toFixed(2);
-      h.volLoc=+vol.toFixed(1); { const _p=consumoSpecifico(kg, vol); h.pfLoc = _p===null?null:+_p.toFixed(3); }
+      h.volLoc=+vol.toFixed(1); { const _p=consumoSpecifico(_kg, vol); h.pfLoc = _p===null?null:+_p.toFixed(3); }
       h.enX0=h.mx-sx; h.enX1=h.mx+dx; h.enY0=yPrec; h.enY1=h.my; h.enFila=r;
     }
   }
