@@ -60,6 +60,7 @@ const DIFETTI = [
   [PAGINA, `if(_stessiFori) computeSeq2D(); else genMaglia2D();`, `genMaglia2D();`],
   [PAGINA, `const _scartoK = (measureGeom2D(D2).n===nf) ? scartoCaricheProprie(D2.holes, D2.kg) : 0;`, `const _scartoK = 0;`],
   [MODULO, `const _Hb=_profSua===null ? Hb : Math.max(0.5,_profSua), _kg=_kgSua===null ? kg : _kgSua;`, `const _Hb=Hb, _kg=kg;`],
+  [MODULO, `if (sua !== null) s += sua - p; }`, `}`],
 ];
 
 const colpiti = new Set();
@@ -288,6 +289,22 @@ if (prima && prima.colonneTrovate) {
       `⛔ dimezzata la profondità di ${bForo}, il SUO volume servito dimezza (${p0.out[bForo].vol} → ${p1.out[bForo].vol})`, p1.out[bForo]);
     dice(p1.out[c].pf === p0.out[c].pf && p1.out[c].vol === p0.out[c].vol, `e il foro ${c}, che non è stato toccato, ha gli stessi numeri`, p1.out[c]);
     await pg.evaluate(([a, b]) => { const H = window.__genesi.D2.holes; delete H.find((h) => h.id === a).kg; delete H.find((h) => h.id === b).prof; }, [a, bForo]);
+  }
+
+  /* 6a-bis. F2 — I METRI PERFORATI nella scheda dei costi sono quelli VERI:
+     fori × (profondità + sottoperforazione), più o meno i metri dei fori che
+     hanno una profondità loro. */
+  {
+    const metri = async () => { await pg.evaluate(() => window.__genesi.renderScheda2D()); await pg.waitForTimeout(150);
+      return pg.evaluate(() => { const m = /Perforazione\s*([\d.]+)\s*m\b/.exec(document.getElementById("d2-scheda").innerText); return m ? +m[1].replace(/\./g, "") : null; }); };
+    const [profP, subP] = await pg.evaluate(() => [window.__genesi.D2.prof, window.__genesi.D2.sub || 0]);
+    const m0 = await metri();
+    dice(m0 === Math.round(D2.n * (profP + subP)), `scheda dei costi: senza profondità proprie ${D2.n} × (${profP} + ${subP}) = ${Math.round(D2.n * (profP + subP))} m (letto ${m0})`, m0);
+    await pg.evaluate(([a, profP]) => { window.__genesi.D2.holes.find((h) => h.id === a).prof = profP - 4; }, [a, profP]);
+    const m1 = await metri();
+    dice(m1 === Math.round(D2.n * (profP + subP) - 4), `⛔ un foro più corto di 4 m: i metri perforati scendono di 4 (${m0} → ${m1})`, m1);
+    await pg.evaluate((a) => { delete window.__genesi.D2.holes.find((h) => h.id === a).prof; }, a);
+    dice((await metri()) === m0, "e tolta quella profondità propria tornano quelli di prima", m0);
   }
 
   /* 6b. F2 — LA SCHEDA DEI NUMERI PRINCIPALI (computeKPI) conta sulla GRIGLIA

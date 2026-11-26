@@ -29099,6 +29099,19 @@ console.log("\n— Campo: i file che escono —");
     eq([vero.qtot, vero.expl], [289, 578], "con lo scarto: 289 kg di esplosivo, pagati 2 al chilo");
     eq([vero.perf, vero.innesco], [base.perf, base.innesco], "perforazione e inneschi non c'entrano con la carica: invariati");
   });
+  test("⛔ Genesi · F2, scartoProfonditaProprie e metriPerforati: i metri VERI della volata, e senza profondità proprie il conto di prima alla cifra", () => {
+    const H = (mod) => [0, 1, 2, 3, 4].map((i) => ({ mx: i, my: 3, ...(mod[i] || {}) }));
+    eq(v.scartoProfonditaProprie(H({}), 10), 0, "nessun foro ha una profondità sua: scarto zero");
+    eq(v.scartoProfonditaProprie(H({ 1: { prof: 8.5 }, 3: { prof: 12 } }), 10), 0.5, "8,5 e 12 al posto di due 10: −1,5 + 2 = +0,5 m");
+    eq(v.scartoProfonditaProprie(H({ 0: { prof: 0 }, 1: { prof: null }, 2: { prof: -3 } }), 10), 0, "zero, null e negativo non sono profondità proprie");
+    eq(v.scartoProfonditaProprie(H({ 0: { prof: 8 } }), null), null, "⛔ senza la profondità del progetto lo scarto non si può dire");
+    for (const prof of [10, 9.7, 12.35]) for (const nf of [1, 7, 12, 40]) for (const sub of [undefined, 0, 0.9])
+      for (const sc of [undefined, 0, null, "", "abc"])
+        ok(Object.is(v.metriPerforati(nf, prof, sub, sc), v.metriPerforati(nf, prof, sub)), `metriPerforati(${nf}, ${prof}, ${sub}, ${JSON.stringify(sc)}) è il conto di prima alla cifra`);
+    eq(v.metriPerforati(5, 10, 0.9, v.scartoProfonditaProprie(H({ 1: { prof: 8.5 }, 3: { prof: 12 } }), 10)), 55, "cinque fori, sottoperforazione 0,9: 5 × 10,9 + 0,5 = 55 m");
+    eq(v.metriPerforati(5, null, 0.9, 3), null, "⛔ senza la profondità del progetto resta non calcolabile, qualunque scarto arrivi");
+    eq(v.metriPerforati(5, 10, "abc", 3), null, "e una sottoperforazione illeggibile ferma ancora il conto");
+  });
   test("⛔ Genesi · F2, caricaProgettoDaTotale: il totale scritto si distribuisce sui fori SENZA una carica propria — e senza proprie è totale / fori alla cifra", () => {
     const H = (mod) => Array.from({ length: 12 }, (_, i) => ({ id: "f" + i, ...(mod[i] || {}) }));
     for (const [T, N] of [[696, 12], [1234.5, 7], [58.3, 3], [4680, 40], [0.1, 1]])

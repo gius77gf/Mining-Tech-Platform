@@ -1269,7 +1269,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, reliefCls, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino, activeProf, d2HitTest, d2HitTestPt,
-         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfLeggi, dxfFraseNonLette, valoriPropriDiForo, valoreDiForo, scartoCaricheProprie, caricaProgettoDaTotale, firmaMaglia, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, foriRiflessi, trattiRuotati, trattiScalati, coordinataRelativa, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
+         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfLeggi, dxfFraseNonLette, valoriPropriDiForo, valoreDiForo, scartoCaricheProprie, scartoProfonditaProprie, caricaProgettoDaTotale, firmaMaglia, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, foriRiflessi, trattiRuotati, trattiScalati, coordinataRelativa, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -3503,7 +3503,8 @@ function computeKPI(){
      nominale del progetto, com'è sempre stato — la carica vera dei fori
      disegnati la dicono scheda dei costi, report e scheda volata. */
   const _scartoK = (measureGeom2D(D2).n===nf) ? scartoCaricheProprie(D2.holes, D2.kg) : 0;
-  const _cK=costoVolata({ nf, kg:D2.kg, scartoKg:_scartoK, mPerf:metriPerforati(nf, D2.prof, D2.sub),
+  const _scartoM = (measureGeom2D(D2).n===nf) ? scartoProfonditaProprie(D2.holes, D2.prof) : 0;   // stessa regola dello scarto delle cariche: solo se i fori in pianta sono quanti la griglia
+  const _cK=costoVolata({ nf, kg:D2.kg, scartoKg:_scartoK, mPerf:metriPerforati(nf, D2.prof, D2.sub, _scartoM),
     cPerf:D2.cPerf, cExpl:D2.cExpl, cInnesco:D2.cInnesco });
   const qtot=_cK.qtot;
   const fly=flyrockEst();
@@ -3674,7 +3675,7 @@ if($('btn-scheda-csv')) $('btn-scheda-csv').onclick=()=>{
      file che il fochino porta in cava accanto al rapportino. Rifatto lo
      stesso conto del Report, sugli stessi fori che il foglio descrive. */
   const _gCsv=measureGeom2D(D2), _nfCsv=_gCsv.n;
-  const _cKCsv=costoVolata({ nf:_nfCsv, kg:D2.kg, scartoKg:scartoCaricheProprie(D2.holes, D2.kg), mPerf:metriPerforati(_nfCsv, D2.prof, D2.sub),
+  const _cKCsv=costoVolata({ nf:_nfCsv, kg:D2.kg, scartoKg:scartoCaricheProprie(D2.holes, D2.kg), mPerf:metriPerforati(_nfCsv, D2.prof, D2.sub, scartoProfonditaProprie(D2.holes, D2.prof)),
     cPerf:D2.cPerf, cExpl:D2.cExpl, cInnesco:D2.cInnesco });
   /* ⛔ IL 07/08 QUESTO FILE ERA LA QUARTA SUPERFICIE CHE NON DICEVA DA DOVE
      VIENE LA PPV, dopo il foglio stampato (corretto il 06/08), la scheda
@@ -4081,7 +4082,7 @@ if($('btn-report')) $('btn-report').onclick=()=>{
      catalogo e tutte e sei hanno `rho` (misurato). Un `|| 2.5` lì era un
      ripiego che non poteva scattare, cioè un numero che nessuno avrebbe mai
      visto e che faceva sembrare sorvegliata una cosa che non lo era. */
-  const nf=g.n, mPerf=metriPerforati(nf, D2.prof, D2.sub);
+  const nf=g.n, mPerf=metriPerforati(nf, D2.prof, D2.sub, scartoProfonditaProprie(D2.holes, D2.prof));
   const _volForo=volumeForo(D2.B, D2.S, D2.prof), vol=(_volForo===null?null:nf*_volForo);
   const rho=R.rho, ton=(vol===null||!Number.isFinite(+rho))?null:vol*rho;
   const _cR=costoVolata({ nf, kg:D2.kg, scartoKg:scartoCaricheProprie(D2.holes, D2.kg), mPerf, vol, ton, valMat:D2.valMat,
@@ -7757,7 +7758,7 @@ function renderScheda2D(){
      scrive già. Il volume passa da `volumeForo` come in cima a questa stessa
      funzione: due domande uguali a venti righe di distanza non si scrivono in
      due modi. */
-  const _nf=g.n||0, _mPerf=metriPerforati(_nf, H, D2.sub);
+  const _nf=g.n||0, _mPerf=metriPerforati(_nf, H, D2.sub, scartoProfonditaProprie(D2.holes, H));
   const _volF=volumeForo(B,S,H), _vol=(_volF===null?null:_nf*_volF);
   const _rhoRock=(selRoccia()||{}).rho, _ton=(_vol===null||!Number.isFinite(+_rhoRock))?null:_vol*_rhoRock;
   const _cV=costoVolata({ nf:_nf, kg:Q, scartoKg:scartoCaricheProprie(D2.holes, Q), mPerf:_mPerf, vol:_vol, ton:_ton, valMat:D2.valMat,

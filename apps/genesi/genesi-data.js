@@ -1682,6 +1682,21 @@ export function scartoCaricheProprie(holes, kg){
   for (const h of (holes || [])){ const suo = valoreProprioDiForo(h, 'kg'); if (suo !== null) s += suo - q; }
   return s;
 }
+/* Lo stesso per la PROFONDITÀ (F2, 26/11): di quanti metri, in tutto, i fori
+   con una profondità loro si scostano da quella del progetto. Serve ai metri
+   perforati, che sono fori × (profondità + sottoperforazione): la
+   sottoperforazione resta quella del progetto, quindi lo scarto dei metri è
+   lo scarto delle profondità. Zero se nessun foro ne ha una; `null` se la
+   profondità del progetto non si legge. Due funzioni e non una con un
+   parametro: la carica ammette lo zero (foro scarico), la profondità no, e
+   quella differenza sta già scritta in `valoreProprioDiForo`. */
+export function scartoProfonditaProprie(holes, prof){
+  const p = (prof === null || prof === undefined || prof === '') ? NaN : +prof;
+  if (!Number.isFinite(p) || !(p > 0)) return null;
+  let s = 0;
+  for (const h of (holes || [])){ const sua = valoreProprioDiForo(h, 'prof'); if (sua !== null) s += sua - p; }
+  return s;
+}
 /* F2 (26/11) — IL VERSO INVERSO: da un TOTALE scritto dall'utente alla
    carica del progetto. Il campo «Esplosivo totale» della pagina è a due
    versi: mostra la carica della volata e, se ci si scrive un numero, ricalcola
@@ -2610,7 +2625,7 @@ export function foriDiProgetto(perRow, file){
    sottoperforazione) — e `null` se non si contano.
    `nf` sono i fori (di progetto o disegnati, lo decide il chiamante: è
    l'unica differenza fra i tre, come per `costoVolata`). */
-export function metriPerforati(nf, prof, sub){
+export function metriPerforati(nf, prof, sub, scarto){
   const n = (x) => (x === null || x === undefined || x === '') ? NaN : +x;
   const f = n(nf), h = n(prof);
   if (!(Number.isFinite(f) && f >= 0)) return null;
@@ -2620,7 +2635,11 @@ export function metriPerforati(nf, prof, sub){
     s = n(sub);
     if (!(Number.isFinite(s) && s >= 0)) return null;
   }
-  return f * (h + s);
+  /* `scarto` (F2, 26/11, da `scartoProfonditaProprie`): i metri in più o in
+     meno dei fori con una profondità loro. Assente, zero o illeggibile lascia
+     il conto esattamente com'era. */
+  const base = f * (h + s), sc = n(scarto);
+  return (Number.isFinite(sc) && sc !== 0) ? base + sc : base;
 }
 
 /* ══════════════════════════════════════════════════════════════════════
