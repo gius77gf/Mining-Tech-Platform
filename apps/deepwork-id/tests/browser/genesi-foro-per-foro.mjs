@@ -201,6 +201,31 @@ if (prima && prima.colonneTrovate) {
   await pg.evaluate(() => { for (const h of window.__genesi.D2.holes) { delete h.kg; delete h.prof; } });
   const totSenza = await caricaTotaleScheda();
   dice(totSenza === Math.round(D2.n * D2.kg), `e senza cariche proprie è ${D2.n} × ${D2.kg} = ${Math.round(D2.n * D2.kg)} kg, com'è sempre stato (letto ${totSenza})`, totSenza);
+
+  /* 5. F2 — LE ALTRE DUE SUPERFICI CHE MOSTRANO LA CARICA TOTALE: la scheda
+     dei costi nel Progetto («Esplosivo N kg · €») e il numero che parte per
+     Sentinella. Devono dire lo STESSO numero della scheda volata: tre
+     superfici, una carica. */
+  const leggiDue = async () => {
+    await pg.evaluate(() => window.__genesi.renderScheda2D());
+    await pg.waitForTimeout(150);
+    return pg.evaluate(() => {
+      const t = document.getElementById("d2-scheda").innerText;
+      const m = /Esplosivo\s*([\d.]+)\s*kg/.exec(t);
+      return { scheda: m ? +m[1].replace(/\./g, "") : null, sentinella: window.__genesi.sentKgTotali };
+    });
+  };
+  const base = await leggiDue();
+  dice(base.scheda === Math.round(D2.n * D2.kg) && base.sentinella === D2.n * D2.kg,
+    `senza cariche proprie: scheda dei costi ${base.scheda} kg e Sentinella ${base.sentinella} kg, cioè ${D2.n} × ${D2.kg}`, base);
+  await pg.evaluate((a) => { window.__genesi.D2.holes.find((h) => h.id === a).kg = 100; }, a);
+  const con = await leggiDue();
+  const vero = D2.n * D2.kg + (100 - D2.kg);
+  dice(con.scheda === Math.round(vero), `⛔ dato a un foro 100 kg, la scheda dei costi dice ${Math.round(vero)} kg (letto ${con.scheda})`, con);
+  dice(con.sentinella === vero, `⛔ e a Sentinella parte lo stesso numero (${con.sentinella})`, con);
+  const schedaCsv = await caricaTotaleScheda();
+  dice(schedaCsv === Math.round(vero), `e la scheda volata in CSV pure (${schedaCsv}): tre superfici, una carica`, schedaCsv);
+  await pg.evaluate((a) => { delete window.__genesi.D2.holes.find((h) => h.id === a).kg; }, a);
 }
 dice(pg.__err.length === 0, "la pagina non solleva errori", pg.__err.slice(0, 2));
 

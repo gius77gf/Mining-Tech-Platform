@@ -5129,7 +5129,8 @@ function _sentDati(){
      allo zero, che nel registro volate di Sentinella è la cosa più
      tranquillizzante che quel file possa dire. Il conto lo fa `caricaTotale`,
      che è la stessa funzione che lo fa a schermo e risponde `null`. */
-  const _kgTotSent=caricaTotale(nf, _m.caricaLeggibile?D2.kg:null);
+  /* F2 (26/11): la carica VERA — `nf` qui sono i fori in pianta (o la griglia solo se in pianta non ce n'è nessuno, e allora lo scarto è zero perché non c'è nessun foro a portarlo) */
+  const _kgTotSent=caricaTotale(nf, _m.caricaLeggibile?D2.kg:null, scartoCaricheProprie(D2.holes, D2.kg));
   return { nFori:nf,
     kgTotali:_kgTotSent===null?null:Math.round(_kgTotSent*10)/10,
     mic:mic===null?null:Math.round(mic*10)/10,
@@ -7744,7 +7745,7 @@ function renderScheda2D(){
   const _nf=g.n||0, _mPerf=metriPerforati(_nf, H, D2.sub);
   const _volF=volumeForo(B,S,H), _vol=(_volF===null?null:_nf*_volF);
   const _rhoRock=(selRoccia()||{}).rho, _ton=(_vol===null||!Number.isFinite(+_rhoRock))?null:_vol*_rhoRock;
-  const _cV=costoVolata({ nf:_nf, kg:Q, mPerf:_mPerf, vol:_vol, ton:_ton, valMat:D2.valMat,
+  const _cV=costoVolata({ nf:_nf, kg:Q, scartoKg:scartoCaricheProprie(D2.holes, Q), mPerf:_mPerf, vol:_vol, ton:_ton, valMat:D2.valMat,
     cPerf:D2.cPerf, cExpl:D2.cExpl, cInnesco:D2.cInnesco });
   const _kgTot=_cV.qtot, _cP=_cV.perf, _cE=_cV.expl, _cI=_cV.innesco, _cTot=_cV.tot;
   const _eur=(x)=>'€'+gnum(x,0);                                        // idem: euro all'italiana, dalla stessa funzione
@@ -8377,6 +8378,7 @@ if(location.hostname==='localhost'||location.hostname==='127.0.0.1'){
     get d2UndoLen(){return d2UndoStack.length}, get d2RedoLen(){return d2RedoStack.length}, D2_UNDO_MAX,
     get frontMesh(){return frontMesh},
     get xrayCyls(){return xrayCyls}, holeInfoShow, buildTicks,
+    get sentKgTotali(){return _sentDati().kgTotali},   // F2 (26/11): sola lettura — la carica totale che parte per Sentinella
     get mic(){return micDaMostrare().mic},   // F2 (26/11): sola lettura, per il banco del foro per foro — dalla stessa porta dei sette lettori della pagina, non da un ottavo
 
     holeScreenPos:(i)=>{ const g=xrayCyls[i]; if(!g) return null;

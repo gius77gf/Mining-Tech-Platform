@@ -2319,9 +2319,11 @@
   `costoVolata`: senza cariche proprie il conto è «fori × carica» alla
   cifra. Collegati i due chiamanti dove i fori sono quelli DISEGNATI e non
   c'è un verso inverso. Banco 15 → 17 (controprova: cadono in 4).
-  ⚠️ Restano QUATTRO chiamanti (vedi il checkpoint del 26/11 «chiamanti
-  letti»): `computeKPI` (conta sulla griglia), il registro per Sentinella,
-  la scheda validatori (usa `Q`), e `syncKgTot`, che è a DUE VERSI.
+  ✅ Stesso giorno, ciclo automatico: collegati anche la scheda dei costi
+  del Progetto (`Q` lì È `D2.kg`) e il registro per Sentinella — tre
+  superfici, una carica (banco 17 → 21, controprova che cade in 7).
+  ⚠️ Restano DUE chiamanti: `computeKPI` (conta sulla griglia) e
+  `syncKgTot`, il campo «Esplosivo totale», che è a DUE VERSI.
 - [ ] **Genesi — il progetto FORO PER FORO** (26/11, la priorità per «arrivare
   al livello dei concorrenti»): oggi profondità, carica, borraggio, diametro
   e inclinazione sono UNO per volata. Piano a sei fette (F1 fondazione →
