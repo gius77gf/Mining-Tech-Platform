@@ -43329,6 +43329,57 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(genesi.COLONNE_TABELLA_FORI, ["n", "x", "spalla", "tDet", "kg", "prof", "stem"], "le sette colonne, nell'ordine in cui si leggono");
     eq(genesi.COLONNE_TABELLA_FORI.filter((c) => genesi.CAMPI_PER_FORO.includes(c)), genesi.CAMPI_PER_FORO, "e le tre che si possono scrivere sono esattamente i campi per foro");
   });
+  test("Genesi · F5, xmlPianoInnesco: ogni <Hole> porta i valori che valgono PER LUI, e senza valori per foro il file non cambia", () => {
+    const base = { B: 3, S: 3.5, diam: 102, esplosivo: "anfo-standard", innesco: { id: "nonel", nome: "Nonel" }, sequenza: "riga", ritardo: 42, ritardoFila: 84, lastDet: 84, mic: 58, prof: 10, kg: 58, stem: 2.2 };
+    const lisci = [{ id: "a", mx: 0, my: 3, tDet: 0, seq: 0 }, { id: "b", mx: 3.5, my: 3, tDet: 42, seq: 1 }, { id: "c", mx: 7, my: 3, tDet: 84, seq: 2 }];
+    const coiSuoi = lisci.map((h) => (h.id === "b" ? { ...h, kg: 0, prof: 8.5, stem: 1.5 } : h));
+    const blocchi = (xml) => xml.split("<Hole ").slice(1).map((b) => ["Depth", "Charge", "Stemming"].map((t) => (new RegExp("<" + t + " [^>]*>([^<]*)</" + t + ">").exec(b) || [])[1]));
+    /* neutralità */
+    const liscio = genesi.xmlPianoInnesco({ ...base, fori: lisci });
+    ok(!/Design|HolesWithOwnValues/.test(liscio), "⛔ NEUTRALITÀ: senza valori per foro nel file non compare NIENTE di nuovo");
+    eq(blocchi(liscio), [["10", "58", "2.2"], ["10", "58", "2.2"], ["10", "58", "2.2"]], "e ogni foro porta i valori del progetto, com'è sempre stato");
+    eq(genesi.xmlPianoInnesco({ ...base, fori: lisci.map((h) => ({ ...h, kg: "abc", prof: null, stem: "" })) }), liscio, "⛔ un valore illeggibile rimasto su un foro non è un valore proprio: il file esce IDENTICO");
+    /* coi valori per foro */
+    const xml = genesi.xmlPianoInnesco({ ...base, fori: coiSuoi });
+    eq(blocchi(xml), [["10", "58", "2.2"], ["8.5", "0", "1.5"], ["10", "58", "2.2"]], "⛔ il foro lasciato SCARICO esce con 0 kg, 8,5 m e 1,5 m: non più i 58 kg del progetto ripetuti");
+    ok(xml.includes('<DesignDepth unit="m">10</DesignDepth>') && xml.includes('<DesignCharge unit="kg">58</DesignCharge>') && xml.includes('<DesignStemming unit="m">2.2</DesignStemming>'),
+      "⛔ e il file dichiara anche i valori del PROGETTO: chi rilegge distingue «questo foro è diverso» da «la volata è tutta così»");
+    ok(xml.includes("<HolesWithOwnValues>1</HolesWithOwnValues>"), "e quanti fori sono diversi");
+    ok(xml.indexOf("<DesignDepth") > xml.indexOf("<PlanData>") && xml.indexOf("<HolesWithOwnValues>") < xml.indexOf("</PlanData>"), "i quattro elementi stanno dentro PlanData");
+    /* il progetto senza carica, un foro con la sua */
+    const senzaKg = genesi.xmlPianoInnesco({ ...base, kg: null, fori: coiSuoi.map((h) => (h.id === "b" ? { ...h, kg: 30 } : h)) });
+    ok(senzaKg.includes('<Charge unit="kg">30</Charge>'), "col progetto senza carica, il foro che ne ha una sua la scrive");
+    eq((senzaKg.match(/<Charge unit="kg" status="non-calcolabile"\/>/g) || []).length, 2, "⛔ e gli altri due restano «non calcolabile»: mai uno zero al posto di un numero che non c'è");
+    ok(senzaKg.includes('<DesignCharge unit="kg" status="non-calcolabile"/>'), "anche la carica del progetto è dichiarata non calcolabile, non zero");
+  });
+  test("Genesi · F5, valoriPerForoDaPiano: i valori per foro di un piano riletto tornano sui fori per POSIZIONE, e ciò che non torna si conta", () => {
+    const P = { kg: 58, prof: 10, stem: 2.2 };
+    const H = [{ id: "a", mx: 0, my: 3 }, { id: "b", mx: 3.5, my: 3 }, { id: "c", mx: 7, my: 3 }];
+    const copia = JSON.stringify(H);
+    const r = genesi.valoriPerForoDaPiano([{ x: 0, y: 3, prof: 10, kg: 58, stem: 2.2 }, { x: 3.5, y: 3, prof: 8.5, kg: 0, stem: 1.5 }, { x: 7, y: 3, prof: 10, kg: 58, stem: 2.2 }], H, P);
+    eq(r.fori, [{ id: "a", mx: 0, my: 3 }, { id: "b", mx: 3.5, my: 3, kg: 0, prof: 8.5, stem: 1.5 }, { id: "c", mx: 7, my: 3 }], "il foro diverso riprende i suoi tre valori; gli altri, uguali al progetto, non guadagnano chiavi");
+    eq([r.riportati, r.nonRiportati, r.scartati], [1, 0, 0], "uno riportato, niente perso");
+    eq(JSON.stringify(H), copia, "i fori ricevuti non sono stati toccati");
+    /* nel file i fori sono in ordine di SPARO, non di elenco: l'aggancio è la posizione */
+    const r2 = genesi.valoriPerForoDaPiano([{ x: 7, y: 3, kg: 30 }, { x: 0, y: 3, kg: 58 }], H, P);
+    eq(r2.fori.map((h) => h.kg), [undefined, undefined, 30], "⛔ il primo foro del FILE non è il primo dell'elenco: la carica va al foro in quella posizione");
+    const r3 = genesi.valoriPerForoDaPiano([{ x: 99, y: 3, kg: 30 }, { x: 3.5, y: 3, kg: 40 }], H, P);
+    eq([r3.riportati, r3.nonRiportati, r3.fori[1].kg], [1, 1, 40], "⛔ un foro che non trova il suo posto NON si riporta su un altro: si conta");
+    const r4 = genesi.valoriPerForoDaPiano([{ x: 0, y: 3, kg: 900 }, { x: 3.5, y: 3, prof: 1, stem: 2 }, { x: 7, y: 3, kg: 30 }], H, P);
+    eq([r4.riportati, r4.scartati, r4.fori[0].kg, r4.fori[1].prof], [1, 2, undefined, undefined], "⛔ 900 kg (oltre il limite) e un borraggio più lungo del foro si scartano e si contano: un file si può scrivere anche a mano");
+    ok(genesi.valoriPerForoDaPiano([{ x: 0, y: 3, kg: 58, prof: 10, stem: 2.2 }], H, P).fori === H, "niente da riportare: torna lo STESSO array");
+    eq(genesi.valoriPerForoDaPiano([{ x: 0.004, y: 3, kg: 30 }], H, P).riportati, 1, "la posizione si confronta a due decimali, come la scrive il file");
+    eq(genesi.valoriPerForoDaPiano([{ x: NaN, y: 3, kg: 30 }, { kg: 30 }], H, P).nonRiportati, 2, "senza una posizione leggibile non c'è aggancio");
+    eq(genesi.valoriPerForoDaPiano(null, H, P), { fori: H, riportati: 0, nonRiportati: 0, scartati: 0 }, "nessun foro nel file");
+    /* ⛔ ANDATA E RITORNO, e il TESTO del file: il giro da solo resterebbe verde se le due metà sbagliassero insieme */
+    const fori = [{ id: "a", mx: 0, my: 3, tDet: 84 }, { id: "b", mx: 3.5, my: 3, tDet: 0, kg: 35, stem: 0 }, { id: "c", mx: 7, my: 3, tDet: 42, prof: 8.5 }];
+    const xml = genesi.xmlPianoInnesco({ B: 3, S: 3.5, diam: 102, esplosivo: "anfo-standard", innesco: { id: "nonel", nome: "Nonel" }, sequenza: "riga", ritardo: 42, ritardoFila: 84, lastDet: 84, mic: 58, ...P, fori });
+    const letti = xml.split("<Hole ").slice(1).map((b) => { const v = (t) => { const m = new RegExp("<" + t + " [^>]*>([^<]*)</" + t + ">").exec(b); return m ? +m[1] : null; }; const q = /<Position x="([^"]*)" y="([^"]*)"/.exec(b);
+      return { x: +q[1], y: +q[2], prof: v("Depth"), kg: v("Charge"), stem: v("Stemming") }; });
+    eq(letti[0], { x: 3.5, y: 3, prof: 10, kg: 35, stem: 0 }, "nel file il primo <Hole> è quello che spara per primo (il secondo dell'elenco), con la sua carica e il suo borraggio a zero");
+    const tornati = genesi.valoriPerForoDaPiano(letti, fori.map((h) => ({ id: h.id, mx: h.mx, my: h.my })), P);
+    eq(tornati.fori.map((h) => genesi.valoriPropriDiForo(h)), fori.map((h) => genesi.valoriPropriDiForo(h)), "⛔ scritto e riletto: ogni foro riprende ESATTAMENTE i suoi valori propri, e nessun altro ne guadagna");
+  });
   test("Genesi · foriDaDesign: il foro illeggibile si conta, quello senza id ne prende uno senza doppioni, il ritardo non numerico cade", () => {
     const r = genesi.foriDaDesign({ holes: [{ id: "f1-1", mx: "0", my: "3" }, { mx: null, my: 3 }, { mx: 2, my: "abc" }, { mx: 5, my: 3, tMano: "boh" }, { id: "", mx: 6, my: 3 }, { id: "m1", mx: 8, my: 3 }] });
     eq(r.scartati, 2, "⛔ due fori senza posizione leggibile si CONTANO, non spariscono");

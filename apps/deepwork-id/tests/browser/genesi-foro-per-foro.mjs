@@ -85,6 +85,12 @@ const DIFETTI = [
   [PAGINA, `if(sec.classList.contains('closed')) return;`, ``],
   [PAGINA, `.ft-pos{display:none!important}`, `.ft-pos{}`],
   [PAGINA, `+(r.propri[campo]?' class="suo"':'')+' aria-label="'`, `+' aria-label="'`],
+  /* F5 — il piano d'innesco XML: ogni foro torna a uscire con la carica del
+     progetto, il lettore torna a prendere per progetto i valori del primo
+     foro, i valori per foro riletti non vengono riportati sulla maglia */
+  [MODULO, `_tag('Charge','kg',valoreDiForo(h,'kg',p))`, `_tag('Charge','kg',p.kg)`],
+  [PAGINA, `const charge=_conDesign ? numOf(plan,'DesignCharge') : numOf(holes[0],'Charge');`, `const charge=numOf(holes[0],'Charge');`],
+  [PAGINA, `if(_pf.riportati){ D2.holes=_pf.fori; computeSeq2D(); }`, ``],
 ];
 
 const colpiti = new Set();
@@ -610,6 +616,79 @@ if (prima && prima.colonneTrovate) {
   await pg.evaluate(() => { for (const h of window.__genesi.D2.holes) { delete h.kg; delete h.prof; delete h.stem; } window.__genesi.renderScheda2D(); }); await pg.waitForTimeout(250);
   t = await tab();
   dice(!/con valori/.test(t.titolo), `(tolti i valori propri, il titolo torna a contare solo i fori: ${t.titolo})`, t.titolo);
+}
+
+/* 10. F5 — IL PIANO D'INNESCO XML, foro per foro. È il file che legge chi
+   programma i detonatori e chi perfora. Si preme il bottone vero, si apre il
+   file che esce, e lo si RIAPRE nella pagina col lettore vero. */
+{
+  console.log("\n── F5: il piano d'innesco XML, scritto e riletto ──");
+  const xmlUscito = async () => {
+    await pg.evaluate(() => { window.__usciti.length = 0; document.getElementById("btn-innesco-xml").click(); });
+    await pg.waitForTimeout(500);
+    const f = (await pg.evaluate(() => window.__usciti)).find((x) => /piano_innesco\.xml/.test(x.nome));
+    return f ? decodeURIComponent(f.href.split(",").slice(1).join(",")) : null;
+  };
+  const foriDelFile = (xml) => xml.split("<Hole ").slice(1).map((b) => { const v = (tag) => { const m = new RegExp("<" + tag + " [^>]*>([^<]*)</" + tag + ">").exec(b); return m ? +m[1] : null; };
+    const q = /<Position x="([^"]*)" y="([^"]*)"/.exec(b); return { x: +q[1], y: +q[2], prof: v("Depth"), kg: v("Charge"), stem: v("Stemming") }; });
+  const P = await pg.evaluate(() => { const d = window.__genesi.D2; return { kg: d.kg, prof: d.prof, stem: d.stem, n: d.holes.length }; });
+
+  const liscio = await xmlUscito();
+  dice(!!liscio && !/Design|HolesWithOwnValues/.test(liscio), "⛔ NEUTRALITÀ: senza valori per foro il piano esce senza niente di nuovo", liscio && liscio.slice(0, 200));
+  dice(!!liscio && foriDelFile(liscio).every((f) => f.kg === P.kg && f.prof === P.prof && f.stem === P.stem), `e ogni foro porta i valori del progetto (${P.kg} kg · ${P.prof} m)`, liscio && JSON.stringify(foriDelFile(liscio)[0]));
+
+  /* il foro che spara PER PRIMO lasciato scarico, un altro più corto */
+  const scelti = await pg.evaluate(() => { const H = window.__genesi.D2.holes; const primo = H.reduce((a, h, i) => ((h.tDet || 0) < (H[a].tDet || 0) ? i : a), 0), altro = primo === 3 ? 4 : 3;
+    H[primo].kg = 0; H[altro].prof = 8.5; H[altro].stem = 1.5; window.__genesi.renderScheda2D();
+    return { primo, altro, pp: { x: H[primo].mx, y: H[primo].my }, pa: { x: H[altro].mx, y: H[altro].my } }; });
+  await pg.waitForTimeout(250);
+  const xml = await xmlUscito();
+  const nelFile = xml ? foriDelFile(xml) : [];
+  const vicino = (a, b) => Math.abs(a - b) < 0.006;
+  const fPrimo = nelFile.find((f) => vicino(f.x, scelti.pp.x) && vicino(f.y, scelti.pp.y)), fAltro = nelFile.find((f) => vicino(f.x, scelti.pa.x) && vicino(f.y, scelti.pa.y));
+  dice(!!fPrimo && fPrimo.kg === 0, `⛔ il foro lasciato SCARICO esce nel file con 0 kg — non con i ${P.kg} del progetto`, fPrimo);
+  dice(!!fAltro && fAltro.prof === 8.5 && fAltro.stem === 1.5 && fAltro.kg === P.kg, "⛔ e quello più corto con 8,5 m e 1,5 m di borraggio, e la carica del progetto", fAltro);
+  dice(nelFile.filter((f) => f.kg === P.kg && f.prof === P.prof && f.stem === P.stem).length === P.n - 2, `gli altri ${P.n - 2} fori coi valori del progetto`, nelFile.length);
+  dice(!!xml && xml.includes('<DesignCharge unit="kg">' + P.kg + "</DesignCharge>") && xml.includes("<HolesWithOwnValues>2</HolesWithOwnValues>"), "e il file dichiara a parte la carica del PROGETTO e quanti fori sono diversi", xml && xml.split("\n").filter((x) => /Design|OwnValues/.test(x)).join(" "));
+
+  /* si riapre: prima si sporca il progetto, così si vede che cosa torna dal file */
+  await pg.evaluate(() => { window.__toasts.length = 0; const D = window.__genesi.D2; D.kg = 77; for (const h of D.holes) { delete h.kg; delete h.prof; delete h.stem; } });
+  /* ⛔ il file che si riapre NON è quello appena scritto: è costruito qui, a
+     mano, dal piano liscio. Se no la prova del LETTORE dipenderebbe dallo
+     SCRITTORE — misurato nella controprova: col difetto dello scrittore
+     rimesso (ogni foro con la carica del progetto) il difetto del lettore
+     («il progetto è il primo foro») non si vedeva più, perché il primo foro
+     del file portava proprio la carica del progetto.
+     ⚠️ E il foro che spara per primo qui ha 123 kg, non 0: con 0 il lettore
+     difettoso darebbe «5 kg» (il minimo del campo), e nella passata di
+     controprova la carica del progetto è PROPRIO 5 — la prova passava per
+     coincidenza. 123 non è la carica di nessun progetto di questo banco. */
+  const aMano = (() => {
+    const pezzi = (liscio || "").split("<Hole ");
+    const cambia = (b, tag, v) => b.replace(new RegExp("(<" + tag + " [^>]*>)[^<]*(</" + tag + ">)"), "$1" + v + "$2");
+    const corpo = pezzi.slice(1).map((b) => { const q = /<Position x="([^"]*)" y="([^"]*)"/.exec(b); if (!q) return b;
+      if (vicino(+q[1], scelti.pp.x) && vicino(+q[2], scelti.pp.y)) return cambia(b, "Charge", "123");
+      if (vicino(+q[1], scelti.pa.x) && vicino(+q[2], scelti.pa.y)) return cambia(cambia(b, "Depth", "8.5"), "Stemming", "1.5");
+      return b; });
+    const testa = pezzi[0].replace("  </PlanData>", '    <DesignDepth unit="m">' + P.prof + '</DesignDepth>\n    <DesignCharge unit="kg">' + P.kg + '</DesignCharge>\n    <DesignStemming unit="m">' + P.stem + "</DesignStemming>\n    <HolesWithOwnValues>2</HolesWithOwnValues>\n  </PlanData>");
+    return [testa, ...corpo].join("<Hole ");
+  })();
+  dice(/<DesignCharge/.test(aMano) && foriDelFile(aMano).filter((f) => f.kg === 123).length === 1 && P.kg !== 123, "(il piano di prova per il lettore è scritto a mano dal piano liscio: il primo foro a 123 kg, i tre Design dichiarati)", aMano.slice(0, 120));
+  await pg.setInputFiles("#fileXmlIn", { name: "piano.xml", mimeType: "application/xml", buffer: Buffer.from(aMano, "utf8") });
+  await pg.waitForTimeout(900);
+  const dopo = await pg.evaluate(() => { const D = window.__genesi.D2; return { kg: D.kg, prof: D.prof, stem: D.stem, fori: D.holes.map((h) => ({ x: h.mx, y: h.my, kg: h.kg, prof: h.prof, stem: h.stem })), toast: window.__toasts.join(" | ") }; });
+  dice(dopo.kg === P.kg, `⛔ riaperto: la carica del PROGETTO è ${P.kg} kg — non i 123 del foro che spara per primo (letto ${dopo.kg})`, dopo.kg);
+  const rPrimo = dopo.fori.find((f) => vicino(f.x, scelti.pp.x) && vicino(f.y, scelti.pp.y)), rAltro = dopo.fori.find((f) => vicino(f.x, scelti.pa.x) && vicino(f.y, scelti.pa.y));
+  dice(!!rPrimo && rPrimo.kg === 123, "⛔ il foro diverso ha ripreso i SUOI 123 kg, sul foro in QUELLA posizione", rPrimo);
+  dice(!!rAltro && rAltro.prof === 8.5 && rAltro.stem === 1.5 && rAltro.kg === undefined, "⛔ e quello più corto ha ripreso profondità e borraggio suoi (la carica no: era quella del progetto)", rAltro);
+  dice(dopo.fori.filter((f) => f.kg !== undefined || f.prof !== undefined || f.stem !== undefined).length === 2, "nessun altro foro ha guadagnato valori suoi", dopo.fori.filter((f) => f.kg !== undefined).length);
+  dice(/2 fori con valori loro/.test(dopo.toast), "e il messaggio lo dice: «2 fori con valori loro»", dopo.toast);
+  /* un piano uniforme si riapre com'è sempre stato */
+  await pg.evaluate(() => { window.__toasts.length = 0; window.__genesi.D2.kg = 77; });
+  await pg.setInputFiles("#fileXmlIn", { name: "liscio.xml", mimeType: "application/xml", buffer: Buffer.from(liscio || "", "utf8") });
+  await pg.waitForTimeout(900);
+  const dopoL = await pg.evaluate(() => { const D = window.__genesi.D2; return { kg: D.kg, propri: D.holes.filter((h) => h.kg !== undefined || h.prof !== undefined || h.stem !== undefined).length, toast: window.__toasts.join(" | ") }; });
+  dice(dopoL.kg === P.kg && dopoL.propri === 0 && !/valori/.test(dopoL.toast.replace(/Maglia rigenerata[^|]*/g, "")), `un piano uniforme si riapre com'è sempre stato: carica ${P.kg} kg dal primo foro, nessun valore per foro`, dopoL);
 }
 dice(pg.__err.length === 0, "la pagina non solleva errori", pg.__err.slice(0, 2));
 

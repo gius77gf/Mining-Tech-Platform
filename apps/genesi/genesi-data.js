@@ -1293,15 +1293,35 @@ export function xmlPianoInnesco(p){
   xml+=micOk
     ? '    <MaxInstantCharge unit="kg" window_ms="8">'+e(micV.toFixed(1))+'</MaxInstantCharge>\n'
     : '    <MaxInstantCharge unit="kg" window_ms="8" status="non-calcolabile"/>\n';
+  /* F5 (26/11) — IL FILE DICE LA CARICA DI OGNI FORO, NON QUELLA DEL PROGETTO
+     RIPETUTA. Misurato il 26/11: dato a un foro 0 kg (lasciato scarico), 8,5 m
+     e 1,5 m di borraggio, il suo <Hole> usciva con 58 kg, 10 m e 2,2 m — i
+     valori del progetto, identici per tutti. È il file che legge chi programma
+     i detonatori e chi perfora: un foro scarico dichiarato carico.
+     Adesso ogni <Hole> porta i valori che VALGONO per lui (`valoreDiForo`), e
+     quando almeno un foro ne ha di suoi il file dichiara anche quelli del
+     PROGETTO (DesignDepth / DesignCharge / DesignStemming): chi rilegge deve
+     poter distinguere «questo foro è diverso» da «la volata è tutta così», e
+     senza i tre Design il lettore di casa prendeva per progetto i valori del
+     PRIMO foro — che può essere proprio quello diverso.
+     ⛔ NEUTRALITÀ: senza valori per foro non compare niente di nuovo, e il
+     file esce byte per byte com'era (provato). */
+  const _nPropriXml=contaValoriPropri((p&&p.fori)||[]).fori;
+  if(_nPropriXml){
+    xml+='    '+_tag('DesignDepth','m',p.prof)+'\n';
+    xml+='    '+_tag('DesignCharge','kg',p.kg)+'\n';
+    xml+='    '+_tag('DesignStemming','m',p.stem)+'\n';
+    xml+='    <HolesWithOwnValues>'+_nPropriXml+'</HolesWithOwnValues>\n';
+  }
   xml+='  </PlanData>\n';
   const rows=((p&&p.fori)||[]).slice().sort((a,b)=>(a.tDet||0)-(b.tDet||0));
   xml+='  <Holes count="'+rows.length+'">\n';
   rows.forEach((h,i)=>{
     xml+='    <Hole id="H'+(i+1)+'" seq="'+((h.seq!=null?h.seq:i)+1)+'">\n';
     xml+='      <Position x="'+e((+h.mx||0).toFixed(2))+'" y="'+e((+h.my||0).toFixed(2))+'" unit="m"/>\n';
-    xml+='      '+_tag('Depth','m',p.prof)+'\n';
-    xml+='      '+_tag('Charge','kg',p.kg)+'\n';
-    xml+='      '+_tag('Stemming','m',p.stem)+'\n';
+    xml+='      '+_tag('Depth','m',valoreDiForo(h,'prof',p))+'\n';
+    xml+='      '+_tag('Charge','kg',valoreDiForo(h,'kg',p))+'\n';
+    xml+='      '+_tag('Stemming','m',valoreDiForo(h,'stem',p))+'\n';
     xml+='      <Delay unit="ms">'+e((+h.tDet||0).toFixed(1))+'</Delay>\n';
     xml+='    </Hole>\n';
   });
@@ -2596,6 +2616,10 @@ export const LIMITI_PER_FORO = {
   prof: { positivo: true, max: 18, unita: 'm', nome: 'la profondità del foro' },
   stem: { min: 0, max: 6, unita: 'm', nome: 'il borraggio del foro' },
 };
+/* «questo numero può essere il valore di un foro?»: una domanda, due posti che
+   la fanno (il comando dalla tastiera e il piano riletto da un file) */
+const _dentroLimitiForo = (campo, v) => { const L = LIMITI_PER_FORO[campo];
+  return !!L && Number.isFinite(v) && (L.positivo ? v > 0 : v >= L.min) && v <= L.max; };
 const _indiciDiFori = (H, indici) => [...new Set((Array.isArray(indici) ? indici : []).filter((i) => Number.isInteger(i) && i >= 0 && i < H.length))];
 /* quanti dei fori `scelti` resterebbero col borraggio più lungo del foro, se diventassero `dopo(h)` */
 const _foriTroppoCorti = (H, scelti, dopo, progetto) => scelti.filter((i) => {
@@ -2613,7 +2637,7 @@ export function foriConValoreProprio(holes, indici, campo, valore, progetto){
   let v = null;
   if (valore !== null && valore !== undefined && valore !== ''){
     v = +valore;
-    if (!Number.isFinite(v) || (L.positivo ? !(v > 0) : v < L.min) || v > L.max) return fermo('fuori-limiti');
+    if (!_dentroLimitiForo(campo, v)) return fermo('fuori-limiti');
     const p = _numForo(progetto && progetto[campo]);
     if (Number.isFinite(p) && v === p) v = null;
   }
@@ -2660,6 +2684,45 @@ export function valoreComuneDiFori(holes, indici, campo, progetto){
   const uguali = vals.every((x) => x === vals[0]);
   return { n: scelti.length, valore: uguali ? vals[0] : null, diversi: !uguali,
     propri: scelti.filter((i) => valoreProprioDiForo(H[i], campo) !== null).length };
+}
+/* F5 (26/11) — RILEGGERE UN PIANO CHE PORTA VALORI PER FORO. Il lettore del
+   piano d'innesco non ricostruisce i fori dal file: rilegge i parametri e
+   RIGENERA la maglia. Quindi i valori per foro vanno riportati sui fori
+   rigenerati, e l'unico aggancio onesto è la POSIZIONE (alla stessa
+   precisione con cui il file la scrive, due decimali): il numero d'ordine no,
+   nel file i fori sono in ordine di sparo.
+    · un foro del file che non trova il suo posto nella maglia NON si riporta
+      su un altro: si CONTA (`nonRiportati`) — chi rilegge deve saperlo;
+    · un valore fuori dai limiti o un borraggio più lungo del foro si scarta
+      e si conta (`scartati`): un file si può scrivere anche a mano;
+    · un valore uguale a quello del progetto non è un valore proprio. */
+export function valoriPerForoDaPiano(foriFile, holes, progetto){
+  const H = Array.isArray(holes) ? holes : [];
+  const F = Array.isArray(foriFile) ? foriFile : [];
+  const chiave = (x, y) => (+x).toFixed(2) + '|' + (+y).toFixed(2);
+  const posto = new Map();
+  H.forEach((h, i) => { if (h && Number.isFinite(+h.mx) && Number.isFinite(+h.my)) posto.set(chiave(h.mx, h.my), i); });
+  const fori = H.slice();
+  let riportati = 0, nonRiportati = 0, scartati = 0;
+  for (const f of F){
+    const suoi = {};
+    for (const c of CAMPI_PER_FORO){
+      const v = _numForo(f && f[c]);
+      if (!Number.isFinite(v)) continue;
+      const pr = _numForo(progetto && progetto[c]);
+      if (Number.isFinite(pr) && v === pr) continue;
+      if (!_dentroLimitiForo(c, v)){ scartati++; continue; }
+      suoi[c] = v;
+    }
+    if (!Object.keys(suoi).length) continue;
+    const i = (f && Number.isFinite(+f.x) && Number.isFinite(+f.y)) ? posto.get(chiave(f.x, f.y)) : undefined;
+    if (i === undefined){ nonRiportati++; continue; }
+    const dopo = { ...fori[i], ...suoi };
+    const pr = valoreDiForo(dopo, 'prof', progetto), st = valoreDiForo(dopo, 'stem', progetto);
+    if (pr !== null && st !== null && st > pr){ scartati++; continue; }
+    fori[i] = dopo; riportati++;
+  }
+  return { fori: riportati ? fori : H, riportati, nonRiportati, scartati };
 }
 /* quanti fori hanno un valore loro, in tutto e campo per campo: lo chiedono
    l'avviso accanto alle previsioni e quello della maglia rigenerata */

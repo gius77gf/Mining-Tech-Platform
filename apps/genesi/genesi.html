@@ -1314,7 +1314,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, reliefCls, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino, activeProf, d2HitTest, d2HitTestPt,
-         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfLeggi, dxfFraseNonLette, valoriPropriDiForo, valoreDiForo, LIMITI_PER_FORO, foriConValoreProprio, foriSenzaValoriPropri, valoreComuneDiFori, contaValoriPropri, tabellaFori, scartoCaricheProprie, scartoProfonditaProprie, caricaProgettoDaTotale, firmaMaglia, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, foriRiflessi, trattiRuotati, trattiScalati, coordinataRelativa, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
+         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfLeggi, dxfFraseNonLette, valoriPropriDiForo, valoreDiForo, LIMITI_PER_FORO, foriConValoreProprio, foriSenzaValoriPropri, valoreComuneDiFori, contaValoriPropri, tabellaFori, valoriPerForoDaPiano, scartoCaricheProprie, scartoProfonditaProprie, caricaProgettoDaTotale, firmaMaglia, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, foriRiflessi, trattiRuotati, trattiScalati, coordinataRelativa, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -5889,10 +5889,18 @@ if($('fileXmlIn')) $('fileXmlIn').onchange=async e=>{
     const seq=txtOf(plan,'Sequence'); if(seq && SEQ_OK.includes(seq)) D2.sequenza=seq;
     const hd=numOf(plan,'HoleDelay'); if(hd) D2.ritardo=Math.max(1,hd);
     const rd=numOf(plan,'RowDelay'); if(rd) D2.ritardoFila=Math.max(8,Math.min(300,rd));
-    // scalari uniformi dal primo foro
-    const depth=numOf(holes[0],'Depth'); if(depth!=null) D2.prof=Math.max(6,Math.min(18,depth));
-    const charge=numOf(holes[0],'Charge'); if(charge!=null){ D2.kg=Math.max(5,Math.min(200,charge)); D2.kgAuto=false; if($('dKgAuto')) $('dKgAuto').checked=false; }
-    const stem=numOf(holes[0],'Stemming'); if(stem!=null) D2.stem=Math.max(0.5,Math.min(6,stem));
+    /* F5 (26/11) — I VALORI DEL PROGETTO. Un piano uniforme li porta ripetuti
+       su ogni foro, e si leggono dal primo, com'è sempre stato. Un piano che
+       ha fori con valori LORO li dichiara a parte (DesignDepth / DesignCharge
+       / DesignStemming): lì il primo foro può essere proprio quello diverso —
+       letto come progetto, un foro lasciato scarico darebbe 5 kg a tutta la
+       volata (il minimo del campo). Se il file dichiara i Design e uno è
+       vuoto («non calcolabile»), NON si ripiega sul primo foro: si tiene il
+       valore che c'è. */
+    const _conDesign=['DesignDepth','DesignCharge','DesignStemming'].some(t=>!!first(plan,t));
+    const depth=_conDesign ? numOf(plan,'DesignDepth') : numOf(holes[0],'Depth'); if(depth!=null) D2.prof=Math.max(6,Math.min(18,depth));
+    const charge=_conDesign ? numOf(plan,'DesignCharge') : numOf(holes[0],'Charge'); if(charge!=null){ D2.kg=Math.max(5,Math.min(200,charge)); D2.kgAuto=false; if($('dKgAuto')) $('dKgAuto').checked=false; }
+    const stem=_conDesign ? numOf(plan,'DesignStemming') : numOf(holes[0],'Stemming'); if(stem!=null) D2.stem=Math.max(0.5,Math.min(6,stem));
     // file/perRow dalle posizioni; direzione da chi detona per primo (Delay minore)
     const pos=holes.map(h=>{ const p=first(h,'Position'); const dEl=first(h,'Delay');
       return { x:p?parseFloat(p.getAttribute('x')||'0'):0, y:p?parseFloat(p.getAttribute('y')||'0'):0, t:dEl?parseFloat(dEl.textContent||'0'):0 }; });
@@ -5904,14 +5912,28 @@ if($('fileXmlIn')) $('fileXmlIn').onchange=async e=>{
     const tMax=Math.min(...pos.filter(o=>o.x>=maxx-0.01).map(o=>o.t));
     D2.dir = tMin<=tMax ? 'sx' : 'dx';
     syncDesignInputs();
-    genMaglia2D(); drawDesign2D(); renderScheda2D(); renderInspector();
+    genMaglia2D();
+    /* F5 — i valori per foro si riportano sui fori della maglia rigenerata,
+       agganciandoli per POSIZIONE (`valoriPerForoDaPiano`); quelli che non
+       trovano il loro posto o non sono ammessi si contano e si dicono. */
+    let _pf=null;
+    if(_conDesign){
+      _pf=valoriPerForoDaPiano(holes.map(h=>{ const q=first(h,'Position');
+        return { x:q?parseFloat(q.getAttribute('x')||''):NaN, y:q?parseFloat(q.getAttribute('y')||''):NaN, prof:numOf(h,'Depth'), kg:numOf(h,'Charge'), stem:numOf(h,'Stemming') }; }), D2.holes, D2);
+      if(_pf.riportati){ D2.holes=_pf.fori; computeSeq2D(); }
+    }
+    const _pfPersi=_pf ? (_pf.nonRiportati+_pf.scartati) : 0;
+    drawDesign2D(); renderScheda2D(); renderInspector();
     /* l'innesco entra nel messaggio perché è il campo che decide lo scatter, e
        finora era anche l'unico che il giro perdeva in silenzio: chi rilegge un
        piano deve vedere che cosa è tornato, non solo quanti fori */
     /* `_ricPlur` (cioè `conta` di `shared/`) e non più `gnum + plurale`: dal
        09/08 il raggruppamento lo fa la funzione condivisa, quindi la copia a
        mano che stava qui non serve più. */
-    if(typeof toast==='function') toast('✓ Piano XML importato: '+_ricPlur(holes.length,'foro','fori')+' · B '+gfix(D2.B,2)+'×S '+gfix(D2.S,2)+' · '+D2.sequenza+' · '+((selInnesco()||{}).short||D2.innesco));
+    if(typeof toast==='function') toast('✓ Piano XML importato: '+_ricPlur(holes.length,'foro','fori')+' · B '+gfix(D2.B,2)+'×S '+gfix(D2.S,2)+' · '+D2.sequenza+' · '+((selInnesco()||{}).short||D2.innesco)
+      +((_pf && _pf.riportati) ? ' · '+_pf.riportati+' '+plurale(_pf.riportati,'foro con valori suoi','fori con valori loro') : '')
+      +(_pfPersi ? ' — ⚠ '+_pfPersi+' '+plurale(_pfPersi,'valore per foro NON riportato','valori per foro NON riportati')+': la maglia rigenerata non ha un foro in quella posizione, o il valore non è ammesso' : ''),
+      _pfPersi ? 'err' : undefined);
   }catch(err){ if(typeof toast==='function') toast('Import XML fallito: '+err.message); }
   e.target.value='';
 };
