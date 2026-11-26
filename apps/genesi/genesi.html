@@ -1262,7 +1262,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
    suoi tre chiamanti, che gli passavano 18 fori al posto di una griglia
    illeggibile e 0,9 m di perforazione al posto di un banco illeggibile. */
          foriDiProgetto, metriPerforati, genesiData, portaNellOrganizzazione, designSconosciuti, riepilogoPontiGenesi,
-         fattoreRoccia, x50DaMisure, ondaDaCsv, _sitoParseCsv, tempiDetonazione, sommaRitardata,
+         fattoreRoccia, x50DaMisure, ondaDaCsv, ondaPercheNo, _sitoParseCsv, tempiDetonazione, sommaRitardata,
          ppvDaSd, caricaDaX50Target, rwsEffettiva, PENALITA_ACQUA, deviazioneForiDaCsv, deviazioneStatistiche, burdenVeroDaRilievo, burdenPerForo,
          quotaCresta, distanzaDaSpezzata, spaziaturaTipica, _spazTipico, tempoInPunto, passoIsocrone, isoPasso,
          fileDeiFori, INN_TAGLI, taglioRealizzabile, innTaglioOk, _cmpNum, _cmpKg, _cmpEur, _cmpPf, _cmpCm, _cmpFly,
@@ -4735,7 +4735,7 @@ function sigRender(){
 if($('sigOpen')) $('sigOpen').onclick=()=>{ sigRender(); $('sigModal').style.display='flex'; };
 if($('sigClose')) $('sigClose').onclick=()=>{ $('sigModal').style.display='none'; };
 if($('sigImport')) $('sigImport').onclick=()=>$('sigFile').click();
-if($('sigFile')) $('sigFile').onchange=async(e)=>{ const f=e.target.files&&e.target.files[0]; if(!f) return; const sig=ondaDaCsv(await f.text()); e.target.value=''; if(!sig){ toast('CSV non valido: righe tempo_ms;ampiezza'); return; } _sigData=sig; _sigNome=String(f.name||'').replace(/\.[^.]*$/,'').replace(/[^\w-]+/g,'_').slice(0,40); sigRender(); };
+if($('sigFile')) $('sigFile').onchange=async(e)=>{ const f=e.target.files&&e.target.files[0]; if(!f) return; const _sigTesto=await f.text(), sig=ondaDaCsv(_sigTesto); e.target.value=''; if(!sig){ toast(ondaPercheNo(_sigTesto), 'err'); return; } _sigData=sig; _sigNome=String(f.name||'').replace(/\.[^.]*$/,'').replace(/[^\w-]+/g,'_').slice(0,40); sigRender(); };
 if($('sigExport')) $('sigExport').onclick=()=>{
   if(!_sigComp){ toast('Importa prima un&rsquo;onda'); return; }
   const c=_sigComp; let csv='tempo_ms;ampiezza\n';

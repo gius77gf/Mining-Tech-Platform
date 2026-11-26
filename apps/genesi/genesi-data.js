@@ -795,6 +795,25 @@ export function deviazioneForiDaCsv(testo){
   if (haIntestazione && iDx < 0 && iDy < 0)
     return { errore: 'Non trovo le colonne «dx_m»/«dy_m»: questo non sembra un rilievo di deviazione fori (boretrack).' };
   if (!dati.length) return { errore: 'Il file ha solo l’intestazione: dentro non c’è nessun foro.' };
+  /* ⛔ 26/11: UN FILE DI COORDINATE NON È UN FILE DI DEVIAZIONI, e senza
+     intestazione questa funzione non aveva modo di accorgersene. Il Boretrak
+     — la sonda di deviazione più documentata — esporta CSV SENZA riga
+     d'intestazione con 5 colonne (`foro, fila, X, Y, Z`, una riga per
+     stazione di misura), 8 o 9 (col progetto del foro): lo scrive il manuale
+     del costruttore, con le righe d'esempio. Letto «per posizione» come
+     foro;dx;dy, la FILA diventava una deviazione di 1 m e la coordinata X
+     una deviazione di 1000 m — misurato sulla riga d'esempio del manuale,
+     `1,1,1000.000,1000.000,1000.000`: accettato, zero righe scartate, e da
+     lì un burden «vero» calcolato a un chilometro dal fronte.
+     Qui non lo si LEGGE (riportare coordinate di cantiere «davanti/dietro il
+     fronte» vuole l'aggancio al cantiere, decisione 32): lo si riconosce
+     dalla forma e lo si rifiuta col suo nome, invece di inventare numeri. */
+  if (!haIntestazione) {
+    const larghezze = new Set(dati.filter(r => r.some(c => String(c == null ? '' : c).trim() !== '')).map(r => r.length));
+    if (larghezze.size === 1 && [5, 8, 9].includes([...larghezze][0]))
+      return { errore: 'Questo file ha ' + [...larghezze][0] + ' colonne e nessuna intestazione: ha la forma di un export di coordinate di una sonda (tipo Boretrak: foro, fila, X, Y, Z…), non di un rilievo di deviazioni. '
+        + 'Genesi per ora legge tre colonne — foro; dx_m; dy_m — cioè di quanto il fondo foro si è spostato lungo il fronte e verso il fronte. Le coordinate per stazione non le legge ancora.' };
+  }
   const righe = []; let scartate = 0;
   for (const r of dati) {
     const c = r;
@@ -2931,8 +2950,36 @@ export function ondaDaCsv(testo){
     .filter(p=>isFinite(p[0])&&isFinite(p[1]));
   if(rows.length<3) return null;
   const t=rows.map(r=>r[0]), a=rows.map(r=>r[1]);
+  /* ⛔ 26/11: LA PRIMA COLONNA DEVE ESSERE UN TEMPO, E UN TEMPO NON TORNA
+     INDIETRO. I sismografi da volata esportano la forma d'onda come tabella
+     di CANALI (`Tran  Vert  Long  MicL`) senza colonna del tempo — il tempo
+     sta nella frequenza di campionamento dell'intestazione (così la leggono
+     i due lettori pubblici di quei file, `gmsp` e BlastingPy: vedi
+     reports/Genesi formati di scambio cava.md). Su una tabella così questa
+     funzione prendeva il canale trasversale per il TEMPO e il verticale per
+     l'ampiezza, e restituiva un'onda: misurato su 40 campioni, «tempi»
+     0 · 0,654 · 1,237 · 1,683 …, cioè una sinusoide spacciata per orologio,
+     e nessun avviso. È il numero plausibile dove non è stato letto niente.
+     La guardia non conosce nessun formato: chiede solo che il tempo non
+     scenda mai e che dall'inizio alla fine sia andato avanti. */
+  for(let i=1;i<t.length;i++) if(t[i]<t[i-1]) return null;
+  if(!(t[t.length-1]>t[0])) return null;
   const dt=Math.max(0.05,(t[t.length-1]-t[0])/(t.length-1));
   return {t,a,dt};
+}
+/* Perché `ondaDaCsv` ha detto di no, con le parole per chi ha il file in
+   mano. Stringa vuota se l'onda si legge. Non è un secondo lettore: chiama
+   quello, e solo se rifiuta guarda la forma del testo per dire quale dei
+   tre casi è. */
+export function ondaPercheNo(testo){
+  if(ondaDaCsv(testo)) return '';
+  const s=String(testo==null?'':testo);
+  if(/\bTran\b[^A-Za-z\n]+Vert\b[^A-Za-z\n]+Long\b/i.test(s))
+    return 'Questo è l’export di un sismografo a canali (Tran / Vert / Long) senza la colonna del tempo: Genesi per ora legge due colonne, tempo in ms e ampiezza. Esporta un solo canale col suo tempo, oppure aggiungi la colonna del tempo in un foglio di calcolo.';
+  const rows=leggiCsv(s).righe.filter(p=>p.length>=2).map(p=>[numIt(p[0]), numIt(p[1])]).filter(p=>isFinite(p[0])&&isFinite(p[1]));
+  if(rows.length>=3)
+    return 'La prima colonna non è un tempo: non cresce dall’inizio alla fine. Servono due colonne, tempo in ms e ampiezza (tempo_ms;ampiezza).';
+  return 'CSV non valido: servono almeno tre righe con due colonne, tempo in ms e ampiezza (tempo_ms;ampiezza).';
 }
 export function tempiDetonazione(design){
   const D2=design||{};

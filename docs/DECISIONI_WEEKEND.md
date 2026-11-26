@@ -1112,6 +1112,7 @@ momento.
 | **29** | Genesi: la finestra MIC di 8 ms raggruppa sul tempo **nominale**, mai sullo scatter che Genesi stessa calcola già per il relief — allargarla, o pesare probabilisticamente? (18/09) | è un numero di sicurezza (decide se la volata è sotto soglia PPV): quale delle due strade, e con quale margine. Vedi la sezione 29. |
 | **30** | Genesi: lo scatter dell'innesco «elettrico» è un valore fisso (0,5 ms) mentre il proprio catalogo lo descrive «medio» — quale percentuale usare? (18/09) | una fonte con una percentuale specifica per l'elettrico a ponte resistivo, o la conferma di lasciarlo com'è finché non se ne trova una. Vedi la sezione 30. |
 | **31** | Genesi: la camera "Da terra 50 m" non arriva mai a 1,7 m — la barriera anti-sottoterra del trascinamento libero la sposta a 5,5 m, sempre, per costruzione (21/09) | quale delle tre strade (alzare il preset, bypassare la barriera solo per i preset, o solo correggere l'etichetta) — o la conferma che 5,5 m va bene com'è. Vedi la sezione 31. |
+| **32** | Genesi: il progetto non sa dove si trova nel cantiere — i fori vivono in coordinate locali (lungo il fronte / dietro il fronte), e ogni file di scambio del settore viaggia in coordinate di cantiere (26/11) | ⏸️ **Rimandata dal fondatore il 26/11** («un punto a cui pensare in futuro»). Quando si riapre: in che forma dichiarare l'aggancio (due punti del fronte, oppure un punto e una direzione) e quali file veri si possono avere dalle cave. Vedi la sezione 32. |
 
 ⚠️ **Correzione, 02/08.** Qui prima c'era scritto che *dieci* di queste
 diciannove erano la stessa domanda. **Sono quattro.** Le ho contate una per una
@@ -2580,6 +2581,99 @@ clampate di "Da terra"), non quello che "dovrebbe" fare — così una
 scelta fra le tre strade sopra farà cadere quell'asserzione sola, per
 nome, invece di un banco più largo.
 
+## 32. Genesi: il progetto non sa dove si trova nel cantiere — e senza quell'aggancio nessun file di scambio può uscire o entrare giusto
+
+*(dal 26/11, nuovo capitolo «formati di scambio»: ricerca approfondita su
+materiale pubblico — rapporto in `reports/Genesi formati di scambio
+cava.md`, note in `research_notes/` — e confronto col codice fatto
+partendo dal meccanismo, in `docs/RICERCA_CONTINUA_GENESI.md`, sezione
+26/11 «il delta»)*
+
+**Il fatto, in parole semplici.** In Genesi un foro è «a 7 metri lungo il
+fronte, 3 metri dietro»: misure prese dal fronte stesso. È il modo giusto
+per progettare. Ma fuori da Genesi **tutti** i file che passano di mano in
+una cava — la tabella dei fori per il GPS di chi picchetta, il piano per
+la perforatrice con navigazione (IREDES), il ritorno dei fori come sono
+stati perforati, il rilievo della sonda di deviazione — parlano in
+**coordinate di cantiere** (Est, Nord, quota). Genesi oggi non ha nessun
+posto in cui scrivere «il mio fronte comincia QUI e va in QUELLA
+direzione». Misurato: nel modulo dati non c'è nessun campo di
+georeferenziazione (`grep -ciE 'georef|epsg|easting|northing'
+apps/genesi/genesi-data.js` → 0), e l'unica tabella di fori che esce
+(`genesi_piano_carico.csv`) porta `x` e `fila` locali.
+
+**Che cosa ne segue oggi.** Tre cose, tutte verificate aprendo le funzioni:
+1. *Chi porta dentro una tabella di fori scritta da un altro programma?*
+   Nessuno. I fori nascono dalla maglia, da un clic, o dai file di Genesi
+   stessa (`.volata.json`, il proprio XML).
+2. *Chi scrive un piano che un altro programma o una macchina legge?* Il
+   DXF sì (ma in coordinate locali, e i fori sono cerchi in pianta: senza
+   profondità né inclinazione). L'XML «in stile IREDES» ha un formato
+   privato (`urn:genesi:blastplan:draft`): lo rilegge solo Genesi. La
+   ricerca ha documentato la struttura del piano IREDES vero (`DRPPlan`),
+   che è un'altra cosa.
+3. *Chi legge il rilievo di una sonda vera?* `deviazioneForiDaCsv` legge
+   solo il nostro `foro;dx_m;dy_m`. Il formato scritto dal costruttore
+   della sonda più diffusa (Boretrak: `foro, fila, X, Y, Z`, una riga per
+   stazione, senza intestazione) porta coordinate — che senza l'aggancio
+   non si possono riportare «davanti/dietro il fronte».
+
+**Perché serve una decisione, non un'unità automatica.** L'aggancio è una
+cosa che l'utente deve DICHIARARE, e il modo in cui la dichiara è una
+scelta di prodotto. Tre strade:
+1. **Due punti del fronte in coordinate di cantiere** (Est, Nord e quota
+   di due punti che il topografo ha già: tipicamente i due estremi della
+   cresta). Da quelli Genesi ricava origine e direzione — e ha in mano un
+   controllo gratis: la distanza fra i due punti deve tornare con la
+   lunghezza del fronte disegnato, e se non torna lo dice. *È la strada
+   che consiglio*: è quella con la guardia incorporata, e la ricerca
+   mostra che gli errori in questo mestiere non sono di formato ma di
+   significato (Nord ed Est scambiati danno un file valido e i fori nel
+   posto sbagliato).
+2. **Un punto e una direzione** (le coordinate di un estremo e l'angolo
+   del fronte rispetto al Nord). Più veloce da digitare, ma senza
+   controllo: un angolo sbagliato non si vede finché qualcuno non va in
+   campo.
+3. **Non farlo**: Genesi resta uno strumento di progetto e simulazione, e
+   il passaggio al campo lo fa un altro programma. Legittimo — ma allora
+   la riga «export per la perforatrice / per i detonatori» va tolta dalle
+   cose che il prodotto promette.
+
+**Che cosa si costruirebbe dopo, in ordine** (ognuna è un'unità piccola,
+e nessuna tocca il motore fisico):
+- la tabella dei fori in uscita nella forma che attraversa tutti i
+  programmi senza malintesi — **bocca del foro + fondo del foro in
+  coordinate**, con l'ordine Est/Nord scelto da chi esporta e scritto
+  nell'intestazione (i ricevitori GPS hanno due ordini opposti);
+- la tabella dei fori in entrata, con le colonne abbinate dall'utente e
+  un'anteprima «questo entra / questo no» prima di salvare — è quello che
+  fanno tutti i prodotti maturi letti (chiedono, non indovinano);
+- il rilievo Boretrak letto nel suo formato vero;
+- il piano IREDES vero — **solo dopo** aver avuto un file vero o una
+  macchina su cui provarlo: la ricerca non ha trovato in rete nessun
+  piano reale completo, e le marche hanno dialetti (assi, versione,
+  codice di controllo).
+
+**La seconda domanda, che vale quanto la prima: quali file veri si
+possono avere?** Per quasi ogni dubbio rimasto la ricerca conclude che la
+risposta più economica non è altra ricerca: è **un file vero di dieci
+righe**. Servirebbero, da una cava amica o da un fornitore: l'export di
+testo di un sismografo (Instantel o altro), un file di sonda di
+deviazione, un piano e un rapporto di ritorno di una perforatrice con
+navigazione, un DXF di volata fatto da un topografo o da un consulente —
+e sapere **che marche** di perforatrice, GPS e sismografo hanno le cave a
+cui si pensa di vendere. Con quelli in mano si costruisce sul vero; senza,
+si costruirebbe su descrizioni di seconda mano, che è il modo più
+elegante di sbagliare.
+
+**⏸️ La risposta del fondatore, 26/11 (in conversazione).** Sull'aggancio:
+*«È un punto a cui pensare in futuro, per il momento credi ci siano altre
+priorità»*. Sui file veri: *nessuno* disponibile per ora. Quindi: **niente
+aggancio, niente tabella dei fori in coordinate di cantiere, niente IREDES
+vero adesso** — restano scritti qui perché chi li riapre non rifaccia la
+ricerca. La priorità scelta al loro posto è nel piano del 26/11 in
+`docs/GENESI_ROADMAP_COMPETITOR.md` (il progetto foro per foro).
+
 ## Cosa procede intanto SENZA di te
 I cicli automatici continuano su ciò che è sicuro e non gated: seconde
 iterazioni UX delle app, test aggiuntivi, revisioni di qualità/sicurezza,
@@ -2595,7 +2689,7 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.730** *(il 26/11, +2: il lettore DXF di Genesi rimisurato contro file scritti da un CAD vero; prima — stesso giro — Genesi, correzione di `syncTrattoUI` trovata da `genesi-snap-estremo.mjs` (G48): Ruota/Scala tratti (G57/G58) restavano visibili mentre si disegnava ancora un tratto, e la barra cresciuta spingeva la tela sotto la barra di navigazione fissa — misurato dal vivo con Playwright: 40 px bastavano a far cadere il clic che chiude il tratto sull'icona della barra invece che sulla tela. E, prima di questo, dopo `deviazioneStatistiche` (G59): media e massima della deviazione RADIALE di perforazione (`Math.hypot(dx,dy)`, non dx/dy col segno — quel segno dipende dalla convenzione di assi del rilievo boretrack, ancora non confermata), segnalata dalla ricerca del 19/09 come mancanza reale rispetto al QC statistico di JKSimBlast, verificata prima con un grep per nome (zero righe). E, prima di questo, dopo `trattiScalati` (G58): terza trasformazione CAD, scala tutti i tratti DALL'ORIGINE (non dal centroide come rotate/mirror — un errore di unità sbaglia ogni coordinata della stessa proporzione, compreso il centroide, misurato prima di scriverla così) per correggere un rilievo DXF disegnato in un'unità diversa dai metri di Genesi — dopo `trattiRuotati` (G57): seconda trasformazione CAD dopo il mirror di G50, ruota tutti i tratti importati/disegnati attorno al loro centroide comune per correggere sul posto l'orientamento di un rilievo DXF con assi diversi da Genesi — resta fuori dal dominio dei fori, dove mx/my sono burden/spaziatura, non coordinate libere — dopo la stessa causa di G56c ritrovata in `innescoSuMaglia` (G56d): `innFrom=-1` diceva sia «primo della volata» sia «nessun raccordo raggiunge questo foro», e la «Rete di innesco» del Validatore contava il secondo caso come inesistente — dopo `relief=null` che distingue il vero primo foro della zona da un vicino già sparato ma oltre la distanza di adiacenza (un foro mancante nella maglia) G56c — trovato con una verifica diretta sugli export CSV/DXF/XML dopo aver tolto un foro con drag+Canc, non da un agente — dopo l'annulla premuto a metà di un trascinamento G56b, dopo la guida di allineamento in Y sul trascinamento di un foro G56, dopo il misfire nel report stampato G55, dopo il limite dello stack di annulla G54, il semaforo di sintesi letto prima di esportare G53, l'esito della detonazione G52, `coordinataRelativa`/input relativo-polare G51, `foriRiflessi`/rifletti la selezione G50, `foriSenzaId`/selezione multipla G49 e `puntoSnapEstremo`/`estremiDisegno` di G48)* *(ricontate il 19/09, dopo il dodicesimo giro — Sentinella, `allerteTaratura`/badge; erano 3.676 il 18/09, dopo il
+**Le prove automatiche sono passate a 3.731** *(il 26/11, +3: il lettore DXF di Genesi rimisurato contro file scritti da un CAD vero; prima — stesso giro — Genesi, correzione di `syncTrattoUI` trovata da `genesi-snap-estremo.mjs` (G48): Ruota/Scala tratti (G57/G58) restavano visibili mentre si disegnava ancora un tratto, e la barra cresciuta spingeva la tela sotto la barra di navigazione fissa — misurato dal vivo con Playwright: 40 px bastavano a far cadere il clic che chiude il tratto sull'icona della barra invece che sulla tela. E, prima di questo, dopo `deviazioneStatistiche` (G59): media e massima della deviazione RADIALE di perforazione (`Math.hypot(dx,dy)`, non dx/dy col segno — quel segno dipende dalla convenzione di assi del rilievo boretrack, ancora non confermata), segnalata dalla ricerca del 19/09 come mancanza reale rispetto al QC statistico di JKSimBlast, verificata prima con un grep per nome (zero righe). E, prima di questo, dopo `trattiScalati` (G58): terza trasformazione CAD, scala tutti i tratti DALL'ORIGINE (non dal centroide come rotate/mirror — un errore di unità sbaglia ogni coordinata della stessa proporzione, compreso il centroide, misurato prima di scriverla così) per correggere un rilievo DXF disegnato in un'unità diversa dai metri di Genesi — dopo `trattiRuotati` (G57): seconda trasformazione CAD dopo il mirror di G50, ruota tutti i tratti importati/disegnati attorno al loro centroide comune per correggere sul posto l'orientamento di un rilievo DXF con assi diversi da Genesi — resta fuori dal dominio dei fori, dove mx/my sono burden/spaziatura, non coordinate libere — dopo la stessa causa di G56c ritrovata in `innescoSuMaglia` (G56d): `innFrom=-1` diceva sia «primo della volata» sia «nessun raccordo raggiunge questo foro», e la «Rete di innesco» del Validatore contava il secondo caso come inesistente — dopo `relief=null` che distingue il vero primo foro della zona da un vicino già sparato ma oltre la distanza di adiacenza (un foro mancante nella maglia) G56c — trovato con una verifica diretta sugli export CSV/DXF/XML dopo aver tolto un foro con drag+Canc, non da un agente — dopo l'annulla premuto a metà di un trascinamento G56b, dopo la guida di allineamento in Y sul trascinamento di un foro G56, dopo il misfire nel report stampato G55, dopo il limite dello stack di annulla G54, il semaforo di sintesi letto prima di esportare G53, l'esito della detonazione G52, `coordinataRelativa`/input relativo-polare G51, `foriRiflessi`/rifletti la selezione G50, `foriSenzaId`/selezione multipla G49 e `puntoSnapEstremo`/`estremiDisegno` di G48)* *(ricontate il 19/09, dopo il dodicesimo giro — Sentinella, `allerteTaratura`/badge; erano 3.676 il 18/09, dopo il
 sesto giro di deep-pass QA in parallelo su Sentinella/Genesi/Conti —
 `superamentiAperti` scriveva un valore fabbricato su un superamento vero,
 `muckShape`/il pannello Decking di Genesi stimavano un baricentro del

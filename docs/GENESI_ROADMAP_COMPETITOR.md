@@ -33,6 +33,73 @@ funzioni**, ordinata per impatto/fattibilità, distinguendo cosa si può fare
 > come "da fare" e la Sintesi le chiamava "il gap più grande" — chi avesse
 > letto solo quelle due righe avrebbe aperto un cantiere su lavoro fatto.
 
+## ⛔ 26/11 — Dove sta davvero il distacco dai concorrenti, rimisurato sul codice (e il piano che ne segue)
+
+*Richiesta del fondatore, 26/11: «dobbiamo trovare il modo di portare Genesi
+al livello dei concorrenti». Fonti: la ricerca approfondita dello stesso
+giorno (`reports/Genesi formati di scambio cava.md`) e il delta fatto
+aprendo le funzioni (`docs/RICERCA_CONTINUA_GENESI.md`, sezione 26/11).*
+
+**In due righe (per Giuseppe).** Sui CALCOLI Genesi regge il confronto: la
+sintesi qui sotto resta vera. Il distacco è altrove, in due posti che questo
+documento finora non nominava: **(1) in Genesi tutti i fori di una volata
+sono uguali** — una sola profondità, una sola carica, un solo borraggio, un
+solo diametro, una sola inclinazione — mentre in ogni programma concorrente
+ogni foro ha i suoi valori, ed è lì che un tecnico lavora tutti i giorni;
+**(2) Genesi non entra nel passaggio di file della cava** (GPS, perforatrice,
+sonda), perché non sa dove si trova nel cantiere.
+
+**Che cosa è stato deciso il 26/11.** Il punto (2) — l'aggancio al cantiere e
+gli scambi di file — è **rimandato dal fondatore** (decisione 32), e file
+veri di strumenti non ce ne sono. Resta il punto (1), che non ha bisogno né
+di file né di aggancio, ed è la base di tutto il resto: una tabella di fori
+da scambiare ha senso solo se i fori possono essere diversi.
+
+### La prova del punto (1), perché nessuno lo riscopra a parole
+- I parametri sono del PROGETTO: `D2.prof`, `D2.kg`, `D2.stem`, `D2.diam`,
+  `D2.incl` (campi `dH`, `dKg`, `dStem`, `dD`, `dIncl` della scheda).
+- Le proprietà che il codice scrive su un singolo foro sono posizione, tempi
+  e misure derivate (`mx`, `my`, `tDet`, `tMano`, `relief`, `burdenLoc`,
+  `burdenVero`…): nessuna carica, nessuna profondità.
+- `micFinestra(holes, kg)` riceve UN `kg` per tutta la volata; il piano di
+  carico (`genesi_piano_carico.csv`) e l'XML scrivono la stessa profondità e
+  la stessa carica su ogni riga.
+- Quanto è largo il lavoro, contato: `D2.kg` compare 48 volte nella pagina,
+  `D2.prof` 41, `D2.stem` 44, `D2.diam` 25, `D2.incl` 14. Non è un'unità, è
+  un cantiere a fette.
+
+### Il piano, a fette che non rompono niente
+Regola del fondatore rispettata: **le formule non si toccano** — cambia
+quali numeri ricevono. Ogni fetta lascia i progetti esistenti identici,
+perché un foro senza valori suoi continua a usare quelli del progetto.
+
+| Fetta | Che cosa | Che cosa vede l'utente |
+|---|---|---|
+| F1 | Il foro può portare valori suoi (carica, profondità, borraggio), letti da una funzione sola che ripiega sul progetto | Niente: è la fondazione, con le prove |
+| F2 | La carica massima per ritardo (MIC), la carica totale e il consumo specifico sommano le cariche VERE dei fori | I numeri della scheda seguono i fori modificati |
+| F3 | Si modificano i fori selezionati (la selezione multipla c'è già): «a questi fori: carica / profondità / borraggio» | Il gesto che ogni concorrente ha |
+| F4 | Tabella dei fori: una riga per foro, modificabile, ordinabile | La vista che un tecnico si aspetta |
+| F5 | Piano di carico, XML e DXF scrivono i valori per foro; il 3D disegna ogni foro lungo e carico com'è | I file che escono dicono la verità |
+| F6 | Diametro e inclinazione per foro (toccano la geometria 3D: per ultimi) | Fori di prima fila inclinati, fori di contorno più piccoli |
+
+### Dopo, nell'ordine in cui conviene
+1. **Nuvola di punti LAZ** — è il formato con cui esce di default
+   OpenDroneMap; oggi Genesi lo rifiuta (con un messaggio chiaro) e legge
+   solo LAS. Non dipende da nessuna decisione.
+2. **DXF: blocchi inseriti, archi, tratti curvi** — oggi dichiarati e non
+   letti; l'oracolo per farli giusti c'è già (`dxf-da-cad.mjs`).
+3. **Aggancio al cantiere e scambio dei fori** (decisione 32, rimandata).
+4. **Pezzatura da foto** (P2.1 qui sotto) e **modello ML** (P2.2): restano
+   dove stavano.
+
+### Due righe di questo documento e della matrice che erano troppo generose
+- «Export IREDES-like … già presente»: il file esiste, ma ha un formato
+  privato che rilegge solo Genesi. Non è interoperabilità con le
+  perforatrici: quella vuole il `DRPPlan` vero, un file reale su cui
+  provarlo e l'aggancio.
+- «Import MWD»: non esiste (già tolto da qui il 12/09; nella matrice c'era
+  ancora).
+
 ## In due righe (per Giuseppe)
 Buona notizia: Genesi è **più avanti di quanto sembri** — più avanti di quanto
 dicesse questo stesso documento fino al 12/09. Oltre a simulare la

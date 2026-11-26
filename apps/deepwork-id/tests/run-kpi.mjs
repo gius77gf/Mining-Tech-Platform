@@ -27729,6 +27729,26 @@ console.log("\n— Campo: i file che escono —");
     eq(v.ondaDaCsv("0\t0.5\n0.5\t-1.25\n1\t2"), { t: [0, 0.5, 1], a: [0.5, -1.25, 2], dt: 0.5 }, "e col TAB");
     eq(v.ondaDaCsv("\uFEFF0;1\n1;2\n2;3\n"), { t: [0, 1, 2], a: [1, 2, 3], dt: 1 }, "il BOM di Excel non rompe la prima riga");
     eq(v.ondaDaCsv("0;1\n1;2\n"), null, "sotto tre campioni non c'è un'onda");
+    /* ⛔ 26/11 — la tabella a canali di un sismografo (senza colonna del
+       tempo) veniva letta come un'onda: il canale trasversale per il tempo.
+       La forma è quella che leggono i due lettori pubblici di quei file
+       (gmsp, BlastingPy); il file è costruito qui, NON è un export vero —
+       e la guardia infatti non conosce nessun formato: guarda il tempo. */
+    let canali = "Sample Rate : 1024 sps\nTran\tVert\tLong\tMicL\n";
+    for (let i = 0; i < 40; i++) canali += [(Math.sin(i / 3) * 2).toFixed(3), (Math.cos(i / 4) * 5).toFixed(3), (Math.sin(i / 5)).toFixed(3), "0.5"].join("\t") + "\n";
+    eq(v.ondaDaCsv(canali), null, "⛔ una tabella di canali senza tempo NON è un'onda tempo;ampiezza: la prima colonna torna indietro");
+    eq(v.ondaDaCsv("0;1\n2;2\n1;3\n3;4\n"), null, "un «tempo» che scende anche una volta sola non è un tempo");
+    eq(v.ondaDaCsv("5;1\n5;2\n5;3\n"), null, "e un tempo fermo non è un tempo");
+    eq(v.ondaDaCsv("0;1\n0;2\n1;3\n1;4\n").t, [0, 0, 1, 1], "ma un tempo arrotondato che si RIPETE (e poi avanza) resta buono: non si irrigidisce oltre il difetto");
+  });
+  test("Genesi · ondaPercheNo: perché l'onda non si legge, detto a chi ha il file in mano", () => {
+    eq(v.ondaPercheNo("0;0.5\n0.5;-1.25\n1;2\n"), "", "un'onda che si legge non ha niente da spiegare");
+    let canali = "Sample Rate : 1024 sps\nTran\tVert\tLong\tMicL\n";
+    for (let i = 0; i < 12; i++) canali += [(Math.sin(i / 3) * 2).toFixed(3), (Math.cos(i / 4) * 5).toFixed(3), "0.1", "0.5"].join("\t") + "\n";
+    ok(/sismografo a canali \(Tran \/ Vert \/ Long\)/.test(v.ondaPercheNo(canali)), "la tabella a canali viene chiamata col suo nome: " + v.ondaPercheNo(canali).slice(0, 70));
+    ok(/non è un tempo/.test(v.ondaPercheNo("3;1\n2;2\n1;3\n0;4\n")), "due colonne di numeri col tempo che scende: lo dice");
+    ok(/almeno tre righe/.test(v.ondaPercheNo("boh")), "un file che non c'entra: dice che cosa serve");
+    ok(/almeno tre righe/.test(v.ondaPercheNo(null)), "null non rompe");
     eq(v.ondaDaCsv(""), null); eq(v.ondaDaCsv(null), null, "vuoto o assente: null, non un'onda da zero campioni");
     eq(v.ondaDaCsv("0;1\n0.01;2\n0.02;3\n").dt, 0.05, "il passo non scende sotto 0,05 ms");
     eq(v.ondaDaCsv("0;1;99\n1;2;99\n2;3;99\n"), { t: [0, 1, 2], a: [1, 2, 3], dt: 1 }, "le colonne oltre la seconda si ignorano");
@@ -42986,6 +43006,18 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
       [{ foro: null, idForo: "f1", dx: 0.1, dy: 0 }, { foro: null, idForo: "f2", dx: 0.2, dy: 0 }], "con id_foro e la virgola italiana");
     eq(v.deviazioneForiDaCsv("1;0.12;-0.30\n2;-0.05;0.10\n").righe.length, 2, "senza intestazione: ordine posizionale foro;dx_m;dy_m");
     eq(v.deviazioneForiDaCsv("").errore, "Il file è vuoto: non c’è nessuna riga da leggere.");
+    /* ⛔ 26/11 — il CSV di coordinate di una sonda (Boretrak «CSV holes»:
+       foro, fila, X, Y, Z, una riga per stazione, SENZA intestazione) veniva
+       letto per posizione come foro;dx;dy: la fila diventava 1 m di
+       deviazione e la X 1000 m. La prima riga è quella d'esempio del manuale
+       del costruttore; le altre hanno la stessa forma. */
+    const boretrak = "1,1,1000.000,1000.000,1000.000\n1,1,1000.050,1000.020,998.000\n2,1,1003.500,1000.000,1000.000\n";
+    ok(/forma di un export di coordinate di una sonda/.test(v.deviazioneForiDaCsv(boretrak).errore || ""),
+       "⛔ cinque colonne senza intestazione: si rifiuta col suo nome, non si inventano deviazioni da 1000 m — " + JSON.stringify(v.deviazioneForiDaCsv(boretrak)).slice(0, 90));
+    ok(v.deviazioneForiDaCsv(boretrak).righe === undefined, "e non consegna nessuna riga");
+    ok(/9 colonne/.test(v.deviazioneForiDaCsv("1,2,1,1005,1000,1000,0,5,32\n").errore || ""), "la forma a nove colonne (col progetto del foro) pure, e dice quante ne ha visto");
+    eq(v.deviazioneForiDaCsv("1;0.12;-0.30;nota\n2;-0.05;0.10;nota\n").righe.length, 2, "quattro colonne senza intestazione restano lette come prima: la guardia non si allarga oltre le tre forme documentate");
+    eq(v.deviazioneForiDaCsv("foro;fila;dx_m;dy_m;nota\n1;1;0,1;0,2;x\n").righe.length, 1, "e con l'intestazione cinque colonne vanno benissimo: lì i nomi dicono che cosa sono");
     eq(v.deviazioneForiDaCsv("pippo;pluto\n1;2\n").errore,
       "Nessuna riga leggibile: servono il numero (o l’id) del foro e le due deviazioni dx_m/dy_m (ho scartato 2 righe).",
       "⛔ un'intestazione che non parla di fori/dx non fa credere a un rilievo: scarta tutto e lo dice");

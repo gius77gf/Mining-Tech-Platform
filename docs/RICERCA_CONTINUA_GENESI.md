@@ -5988,3 +5988,40 @@ bottone vero.
    file scritti da `laspy` (LAS 1.0–1.4, formati punto 0–10), e l'export
    `dxfPianoFori` riletto da `ezdxf` in modo sistematico (il 13/09 era
    stato fatto una volta, a mano).
+
+## Ricerca del 2026-11-26 — i formati di scambio in cava (deep-research, cinque filoni) e IL DELTA fatto dal codice
+
+_Timestamp: 2026-11-26T14:12:44Z_
+
+**Il mondo** sta in due posti e non è ricopiato qui: il rapporto
+`reports/Genesi formati di scambio cava.md` (circa 13.500 parole, ogni
+affermazione marcata letta / seconda mano, quindici contraddizioni fra fonti
+tenute aperte in tabella, ventidue domande finali) e le note dei cinque
+filoni in `research_notes/Genesi formati di scambio cava/`. Tre avvertenze
+del rapporto valgono per chiunque lo usi: **Kirra non è open source** (e una
+stesura della sua documentazione conteneva tracciati dichiarati inventati
+dall'autore); **nessun file reale completo** è stato trovato in rete per
+piano IREDES, sismografo o sonda diversa dal Boretrak; tutto ciò che riguarda
+Orica SHOTPlus/BlastIQ è di seconda mano.
+
+### Il delta — fatto da chi ha il codice, partendo dal meccanismo
+
+| Domanda (dal rapporto) | Che cosa fa Genesi oggi — con la prova |
+|---|---|
+| Chi porta dentro una tabella di fori scritta da un altro? | **Nessuno.** I fori nascono dalla maglia, da un clic o dai file di Genesi (`.volata.json`, il proprio XML). Punti d'ingresso censiti: `grep -n -o '<input[^>]*type="file"[^>]*>' apps/genesi/genesi.html` → otto, nessuno per una tabella di fori esterna. |
+| In che coordinate vive un foro? | **Locali** (`mx` lungo il fronte, `my` dietro il fronte). Nessun aggancio al cantiere: `grep -ciE 'georef|epsg|easting|northing' apps/genesi/genesi-data.js` → 0. → decisione 32, **rimandata dal fondatore il 26/11**. |
+| Un foro può essere diverso dagli altri? | **No, ed è il delta più grosso, indipendente dai formati.** Profondità, carica, borraggio, diametro e inclinazione sono UNO per volata (`D2.prof`, `D2.kg`, `D2.stem`, `D2.diam`, `D2.incl`): fra le proprietà che il codice scrive su un foro (`grep -o 'h\.[a-zA-Z_]* *=[^=]'`) ci sono posizione, tempi e misure derivate, non una carica o una profondità. `micFinestra(holes, kg)` prende UN solo `kg`; il piano di carico scrive la stessa profondità e la stessa carica su ogni riga. Ogni tabella di fori del mondo porta questi valori **per foro**. |
+| Chi scrive un piano che un altro legge? | Il DXF (cerchio + numero in pianta, in locale, senza profondità). L'XML «stile IREDES» ha namespace privato `urn:genesi:blastplan:draft`: lo rilegge solo Genesi. Il `DRPPlan` vero è documentato nel rapporto; **non costruito** (serve un file vero, e l'aggancio). |
+| Il ritardo che esce è assoluto? | Sì: `tDet` per foro, nominale (corretto il 07/08). È ciò che i sistemi d'innesco vogliono; manca il percorso di collegamento come dato. |
+| Davanti al file di un sismografo? | ⛔ **Difetto vero, corretto in questa unità.** `ondaDaCsv` prendeva le prime due colonne per tempo e ampiezza: su una tabella a canali `Tran Vert Long MicL` (senza tempo) restituiva un'onda col canale trasversale al posto dell'orologio. Ora il tempo deve non scendere mai e avanzare, e `ondaPercheNo` dice quale dei tre casi è. La LETTURA vera di quei file (tempo dalla frequenza, scelta del canale) non è costruita: nessun file vero in mano. |
+| Davanti al file di una sonda? | ⛔ **Difetto vero, corretto in questa unità.** `deviazioneForiDaCsv`, senza intestazione, leggeva per posizione: la riga d'esempio del manuale Boretrak (`1,1,1000.000,1000.000,1000.000`) diventava una deviazione di 1000 m, accettata. Ora le tre forme senza intestazione documentate dal costruttore (5, 8, 9 colonne) si rifiutano col loro nome. Leggerle davvero vuole l'aggancio (decisione 32). |
+| La nuvola del drone? | `parseLAS` regge (19 file di `laspy` su 19, LAS 1.2–1.4, formati punto 0–8). ⚠️ Ma OpenDroneMap esce di default in **LAZ**, e il commento in `pointcloud.js` dice LAS: il LAZ oggi viene rifiutato con un messaggio chiaro, non letto. Candidato. |
+| Il DXF che entra? | Chiuso nella prima unità di oggi (`dxfLeggi`). |
+
+### Che cosa NON entra in roadmap da questa ricerca
+Lettori «in stile» Instantel/THOR, IREDES, DigiShot, ParVS3, CBLAST, preset
+di Kirra: per nessuno c'è un file vero o un tracciato del fornitore letto, e
+per Kirra c'è una licenza che chiede un accordo per l'integrazione
+commerciale. Costruirli adesso sarebbe costruire su descrizioni di seconda
+mano. Restano nel rapporto, con le loro fonti, per il giorno in cui arriva
+un file vero.
