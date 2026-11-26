@@ -43308,6 +43308,27 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     /* il conto deve tornare con quello che il file salvato porterebbe */
     eq(genesi.contaValoriPropri(H).fori, H.filter((h) => Object.keys(genesi.valoriPropriDiForo(h)).length).length, "lo stesso numero che si ottiene guardando che cosa si salva di ogni foro");
   });
+  test("Genesi · F4, tabellaFori: una riga per foro coi valori che VALGONO, ordinata — e l'ordine è della vista, non dei fori", () => {
+    const P = { kg: 58, prof: 10, stem: 2.2 };
+    const H = [{ id: "a", mx: 0, my: 3, seq: 2, tDet: 84 }, { id: "b", mx: 3.5, my: 3, seq: 0, tDet: 0, kg: 35 }, { id: "c", mx: 7, my: 3, seq: 1, tDet: 42, tMano: 42, prof: 8, stem: 0 }, { id: "d", mx: 10.5, my: 3 }];
+    const copia = JSON.stringify(H);
+    const t = genesi.tabellaFori(H, P);
+    eq(t.map((r) => r.id + r.n), ["b1", "c2", "a3", "d4"], "senza un ordine chiesto: per numero del foro (l'ordine di sparo), e chi non ha un numero prende il suo posto in elenco");
+    eq(t.find((r) => r.id === "c"), { i: 2, n: 2, id: "c", x: 7, spalla: 3, tDet: 42, aMano: true, kg: 58, prof: 8, stem: 0, propri: { kg: false, prof: true, stem: true } },
+      "la riga porta l'indice del foro, i valori che valgono per lui (la carica del progetto, profondità e borraggio suoi) e quali sono suoi");
+    eq(t.map((r) => r.i).sort(), [0, 1, 2, 3], "⛔ ogni riga dice su quale foro si scrive: l'indice in `holes`, non la posizione in tabella");
+    eq(genesi.tabellaFori(H, P, { campo: "kg", verso: "su" }).map((r) => r.id), ["b", "a", "c", "d"], "per carica crescente: il foro da 35 kg per primo; a parità resta l'ordine dei fori (stabile)");
+    eq(genesi.tabellaFori(H, P, { campo: "kg", verso: "giu" }).map((r) => r.id), ["a", "c", "d", "b"], "decrescente: i tre a 58 kg NON si scambiano di posto fra loro");
+    eq(genesi.tabellaFori(H, P, { campo: "tDet", verso: "su" }).map((r) => r.id), ["b", "c", "a", "d"], "⛔ per ritardo: il foro senza ritardo calcolato va IN FONDO");
+    eq(genesi.tabellaFori(H, P, { campo: "tDet", verso: "giu" }).map((r) => r.id), ["a", "c", "b", "d"], "⛔ e resta in fondo anche al contrario: «non lo so» non è il più grande né il più piccolo");
+    eq(genesi.tabellaFori(H, {}, { campo: "kg" }).map((r) => r.kg), [35, null, null, null], "⛔ senza la carica del progetto chi non ne ha una sua mostra null, non zero");
+    eq(genesi.tabellaFori(H, P, { campo: "boh", verso: "giu" }).map((r) => r.id), ["d", "a", "c", "b"], "una colonna che non esiste: per numero del foro (il verso chiesto vale lo stesso)");
+    eq(genesi.tabellaFori(H, P, { campo: "x" }).map((r) => r.x), [0, 3.5, 7, 10.5], "per posizione lungo la fila");
+    eq([genesi.tabellaFori(null, P), genesi.tabellaFori([], P)], [[], []], "nessun foro: nessuna riga, non un crollo");
+    eq(JSON.stringify(H), copia, "i fori ricevuti non sono stati toccati né riordinati");
+    eq(genesi.COLONNE_TABELLA_FORI, ["n", "x", "spalla", "tDet", "kg", "prof", "stem"], "le sette colonne, nell'ordine in cui si leggono");
+    eq(genesi.COLONNE_TABELLA_FORI.filter((c) => genesi.CAMPI_PER_FORO.includes(c)), genesi.CAMPI_PER_FORO, "e le tre che si possono scrivere sono esattamente i campi per foro");
+  });
   test("Genesi · foriDaDesign: il foro illeggibile si conta, quello senza id ne prende uno senza doppioni, il ritardo non numerico cade", () => {
     const r = genesi.foriDaDesign({ holes: [{ id: "f1-1", mx: "0", my: "3" }, { mx: null, my: 3 }, { mx: 2, my: "abc" }, { mx: 5, my: 3, tMano: "boh" }, { id: "", mx: 6, my: 3 }, { id: "m1", mx: 8, my: 3 }] });
     eq(r.scartati, 2, "⛔ due fori senza posizione leggibile si CONTANO, non spariscono");

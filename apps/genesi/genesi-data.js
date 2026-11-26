@@ -2674,6 +2674,45 @@ export function contaValoriPropri(holes){
   return out;
 }
 
+/* ══════════════════════════════════════════════════════════════════════
+   F4 (26/11) — LA TABELLA DEI FORI: una riga per foro, tutti insieme.
+   ══════════════════════════════════════════════════════════════════════
+   La scheda del foro (F3) ne mostra uno; chi progetta vuole vederli TUTTI
+   in fila, coi diversi dal progetto riconoscibili, e ordinarli. Questa
+   funzione prepara le righe; la pagina le disegna e non decide niente.
+    · ogni riga porta `i`, l'indice del foro in `holes`: l'ORDINE È DELLA
+      VISTA. Ordinare la tabella non sposta un foro, e chi scrive in una
+      cella scrive sul foro `i`, non sulla riga che si vede in quel punto;
+    · carica, profondità e borraggio sono quelli che VALGONO per il foro
+      (`valoreDiForo`: il suo, se no il progetto, se no `null`), e `propri`
+      dice quali dei tre sono suoi;
+    · un valore che non c'è resta `null` e va IN FONDO in tutti e due i
+      versi: «non lo so» non è il più piccolo né il più grande;
+    · a parità si tiene l'ordine dei fori (ordinamento stabile, scritto e
+      non sperato: due righe uguali non si scambiano di posto a ogni clic);
+    · una colonna che non esiste ordina per numero del foro: una tabella
+      in un ordine a caso sarebbe peggio di una nell'ordine di sparo. */
+export const COLONNE_TABELLA_FORI = ['n', 'x', 'spalla', 'tDet', 'kg', 'prof', 'stem'];
+export function tabellaFori(holes, progetto, ordine){
+  const H = Array.isArray(holes) ? holes : [];
+  const fin = (v) => (v === null || v === undefined || v === '' || !Number.isFinite(+v)) ? null : +v;
+  const righe = H.map((h, i) => {
+    const suoi = valoriPropriDiForo(h);
+    const seq = fin(h && h.seq);
+    return { i, n: (seq === null ? i : seq) + 1, id: (h && h.id) || null,
+      x: fin(h && h.mx), spalla: fin(h && h.my), tDet: fin(h && h.tDet), aMano: !!(h && h.tMano != null),
+      kg: valoreDiForo(h, 'kg', progetto), prof: valoreDiForo(h, 'prof', progetto), stem: valoreDiForo(h, 'stem', progetto),
+      propri: { kg: 'kg' in suoi, prof: 'prof' in suoi, stem: 'stem' in suoi } };
+  });
+  const campo = (ordine && COLONNE_TABELLA_FORI.includes(ordine.campo)) ? ordine.campo : 'n';
+  const verso = (ordine && ordine.verso === 'giu') ? -1 : 1;
+  return righe.map((r, k) => [r, k]).sort((A, B) => {
+    const a = A[0][campo], b = B[0][campo];
+    if (a === null || b === null) return (a === null && b === null) ? A[1] - B[1] : (a === null ? 1 : -1);
+    return a === b ? A[1] - B[1] : (a < b ? -1 : 1) * verso;
+  }).map((c) => c[0]);
+}
+
 /* ══════════════════════════════════════════════════════════════════════════
    LA FIRMA DELLA MAGLIA (26/11) — quando i fori «non sono più quelli».
    ══════════════════════════════════════════════════════════════════════════

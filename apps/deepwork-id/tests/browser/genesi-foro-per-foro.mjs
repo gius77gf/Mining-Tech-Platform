@@ -68,12 +68,23 @@ const DIFETTI = [
   [MODULO, `if (Number.isFinite(p) && v === p) v = null;`, ``],
   [MODULO, `if (corti) return fermo('borraggio-oltre-il-foro', { corti });`, ``],
   [PAGINA, `if(Object.keys(valoriPropriDiForo(h)).length){\n      const rx=cx+9.5`, `if(false){\n      const rx=cx+9.5`],
-  [PAGINA, `if(bloccati()){ renderInspectorDopo(); return; }`, ``],
+  [PAGINA, `if(_foriBloccatiDetto()){ renderInspectorDopo(); return; }`, ``],
   [PAGINA, `valoriForoCollega(_multi);`, `valoriForoCollega([_multi[0]]);`],
   [PAGINA, `(_nPropri?' <span id="x50-foro-tipo">foro tipo</span>':'')`, `''`],
-  [PAGINA, `d2PushUndo(); D2.holes=es.fori; dopo();`, `D2.holes=es.fori; dopo();`],
+  [PAGINA, `d2PushUndo(); D2.holes=es.fori;`, `D2.holes=es.fori;`],
   /* il tasto Tab: la scheda ridisegnata non ridà il fuoco al campo dopo */
   [PAGINA, `if(id){ const n=$(id); if(n){ n.focus(); if(typeof n.select==='function') n.select(); } }`, ``],
+  /* F4 — la tabella dei fori: non segue i fori che cambiano altrove, scrive
+     sulla RIGA invece che sul foro, il secondo tocco non inverte l'ordine, il
+     Tab perde la cella dopo, si disegna anche da chiusa, a 320 px le colonne
+     che si scrivono escono dallo schermo, il valore proprio non è segnato */
+  [PAGINA, `tabellaForiDaRifare();   // F4: ogni volta`, `// F4: ogni volta`],
+  [PAGINA, `applicaValoreForo([+t.dataset.i], t.dataset.campo, t.value);`, `applicaValoreForo([[...$('ft-corpo').querySelectorAll('.ft-r')].indexOf(t.closest('.ft-r'))], t.dataset.campo, t.value);`],
+  [MODULO, `const verso = (ordine && ordine.verso === 'giu') ? -1 : 1;`, `const verso = 1;`],
+  [PAGINA, `if(daRifocalizzare){ daRifocalizzare.focus(); if(typeof daRifocalizzare.select==='function') daRifocalizzare.select(); }`, ``],
+  [PAGINA, `if(sec.classList.contains('closed')) return;`, ``],
+  [PAGINA, `.ft-pos{display:none!important}`, `.ft-pos{}`],
+  [PAGINA, `+(r.propri[campo]?' class="suo"':'')+' aria-label="'`, `+' aria-label="'`],
 ];
 
 const colpiti = new Set();
@@ -484,6 +495,121 @@ if (prima && prima.colonneTrovate) {
   await pg.evaluate(() => { const e = document.getElementById("diValProg"); if (e) e.click(); }); await pg.waitForTimeout(350);
   s = await stato();
   dice(s.fori[4].prof === undefined && s.fori[4].stem === undefined, "(rimesso il foro ai valori del progetto)", s.fori[4]);
+}
+
+/* 9. F4 — LA TABELLA DEI FORI: una riga per foro, tutti insieme. Si scrive
+   nelle celle con la tastiera vera (Tab fra una cella e l'altra), si ordina,
+   si tocca il numero per aprire la scheda. */
+{
+  console.log("\n── F4: la tabella dei fori ──");
+  const P = await pg.evaluate(() => { const d = window.__genesi.D2; return { kg: d.kg, prof: d.prof, stem: d.stem, n: d.holes.length, ids: d.holes.map((h) => h.id) }; });
+  const tab = () => pg.evaluate(() => { const D = window.__genesi.D2, sc = document.querySelector(".ft-scorri");
+    return { titolo: document.getElementById("ft-apri").innerText.replace(/\s+/g, " ").trim(), aperta: !document.getElementById("ft-sec").classList.contains("closed"),
+      righe: [...document.querySelectorAll("#ft-corpo .ft-r")].map((r) => ({ i: +r.dataset.i, n: r.querySelector(".ft-num").innerText.replace(/\s+/g, ""), sel: r.classList.contains("sel"),
+        kg: r.querySelector('input[data-campo="kg"]').value, prof: r.querySelector('input[data-campo="prof"]').value, stem: r.querySelector('input[data-campo="stem"]').value,
+        suoKg: r.querySelector('input[data-campo="kg"]').classList.contains("suo") })),
+      fori: D.holes.map((h) => ({ id: h.id, kg: h.kg, prof: h.prof, stem: h.stem })), sel: D.sel, fuoco: (document.activeElement && document.activeElement.id) || "",
+      toast: window.__toasts.join(" | "), scheda: ((document.querySelector("#d2-insp b") || {}).textContent || ""),
+      scorre: sc ? [sc.scrollWidth, sc.clientWidth] : null, pagina: [document.documentElement.scrollWidth, innerWidth] }; });
+  const num = (t) => +String(t).replace(/\./g, "").replace(",", ".");
+
+  let t = await tab();
+  dice(!t.aperta && t.righe.length === 0, "nasce CHIUSA, e da chiusa non disegna nessuna riga (non costa niente a chi non la apre)", t.righe.length);
+  dice(new RegExp("· " + P.n + " fori").test(t.titolo), `ma il titolo dice già quanti fori ci sono (${t.titolo})`, t.titolo);
+  await pg.click("#ft-apri"); await pg.waitForTimeout(300);
+  t = await tab();
+  dice(t.aperta && t.righe.length === P.n, `aperta: una riga per foro (${t.righe.length} righe, ${P.n} fori)`, t.righe.length);
+  dice(t.righe.every((r, k) => r.n === String(k + 1)), "in ordine di numero del foro, dall'1 in su", t.righe.map((r) => r.n).join(" "));
+  dice(t.righe.every((r) => num(r.kg) === P.kg && num(r.prof) === P.prof && num(r.stem) === P.stem && !r.suoKg), `ogni riga coi valori del progetto (${P.kg} kg · ${P.prof} m · ${String(P.stem).replace(".", ",")} m), nessuna segnata`, t.righe[0]);
+  dice(t.scorre[0] <= t.scorre[1] && t.pagina[0] <= t.pagina[1], `a 430 px la tabella ci sta INTERA: non scorre di lato né lei (${t.scorre}) né la pagina (${t.pagina})`, [t.scorre, t.pagina]);
+
+  /* scrivere con la tastiera, Tab fra le celle */
+  await pg.evaluate(() => { window.__toasts.length = 0; });
+  await pg.click("#ft-kg-2", { clickCount: 3 }); await pg.keyboard.type("35"); await pg.keyboard.press("Tab"); await pg.waitForTimeout(250);
+  t = await tab();
+  dice(t.fori[2].kg === 35 && t.fori.filter((h) => h.kg != null).length === 1, "⛔ scritto 35 nella cella della carica del terzo foro: quel foro ha 35 kg, e solo lui", t.fori[2]);
+  dice(t.fuoco === "ft-prof-2", `⛔ e dopo Tab il fuoco è sulla cella accanto (profondità dello stesso foro) — letto «${t.fuoco}»`, t.fuoco);
+  dice(/Foro \d+: carica 35 kg — non più quella del progetto/.test(t.toast), "la frase è la STESSA della scheda del foro: una regola, due posti da cui si scrive", t.toast);
+  await pg.keyboard.type("8,5"); await pg.keyboard.press("Tab"); await pg.waitForTimeout(250);
+  t = await tab();
+  dice(t.fori[2].prof === 8.5 && t.fuoco === "ft-stem-2", "e il numero battuto subito dopo arriva (profondità 8,5 m), col fuoco già sul borraggio", [t.fori[2], t.fuoco]);
+  const riga2 = t.righe.find((r) => r.i === 2);
+  dice(riga2.suoKg && /◆/.test(riga2.n), `⛔ la riga è SEGNATA: il rombo accanto al numero («${riga2.n}») e la cella col bordo dei valori propri`, riga2);
+  dice(/1 con valori suoi/.test(t.titolo), `e il titolo li conta (${t.titolo})`, t.titolo);
+
+  /* un valore che non si legge: rifiutato, e la cella torna al valore vero */
+  await pg.evaluate(() => { window.__toasts.length = 0; });
+  await pg.click("#ft-kg-0", { clickCount: 3 }); await pg.keyboard.type("abc"); await pg.keyboard.press("Tab"); await pg.waitForTimeout(300);
+  t = await tab();
+  dice(t.fori[0].kg === undefined && /non è un numero/.test(t.toast) && num(t.righe.find((r) => r.i === 0).kg) === P.kg, "«abc» in una cella: rifiutato con la sua frase, e la cella torna al valore vero", [t.toast, t.righe.find((r) => r.i === 0).kg]);
+
+  /* ordinare: l'ordine è della VISTA. Le attese si ricavano dai valori letti,
+     non da un numero scritto qui: la carica del progetto non è la stessa in
+     ogni passata, e un'attesa a memoria direbbe ok per la ragione sbagliata. */
+  const crescente = (a) => a.every((v, k) => k === 0 || a[k - 1] <= v), decrescente = (a) => a.every((v, k) => k === 0 || a[k - 1] >= v);
+  await pg.click('.ft-h button[data-ord="kg"]'); await pg.waitForTimeout(200);
+  t = await tab();
+  const kgSu = t.righe.map((r) => num(r.kg));
+  dice(crescente(kgSu) && new Set(kgSu).size > 1 && t.righe[35 < P.kg ? 0 : t.righe.length - 1].i === 2,
+    `ordinata per carica, dalla più piccola: il foro da 35 kg è ${35 < P.kg ? "in cima" : "in fondo"} (${kgSu.join(" ")})`, kgSu);
+  dice(JSON.stringify(t.fori.map((h) => h.id)) === JSON.stringify(P.ids), "⛔ e i FORI non si sono mossi: l'ordine è della tabella, non del progetto", t.fori.map((h) => h.id));
+  await pg.click('.ft-h button[data-ord="kg"]'); await pg.waitForTimeout(200);
+  t = await tab();
+  const kgGiu = t.righe.map((r) => num(r.kg));
+  dice(decrescente(kgGiu) && t.righe[35 < P.kg ? t.righe.length - 1 : 0].i === 2, `⛔ un secondo tocco sulla stessa colonna INVERTE: ora dalla più grande (${kgGiu.join(" ")})`, kgGiu);
+  /* ⛔ con la tabella ordinata, scrivere in una riga scrive sul foro DI QUELLA RIGA.
+     Si sceglie una riga che non è al posto del suo foro: se no la prova passerebbe
+     anche scrivendo «sulla riga numero k». */
+  const k = t.righe.findIndex((r, q) => r.i !== q);
+  dice(k >= 0, "con la tabella ordinata almeno una riga non è al posto del suo foro (se no la prova qui sotto non proverebbe niente)", t.righe.map((r) => r.i).join(" "));
+  if (k >= 0) {
+    const bersaglio = t.righe[k].i;
+    await pg.evaluate(() => { window.__toasts.length = 0; });
+    await pg.locator("#ft-corpo .ft-r").nth(k).locator('input[data-campo="stem"]').click({ clickCount: 3 });
+    await pg.keyboard.type("1"); await pg.keyboard.press("Tab"); await pg.waitForTimeout(300);
+    t = await tab();
+    dice(t.fori[bersaglio].stem === 1 && t.fori.filter((h) => h.stem != null).length === 1,
+      `⛔ scritto il borraggio nella riga ${k + 1} della tabella ordinata: va al foro di QUELLA riga (il ${bersaglio + 1}° dell'elenco), non al ${k + 1}°`, t.fori.map((h) => h.stem));
+  }
+  /* la tabella segue il PROGETTO che cambia: le celle dei fori senza valore proprio */
+  const stemNuovo = P.stem === 2 ? 2.4 : 2;
+  await pg.evaluate((v) => { const el = document.getElementById("dStem"); el.value = String(v).replace(".", ","); el.dispatchEvent(new Event("input", { bubbles: true })); el.dispatchEvent(new Event("change", { bubbles: true })); }, stemNuovo);
+  await pg.waitForTimeout(500);
+  t = await tab();
+  const senzaSuo = t.righe.filter((r) => t.fori[r.i].stem === undefined);
+  dice(senzaSuo.length >= P.n - 2 && senzaSuo.every((r) => num(r.stem) === stemNuovo), `⛔ cambiato il borraggio del PROGETTO (${stemNuovo} m): le celle dei fori che lo seguono lo mostrano subito`, senzaSuo.slice(0, 3).map((r) => r.stem));
+
+  /* il numero apre la scheda */
+  await pg.click('.ft-num[data-sel="5"]'); await pg.waitForTimeout(300);
+  t = await tab();
+  dice(t.sel === 5 && /Foro/.test(t.scheda) && t.righe.filter((r) => r.sel).length === 1 && t.righe.find((r) => r.sel).i === 5, `toccato il numero di una riga: quel foro è selezionato, la sua scheda è aperta («${t.scheda}») e la riga è evidenziata`, [t.sel, t.scheda]);
+  /* la tabella segue ciò che cambia ALTROVE: la scheda, l'annulla */
+  await pg.evaluate(() => { const el = document.getElementById("diKg"); el.value = "44"; el.dispatchEvent(new Event("change", { bubbles: true })); }); await pg.waitForTimeout(350);
+  t = await tab();
+  dice(num(t.righe.find((r) => r.i === 5).kg) === 44, "⛔ scritta una carica dalla SCHEDA del foro, la cella della tabella la mostra", t.righe.find((r) => r.i === 5));
+  await pg.evaluate(() => document.getElementById("d2Undo").click()); await pg.waitForTimeout(350);
+  t = await tab();
+  dice(num(t.righe.find((r) => r.i === 5).kg) === P.kg, "e dopo «annulla» torna quella del progetto", t.righe.find((r) => r.i === 5));
+  /* fori bloccati */
+  await pg.evaluate(() => { window.__toasts.length = 0; window.__genesi.D2.strati.fori.bloccato = true; });
+  await pg.click("#ft-kg-1", { clickCount: 3 }); await pg.keyboard.type("77"); await pg.keyboard.press("Tab"); await pg.waitForTimeout(300);
+  t = await tab();
+  dice(t.fori[1].kg === undefined && /bloccati/.test(t.toast) && num(t.righe.find((r) => r.i === 1).kg) === P.kg, "⛔ coi fori BLOCCATI la cella non scrive, lo dice, e torna al valore vero", [t.fori[1], t.toast]);
+  await pg.evaluate(() => { window.__genesi.D2.strati.fori.bloccato = false; });
+
+  /* a 320 px le tre colonne che si scrivono stanno a schermo senza scorrere */
+  await pg.setViewportSize({ width: 320, height: 900 }); await pg.waitForTimeout(350);
+  const stretto = await pg.evaluate(() => { const sc = document.querySelector(".ft-scorri"), b = sc.getBoundingClientRect();
+    const dentro = [...document.querySelectorAll("#ft-corpo .ft-r")][0].querySelectorAll("input");
+    return { scorre: [sc.scrollWidth, sc.clientWidth], pagina: [document.documentElement.scrollWidth, innerWidth],
+      visibili: [...dentro].filter((e) => { const q = e.getBoundingClientRect(); return q.width > 30 && q.left >= b.left && q.right <= b.right + 0.5; }).length }; });
+  dice(stretto.visibili === 3 && stretto.scorre[0] <= stretto.scorre[1] && stretto.pagina[0] <= stretto.pagina[1],
+    `⛔ a 320 px carica, profondità e borraggio sono tutte e tre a schermo, senza scorrere di lato (tabella ${stretto.scorre}, pagina ${stretto.pagina})`, stretto);
+  await pg.setViewportSize({ width: 430, height: 900 }); await pg.waitForTimeout(250);
+  /* si rimette tutto com'era */
+  await pg.evaluate(() => { for (const h of window.__genesi.D2.holes) { delete h.kg; delete h.prof; delete h.stem; } window.__genesi.renderScheda2D(); }); await pg.waitForTimeout(250);
+  t = await tab();
+  dice(!/con valori/.test(t.titolo), `(tolti i valori propri, il titolo torna a contare solo i fori: ${t.titolo})`, t.titolo);
 }
 dice(pg.__err.length === 0, "la pagina non solleva errori", pg.__err.slice(0, 2));
 
