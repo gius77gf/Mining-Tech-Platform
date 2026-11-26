@@ -2436,6 +2436,19 @@
   3247 → 3248; banco `genesi-foro-per-foro.mjs` 121 → 133 (controprova 35
   iniezioni su 35). Dallo scatto a 320 px: rombo e avviso insieme uscivano
   dalla colonna del numero → colonna rimisurata, e misura nel banco.
+- [x] **26/11 · Genesi — i campi della scheda del foro sono campi di Genesi.**
+  Erano i campi bianchi del browser, alti 19 px (x, spalla, ritardo e i tre
+  nuovi): accanto alla tabella dei fori e ai parametri sembravano di un'altra
+  app, e su un telefono non si toccano. Ora stesso campo della tabella
+  (fondo, bordo, fuoco color rame, 16 px, 40 px di altezza), bottoni della
+  scheda alti 40. Seconda passata dallo scatto: «Elimina» di fianco toglieva
+  un quarto della larghezza (285 px utili su 372 a 430 px) → sotto i 480 px
+  va sotto la scheda. Misure prima/dopo: campi 19 → 40 px; scheda a 430 px
+  319 → 384 px. `fuori-schermo --solo=genesi` pulito a 390/360/320,
+  `contrasto --solo=genesi` 338 testi, 0 sotto soglia (⚠️ quel banco non apre
+  la scheda del foro: la coppia di colori è la stessa dei campi dei
+  parametri, che misura). Banco `genesi-foro-per-foro.mjs` 133 → 134
+  (controprova 36 iniezioni su 36).
 - [ ] **Genesi, foro per foro — F6: diametro e inclinazione per foro** (gli
   ultimi due campi: toccano la geometria 3D e il consumo specifico; prima si
   censisce CHI li legge — `grep -n "D2.diam\|D2.incl" apps/genesi/genesi.html`

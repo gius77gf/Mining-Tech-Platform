@@ -106,6 +106,8 @@ const DIFETTI = [
   [MODULO, `: caricaForoDaGeometria({ diam: p.diam, prof, sub: p.sub, stem, densita: p.densita });`, `: caricaForoDaGeometria({ diam: p.diam, prof: p.prof, sub: p.sub, stem: p.stem, densita: p.densita });`],
   [PAGINA, `+_capAvviso, _capDopo.length?'err':undefined);`, `, undefined);`],
   [PAGINA, `cls:nNo?'sv-bad':(nLim?'sv-warn':'sv-ok'),`, `cls:'sv-ok',`],
+  /* i campi della scheda del foro tornano quelli bianchi del browser, alti 19 px */
+  [PAGINA, `#d2-insp input[type=text]{background:#241d12;border:1px solid #473a1f;`, `#d2-insp input[type=nessuno]{background:#241d12;border:1px solid #473a1f;`],
   /* e la colonna del numero stretta com'era: rombo e avviso insieme toccano il ritardo */
   [PAGINA, `.ft-h,.ft-r{grid-template-columns:40px 46px repeat(3,minmax(48px,1fr));min-width:0}`, `.ft-h,.ft-r{grid-template-columns:22px 50px repeat(3,minmax(50px,1fr));min-width:0}`],
 ];
@@ -436,6 +438,11 @@ if (prima && prima.colonneTrovate) {
   dice(num(s.kgC) === P.kg && num(s.profC) === P.prof && num(s.stemC) === P.stem, `e nascono coi valori del progetto (${s.kgC} kg · ${s.profC} m · ${s.stemC} m)`, s);
   dice(/dal progetto/.test(s.nota) && !s.torna, "e la scheda dice che vengono dal progetto: nessun «torna al progetto» da premere", s.nota);
   dice(!(await rombo(2)), "sulla pianta il foro non ha nessun segno", "");
+  /* i campi della scheda sono campi di Genesi, non quelli bianchi del browser: alti abbastanza da toccarli, scuri come quelli della tabella */
+  const campi = await pg.evaluate(() => ["diX", "diY", "diRit", "diKg", "diProf", "diStem"].map((id) => { const e = document.getElementById(id), q = e.getBoundingClientRect(), c = getComputedStyle(e);
+    return { id, h: Math.round(q.height), fondo: c.backgroundColor, corpo: parseFloat(c.fontSize), taglia: e.scrollWidth > e.clientWidth }; }));
+  dice(campi.length === 6 && campi.every((c) => c.h >= 40 && c.fondo === "rgb(36, 29, 18)" && c.corpo >= 16 && !c.taglia),
+    `i sei campi della scheda del foro sono alti almeno 40 px, scuri come quelli della tabella, a 16 px, e il numero ci sta (${campi.map((c) => c.id + " " + c.h).join(" · ")})`, campi.filter((c) => !(c.h >= 40 && c.fondo === "rgb(36, 29, 18)")));
 
   await campo("diKg", "35");
   s = await stato();

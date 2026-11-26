@@ -562,6 +562,24 @@ body.scr-sim #tl{bottom:80px}
 #d2-insp .di-info span{font-size:11.5px;color:var(--mut2)}
 #d2-insp .di-del{flex:none;background:rgba(239,83,80,.12);border:1px solid rgba(239,83,80,.4);color:#ff8a80;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;letter-spacing:.04em;padding:9px 14px;border-radius:11px;cursor:pointer;min-height:40px}
 #d2-insp .di-del:hover{background:rgba(239,83,80,.2)}
+/* I CAMPI DELLA SCHEDA DEL FORO (26/11) — erano campi bianchi del browser,
+   alti 19 px: accanto alla tabella dei fori e ai parametri della volata (campi
+   scuri, alti 40) sembravano di un'altra app, e su un telefono 19 px non si
+   toccano. Stesso campo della tabella (`.ft-r input`): stesso fondo, stesso
+   bordo, stesso fuoco color rame, 16 px di corpo (sotto, iOS ingrandisce la
+   pagina quando si tocca un campo). Le larghezze restano quelle scritte in
+   linea su ogni campo; il bordo giallo dei valori propri pure, e vince perché
+   è in linea. */
+#d2-insp input[type=text]{background:#241d12;border:1px solid #473a1f;color:var(--tx);font-family:'Barlow',sans-serif;font-size:16px;padding:6px 8px;border-radius:8px;outline:none;min-height:40px;font-variant-numeric:tabular-nums;transition:border-color .15s,box-shadow .15s}
+#d2-insp input[type=text]:focus{border-color:var(--cu);box-shadow:0 0 0 3px rgba(255,171,0,.12)}
+#d2-insp .btn.sm{min-height:40px}
+/* Su un telefono «Elimina» di fianco alla scheda le toglieva un quarto della
+   larghezza (misurato a 430 px: 285 px utili su 372), e coi campi alti 40 ogni
+   riga andava a capo due volte. Sotto i 480 px va SOTTO la scheda, a destra. */
+@media(max-width:480px){
+  #d2-insp{flex-direction:column;align-items:stretch;gap:6px}
+  #d2-insp .di-del{align-self:flex-end}
+}
 /* F4 (26/11) — LA TABELLA DEI FORI. La struttura è quella della tabella del
    core (`.tbl` > `.thead` a griglia in maiuscoletto > `.trow` con il numero e
    i campi), nei colori di Genesi; la sezione si apre e si chiude col modello
