@@ -5819,12 +5819,16 @@ function _dxfBilancioHtml(letto, fuori){
   const righe=[];
   if(letto.ingombro) righe.push('Ingombro letto: <b>'+gnum(letto.ingombro.larghezza,2)+' × '+gnum(letto.ingombro.altezza,2)+'</b> nelle unità del file, che Genesi prende per metri.');
   if(letto.unita && letto.unita.inMetri!==1) righe.push('Il file dichiara <b>'+_rEsc(letto.unita.nome)+'</b>: se la pianta risulta fuori misura, premi «⤢ Scala tratti» (il fattore '+gnum(letto.unita.inMetri,6)+' è già nel campo). La conversione non è automatica: molti disegni dichiarano un\'unità e sono in un\'altra.');
-  if(fuori) righe.push('Non importati: <b>'+_rEsc(fuori)+'</b> — entrano linee, polilinee, archi e cerchi.');
+  if(fuori) righe.push('Non importati: <b>'+_rEsc(fuori)+'</b> — entrano linee, polilinee, archi e cerchi, anche dentro i blocchi.');
   if(letto.spazioCarta) righe.push(_ricPlur(letto.spazioCarta,'entità del foglio di stampa (cartiglio) lasciata fuori','entità del foglio di stampa (cartiglio) lasciate fuori')+'.');
   /* dal 26/11 gli archi ENTRANO (prima un tratto ad arco entrava come corda
      dritta): come spezzate, e lo si dice con lo scarto massimo — una
      spezzata non è l'arco, e chi misura sulla pianta deve saperlo */
   if(letto.archiSpezzati) righe.push(_ricPlur(letto.archiSpezzati,'arco o cerchio è entrato come spezzata','archi o cerchi sono entrati come spezzate')+': dalla curva vera non si scosta più di '+gnum(DXF_FRECCIA_ARCO_M*100,0)+' cm.');
+  /* dal 26/11 i blocchi inseriti si ESPLODONO (prima si contavano e basta):
+     il loro contenuto entra nel punto in cui il disegno li mette — spostato,
+     ruotato, scalato come l'inserimento dice — e chi importa lo sa */
+  if(letto.blocchiEspansi) righe.push(_ricPlur(letto.blocchiEspansi,'blocco inserito è stato esploso: il suo contenuto è entrato dove il disegno lo mette','blocchi inseriti sono stati esplosi: il loro contenuto è entrato dove il disegno li mette')+'.');
   if(!righe.length) return '';
   return '<div id="d2-dxf-bilancio" style="margin-top:6px;padding:8px 10px;border:1px solid var(--line,rgba(255,255,255,.12));border-radius:8px;color:var(--mut);font-size:12px;line-height:1.5;">'+righe.join('<br>')+'</div>';
 }

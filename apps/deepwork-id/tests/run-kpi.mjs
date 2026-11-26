@@ -17295,18 +17295,20 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
   });
 
   test("Genesi · dxfLeggi (26/11): legge il DISEGNO, non il file — e dichiara ciò che lascia fuori", () => {
-    /* La prova vera sta in dxf-da-cad.mjs, su 23 file scritti da un altro
+    /* La prova vera sta in dxf-da-cad.mjs, su 40 file scritti da un altro
        programma (ezdxf). Qui le stesse regole su stringhe minime, perché una
        funzione esportata ha la sua prova anche dove gira run-kpi da solo. */
     const dxf = (...righe) => righe.join("\n") + "\n";
     const conBlocco = dxf("0","SECTION","2","BLOCKS","0","BLOCK","2","SIMBOLO","0","LINE","10","0","20","0","11","1","21","1","0","ENDBLK","0","ENDSEC",
       "0","SECTION","2","ENTITIES","0","LINE","10","100","20","100","11","110","21","100","0","INSERT","2","SIMBOLO","10","50","20","50","0","ENDSEC","0","EOF");
     const r = genesi.dxfLeggi(conBlocco);
-    eq(r.tratti.length, 1, "la linea DENTRO la definizione del blocco non è nel disegno: un tratto solo");
-    eq(r.tratti[0].pts, [{x:100,y:100},{x:110,y:100}], "ed è la linea vera, non quella attorno all'origine");
-    eq(r.nonLette, {INSERT:1}, "il blocco inserito si CONTA come non letto");
-    eq(r.nNonLette, 1, "e il totale dei non letti lo dice");
-    eq(r.ingombro, {larghezza:10, altezza:0}, "l'ingombro è quello dei tratti entrati");
+    eq(r.tratti.length, 2, "la linea del disegno e quella del blocco inserito: due tratti");
+    eq(r.tratti[0].pts, [{x:100,y:100},{x:110,y:100}], "la linea vera");
+    eq(r.tratti[1].pts, [{x:50,y:50},{x:51,y:51}], "⛔ e la linea del blocco sta DOVE è inserito, a (50; 50) — non attorno all'origine, dov'è definita");
+    eq([r.nonLette, r.nNonLette, r.blocchiEspansi], [{}, 0, 1], "non resta fuori niente, e il blocco esploso si conta");
+    eq(r.ingombro, {larghezza:60, altezza:50}, "l'ingombro è quello dei tratti entrati");
+    const soloDefinito = genesi.dxfLeggi(conBlocco.replace("0\nINSERT\n2\nSIMBOLO\n10\n50\n20\n50\n", ""));
+    eq([soloDefinito.tratti.length, soloDefinito.blocchiEspansi], [1, 0], "un blocco definito e MAI inserito non è nel disegno");
 
     const chiusa = dxf("0","SECTION","2","ENTITIES","0","LWPOLYLINE","90","3","70","1","10","0","20","0","10","10","20","0","10","10","20","10","0","ENDSEC","0","EOF");
     eq(genesi.dxfLeggi(chiusa).tratti[0].pts, [{x:0,y:0},{x:10,y:0},{x:10,y:10},{x:0,y:0}], "una polilinea chiusa (70=1) porta anche il lato che torna al primo punto");
@@ -17348,6 +17350,88 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
 
     const vuoto = genesi.dxfLeggi("");
     eq([vuoto.tratti.length, vuoto.nNonLette, vuoto.ingombro, vuoto.unita, vuoto.binario], [0, 0, null, null, false], "un file vuoto: niente letto, niente dichiarato, nessun ingombro inventato");
+  });
+
+  test("Genesi · dxfLeggi: i BLOCCHI INSERITI entrano dove il CAD li disegna — e ciò che non si può esplodere si dichiara", () => {
+    /* Le forme vere (ruotati, scalati, specchiati, annidati, a schiera) sono
+       provate contro ezdxf in dxf-da-cad.mjs. Qui i casi che un programma
+       sano NON scrive e che un lettore deve reggere lo stesso: il blocco che
+       richiama sé stesso, quello che non c'è, la scala nulla, la schiera
+       smisurata. */
+    const dxf = (...righe) => righe.join("\n") + "\n";
+    const file = (blocchi, entita) => dxf("0","SECTION","2","BLOCKS", ...blocchi, "0","ENDSEC","0","SECTION","2","ENTITIES", ...entita, "0","ENDSEC","0","EOF");
+    const blocco = (nome, ...dentro) => ["0","BLOCK","2",nome,"10","0","20","0", ...dentro, "0","ENDBLK"];
+    const linea = (x1, y1, x2, y2) => ["0","LINE","10",String(x1),"20",String(y1),"11",String(x2),"21",String(y2)];
+    const vicino = (p, x, y) => Math.abs(p.x - x) < 1e-9 && Math.abs(p.y - y) < 1e-9;
+
+    /* la trasformazione, a mano: base (1; 2), scala 2 e 3, ruotato di 90° */
+    const conBase = file(["0","BLOCK","2","B","10","1","20","2", ...linea(1, 2, 3, 2), "0","ENDBLK"],
+      ["0","INSERT","2","B","10","10","20","20","41","2","42","3","50","90"]);
+    const tb = genesi.dxfLeggi(conBase).tratti[0].pts;
+    ok(vicino(tb[0], 10, 20) && vicino(tb[1], 10, 24), "il punto base va sul punto d'inserimento; due unità lungo X, scalate ×2 e ruotate di 90°, sono quattro lungo Y", JSON.stringify(tb));
+    const specchio = genesi.dxfLeggi(conBase.replace("41\n2\n42\n3\n50\n90\n", "41\n-1\n")).tratti[0].pts;
+    ok(vicino(specchio[0], 10, 20) && vicino(specchio[1], 8, 20), "scala X negativa: il blocco è allo specchio", JSON.stringify(specchio));
+
+    /* ciò che non si può esplodere resta fra i non letti, come «blocco inserito» */
+    const manca = genesi.dxfLeggi(file([], ["0","INSERT","2","NON_DEFINITO","10","0","20","0", ...linea(0, 0, 5, 0)]));
+    eq([manca.tratti.length, manca.nonLette, manca.blocchiEspansi], [1, {INSERT:1}, 0], "un INSERT di un blocco che nel file non c'è: dichiarato, e la linea dopo si legge");
+    for (const scala of ["0", "abc"]) {
+      const nulla = genesi.dxfLeggi(conBase.replace("41\n2\n", "41\n" + scala + "\n"));
+      eq([nulla.tratti.length, nulla.nonLette], [0, {INSERT:1}], "scala «" + scala + "»: il blocco non si schiaccia in un punto né si inventa una scala — si dichiara");
+    }
+    const senzaScala = genesi.dxfLeggi(file(blocco("B", ...linea(0, 0, 1, 0)), ["0","INSERT","2","B","10","7","20","7"])).tratti[0].pts;
+    eq(senzaScala, [{x:7,y:7},{x:8,y:7}], "scala e rotazione ASSENTI valgono 1 e 0 (i predefiniti del formato), non un errore");
+
+    /* ⛔ un blocco che richiama sé stesso (file guasto) non manda il lettore in giro per sempre */
+    const ciclo = genesi.dxfLeggi(file(blocco("A", ...linea(0, 0, 1, 0), "0","INSERT","2","A","10","5","20","0"), ["0","INSERT","2","A","10","0","20","0"]));
+    eq([ciclo.tratti.length, ciclo.nonLette, ciclo.blocchiEspansi], [1, {INSERT:1}, 1], "A dentro A: la linea entra una volta, il richiamo a sé stesso si dichiara");
+    const giro = genesi.dxfLeggi(file([...blocco("A", ...linea(0, 0, 1, 0), "0","INSERT","2","B","10","0","20","0"), ...blocco("B", ...linea(0, 1, 1, 1), "0","INSERT","2","A","10","0","20","0")], ["0","INSERT","2","A","10","0","20","0"]));
+    eq([giro.tratti.length, giro.nonLette], [2, {INSERT:1}], "A dentro B dentro A: una linea per ciascuno, e il giro si chiude dichiarandolo");
+    /* dieci blocchi uno dentro l'altro: otto livelli entrano, il nono si dichiara */
+    const catena = [];
+    for (let k = 0; k < 10; k++) catena.push(...blocco("L" + k, ...linea(k, 0, k, 1), ...(k < 9 ? ["0","INSERT","2","L" + (k + 1),"10","0","20","0"] : [])));
+    const fondo = genesi.dxfLeggi(file(catena, ["0","INSERT","2","L0","10","0","20","0"]));
+    eq([fondo.tratti.length, fondo.nonLette, fondo.blocchiEspansi], [8, {INSERT:1}, 1], "otto livelli di blocchi annidati entrano; oltre, il blocco resta fuori DICHIARATO; e fra gli esplosi si conta solo quello che sta nel disegno");
+
+    /* la schiera */
+    const schiera = (col, rig, passoC, passoR) => file(blocco("P", ...linea(0, 0, 1, 0)), ["0","INSERT","2","P","10","0","20","0","70",String(col),"71",String(rig),"44",String(passoC),"45",String(passoR)]);
+    const sei = genesi.dxfLeggi(schiera(3, 2, 4, 3));
+    eq(sei.tratti.map((t) => t.pts[0]), [{x:0,y:0},{x:4,y:0},{x:8,y:0},{x:0,y:3},{x:4,y:3},{x:8,y:3}], "schiera 3 × 2 a passo 4 e 3: sei copie, riga per riga");
+    eq(sei.blocchiEspansi, 1, "ed è UN blocco inserito, non sei");
+    eq(genesi.dxfLeggi(schiera(3, 2, 0, 0)).tratti.length, 1, "una schiera a passo nullo mette le copie una sull'altra: è una copia sola");
+    const smisurata = genesi.dxfLeggi(schiera(200, 200, 1, 1));
+    eq([smisurata.tratti.length, smisurata.nonLette], [0, {INSERT:1}], "⛔ una schiera da 40.000 copie non si esplode (il limite è 20.000): si dichiara, invece di bloccare la pagina");
+
+    /* gli attributi e i testi */
+    const attributi = (visibile, definito) => file(definito ? blocco("Q", ...linea(0, 0, 1, 0), "0","ATTDEF","10","0","20","1","2","QUOTA","70","0") : [],
+      ["0","INSERT","66","1","2","Q","10","0","20","0","0","ATTRIB","10","0","20","1","1","412.5","2","QUOTA","70",visibile ? "0" : "1","0","SEQEND", ...linea(0, 5, 9, 5)]);
+    const visto = genesi.dxfLeggi(attributi(true, true));
+    eq([visto.tratti.length, visto.nonLette], [2, {ATTRIB:1}], "l'attributo visibile di un blocco esploso è un testo che non entra: si conta (la sua DEFINIZIONE nel blocco no, sul disegno non c'è)");
+    eq(genesi.dxfFraseNonLette(visto.nonLette), "1 testo", "e a chi importa si dice «1 testo»");
+    eq(genesi.dxfLeggi(attributi(false, true)).nonLette, {}, "un attributo INVISIBILE (70 = 1) sul disegno non c'è: non si conta");
+    eq(genesi.dxfLeggi(attributi(true, false)).nonLette, {INSERT:1}, "gli attributi di un blocco che NON si è potuto esplodere restano con lui: un blocco, non un blocco più un testo");
+    const costante = genesi.dxfLeggi(file(blocco("C", ...linea(0, 0, 1, 0), "0","ATTDEF","10","0","20","1","2","NOTA","70","2"), ["0","INSERT","2","C","10","0","20","0","0","INSERT","2","C","10","5","20","0"]));
+    eq(costante.nonLette, {ATTDEF:2}, "un attributo COSTANTE (70 = 2) si vede a ogni inserimento così com'è definito: due inserimenti, due testi");
+    eq(genesi.dxfFraseNonLette({ATTRIB:2, TEXT:1, ATTDEF:1}), "4 testi", "attributi e testi sono la stessa cosa per chi guarda: si sommano");
+
+    /* il riferimento esterno, e i nomi */
+    const esterno = genesi.dxfLeggi(file(["0","BLOCK","2","ALTRO","70","4","1","planimetria.dwg","10","0","20","0","0","ENDBLK"], ["0","INSERT","2","ALTRO","10","0","20","0"]));
+    eq([esterno.nonLette, esterno.blocchiEspansi], [{"INSERT (riferimento esterno)":1}, 0], "un riferimento esterno (70 = 4) non è un blocco vuoto esploso: il contenuto sta in un altro file, e si dice");
+    eq(genesi.dxfFraseNonLette(esterno.nonLette), "1 riferimento a un altro file", "con le parole di chi deve andare a chiederlo");
+    eq(genesi.dxfFraseNonLette({"INSERT (riferimento esterno)":2}), "2 riferimenti ad altri file", "e al plurale");
+    const minuscolo = genesi.dxfLeggi(file(blocco("Croce", ...linea(0, 0, 1, 1)), ["0","INSERT","2","CROCE","10","0","20","0"]));
+    eq(minuscolo.tratti.length, 1, "i nomi dei blocchi non distinguono maiuscole e minuscole");
+    const doppio = genesi.dxfLeggi(file([...blocco("D", ...linea(0, 0, 1, 0)), ...blocco("D", ...linea(0, 0, 0, 9))], ["0","INSERT","2","D","10","0","20","0"]));
+    eq(doppio.tratti[0].pts, [{x:0,y:0},{x:1,y:0}], "di due definizioni con lo stesso nome vale la prima");
+
+    /* ciò che un blocco contiene e non si legge si conta a ogni inserimento; e un arco si misura NEL MONDO */
+    const conTesto = genesi.dxfLeggi(file(blocco("T", ...linea(0, 0, 1, 0), "0","TEXT","10","0","20","0","1","P"), ["0","INSERT","2","T","10","0","20","0","0","INSERT","2","T","10","9","20","0"]));
+    eq([conTesto.tratti.length, conTesto.nonLette, conTesto.blocchiEspansi], [2, {TEXT:2}, 2], "un testo dentro un blocco inserito due volte: due testi non entrati");
+    const tondo = (scala) => genesi.dxfLeggi(file(blocco("O", "0","CIRCLE","10","0","20","0","40","1"), ["0","INSERT","2","O","10","0","20","0","41",String(scala),"42",String(scala)])).tratti[0].pts;
+    const freccia = (pts, r) => Math.max(...pts.slice(1).map((q, i) => r - Math.hypot((q.x + pts[i].x) / 2, (q.y + pts[i].y) / 2)));
+    ok(freccia(tondo(50), 50) <= genesi.DXF_FRECCIA_ARCO_M + 1e-9, "⛔ un cerchio di raggio 1 in un blocco a scala 50 è un cerchio di 50 m: la spezzata gli sta addosso entro 2 cm NEL MONDO", "freccia " + freccia(tondo(50), 50));
+    ok(tondo(50).length > 3 * tondo(1).length, "e per starci ha molti più lati dello stesso cerchio a scala 1", tondo(50).length + " contro " + tondo(1).length);
+    eq(genesi.dxfLeggi(dxf("0","SECTION","2","ENTITIES", ...linea(0, 0, 1, 0), "0","ENDSEC","0","EOF")).blocchiEspansi, 0, "un disegno senza blocchi: zero esplosi");
   });
 
   test("Genesi · dxfFraseNonLette: ciò che resta fuori, con le parole di chi disegna", () => {

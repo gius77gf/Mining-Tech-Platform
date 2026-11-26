@@ -4339,10 +4339,11 @@ function _dxfPolilinea(layer, punti){
    mostra — né di più (blocchi, cartiglio) né di meno (il lato che chiude).
    E ciò che NON si legge si CONTA e si dichiara (`nonLette`), invece di
    sparire: 1 linea letta su 6 entità non è «1 tratto importato».
-   ⚠️ COSA RESTA FUORI, DICHIARATO: il contenuto dei blocchi INSERITI (si
-   contano, non si espandono); spline ed ellissi. Archi, cerchi e tratti ad
-   arco delle polilinee (`bulge`) dal 26/11 ENTRANO, come spezzate (vedi
-   «GLI ARCHI DEL DXF» più sotto), e si contano in `archiSpezzati`.
+   ⚠️ COSA RESTA FUORI, DICHIARATO: spline ed ellissi, testi, retini, quote.
+   Archi, cerchi e tratti ad arco delle polilinee (`bulge`) dal 26/11
+   ENTRANO, come spezzate (vedi «GLI ARCHI DEL DXF» più sotto), e si contano
+   in `archiSpezzati`; e dal 26/11 entra anche il contenuto dei blocchi
+   INSERITI (vedi «I BLOCCHI INSERITI»), contati in `blocchiEspansi`.
    ⚠️ LE UNITÀ NON SI CONVERTONO DA SOLE, e non per pigrizia: il modello
    metrico di AutoCAD (`acadiso.dwt`) dichiara `$INSUNITS = 4` (millimetri),
    e un topografo che ci disegna in metri consegna un file che «dichiara
@@ -4357,22 +4358,33 @@ const _DXF_UNITA = {
 };
 function _dxfStruttura(testo){
   const t = String(testo||'');
-  const st = { binario:false, haSezioni:false, insunits:null, entita:[] };
+  const st = { binario:false, haSezioni:false, insunits:null, entita:[], blocchi:Object.create(null) };
   if(t.slice(0,18)==='AutoCAD Binary DXF'){ st.binario=true; return st; }
   const righe = t.split(/\r\n|\r|\n/);
-  let sezione=null, attesaNome=false, cur=null, varHeader=null;
+  let sezione=null, attesaNome=false, cur=null, varHeader=null, blocco=null;
+  const definiti=[];
   for(let i=0; i+1<righe.length; i+=2){
     const codice = righe[i].trim(), valore = righe[i+1];
     if(codice==='0'){
       const tipo = valore.trim(); cur = null;
       if(tipo==='SECTION'){ st.haSezioni=true; attesaNome=true; sezione=null; }
-      else if(tipo==='ENDSEC'){ sezione=null; }
+      else if(tipo==='ENDSEC'){ sezione=null; blocco=null; }
       else if(tipo==='EOF'){ break; }
-      /* SOLO la sezione ENTITIES è il disegno. BLOCKS contiene le DEFINIZIONI
-         dei blocchi (in coordinate proprie, attorno all'origine) e, dal
-         R2000, anche gli altri fogli di stampa. Un file senza nessuna
-         sezione (un frammento, o le prove storiche scritte a mano) si legge
-         tutto: lì non c'è niente da cui distinguere. */
+      /* BLOCKS contiene le DEFINIZIONI dei blocchi, ognuna fra un BLOCK e il
+         suo ENDBLK, in coordinate proprie (attorno al punto base). Non sono
+         disegno: lo diventano solo dove un INSERT le richiama, e allora
+         `dxfLeggi` le legge col suo stesso ciclo, spostate. Qui si mettono da
+         parte per nome. (Dal R2000 anche i fogli di stampa non attivi stanno
+         qui, come blocchi `*Paper_Space…` che nessuno inserisce.) */
+      else if(sezione==='BLOCKS'){
+        if(tipo==='BLOCK'){ blocco={campi:{}, entita:[]}; definiti.push(blocco); cur={tipo, campi:blocco.campi, verts:[]}; }
+        else if(tipo==='ENDBLK'){ blocco=null; }
+        else if(blocco){ cur={tipo, campi:{}, verts:[]}; blocco.entita.push(cur); }
+      }
+      /* SOLO la sezione ENTITIES è il disegno (tabelle e oggetti non lo
+         sono). Un file senza nessuna sezione (un frammento, o le prove
+         storiche scritte a mano) si legge tutto: lì non c'è niente da cui
+         distinguere. */
       else if(sezione==='ENTITIES' || !st.haSezioni){ cur={tipo, campi:{}, verts:[]}; st.entita.push(cur); }
     } else if(attesaNome && codice==='2'){ sezione=valore.trim(); attesaNome=false; }
     else if(sezione==='HEADER'){
@@ -4392,6 +4404,13 @@ function _dxfStruttura(testo){
       else if(cur.tipo==='LWPOLYLINE' && codice==='42' && cur.verts.length){ const b=+valore; if(Number.isFinite(b)) cur.verts[cur.verts.length-1].bulge = b; }
       else cur.campi[codice]=valore;
     }
+  }
+  /* i nomi dei blocchi non distinguono maiuscole e minuscole; di due
+     definizioni con lo stesso nome vale la prima. 70 = 4 o 8: il blocco è un
+     RIFERIMENTO ESTERNO, cioè il suo contenuto sta in un altro file. */
+  for(const b of definiti){
+    const nome=String(b.campi['2']||'').trim().toUpperCase(), f=parseInt(b.campi['70'],10)||0;
+    if(nome && !st.blocchi[nome]) st.blocchi[nome]={ bx:+b.campi['10']||0, by:+b.campi['20']||0, esterno:!!(f&(4|8)), entita:b.entita };
   }
   return st;
 }
@@ -4439,118 +4458,195 @@ function _dxfOcs(campi, quota){
       ogni punto: un arco specchiato esce specchiato senza un caso a parte.
    Spline ed ellissi restano fra le non lette, dichiarate. */
 export const DXF_FRECCIA_ARCO_M = 0.02;
-function _dxfLati(r, ampiezza){
-  const t = Math.min(DXF_FRECCIA_ARCO_M, r);
+function _dxfLati(r, ampiezza, scala){
+  const t = Math.min(DXF_FRECCIA_ARCO_M/(scala>0 ? scala : 1), r);
   const passoMax = Math.min(Math.PI/6, 2*Math.acos(1 - t/r));
   return Math.max(1, Math.min(1440, Math.ceil(ampiezza/passoMax - 1e-9)));
 }
 /* arco di centro (cx,cy) e raggio r, dall'angolo a0 per `ampiezza` radianti
    (positiva = antiorario): i punti, estremi compresi */
-function _dxfArco(cx, cy, r, a0, ampiezza){
-  const n=_dxfLati(r, Math.abs(ampiezza)), pts=[];
+function _dxfArco(cx, cy, r, a0, ampiezza, scala){
+  const n=_dxfLati(r, Math.abs(ampiezza), scala), pts=[];
   for(let k=0;k<=n;k++){ const a=a0+ampiezza*k/n; pts.push({x:cx+r*Math.cos(a), y:cy+r*Math.sin(a)}); }
   return pts;
 }
 /* i punti IN MEZZO del tratto ad arco fra p1 e p2 (gli estremi restano quelli del file) */
-function _dxfBulge(p1, p2, bulge){
+function _dxfBulge(p1, p2, bulge, scala){
   const dx=p2.x-p1.x, dy=p2.y-p1.y, c=Math.hypot(dx,dy);
   if(!(c>0) || !Number.isFinite(bulge) || bulge===0) return [];
   const amp=4*Math.atan(bulge), r=c/(2*Math.sin(Math.abs(amp)/2)), h=(c/2)/Math.tan(amp/2);
   const cx=(p1.x+p2.x)/2 - h*dy/c, cy=(p1.y+p2.y)/2 + h*dx/c;
-  return _dxfArco(cx, cy, r, Math.atan2(p1.y-cy, p1.x-cx), amp).slice(1, -1);
+  return _dxfArco(cx, cy, r, Math.atan2(p1.y-cy, p1.x-cx), amp, scala).slice(1, -1);
 }
 /* una polilinea coi suoi tratti ad arco resi a spezzata. La curvatura
    sull'ULTIMO vertice vale solo se la polilinea è chiusa (descrive il tratto
    che torna al primo): su una aperta non disegna niente. */
-function _dxfPoliConArchi(verts, chiusa){
+function _dxfPoliConArchi(verts, chiusa, scala){
   const pts=[]; let archi=0;
   for(let i=0;i<verts.length;i++){
     const a=verts[i], ultimo=(i===verts.length-1);
     pts.push({x:a.x, y:a.y});
     if(ultimo && !chiusa) break;
     const z=ultimo ? verts[0] : verts[i+1];
-    if(a.bulge && (a.x!==z.x || a.y!==z.y)){ archi++; for(const q of _dxfBulge(a, z, a.bulge)) pts.push(q); }
+    if(a.bulge && (a.x!==z.x || a.y!==z.y)){ archi++; for(const q of _dxfBulge(a, z, a.bulge, scala)) pts.push(q); }
   }
   if(chiusa && pts.length>=3){ const a=pts[0], z=pts[pts.length-1]; if(a.x!==z.x || a.y!==z.y) pts.push({x:a.x, y:a.y}); }
   return { pts, archi };
 }
+/* ══════════════════════════════════════════════════════════════════════
+   I BLOCCHI INSERITI (26/11) — espansi, non più solo contati.
+   ══════════════════════════════════════════════════════════════════════
+   Un CAD disegna una volta un simbolo, un mezzo, una sezione tipo — il
+   BLOCCO — e poi lo «inserisce» dove serve, spostato, ruotato, scalato,
+   specchiato. In un rilievo vero i blocchi non sono decorazione: spesso è un
+   blocco l'intera planimetria ricevuta da un altro studio. Fino al 26/11 si
+   contavano («3 blocchi inseriti») e il loro contenuto restava fuori.
+   Adesso il contenuto entra dov'è nel disegno:
+     mondo = inserimento + Rot(angolo) · ( Scala · (p − base) + passo di schiera )
+   e poi l'estrusione dell'INSERT, come per ogni entità piana.
+    · il contenuto si legge con lo STESSO ciclo delle entità del disegno
+      (non una copia): ciò che là non si legge (testi, retini, spline) qui si
+      conta allo stesso modo, una volta per ogni inserimento;
+    · un blocco dentro un blocco si espande a sua volta, fino a
+      `_DXF_PROFONDITA_BLOCCHI` livelli; un blocco che richiama sé stesso
+      (file guasto) si ferma al primo giro. Ciò che non si espande — nome
+      sconosciuto, scala nulla, troppo profondo, oltre `_DXF_MAX_ESPANSIONI`
+      copie — resta fra le non lette come «blocco inserito»;
+    · un RIFERIMENTO ESTERNO (xref) non ha contenuto in questo file: si
+      dichiara col suo nome, perché chi importa deve chiedere l'altro file;
+    · gli ATTRIBUTI visibili di un blocco espanso (il numero del punto, la
+      quota scritta accanto) sono testi: si contano fra i testi non entrati;
+    · la freccia degli archi vale NEL MONDO: un cerchio di raggio 1 dentro
+      un blocco inserito a scala 50 è un cerchio di 50 m, e i lati si
+      contano su quello (la scala più grande delle due, se sono diverse:
+      l'arco diventa un tratto d'ellisse e la spezzata gli resta addosso);
+    · la schiera (righe × colonne dello stesso INSERT) si espande copia per
+      copia, col passo ruotato insieme al blocco e non scalato. */
+const _DXF_PROFONDITA_BLOCCHI = 8;
+const _DXF_MAX_ESPANSIONI = 20000;
 export function dxfLeggi(testo){
   const st = _dxfStruttura(testo);
-  const esito = { tratti:[], nonLette:{}, nNonLette:0, spazioCarta:0, archiSpezzati:0, binario:st.binario, unita:null, ingombro:null };
+  const esito = { tratti:[], nonLette:{}, nNonLette:0, spazioCarta:0, archiSpezzati:0, blocchiEspansi:0, binario:st.binario, unita:null, ingombro:null };
   if(st.insunits!=null && _DXF_UNITA[st.insunits]) esito.unita = { codice:st.insunits, nome:_DXF_UNITA[st.insunits].nome, inMetri:_DXF_UNITA[st.insunits].inMetri };
   const nonLetta = (tipo)=>{ esito.nonLette[tipo]=(esito.nonLette[tipo]||0)+1; esito.nNonLette++; };
-  let poli = null;        // la POLYLINE in corso (i suoi VERTEX arrivano come entità a sé, fino a SEQEND)
-  let appesa = false;     // dopo un INSERT con attributi: i suoi ATTRIB e il suo SEQEND non sono entità del disegno
-  for(const e of st.entita){
-    if(e.tipo==='VERTEX'){
-      if(!poli) continue;
-      const fv=parseInt(e.campi['70'],10)||0;
-      if((fv&128) && !(fv&64)) continue;                         // record-faccia di una mesh: non è un punto
-      let p={x:+e.campi['10'], y:+e.campi['20']};
-      if(!Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
-      const bv=+e.campi['42'];
-      poli.verts.push({x:p.x, y:p.y, bulge:(poli.piana && Number.isFinite(bv)) ? bv : 0});
-      continue;
-    }
-    if(e.tipo==='SEQEND'){
-      if(poli && poli.verts.length>=2){
-        const r=_dxfPoliConArchi(poli.verts, poli.chiusa);
-        esito.archiSpezzati += r.archi;
-        esito.tratti.push({pts: poli.ocs ? r.pts.map(q=>poli.ocs(q)) : r.pts});
+  let espansioni = 0;
+  /* `T` porta un punto dal sistema del blocco al mondo (null: siamo già nel
+     mondo); `scala` è di quanto T ingrandisce al più; `catena` i blocchi
+     dentro cui si sta leggendo. */
+  const leggi = (lista, T, scala, catena)=>{
+    let poli = null;        // la POLYLINE in corso (i suoi VERTEX arrivano come entità a sé, fino a SEQEND)
+    let appesa = 0;         // dopo un INSERT con attributi: 1 = blocco non espanso (i suoi ATTRIB restano con lui), 2 = espanso (i suoi ATTRIB sono testi non entrati)
+    const metti = (pts)=>{ esito.tratti.push({pts: T ? pts.map(T) : pts}); };
+    for(const e of lista){
+      if(e.tipo==='VERTEX'){
+        if(!poli) continue;
+        const fv=parseInt(e.campi['70'],10)||0;
+        if((fv&128) && !(fv&64)) continue;                         // record-faccia di una mesh: non è un punto
+        let p={x:+e.campi['10'], y:+e.campi['20']};
+        if(!Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
+        const bv=+e.campi['42'];
+        poli.verts.push({x:p.x, y:p.y, bulge:(poli.piana && Number.isFinite(bv)) ? bv : 0});
+        continue;
       }
-      poli=null; appesa=false; continue;
-    }
-    if(e.tipo==='ATTRIB' && appesa) continue;
-    poli=null; appesa=false;
-    /* codice 67 = 1: l'entità sta nello SPAZIO CARTA (il foglio di stampa
-       col suo cartiglio), non nel modello. Non è geometria del sito. */
-    if(String(e.campi['67']||'').trim()==='1'){ esito.spazioCarta++; continue; }
-    if(e.tipo==='LINE'){
-      const a={x:+e.campi['10'], y:+e.campi['20']}, b={x:+e.campi['11'], y:+e.campi['21']};
-      if([a.x,a.y,b.x,b.y].every(Number.isFinite) && (a.x!==b.x || a.y!==b.y)) esito.tratti.push({pts:[a,b]});
-    } else if(e.tipo==='POLYLINE'){
-      const f=parseInt(e.campi['70'],10)||0;
-      /* 16 = maglia di poligoni, 64 = mesh a facce (il TIN di un rilievo):
-         i loro VERTEX sono nodi di una SUPERFICIE, non i punti di una linea.
-         Unirli in fila disegnerebbe uno scarabocchio che nel file non c'è. */
-      if(f&(16|64)){ nonLetta('POLYLINE (superficie)'); continue; }
-      /* 8 = polilinea 3D: i suoi vertici sono già nel mondo e la curvatura non ha senso */
-      poli={ verts:[], chiusa:!!(f&1), piana:!(f&8), ocs:(f&8)?null:_dxfOcs(e.campi, e.campi['30']) };
-    } else if(e.tipo==='LWPOLYLINE'){
-      /* ⛔ 19/09, dal quarto giro di deep-pass QA: LWPOLYLINE è l'entità
-         polilinea di DEFAULT scritta da AutoCAD (dal R14/1997), LibreCAD e
-         QCAD — cioè i tre programmi che il tooltip del bottone nomina come
-         interoperabilità. Senza questo ramo un file con SOLO LWPOLYLINE (il
-         caso comune) dava tratti:[] e la pagina diceva "il file non contiene
-         LINE o POLYLINE leggibili": falso, il file la geometria ce l'aveva. */
-      const f=parseInt(e.campi['70'],10)||0, chiusa=!!(f&1), ocs=_dxfOcs(e.campi, e.campi['38']);
-      const buoni=e.verts.filter(p=>Number.isFinite(p.x) && Number.isFinite(p.y));
-      if(buoni.length>=2){
-        const r=_dxfPoliConArchi(buoni, chiusa);
-        esito.archiSpezzati += r.archi;
-        esito.tratti.push({pts: ocs ? r.pts.map(q=>ocs(q)) : r.pts});
+      if(e.tipo==='SEQEND'){
+        if(poli && poli.verts.length>=2){
+          const r=_dxfPoliConArchi(poli.verts, poli.chiusa, scala);
+          esito.archiSpezzati += r.archi;
+          metti(poli.ocs ? r.pts.map(q=>poli.ocs(q)) : r.pts);
+        }
+        poli=null; appesa=0; continue;
       }
-    } else if(e.tipo==='ARC' || e.tipo==='CIRCLE'){
-      const cx=+e.campi['10'], cy=+e.campi['20'], r=+e.campi['40'];
-      /* un arco senza centro o senza raggio non è un arco: si conta fra le non lette, non si inventa */
-      if(![cx,cy,r].every(Number.isFinite) || !(r>0)){ nonLetta(e.tipo); continue; }
-      let pts;
-      if(e.tipo==='CIRCLE'){ pts=_dxfArco(cx, cy, r, 0, 2*Math.PI); pts[pts.length-1]={x:pts[0].x, y:pts[0].y}; }
-      else {
-        const a0=+e.campi['50'], a1=+e.campi['51'];
-        if(!Number.isFinite(a0) || !Number.isFinite(a1)){ nonLetta('ARC'); continue; }
-        /* un ARC va SEMPRE in senso antiorario dall'angolo iniziale a quello finale (in gradi) */
-        let amp=((a1-a0)%360+360)%360; if(amp===0) amp=360;
-        pts=_dxfArco(cx, cy, r, a0*Math.PI/180, amp*Math.PI/180);
+      if(e.tipo==='ATTRIB' && appesa){
+        /* 70 = 1: attributo invisibile, sul disegno non c'è */
+        if(appesa===2 && !((parseInt(e.campi['70'],10)||0)&1)) nonLetta('ATTRIB');
+        continue;
       }
-      const ocs=_dxfOcs(e.campi, e.campi['30']);
-      esito.tratti.push({pts: ocs ? pts.map(q=>ocs(q)) : pts});
-      esito.archiSpezzati++;
-    } else {
-      if(e.tipo==='INSERT' && String(e.campi['66']||'').trim()==='1') appesa=true;
-      nonLetta(e.tipo);
+      poli=null; appesa=0;
+      /* codice 67 = 1: l'entità sta nello SPAZIO CARTA (il foglio di stampa
+         col suo cartiglio), non nel modello. Non è geometria del sito. */
+      if(String(e.campi['67']||'').trim()==='1'){ esito.spazioCarta++; continue; }
+      if(e.tipo==='LINE'){
+        const a={x:+e.campi['10'], y:+e.campi['20']}, b={x:+e.campi['11'], y:+e.campi['21']};
+        if([a.x,a.y,b.x,b.y].every(Number.isFinite) && (a.x!==b.x || a.y!==b.y)) metti([a,b]);
+      } else if(e.tipo==='POLYLINE'){
+        const f=parseInt(e.campi['70'],10)||0;
+        /* 16 = maglia di poligoni, 64 = mesh a facce (il TIN di un rilievo):
+           i loro VERTEX sono nodi di una SUPERFICIE, non i punti di una linea.
+           Unirli in fila disegnerebbe uno scarabocchio che nel file non c'è. */
+        if(f&(16|64)){ nonLetta('POLYLINE (superficie)'); continue; }
+        /* 8 = polilinea 3D: i suoi vertici sono già nel mondo e la curvatura non ha senso */
+        poli={ verts:[], chiusa:!!(f&1), piana:!(f&8), ocs:(f&8)?null:_dxfOcs(e.campi, e.campi['30']) };
+      } else if(e.tipo==='LWPOLYLINE'){
+        /* ⛔ 19/09, dal quarto giro di deep-pass QA: LWPOLYLINE è l'entità
+           polilinea di DEFAULT scritta da AutoCAD (dal R14/1997), LibreCAD e
+           QCAD — cioè i tre programmi che il tooltip del bottone nomina come
+           interoperabilità. Senza questo ramo un file con SOLO LWPOLYLINE (il
+           caso comune) dava tratti:[] e la pagina diceva "il file non contiene
+           LINE o POLYLINE leggibili": falso, il file la geometria ce l'aveva. */
+        const f=parseInt(e.campi['70'],10)||0, chiusa=!!(f&1), ocs=_dxfOcs(e.campi, e.campi['38']);
+        const buoni=e.verts.filter(p=>Number.isFinite(p.x) && Number.isFinite(p.y));
+        if(buoni.length>=2){
+          const r=_dxfPoliConArchi(buoni, chiusa, scala);
+          esito.archiSpezzati += r.archi;
+          metti(ocs ? r.pts.map(q=>ocs(q)) : r.pts);
+        }
+      } else if(e.tipo==='ARC' || e.tipo==='CIRCLE'){
+        const cx=+e.campi['10'], cy=+e.campi['20'], r=+e.campi['40'];
+        /* un arco senza centro o senza raggio non è un arco: si conta fra le non lette, non si inventa */
+        if(![cx,cy,r].every(Number.isFinite) || !(r>0)){ nonLetta(e.tipo); continue; }
+        let pts;
+        if(e.tipo==='CIRCLE'){ pts=_dxfArco(cx, cy, r, 0, 2*Math.PI, scala); pts[pts.length-1]={x:pts[0].x, y:pts[0].y}; }
+        else {
+          const a0=+e.campi['50'], a1=+e.campi['51'];
+          if(!Number.isFinite(a0) || !Number.isFinite(a1)){ nonLetta('ARC'); continue; }
+          /* un ARC va SEMPRE in senso antiorario dall'angolo iniziale a quello finale (in gradi) */
+          let amp=((a1-a0)%360+360)%360; if(amp===0) amp=360;
+          pts=_dxfArco(cx, cy, r, a0*Math.PI/180, amp*Math.PI/180, scala);
+        }
+        const ocs=_dxfOcs(e.campi, e.campi['30']);
+        metti(ocs ? pts.map(q=>ocs(q)) : pts);
+        esito.archiSpezzati++;
+      } else if(e.tipo==='INSERT'){
+        const conAttributi = String(e.campi['66']||'').trim()==='1';
+        const nome = String(e.campi['2']||'').trim().toUpperCase(), b = st.blocchi[nome];
+        /* un codice ASSENTE vale il suo predefinito (scala 1, angolo 0); uno presente e illeggibile no */
+        const num = (codice, predefinito)=>{ const v=e.campi[codice]; return (v==null || String(v).trim()==='') ? predefinito : +v; };
+        const ix=num('10',0), iy=num('20',0), sx=num('41',1), sy=num('42',1), rot=num('50',0)*Math.PI/180;
+        const passoC=num('44',0), passoR=num('45',0);
+        /* una schiera a passo nullo mette tutte le copie nello stesso posto: è una copia sola */
+        const colonne = passoC ? Math.max(1, parseInt(e.campi['70'],10)||1) : 1, righe = passoR ? Math.max(1, parseInt(e.campi['71'],10)||1) : 1;
+        let fuori = null;
+        if(b && b.esterno) fuori='INSERT (riferimento esterno)';
+        else if(!b || ![ix,iy,sx,sy,rot,passoC,passoR].every(Number.isFinite) || sx===0 || sy===0) fuori='INSERT';
+        else if(catena.includes(nome) || catena.length>=_DXF_PROFONDITA_BLOCCHI) fuori='INSERT';
+        else if(espansioni + colonne*righe > _DXF_MAX_ESPANSIONI) fuori='INSERT';
+        if(fuori){ if(conAttributi) appesa=1; nonLetta(fuori); continue; }
+        if(conAttributi) appesa=2;
+        if(!catena.length) esito.blocchiEspansi++;
+        espansioni += colonne*righe;
+        const co=Math.cos(rot), si=Math.sin(rot), ocs=_dxfOcs(e.campi, e.campi['30']);
+        const dentro=catena.concat(nome), ingrandisce=scala*Math.max(Math.abs(sx), Math.abs(sy));
+        for(let j=0;j<righe;j++) for(let k=0;k<colonne;k++){
+          const ox=k*passoC, oy=j*passoR;
+          leggi(b.entita, (p)=>{
+            const u=(p.x-b.bx)*sx + ox, v=(p.y-b.by)*sy + oy;
+            let q={x:ix+u*co-v*si, y:iy+u*si+v*co};
+            if(ocs) q=ocs(q);
+            return T ? T(q) : q;
+          }, ingrandisce, dentro);
+        }
+      } else if(e.tipo==='ATTDEF' && catena.length){
+        /* la DEFINIZIONE di un attributo dentro un blocco non si disegna: al
+           suo posto c'è l'ATTRIB di ogni inserimento (contato là). Fa
+           eccezione l'attributo COSTANTE (70 = 2), che si vede com'è scritto. */
+        const fa=parseInt(e.campi['70'],10)||0;
+        if((fa&2) && !(fa&1)) nonLetta('ATTDEF');
+      } else {
+        nonLetta(e.tipo);
+      }
     }
-  }
+  };
+  leggi(st.entita, null, 1, []);
   if(esito.tratti.length){
     let x0=Infinity, x1=-Infinity, y0=Infinity, y1=-Infinity;
     for(const t of esito.tratti) for(const p of t.pts){ if(p.x<x0) x0=p.x; if(p.x>x1) x1=p.x; if(p.y<y0) y0=p.y; if(p.y>y1) y1=p.y; }
@@ -4570,7 +4666,8 @@ const _DXF_NOMI = {
   ARC:['arco','archi'], CIRCLE:['cerchio','cerchi'], TEXT:['testo','testi'], MTEXT:['testo','testi'],
   INSERT:['blocco inserito','blocchi inseriti'], SPLINE:['curva spline','curve spline'], ELLIPSE:['ellisse','ellissi'],
   POINT:['punto','punti'], HATCH:['retino','retini'], DIMENSION:['quota','quote'], '3DFACE':['faccia 3D','facce 3D'],
-  SOLID:['campitura','campiture'], 'POLYLINE (superficie)':['superficie a maglia','superfici a maglia']
+  SOLID:['campitura','campiture'], 'POLYLINE (superficie)':['superficie a maglia','superfici a maglia'],
+  ATTRIB:['testo','testi'], ATTDEF:['testo','testi'], 'INSERT (riferimento esterno)':['riferimento a un altro file','riferimenti ad altri file']
 };
 export function dxfFraseNonLette(nonLette){
   const somma = {};

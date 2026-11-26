@@ -50,6 +50,8 @@ const DIFETTI = [
    `tratti.forEach(t=>{ d2PushUndo(); D2.tratti.push({ pts:t.pts, aperto:false, origine:'dxf' }); });`],
   /* gli archi (26/11): la pagina smette di dire che sono entrati come spezzate */
   [`if(letto.archiSpezzati) righe.push(`, `if(false) righe.push(`],
+  /* i blocchi (26/11): la pagina smette di dire che sono stati esplosi */
+  [`if(letto.blocchiEspansi) righe.push(`, `if(false) righe.push(`],
 ];
 
 const colpiti = new Set();
@@ -197,7 +199,7 @@ try {
 /* ⛔ 26/11 — FILE SCRITTI DA UN ALTRO PROGRAMMA, PASSATI DAL BOTTONE VERO.
    I tre DXF qui sopra li ha scritti a mano chi ha scritto il lettore. Questi
    quattro li ha scritti `ezdxf` (campioni di `dxf-da-cad.mjs`, dove sta la
-   prova del lettore su tutti e 23): qui si guarda che la PAGINA dica
+   prova del lettore su tutti e 40): qui si guarda che la PAGINA dica
    all'utente ciò che il lettore sa — un bilancio di che cosa è rimasto
    fuori, non solo «N tratti importati». */
 {
@@ -228,6 +230,27 @@ try {
   const blocco = await importa("blocco_non_inserito");
   dice(blocco.aggiunti === 1, `⛔ blocco definito e mai inserito: entra solo la linea vera, non le due del simbolo attorno a (0,0) (letti ${blocco.aggiunti})`, blocco.aggiunti);
 
+  /* ⛔ 26/11 — i blocchi INSERITI: il contenuto entra dove il disegno lo mette,
+     e la pagina lo dice. Il punto atteso è calcolato QUI dalla definizione
+     (base (1; 2), inserito a (100; 50), ruotato di 30°, scala 2), non letto
+     dal lettore: l'origine del blocco va a 100 + R30·2·(−1; −2). */
+  const ruotato = await importa("blocco_ruotato_scalato");
+  const primo = await pg.evaluate((n) => { const t = window.__genesi.D2.tratti.at(-n); return [t.pts[0].x, t.pts[0].y]; }, ruotato.aggiunti || 1);
+  const c30 = Math.cos(Math.PI / 6), s30 = Math.sin(Math.PI / 6), atteso = [100 + 2 * (-1 * c30 + 2 * s30), 50 + 2 * (-1 * s30 - 2 * c30)];
+  dice(ruotato.aggiunti === 4, `⛔ blocco inserito (linea, arco, cerchio, polilinea): entrano i suoi QUATTRO tratti — prima se ne contava uno «non importato» (letti ${ruotato.aggiunti})`, ruotato.aggiunti);
+  dice(Math.hypot(primo[0] - atteso[0], primo[1] - atteso[1]) < 1e-9, `⛔ e stanno DOVE il disegno li mette: l'origine del blocco è a (${atteso[0].toFixed(3)}; ${atteso[1].toFixed(3)}), non attorno a (0; 0)`, primo);
+  dice(/1 blocco inserito è stato esploso: il suo contenuto è entrato dove il disegno lo mette/.test(ruotato.esito), "e la pagina lo dice («1 blocco inserito è stato esploso…»)", ruotato.esito.slice(-200));
+  dice(!/Non importati/.test(ruotato.esito), "senza un «non importati»: del blocco non è rimasto fuori niente", ruotato.esito.slice(-200));
+  const annidato = await importa("blocco_annidato");
+  dice(annidato.aggiunti === 18 && /2 blocchi inseriti sono stati esplosi: il loro contenuto è entrato dove il disegno li mette/.test(annidato.esito),
+    `blocchi dentro blocchi: 18 tratti, e fra gli esplosi si contano i DUE che stanno nel disegno, non i quattro annidati (letti ${annidato.aggiunti})`, annidato.esito.slice(-200));
+  const esterno = await importa("blocco_riferimento_esterno");
+  dice(esterno.aggiunti === 1 && /Non importati: 1 riferimento a un altro file/.test(esterno.esito) && !/esploso/.test(esterno.esito),
+    "⛔ un riferimento esterno non è un blocco vuoto esploso: la pagina dice che il contenuto sta in un altro file", esterno.esito.slice(-200));
+  const attributi = await importa("blocco_con_attributi");
+  dice(attributi.aggiunti === 2 && /Non importati: 1 testo/.test(attributi.esito) && /1 blocco inserito è stato esploso/.test(attributi.esito),
+    "blocco con la quota scritta accanto: le linee entrano, e la scritta si dichiara come «1 testo» non importato", attributi.esito.slice(-260));
+
   const mm = await importa("unita_mm");
   dice(/dichiara millimetri/.test(mm.esito), "un file che dichiara millimetri: la pagina lo dice", mm.esito.slice(-300));
   dice(/10\.000 × 0/.test(mm.esito), "e mostra l'ingombro letto (10.000 × 0), così la scala sbagliata si vede in un numero", mm.esito.slice(-300));
@@ -239,7 +262,7 @@ try {
   const bin = await importa("binario");
   dice(bin.aggiunti === 0, "un DXF binario non aggiunge tratti", bin.aggiunti);
   dice(/DXF binario/.test(bin.esito) && !/non contiene/.test(bin.esito), "⛔ e la pagina dice «binario, riesportalo come testo», non «il file non contiene linee»", bin.esito.slice(0, 200));
-  dice(pg.__err.length === 0, "nessun errore di pagina durante i quattro import", pg.__err.slice(0, 2));
+  dice(pg.__err.length === 0, "nessun errore di pagina durante gli import", pg.__err.slice(0, 2));
 }
 
 if (CONTROPROVA) {

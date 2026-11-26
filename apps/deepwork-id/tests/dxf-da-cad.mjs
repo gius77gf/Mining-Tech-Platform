@@ -13,7 +13,9 @@
    riferimento per il formato; `genera.py` lì accanto dice come rigenerarli),
    nelle forme che un CAD produce davvero: quattro versioni del formato,
    polilinee chiuse, blocchi definiti e inseriti, spazio carta, superfici a
-   maglia, entità specchiate, unità dichiarate, DXF binario.
+   maglia, entità specchiate, unità dichiarate, DXF binario; dal 26/11 gli
+   archi e i blocchi inseriti in tutte le loro forme (ruotati, scalati,
+   specchiati, annidati, a schiera, con attributi, riferimenti esterni).
    La prima misura, sul lettore com'era: **9 file su 23 letti male**, tutti in
    silenzio e tutti con una geometria plausibile — simboli comparsi attorno
    all'origine, il cartiglio letto come terreno, i contorni chiusi arrivati
@@ -31,9 +33,14 @@
        ⚠️ Il primo riferimento provato era la curva «appiattita» da ezdxf:
        su un cerchio di 100 m sbagliava di 27 mm (curve di Bézier), più della
        tolleranza che doveva giudicare. Un righello va misurato anche lui;
+     · dal 26/11, per i BLOCCHI INSERITI: che tutto ciò che entra stia sul
+       disegno che il CAD vede davvero. ezdxf espande ogni INSERT e dà le
+       primitive già nel mondo (un arco in un blocco scalato in modo diverso
+       sui due assi è un tratto d'ELLISSE, e come tale si misura): vertici
+       sopra, freccia entro il limite NEL MONDO, lunghezza complessiva;
      · che cosa viene DICHIARATO come non letto o reso in altra forma
-       (`nonLette`, `spazioCarta`, `archiSpezzati`, `binario`, `unita`): ciò
-       che non entra si conta.
+       (`nonLette`, `spazioCarta`, `archiSpezzati`, `blocchiEspansi`,
+       `binario`, `unita`): ciò che non entra si conta.
    E il denominatore: quanti campioni ci sono sul disco e quanti ne ha
    guardati — un campione aggiunto senza la sua verità (o il contrario) ferma
    la suite invece di passare inosservato.
@@ -68,7 +75,21 @@ function versoArco(q) {            // da che parte gira l'arco: lo dice il punto
   const antiorario = norm(am - a0) <= norm(a1 - a0);
   return { ang, a0, antiorario, ampiezza: antiorario ? norm(a1 - a0) : norm(a0 - a1) };
 }
+/* il tratto d'ellisse (un arco dentro un blocco scalato in modo diverso sui due
+   assi): punto al parametro t = centro + M·cos t + m·sin t, antiorario da t0 a
+   t1. La distanza non ha una formula chiusa: si campiona fitto e si raffina. */
+const puntoEllisse = (q, t) => [q.c[0] + q.M[0] * Math.cos(t) + q.m[0] * Math.sin(t), q.c[1] + q.M[1] * Math.cos(t) + q.m[1] * Math.sin(t)];
+function distEllisse(p, q) {
+  const N = 720, d = (t) => { const e = puntoEllisse(q, t); return Math.hypot(p[0] - e[0], p[1] - e[1]); };
+  let meglio = Infinity, tm = q.t0;
+  for (let i = 0; i <= N; i++) { const t = q.t0 + (q.t1 - q.t0) * i / N, v = d(t); if (v < meglio) { meglio = v; tm = t; } }
+  let lo = Math.max(q.t0, tm - (q.t1 - q.t0) / N), hi = Math.min(q.t1, tm + (q.t1 - q.t0) / N);
+  for (let k = 0; k < 80; k++) { const a = lo + (hi - lo) / 3, b = hi - (hi - lo) / 3; if (d(a) < d(b)) hi = b; else lo = a; }
+  return d((lo + hi) / 2);
+}
+function lunghezzaEllisse(q) { const N = 20000; let L = 0, a = puntoEllisse(q, q.t0); for (let i = 1; i <= N; i++) { const b = puntoEllisse(q, q.t0 + (q.t1 - q.t0) * i / N); L += Math.hypot(b[0] - a[0], b[1] - a[1]); a = b; } return L; }
 function distPrimitiva(p, q) {
+  if (q.t === "ellisse") return distEllisse(p, q);
   if (q.t === "linea") { const dx = q.b[0] - q.a[0], dy = q.b[1] - q.a[1], L = dx * dx + dy * dy; let t = L ? ((p[0] - q.a[0]) * dx + (p[1] - q.a[1]) * dy) / L : 0; t = Math.max(0, Math.min(1, t)); return Math.hypot(p[0] - q.a[0] - t * dx, p[1] - q.a[1] - t * dy); }
   const d = Math.hypot(p[0] - q.c[0], p[1] - q.c[1]);
   if (q.t === "cerchio") return Math.abs(d - q.r);
@@ -76,7 +97,7 @@ function distPrimitiva(p, q) {
   if (pos <= v.ampiezza + 1e-12) return Math.abs(d - q.r);
   return Math.min(Math.hypot(p[0] - q.da[0], p[1] - q.da[1]), Math.hypot(p[0] - q.a[0], p[1] - q.a[1]));
 }
-const lunghezzaPrimitiva = (q) => q.t === "linea" ? Math.hypot(q.b[0] - q.a[0], q.b[1] - q.a[1]) : q.t === "cerchio" ? TAU * q.r : q.r * versoArco(q).ampiezza;
+const lunghezzaPrimitiva = (q) => q.t === "ellisse" ? lunghezzaEllisse(q) : q.t === "linea" ? Math.hypot(q.b[0] - q.a[0], q.b[1] - q.a[1]) : q.t === "cerchio" ? TAU * q.r : q.r * versoArco(q).ampiezza;
 /* una spezzata letta contro la curva vera: i VERTICI (devono starci sopra), i
    punti di MEZZO dei lati (la freccia), la lunghezza */
 function confronta(pl, prim) {
@@ -112,11 +133,26 @@ function giudica(genesi, nome) {
       if (m.L > m.Lvera + 1e-6 || m.L < m.Lvera * 0.98) guai.push(`curva ${k + 1}: lunga ${m.L.toFixed(3)} m, la curva vera ${m.Lvera.toFixed(3)}`);
     });
   }
+  /* i blocchi inseriti: TUTTO ciò che è entrato contro TUTTO ciò che il CAD
+     disegna (ezdxf espande ogni INSERT e dà le primitive già nel mondo). Ogni
+     vertice letto deve stare su una primitiva vera, il mezzo di ogni lato non
+     scostarsene più della freccia, e la lunghezza complessiva tornare — così
+     un pezzo mancante, uno in più o uno nel posto sbagliato si vedono. */
+  if (att.insieme) {
+    const tol = genesi.DXF_FRECCIA_ARCO_M;
+    let vertici = 0, freccia = 0, L = 0;
+    for (const t of r.tratti) { const c = confronta(t.pts.map((p) => [p.x, p.y]), att.insieme); vertici = Math.max(vertici, c.vertici); freccia = Math.max(freccia, c.freccia); L += c.L; }
+    const Lvera = att.insieme.reduce((t, q) => t + lunghezzaPrimitiva(q), 0);
+    if (vertici > 1e-6) guai.push(`blocchi: un vertice è fuori dal disegno vero di ${vertici.toFixed(6)} m`);
+    if (freccia > tol + 1e-9) guai.push(`blocchi: una spezzata si scosta dal disegno vero di ${(freccia * 1000).toFixed(1)} mm (massimo ${tol * 1000})`);
+    if (L > Lvera + 1e-6 || L < Lvera * 0.98) guai.push(`blocchi: entrati ${L.toFixed(3)} m di linee, nel disegno ce ne sono ${Lvera.toFixed(3)}`);
+  }
   const nl = att.nonLette || {};
   if (JSON.stringify(Object.entries(r.nonLette).sort()) !== JSON.stringify(Object.entries(nl).sort()))
     guai.push("non lette: dichiarate " + JSON.stringify(r.nonLette) + ", nel disegno " + JSON.stringify(nl));
   if (r.spazioCarta !== (att.spazioCarta || 0)) guai.push(`spazio carta: dichiarate ${r.spazioCarta}, sono ${att.spazioCarta || 0}`);
   if (r.archiSpezzati !== (att.archiSpezzati || 0)) guai.push(`archi resi a spezzata: dichiarati ${r.archiSpezzati}, sono ${att.archiSpezzati || 0}`);
+  if (r.blocchiEspansi !== (att.blocchiEspansi || 0)) guai.push(`blocchi espansi: dichiarati ${r.blocchiEspansi}, sono ${att.blocchiEspansi || 0}`);
   if (r.binario !== !!att.binario) guai.push(`binario: dichiarato ${r.binario}, è ${!!att.binario}`);
   if (att.unita && (!r.unita || r.unita.nome !== att.unita)) guai.push(`unità: dichiarata ${r.unita && r.unita.nome}, il file dice ${att.unita}`);
   if (att.larghezza != null && (!r.ingombro || !vicino(r.ingombro.larghezza, att.larghezza))) guai.push(`ingombro: ${r.ingombro && r.ingombro.larghezza}, atteso ${att.larghezza}`);
@@ -128,7 +164,10 @@ const dice = (c, m, extra) => { if (c) { passed++; if (DIMMI) console.log("  ✓
 
 /* ───────── la controprova: i difetti di prima, uno alla volta ───────── */
 const DIFETTI = [
-  ["si leggono anche le definizioni dei blocchi e gli altri fogli",
+  ["le definizioni dei blocchi e gli altri fogli entrano come disegno",
+   "else if(blocco){ cur={tipo, campi:{}, verts:[]}; blocco.entita.push(cur); }",
+   "else { cur={tipo, campi:{}, verts:[]}; st.entita.push(cur); }"],
+  ["si leggono come disegno anche le tabelle e gli oggetti del file",
    "else if(sezione==='ENTITIES' || !st.haSezioni){ cur={tipo, campi:{}, verts:[]}; st.entita.push(cur); }",
    "else { cur={tipo, campi:{}, verts:[]}; st.entita.push(cur); }"],
   ["lo spazio carta entra come terreno",
@@ -147,7 +186,7 @@ const DIFETTI = [
      sbagliato, l'ARC letto in senso orario, l'estrusione non applicata agli
      archi, il passo fisso invece della freccia, gli archi non contati */
   ["il tratto ad arco torna una corda dritta",
-   "if(a.bulge && (a.x!==z.x || a.y!==z.y)){ archi++; for(const q of _dxfBulge(a, z, a.bulge)) pts.push(q); }",
+   "if(a.bulge && (a.x!==z.x || a.y!==z.y)){ archi++; for(const q of _dxfBulge(a, z, a.bulge, scala)) pts.push(q); }",
    "if(a.bulge && (a.x!==z.x || a.y!==z.y)){ archi++; }"],
   ["la curvatura gira dalla parte sbagliata",
    "const amp=4*Math.atan(bulge), r=c/(2*Math.sin(Math.abs(amp)/2)), h=(c/2)/Math.tan(amp/2);",
@@ -155,11 +194,49 @@ const DIFETTI = [
   ["un ARC che attraversa lo zero viene letto all'indietro",
    "let amp=((a1-a0)%360+360)%360; if(amp===0) amp=360;", "let amp=a1-a0;"],
   ["l'estrusione non si applica agli archi",
-   "esito.tratti.push({pts: ocs ? pts.map(q=>ocs(q)) : pts});\n      esito.archiSpezzati++;", "esito.tratti.push({pts});\n      esito.archiSpezzati++;"],
+   "metti(ocs ? pts.map(q=>ocs(q)) : pts);\n        esito.archiSpezzati++;", "metti(pts);\n        esito.archiSpezzati++;"],
   ["i lati si contano a passo fisso, non dalla freccia",
    "const passoMax = Math.min(Math.PI/6, 2*Math.acos(1 - t/r));", "const passoMax = Math.PI/6;"],
   ["gli archi resi a spezzata non si contano",
    "esito.archiSpezzati += r.archi;", ""],
+  /* i blocchi inseriti (26/11): il blocco che si conta e basta, e uno per uno i
+     pezzi della trasformazione — punto base, rotazione, scala, specchio,
+     annidamento, estrusione, schiera — più ciò che si deve DICHIARARE */
+  ["il blocco inserito si conta e non si espande",
+   "if(fuori){ if(conAttributi) appesa=1; nonLetta(fuori); continue; }",
+   "{ if(conAttributi) appesa=1; nonLetta(fuori||'INSERT'); continue; }"],
+  ["il punto base del blocco si ignora",
+   "const u=(p.x-b.bx)*sx + ox, v=(p.y-b.by)*sy + oy;", "const u=p.x*sx + ox, v=p.y*sy + oy;"],
+  ["la rotazione dell'inserimento si ignora",
+   "const co=Math.cos(rot), si=Math.sin(rot),", "const co=1, si=0,"],
+  ["la rotazione gira al contrario",
+   "const co=Math.cos(rot), si=Math.sin(rot),", "const co=Math.cos(rot), si=-Math.sin(rot),"],
+  ["la scala dell'inserimento si ignora",
+   "sx=num('41',1), sy=num('42',1),", "sx=1, sy=1,"],
+  ["la scala in Y prende quella in X",
+   "sx=num('41',1), sy=num('42',1),", "sx=num('41',1), sy=num('41',1),"],
+  ["le trasformazioni di un blocco dentro un blocco non si compongono",
+   "return T ? T(q) : q;", "return q;"],
+  ["l'estrusione dell'INSERT si ignora",
+   "if(ocs) q=ocs(q);", ""],
+  ["la freccia degli archi si misura nel blocco, non nel mondo",
+   "DXF_FRECCIA_ARCO_M/(scala>0 ? scala : 1)", "DXF_FRECCIA_ARCO_M"],
+  ["la scala di un blocco annidato dimentica quella del blocco che lo contiene",
+   "ingrandisce=scala*Math.max(Math.abs(sx), Math.abs(sy));", "ingrandisce=Math.max(Math.abs(sx), Math.abs(sy));"],
+  ["la schiera si riduce a una copia",
+   "const colonne = passoC ? Math.max(1, parseInt(e.campi['70'],10)||1) : 1,", "const colonne = 1,"],
+  ["il passo della schiera viene scalato col blocco",
+   "const u=(p.x-b.bx)*sx + ox, v=(p.y-b.by)*sy + oy;", "const u=(p.x-b.bx+ox)*sx, v=(p.y-b.by+oy)*sy;"],
+  ["gli attributi di un blocco espanso spariscono senza essere contati",
+   "if(appesa===2 && !((parseInt(e.campi['70'],10)||0)&1)) nonLetta('ATTRIB');", ""],
+  ["un riferimento esterno passa per un blocco vuoto, espanso",
+   "esterno:!!(f&(4|8))", "esterno:false"],
+  ["i nomi dei blocchi distinguono maiuscole e minuscole",
+   "const nome = String(e.campi['2']||'').trim().toUpperCase(), b = st.blocchi[nome];", "const nome = String(e.campi['2']||'').trim(), b = st.blocchi[nome.toUpperCase()===nome ? nome : '?'];"],
+  ["i blocchi espansi non si contano",
+   "if(!catena.length) esito.blocchiEspansi++;", ""],
+  ["si contano fra gli espansi anche i blocchi annidati",
+   "if(!catena.length) esito.blocchiEspansi++;", "esito.blocchiEspansi++;"],
 ];
 
 async function moduloCon(sostituzioni) {
@@ -202,7 +279,7 @@ const conVerita = Object.keys(verita).sort();
 dice(JSON.stringify(sulDisco) === JSON.stringify(conVerita),
   `ogni campione ha la sua verità e viceversa (${sulDisco.length} file .dxf, ${conVerita.length} verità)`,
   "solo sul disco: " + sulDisco.filter((n) => !verita[n]).join(", ") + " · solo in verita.json: " + conVerita.filter((n) => !sulDisco.includes(n)).join(", "));
-dice(sulDisco.length >= 29, `i campioni ci sono tutti (${sulDisco.length}, almeno 29)`);
+dice(sulDisco.length >= 40, `i campioni ci sono tutti (${sulDisco.length}, almeno 40)`);
 
 for (const nome of conVerita) {
   if (!sulDisco.includes(nome)) continue;

@@ -10,6 +10,7 @@
 # I campioni sono committati: la suite node non ha bisogno di Python.
 import ezdxf, json, sys, os, math
 from ezdxf.math import Vec3
+from ezdxf.disassemble import recursive_decompose
 
 OUT = sys.argv[1]
 os.makedirs(OUT, exist_ok=True)
@@ -40,6 +41,28 @@ def curva(entita):
         if v.dxftype() == 'ARC': out.append(_arco(v))
         elif v.dxftype() == 'LINE': out.append({'t': 'linea', 'a': _p(v.dxf.start), 'b': _p(v.dxf.end)})
     return out
+
+# il disegno COME LO VEDE UN CAD, blocchi inseriti compresi: ezdxf espande ogni INSERT (anche annidato,
+# anche a schiera) e rende le entita gia nel mondo. Un arco dentro un blocco scalato in modo diverso sui
+# due assi diventa un tratto d ELLISSE: la primitiva 'ellisse' lo dice esatto (centro, i due semiassi come
+# vettori, i due parametri — antiorario da t0 a t1), e la formula e controllata contro i punti di ezdxf.
+def _ellisse(e):
+    c = Vec3(e.dxf.center); M = Vec3(e.dxf.major_axis); m = Vec3(e.minor_axis)
+    t0 = e.dxf.start_param; t1 = e.dxf.end_param
+    if t1 <= t0: t1 += math.tau
+    for t in (t0, (t0 + t1) / 2, t1):
+        v = list(e.vertices([t]))[0]; w = c + M * math.cos(t) + m * math.sin(t)
+        assert (Vec3(v) - w).magnitude < 1e-9, 'la formula dell ellisse non e quella di ezdxf'
+    return {'t': 'ellisse', 'c': _p(c), 'M': _p(M), 'm': _p(m), 't0': t0, 't1': t1}
+def espanso(spazio):
+    prim = []; fuori = {}
+    for e in recursive_decompose(spazio):
+        t = e.dxftype()
+        if t == 'LINE': prim.append({'t': 'linea', 'a': _p(e.dxf.start), 'b': _p(e.dxf.end)})
+        elif t == 'ELLIPSE': prim.append(_ellisse(e))
+        elif t in ('ARC', 'CIRCLE', 'LWPOLYLINE', 'POLYLINE'): prim += curva(e)
+        else: fuori[t] = fuori.get(t, 0) + 1
+    return prim, fuori
 
 def seg(a, b):
     return [[round(a[0], 6), round(a[1], 6)], [round(b[0], 6), round(b[1], 6)]]
@@ -82,8 +105,8 @@ salva('blocco_non_inserito', d, {'tratti': 1, 'polilinee': [[[100, 100], [110, 1
 d = ezdxf.new('R2010'); m = d.modelspace()
 b = d.blocks.new('CROCE'); b.add_line((0, 0), (1, 1)); b.add_line((1, 0), (0, 1))
 m.add_blockref('CROCE', (50, 50))
-salva('blocco_inserito', d, {'tratti': 0, 'nonLette': {'INSERT': 1}},
-      'il contenuto di un blocco inserito non si espande: si DICHIARA (1 blocco inserito), e soprattutto non compare attorno a (0,0)')
+salva('blocco_inserito', d, {'tratti': 2, 'polilinee': [[[50, 50], [51, 51]], [[51, 50], [50, 51]]], 'blocchiEspansi': 1},
+      'le due linee del blocco stanno DOVE e inserito, a (50,50) — non attorno a (0,0), dove sono definite')
 
 # 7. Entita nello spazio carta (cartiglio): non fa parte del modello
 d = ezdxf.new('R2010'); m = d.modelspace()
@@ -159,8 +182,8 @@ d = ezdxf.new('R2010'); m = d.modelspace()
 b = d.blocks.new('PUNTO'); b.add_line((0, 0), (1, 0)); b.add_attdef('QUOTA', (0, 1))
 ref = m.add_blockref('PUNTO', (30, 30)); ref.add_auto_attribs({'QUOTA': '412.5'})
 m.add_line((0, 0), (10, 0))
-salva('blocco_con_attributi', d, {'tratti': 1, 'polilinee': [[[0, 0], [10, 0]]], 'nonLette': {'INSERT': 1}},
-      'gli ATTRIB e il SEQEND di un blocco inserito non sono entita a se: si conta 1 blocco, e la linea DOPO si legge')
+salva('blocco_con_attributi', d, {'tratti': 2, 'polilinee': [[[30, 30], [31, 30]], [[0, 0], [10, 0]]], 'nonLette': {'ATTRIB': 1}, 'blocchiEspansi': 1},
+      'la linea del blocco entra a (30,30); la quota scritta accanto (ATTRIB) e un testo e si conta fra i non entrati; la linea DOPO si legge')
 
 # 18. LWPOLYLINE chiusa con l arco sul lato di chiusura (un piazzale col bordo tondo)
 d = ezdxf.new('R2010'); m = d.modelspace()
@@ -211,6 +234,92 @@ az = m.add_arc((0, 0), 4, 300, 60)
 pS = m.add_lwpolyline([(20, 0, 0.6), (26, 0, -0.6), (32, 0, 0)], format='xyb')
 salva('arco_attraverso_zero_e_esse', d, {'tratti': 2, 'curve': [curva(az), curva(pS)], 'archiSpezzati': 3},
       'un ARC da 300 a 60 gradi e lungo 120 gradi, non -240; e due archi di segno opposto di fila fanno una S')
+
+# ── I BLOCCHI INSERITI (26/11): il contenuto entra dove il CAD lo disegna ───────────────
+# un blocco volutamente STORTO (niente simmetrie: una rotazione o uno specchio sbagliati si vedono)
+def pezzo(doc, nome, base=(0, 0)):
+    b = doc.blocks.new(nome, base_point=base)
+    b.add_line((0, 0), (4, 1))
+    b.add_arc((2, 1), 1.5, 20, 140)
+    b.add_circle((5, 3), 0.5)
+    b.add_lwpolyline([(0, 3, 0.4), (2, 4, 0), (3, 6, -0.7), (5, 6, 0)], format='xyb')
+    return b
+def blocchi(nome, d, tratti, archi, espansi, nota, attese_fuori=None):
+    prim, fuori = espanso(d.modelspace())
+    assert fuori == (attese_fuori or {}), (nome, fuori)
+    att = {'tratti': tratti, 'insieme': prim, 'archiSpezzati': archi, 'blocchiEspansi': espansi}
+    if fuori: att['nonLette'] = fuori
+    salva(nome, d, att, nota)
+
+# 26. spostato, ruotato e ingrandito, con un punto base che non e l origine
+d = ezdxf.new('R2010'); m = d.modelspace(); pezzo(d, 'PEZZO', base=(1, 2))
+m.add_blockref('PEZZO', (100, 50), dxfattribs={'xscale': 2, 'yscale': 2, 'rotation': 30})
+blocchi('blocco_ruotato_scalato', d, 4, 4, 1, 'inserito a (100,50), ruotato di 30 gradi, scala 2, punto base (1,2): linea, arco, cerchio e polilinea con due archi')
+
+# 27. specchiato (scala X negativa): gli archi girano dall altra parte
+d = ezdxf.new('R2010'); m = d.modelspace(); pezzo(d, 'PEZZO')
+m.add_blockref('PEZZO', (-20, 40), dxfattribs={'xscale': -1, 'yscale': 1, 'rotation': 15})
+blocchi('blocco_specchiato', d, 4, 4, 1, 'scala X = -1: il blocco e allo specchio, e un arco specchiato non e lo stesso arco ruotato')
+
+# 28. scala diversa sui due assi: archi e cerchi diventano tratti d ellisse
+d = ezdxf.new('R2010'); m = d.modelspace(); pezzo(d, 'PEZZO')
+m.add_blockref('PEZZO', (10, 10), dxfattribs={'xscale': 3, 'yscale': 0.5, 'rotation': 20})
+blocchi('blocco_scala_diversa', d, 4, 4, 1, 'scala 3 in X e 0,5 in Y: il cerchio e un ellisse, e la spezzata deve stare sull ellisse vera')
+
+# 29. un blocco dentro un blocco, due volte, e il blocco esterno inserito due volte
+d = ezdxf.new('R2010'); m = d.modelspace(); pezzo(d, 'DENTRO')
+f = d.blocks.new('FUORI')
+f.add_blockref('DENTRO', (10, 0), dxfattribs={'xscale': 0.5, 'yscale': 0.5, 'rotation': 90})
+f.add_line((0, 0), (10, 0))
+f.add_blockref('DENTRO', (0, 5), dxfattribs={'xscale': -1})
+m.add_blockref('FUORI', (200, 100), dxfattribs={'xscale': 2, 'yscale': 2, 'rotation': 45})
+m.add_blockref('FUORI', (0, 0))
+blocchi('blocco_annidato', d, 18, 16, 2, 'FUORI contiene due DENTRO (uno ruotato e rimpicciolito, uno specchiato) e una linea; FUORI e inserito due volte: le trasformazioni si compongono')
+
+# 30. schiera: lo stesso INSERT ripetuto 3 colonne x 2 righe, ruotato
+d = ezdxf.new('R2010'); m = d.modelspace()
+b = d.blocks.new('PALO'); b.add_circle((0, 0), 0.2); b.add_line((0, 0), (0.5, 0.1))
+m.add_blockref('PALO', (30, 10), dxfattribs={'xscale': 1.5, 'yscale': 1.5, 'rotation': 30,
+               'column_count': 3, 'row_count': 2, 'column_spacing': 4, 'row_spacing': 3})
+blocchi('blocco_schiera', d, 12, 6, 1, 'un INSERT a schiera 3 x 2 (passo 4 e 3, ruotato di 30 gradi): sei copie, il passo ruota col blocco e non si scala')
+
+# 31. INSERT specchiato con l estrusione (0,0,-1), come lo scrive lo «specchia» di un CAD
+d = ezdxf.new('R2010'); m = d.modelspace(); pezzo(d, 'PEZZO')
+m.add_blockref('PEZZO', (10, 20), dxfattribs={'rotation': 25, 'extrusion': (0, 0, -1)})
+blocchi('blocco_estrusione_specchiata', d, 4, 4, 1, 'estrusione (0,0,-1) sull INSERT: punto di inserimento e rotazione sono nel sistema dell oggetto')
+
+# 32. riferimento esterno: il contenuto sta in un ALTRO file
+d = ezdxf.new('R2010'); m = d.modelspace()
+d.add_xref_def('planimetria_altro_studio.dxf', 'ALTRO')
+m.add_blockref('ALTRO', (0, 0)); m.add_line((0, 0), (10, 0))
+salva('blocco_riferimento_esterno', d, {'tratti': 1, 'polilinee': [[[0, 0], [10, 0]]], 'nonLette': {'INSERT (riferimento esterno)': 1}},
+      'un xref non ha contenuto in questo file: si dichiara come riferimento a un altro file, non come blocco vuoto espanso')
+
+# 33. blocco con un testo dentro, inserito tre volte: le linee entrano, i testi si contano tre volte
+d = ezdxf.new('R2010'); m = d.modelspace()
+b = d.blocks.new('ETICHETTA'); b.add_line((0, 0), (2, 0)); b.add_text('P', dxfattribs={'insert': (0, 0.5)})
+for k in range(3): m.add_blockref('ETICHETTA', (10 * k, 5))
+blocchi('blocco_con_testo', d, 3, 0, 3, 'cio che dentro un blocco non si legge si conta una volta per ogni inserimento', {'TEXT': 3})
+
+# 34. blocco inserito e ruotato nel formato vecchio (R12)
+d = ezdxf.new('R12'); m = d.modelspace()
+b = d.blocks.new('CROCE'); b.add_line((0, 0), (1, 1)); b.add_line((1, 0), (0, 1))
+m.add_blockref('CROCE', (50, 50), dxfattribs={'rotation': 90})
+salva('blocco_inserito_R12', d, {'tratti': 2, 'polilinee': [[[50, 50], [49, 51]], [[50, 51], [49, 50]]], 'blocchiEspansi': 1},
+      'R12 scrive BLOCK ed ENDBLK senza i contrassegni dei formati nuovi: stesso risultato')
+
+# 35. un cerchio di raggio 1 dentro un blocco inserito a scala 50: nel mondo e un cerchio di 50 m
+d = ezdxf.new('R2010'); m = d.modelspace()
+b = d.blocks.new('TONDO'); b.add_circle((0, 0), 1); b.add_arc((3, 0), 1, 0, 200)
+m.add_blockref('TONDO', (500, 500), dxfattribs={'xscale': 50, 'yscale': 50})
+blocchi('blocco_arco_ingrandito', d, 2, 2, 1, 'la freccia di 2 cm vale NEL MONDO: i lati si contano sul cerchio di 50 m, non su quello di 1 m disegnato nel blocco')
+
+# 36. il nome del blocco scritto in minuscolo nell INSERT e in maiuscolo nella definizione
+d = ezdxf.new('R2010'); m = d.modelspace()
+b = d.blocks.new('CROCE'); b.add_line((0, 0), (1, 1)); b.add_line((1, 0), (0, 1))
+m.add_blockref('croce', (5, 5))
+salva('blocco_nome_minuscolo', d, {'tratti': 2, 'polilinee': [[[5, 5], [6, 6]], [[6, 5], [5, 6]]], 'blocchiEspansi': 1},
+      'i nomi dei blocchi non distinguono maiuscole e minuscole')
 
 # un campione per riga: le curve di riferimento sono centinaia di punti, e con un rientro per
 # numero il file peserebbe tre volte tanto senza essere piu leggibile
