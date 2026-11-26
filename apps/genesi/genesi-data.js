@@ -2434,12 +2434,61 @@ export function idForoNuovo(holes){
    prende uno da foro a mano, senza doppioni), il ritardo a mano solo se è un
    numero. Quelli illeggibili si CONTANO in `scartati`: non spariscono in
    silenzio. Pura. */
+/* ══════════════════════════════════════════════════════════════════════════
+   F1 · IL FORO PUÒ PORTARE VALORI SUOI (26/11) — la fondazione del progetto
+   «foro per foro», e nient'altro.
+   ══════════════════════════════════════════════════════════════════════════
+   Fino a oggi carica, profondità e borraggio erano UNO per tutta la volata
+   (`D2.kg`, `D2.prof`, `D2.stem`): in ogni programma concorrente ogni foro ha
+   i suoi (piano in docs/GENESI_ROADMAP_COMPETITOR.md, sezione 26/11, sei
+   fette). Questa è la prima: un foro PUÒ portare `kg`, `prof`, `stem` suoi, e
+   c'è UN posto solo che risponde alla domanda «quanto vale per questo foro?».
+   ⛔ NESSUN CALCOLO LEGGE ANCORA DI QUI: MIC, carica totale, consumo
+   specifico, costo, piano di carico e scena 3D usano i valori del progetto,
+   come ieri. Li si porta qui una fetta alla volta (F2…F5), ognuna con la
+   prova che un progetto senza valori per foro dà gli stessi numeri di prima.
+   LE TRE REGOLE, provate in scratchpad prima di scriverle qui:
+    · un foro senza valore suo usa quello del progetto — così ogni progetto
+      salvato fino a oggi resta identico;
+    · uno ZERO dichiarato sul foro resta zero: un foro lasciato SCARICO
+      (0 kg) o non borrato (0 m) è una scelta, non un buco. Solo la
+      profondità zero non è un foro;
+    · se non lo sa né il foro né il progetto la risposta è `null`, mai zero.
+   Diametro e inclinazione NON sono in elenco di proposito (F6: toccano la
+   geometria 3D): chiesti qui rispondono `null`, non il valore del progetto
+   di nascosto — un campo che sembra «per foro» e non lo è sarebbe peggio di
+   un campo che manca. */
+const _REGOLE_PER_FORO = { kg: (v) => v >= 0, prof: (v) => v > 0, stem: (v) => v >= 0 };
+export const CAMPI_PER_FORO = Object.keys(_REGOLE_PER_FORO);
+const _numForo = (x) => (x === null || x === undefined || x === '') ? NaN : +x;
+export function valoreProprioDiForo(h, campo){
+  const regola = _REGOLE_PER_FORO[campo];
+  if (!regola) return null;
+  const v = _numForo(h && h[campo]);
+  return (Number.isFinite(v) && regola(v)) ? v : null;
+}
+export function valoreDiForo(h, campo, progetto){
+  if (!_REGOLE_PER_FORO[campo]) return null;
+  const suo = valoreProprioDiForo(h, campo);
+  if (suo !== null) return suo;
+  const p = _numForo(progetto && progetto[campo]);
+  return Number.isFinite(p) ? p : null;
+}
+/* ciò che di un foro va nel file salvato OLTRE a id/posizione/ritardo: solo i
+   valori suoi validi. Un foro senza valori suoi non guadagna chiavi — il
+   `.volata.json` di un progetto di ieri esce byte per byte com'era. */
+export function valoriPropriDiForo(h){
+  const out = {};
+  for (const c of CAMPI_PER_FORO){ const v = valoreProprioDiForo(h, c); if (v !== null) out[c] = v; }
+  return out;
+}
+
 export function foriDaDesign(design){
   const d = design || {};
   if (!Array.isArray(d.holes)) return null;
   const n = (x) => (x === null || x === undefined || x === '') ? NaN : +x;
   const fori = [];
-  let scartati = 0;
+  let scartati = 0, valoriScartati = 0;
   for (const h of d.holes){
     const mx = n(h && h.mx), my = n(h && h.my);
     if (!(Number.isFinite(mx) && Number.isFinite(my))) { scartati++; continue; }
@@ -2447,13 +2496,22 @@ export function foriDaDesign(design){
     const tm = n(h.tMano);
     const f = { id, mx, my };
     if (Number.isFinite(tm)) f.tMano = tm;
+    /* F1 (26/11): i valori propri del foro rientrano solo se VALIDI. Uno
+       scritto e illeggibile («abc», una carica negativa) non diventa in
+       silenzio il valore del progetto: il foro resta, quel valore no, e si
+       CONTA — è un dato perso, e chi riapre deve poterlo sapere. */
+    for (const c of CAMPI_PER_FORO){
+      if (h[c] === null || h[c] === undefined || h[c] === '') continue;
+      const v = valoreProprioDiForo(h, c);
+      if (v === null) valoriScartati++; else f[c] = v;
+    }
     fori.push(f);
   }
   /* gli id mancanti si assegnano DOPO aver letto tutti quelli dichiarati:
      misurato prima di scrivere — assegnando strada facendo, un «m1» dichiarato
      più avanti nel file diventava il doppione di un «m1» appena inventato */
   for (const f of fori) if (!f.id) f.id = idForoNuovo(fori);
-  return { fori, scartati };
+  return { fori, scartati, valoriScartati };
 }
 
 export function foriDiProgetto(perRow, file){

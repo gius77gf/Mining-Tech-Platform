@@ -43101,6 +43101,41 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(r.fori, [{ id: "f1-1", mx: 0, my: 3 }, { id: "f1-3", mx: 7, my: 3, tMano: 99 }, { id: "m1", mx: 3.5, my: 6 }], "⛔ i tre fori tornano con il loro id — f1-2 tolto NON ricompare — e il 99 ms a mano resta");
     eq(r.scartati, 0, "nessuno scartato");
   });
+  test("Genesi · F1, valoreDiForo: il valore suo se il foro ne ha uno, se no quello del progetto, e null se non lo sa nessuno", () => {
+    const D2 = { kg: 50, prof: 10, stem: 2.2 };
+    eq(genesi.CAMPI_PER_FORO, ["kg", "prof", "stem"], "i tre campi che oggi un foro può portare (diametro e inclinazione sono F6)");
+    eq(genesi.valoreDiForo({ mx: 1, my: 3 }, "kg", D2), 50, "senza valore suo: quello del progetto — ogni progetto di ieri resta identico");
+    eq(genesi.valoreDiForo({ kg: 35 }, "kg", D2), 35, "col valore suo: il suo");
+    eq(genesi.valoreDiForo({ kg: 0 }, "kg", D2), 0, "⛔ un foro lasciato SCARICO (0 kg dichiarato) resta zero: è una scelta, non un buco");
+    eq(genesi.valoreDiForo({ stem: 0 }, "stem", D2), 0, "e un borraggio zero dichiarato resta zero");
+    eq(genesi.valoreDiForo({ prof: 0 }, "prof", D2), 10, "solo la profondità zero non è un foro: progetto");
+    eq(genesi.valoreDiForo({ kg: null }, "kg", D2), 50, "null sul foro è «non dichiarato», non zero");
+    eq(genesi.valoreDiForo({ kg: "" }, "kg", D2), 50, "la stringa vuota pure");
+    eq(genesi.valoreDiForo({ kg: -5 }, "kg", D2), 50, "una carica negativa non è una carica");
+    eq(genesi.valoreDiForo({}, "kg", { kg: null }), null, "⛔ né il foro né il progetto: null, MAI zero");
+    eq(genesi.valoreDiForo({}, "kg", null), null, "progetto assente: null");
+    eq(genesi.valoreDiForo(null, "kg", D2), 50, "foro null: progetto");
+    eq(genesi.valoreDiForo({ diam: 89 }, "diam", { diam: 102 }), null, "⛔ un campo che NON è ancora per foro risponde null, non il progetto di nascosto");
+    eq(genesi.valoreProprioDiForo({ kg: 35 }, "kg"), 35, "valoreProprioDiForo: solo ciò che è scritto SUL foro");
+    eq(genesi.valoreProprioDiForo({}, "kg"), null, "e null se il foro non dice niente (qui il progetto non c'entra)");
+    eq(genesi.valoreProprioDiForo({ kg: "abc" }, "kg"), null, "un valore illeggibile non è un valore");
+  });
+  test("Genesi · F1, valoriPropriDiForo e foriDaDesign: i valori per foro si salvano e si riaprono, e un progetto di ieri esce com'era", () => {
+    eq(genesi.valoriPropriDiForo({ id: "f1-1", mx: 0, my: 3 }), {}, "⛔ un foro senza valori suoi non guadagna NESSUNA chiave: il file salvato di un progetto di ieri non cambia di un byte");
+    eq(genesi.valoriPropriDiForo({ mx: 0, my: 3, kg: 35, stem: 0, prof: null }), { kg: 35, stem: 0 }, "solo i valori validi, lo zero dichiarato compreso");
+    /* andata e ritorno come la fa la pagina: salva = id/mx/my/tMano + valoriPropriDiForo, riapre = foriDaDesign */
+    const vivi = [{ id: "f1-1", mx: 0, my: 3 }, { id: "f1-2", mx: 3.5, my: 3, kg: 35, prof: 8.5 }, { id: "f1-3", mx: 7, my: 3, kg: 0, tMano: 42 }];
+    const salvati = vivi.map((h) => ({ id: h.id || null, mx: h.mx, my: h.my, tMano: (h.tMano != null && isFinite(h.tMano)) ? +h.tMano : null, ...genesi.valoriPropriDiForo(h) }));
+    const riaperti = genesi.foriDaDesign(JSON.parse(JSON.stringify({ holes: salvati })));
+    eq(riaperti.fori, [{ id: "f1-1", mx: 0, my: 3 }, { id: "f1-2", mx: 3.5, my: 3, kg: 35, prof: 8.5 }, { id: "f1-3", mx: 7, my: 3, tMano: 42, kg: 0 }], "i tre fori tornano coi loro valori: quello senza resta senza, lo scarico resta scarico");
+    eq([riaperti.scartati, riaperti.valoriScartati], [0, 0], "niente perso, niente scartato");
+    const D2 = { kg: 50, prof: 10, stem: 2.2 };
+    eq(riaperti.fori.map((h) => genesi.valoreDiForo(h, "kg", D2)), [50, 35, 0], "e la domanda «quanto è carico?» risponde per foro");
+    const sporco = genesi.foriDaDesign({ holes: [{ id: "a", mx: 0, my: 3, kg: "abc", prof: 9 }, { id: "b", mx: 1, my: 3, kg: -4, stem: "" }] });
+    eq(sporco.fori, [{ id: "a", mx: 0, my: 3, prof: 9 }, { id: "b", mx: 1, my: 3 }], "⛔ un valore scritto e illeggibile non rientra (e non diventa quello del progetto in silenzio): il foro resta");
+    eq(sporco.valoriScartati, 2, "⛔ e si CONTA: «abc» e −4 sono due valori persi; la stringa vuota no, è «non dichiarato»");
+    eq(sporco.scartati, 0, "i fori ci sono tutti e due: scartato è il valore, non il foro");
+  });
   test("Genesi · foriDaDesign: il foro illeggibile si conta, quello senza id ne prende uno senza doppioni, il ritardo non numerico cade", () => {
     const r = genesi.foriDaDesign({ holes: [{ id: "f1-1", mx: "0", my: "3" }, { mx: null, my: 3 }, { mx: 2, my: "abc" }, { mx: 5, my: 3, tMano: "boh" }, { id: "", mx: 6, my: 3 }, { id: "m1", mx: 8, my: 3 }] });
     eq(r.scartati, 2, "⛔ due fori senza posizione leggibile si CONTANO, non spariscono");
