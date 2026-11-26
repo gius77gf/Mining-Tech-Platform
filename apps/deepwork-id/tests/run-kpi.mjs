@@ -17299,15 +17299,15 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
        programma (ezdxf). Qui le stesse regole su stringhe minime, perché una
        funzione esportata ha la sua prova anche dove gira run-kpi da solo. */
     const dxf = (...righe) => righe.join("\n") + "\n";
-    const conBlocco = dxf("0","SECTION","2","BLOCKS","0","BLOCK","2","SIMBOLO","0","LINE","10","0","20","0","11","1","21","1","0","ENDBLK","0","ENDSEC",
-      "0","SECTION","2","ENTITIES","0","LINE","10","100","20","100","11","110","21","100","0","INSERT","2","SIMBOLO","10","50","20","50","0","ENDSEC","0","EOF");
-    const r = genesi.dxfLeggi(conBlocco);
+    const disegnoConBlocco = (...inserimento) => dxf("0","SECTION","2","BLOCKS","0","BLOCK","2","SIMBOLO","0","LINE","10","0","20","0","11","1","21","1","0","ENDBLK","0","ENDSEC",
+      "0","SECTION","2","ENTITIES","0","LINE","10","100","20","100","11","110","21","100", ...inserimento, "0","ENDSEC","0","EOF");
+    const r = genesi.dxfLeggi(disegnoConBlocco("0","INSERT","2","SIMBOLO","10","50","20","50"));
     eq(r.tratti.length, 2, "la linea del disegno e quella del blocco inserito: due tratti");
     eq(r.tratti[0].pts, [{x:100,y:100},{x:110,y:100}], "la linea vera");
     eq(r.tratti[1].pts, [{x:50,y:50},{x:51,y:51}], "⛔ e la linea del blocco sta DOVE è inserito, a (50; 50) — non attorno all'origine, dov'è definita");
     eq([r.nonLette, r.nNonLette, r.blocchiEspansi], [{}, 0, 1], "non resta fuori niente, e il blocco esploso si conta");
     eq(r.ingombro, {larghezza:60, altezza:50}, "l'ingombro è quello dei tratti entrati");
-    const soloDefinito = genesi.dxfLeggi(conBlocco.replace("0\nINSERT\n2\nSIMBOLO\n10\n50\n20\n50\n", ""));
+    const soloDefinito = genesi.dxfLeggi(disegnoConBlocco());
     eq([soloDefinito.tratti.length, soloDefinito.blocchiEspansi], [1, 0], "un blocco definito e MAI inserito non è nel disegno");
 
     const chiusa = dxf("0","SECTION","2","ENTITIES","0","LWPOLYLINE","90","3","70","1","10","0","20","0","10","10","20","0","10","10","20","10","0","ENDSEC","0","EOF");
@@ -17365,18 +17365,18 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     const vicino = (p, x, y) => Math.abs(p.x - x) < 1e-9 && Math.abs(p.y - y) < 1e-9;
 
     /* la trasformazione, a mano: base (1; 2), scala 2 e 3, ruotato di 90° */
-    const conBase = file(["0","BLOCK","2","B","10","1","20","2", ...linea(1, 2, 3, 2), "0","ENDBLK"],
-      ["0","INSERT","2","B","10","10","20","20","41","2","42","3","50","90"]);
-    const tb = genesi.dxfLeggi(conBase).tratti[0].pts;
+    const conBase = (...comeInserito) => file(["0","BLOCK","2","B","10","1","20","2", ...linea(1, 2, 3, 2), "0","ENDBLK"],
+      ["0","INSERT","2","B","10","10","20","20", ...comeInserito]);
+    const tb = genesi.dxfLeggi(conBase("41","2","42","3","50","90")).tratti[0].pts;
     ok(vicino(tb[0], 10, 20) && vicino(tb[1], 10, 24), "il punto base va sul punto d'inserimento; due unità lungo X, scalate ×2 e ruotate di 90°, sono quattro lungo Y", JSON.stringify(tb));
-    const specchio = genesi.dxfLeggi(conBase.replace("41\n2\n42\n3\n50\n90\n", "41\n-1\n")).tratti[0].pts;
+    const specchio = genesi.dxfLeggi(conBase("41","-1")).tratti[0].pts;
     ok(vicino(specchio[0], 10, 20) && vicino(specchio[1], 8, 20), "scala X negativa: il blocco è allo specchio", JSON.stringify(specchio));
 
     /* ciò che non si può esplodere resta fra i non letti, come «blocco inserito» */
     const manca = genesi.dxfLeggi(file([], ["0","INSERT","2","NON_DEFINITO","10","0","20","0", ...linea(0, 0, 5, 0)]));
     eq([manca.tratti.length, manca.nonLette, manca.blocchiEspansi], [1, {INSERT:1}, 0], "un INSERT di un blocco che nel file non c'è: dichiarato, e la linea dopo si legge");
     for (const scala of ["0", "abc"]) {
-      const nulla = genesi.dxfLeggi(conBase.replace("41\n2\n", "41\n" + scala + "\n"));
+      const nulla = genesi.dxfLeggi(conBase("41",scala,"42","3","50","90"));
       eq([nulla.tratti.length, nulla.nonLette], [0, {INSERT:1}], "scala «" + scala + "»: il blocco non si schiaccia in un punto né si inventa una scala — si dichiara");
     }
     const senzaScala = genesi.dxfLeggi(file(blocco("B", ...linea(0, 0, 1, 0)), ["0","INSERT","2","B","10","7","20","7"])).tratti[0].pts;
