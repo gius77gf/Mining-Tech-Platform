@@ -2589,6 +2589,21 @@
   capienza) e nei file che escono, e un progetto senza valori per foro è
   identico a prima. Resta UNA cosa, e non è un'unità: quale carica debbano
   usare le PREVISIONI (pezzatura, simulazione) — decisione 33 del fondatore.
+- [ ] **Genesi — i cinque campi per foro, uscita per uscita: censimento
+  premendo i bottoni**. Oggi due difetti di questa famiglia sono usciti
+  LEGGENDO un documento (il report che non elencava i fori diversi, il file
+  di scambio che rientrava con la media): nessuno dei due si vedeva dal
+  codice. Va fatto il giro completo, col metodo «premi il bottone e apri il
+  file»: una volata con un foro scarico, uno accorciato, uno con borraggio,
+  diametro e inclinazione suoi; poi OGNI uscita di Genesi (scheda volata
+  CSV, piano di carico CSV, piano fori DXF, piano d'innesco XML, file di
+  scambio, report, confronto A/B CSV, invio a Sentinella, storico) e per
+  ciascuna una riga: quali dei cinque campi porta per foro, quali solo del
+  progetto, quali per niente — e se lo DICE. Già noto e da confermare: il
+  DXF disegna il boccaforo e non il piede (con l'inclinazione per foro il
+  piede è un'informazione); il piano di carico CSV non ha diametro né
+  inclinazione, ma la sua intestazione sta in `shared/dw-ponti.js` e la
+  legge Campo (fuori dal mandato «solo Genesi»: si annota, non si tocca).
 - [ ] **Genesi — il piede che esce dalla faccia** ⏸️ *in attesa della
   decisione 35*: con l'inclinazione per foro la pianta mostra il piede di
   ogni foro; in dimostrazione, un foro da 10 m a 20° con 3 m di spalla ha il
@@ -2612,17 +2627,27 @@
   foglio è com'era. `run-kpi` 3253 → 3254; banco `genesi-foglio-in-cava.mjs`
   38 → 52 con 4 iniezioni nuove (11 in tutto), foglio misurato sulla carta
   (718 px) e guardato nello scatto a 390 px.
-- [ ] **Genesi — riaprire il file di scambio di una volata con valori per
-  foro**: DA MISURARE PRIMA. L'import del `.volata.json` ricava la carica e
-  la profondità del progetto dalla MEDIA dei fori del file
-  (`_mediaDichiarata`); da F5b il file porta le cariche vere di ogni foro,
-  quindi un file con undici fori a 58 kg e uno lasciato scarico dovrebbe
-  rientrare come «53,2 kg per foro» — un numero che non è di nessuno, e il
-  foro scarico perso. Misura: esportare con un foro a 0 kg, riaprire dal
-  bottone vero, leggere `D2.kg`/`P.kg`. Se è così: il file dichiari i valori
-  del PROGETTO (`default.carica_kg` accanto a `profondita_m`), l'import li
-  usi quando ci sono (la media resta per i file di ieri), e si dica quanti
-  fori del file avevano valori loro che il rientro non riporta.
+- [x] **26/11 · Genesi — riaprendo il file di scambio di una volata il
+  progetto non è più la media dei fori.** MISURATO prima di toccare: con un
+  foro lasciato scarico e uno accorciato, riaprendo il `.volata.json` dal
+  bottone vero la scena ripartiva da **53,17 kg** e **9,875 m** per foro —
+  numeri che non sono di nessun foro — col solo messaggio «Volata
+  importata: 12 fori». È un difetto nato da F5b (stamattina): finché i fori
+  uscivano tutti uguali la media ERA il progetto. Ora il file dichiara
+  anche la carica del progetto (`default.carica_kg`, accanto a
+  `profondita_m` che c'era e non veniva riletta), il lettore usa i valori
+  dichiarati (`valoreProgettoDaFile`: dichiarato → quello; se no la media,
+  esatta quando i fori sono tutti uguali; quanti senza dato, quanti
+  diversi), e il messaggio dice ciò che prima taceva: «N fori hanno nel file
+  una carica diversa da quella del progetto: la simulazione riparte dal
+  progetto», oppure — per un file che non la dichiara — «uso la media (… kg),
+  che non è la carica di nessun foro». Rimisurato dopo: 58 kg e 10 m.
+  `run-kpi` 3254 → 3255 (controprova 5 su 5; due prove che leggevano il
+  sorgente della pagina ora CHIAMANO la funzione); banco
+  `genesi-foro-per-foro.mjs` 172 → 176, 3 iniezioni nuove (56).
+  ⏱️ Dichiarato: i valori dei singoli fori NON rientrano nel progetto 2D —
+  questo lettore ricostruisce la scena 3D da una riga sola, per scelta già
+  scritta lì; la profondità di ogni foro rientra come altezza del fronte.
 - [x] **26/11 · Genesi — il piano d'innesco XML porta l'inclinazione del
   progetto.** Non la portava affatto (da F6b, solo quando un foro ne aveva
   una sua): chi perforava da quel file non sapeva se i fori erano verticali,
@@ -3271,8 +3296,8 @@ nome. Un nome si cerca con `grep`; una riga si sposta.
 grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 ```
 
+- `Genesi — i cinque campi per foro, uscita per uscita: censimento`
 - `Genesi — il piede che esce dalla faccia`
-- `Genesi — riaprire il file di scambio di una volata con valori per`
 - `F1. \`vitaComponenti\` non distingue un componente sostituito da`
 - `F2. La rampa sequenziale dei grafici (\`--dwg-s1\`) non raggiunge`
 - `Una passata in profondità su un'app`
@@ -9046,7 +9071,7 @@ numero scritto dove non era stato misurato niente**.*
   il lettore non leggeva affatto le tre colonne, non una chiamata che le
   scartava): il registro infortuni esportato e ri-caricato perdeva la
   denuncia INAIL (3097→3109):
-  **3.754 prove girano senza rete** *(ricontato il 26/11, +1 col report che elenca i fori con valori loro; prima +1 con l'inclinazione per foro; prima +1 con le spline di un DXF; prima +1 con le ellissi di un DXF; prima +1 coi blocchi inseriti di un DXF; prima +2 con le nuvole LAS/LAZ scritte da laspy; prima +1 col diametro per foro; prima +1 con la carica che non entra nel foro; prima +2 con la quinta fetta del foro per foro [il piano d'innesco XML]; prima +1 con la quarta fetta del foro per foro [la tabella dei fori]; prima +3 con la terza fetta del foro per foro [il comando dalla scheda del foro]; prima +11 con le prime due fette del foro per foro, col lettore DXF di Genesi e i lettori di sismografo e sonda; prima, il 19/09, dopo la correzione di `syncTrattoUI` (trovata da `genesi-snap-estremo.mjs`, G48 — Ruota/Scala tratti restavano visibili mentre si disegnava ancora un tratto, spingendo la tela sotto la barra di navigazione fissa: 40 px bastavano a far cadere il clic di chiusura del tratto sull'icona della barra); 3.727 dopo `deviazioneStatistiche` (G59, media e massima della deviazione RADIALE di perforazione — `Math.hypot(dx,dy)`, non dx/dy col segno: il segno dipende dalla convenzione di assi del rilievo boretrack, ancora non confermata — segnalata dalla ricerca del 19/09 come mancanza reale rispetto al QC statistico di JKSimBlast, verificata prima con un grep per nome); 3.725 dopo `trattiScalati` (G58, terza trasformazione — scala i tratti DALL'ORIGINE, non dal centroide, per correggere un rilievo DXF in un'unità diversa dai metri di Genesi); 3.718 dopo `trattiRuotati` (G57, seconda trasformazione CAD dopo il mirror di G50: ruota tutti i tratti attorno al loro centroide comune, per correggere l'orientamento di un rilievo DXF senza dover reimportare); 3.712 dopo la stessa causa di G56c ritrovata in `innescoSuMaglia` (G56d, un foro senza nessun raccordo che lo raggiunga spariva dalla rete di innesco come il primo della volata); 3.711 dopo `relief=null` che distingue il primo foro della zona da un vicino fuori dalla distanza di adiacenza (G56c, trovato con una verifica diretta sugli export CSV/DXF/XML dopo aver tolto un foro dalla maglia, non da un agente); 3.709 dopo l'annulla premuto a metà di un trascinamento (G56b, dal deep-pass QA in background sulle nove unità appena costruite); 3.708 dopo la guida di allineamento in Y sul trascinamento di un foro (G56, dal delta di una ricerca in background su snap magnetico/tracking dinamico); 3.707 dopo il misfire nel report stampato (G55, _repEsito); 3.706 dopo il limite dello stack di annulla (G54, già scritto il 14/09 e mai provato prima d'ora); 3.705 dopo il semaforo di sintesi letto prima di esportare (G53, fraseGraviExport); 3.704 dopo l'esito della detonazione di Genesi (G52, _riconRiassuntoCampo/csvRiconciliazione); 3.702 dopo l'input relativo/polare di Genesi (G51, coordinataRelativa); 3.695 dopo rifletti la selezione di Genesi (G50, foriRiflessi); 3.691 dopo la selezione multipla dei fori (G49, foriSenzaId); 3.688 dopo lo snap a oggetti di Genesi (G48, puntoSnapEstremo/estremiDisegno); 3.682 dopo il dodicesimo giro (Sentinella, allerteTaratura/badge); 3.676 dopo il sesto
+  **3.755 prove girano senza rete** *(ricontato il 26/11, +1 col rientro del file di scambio; prima +1 col report che elenca i fori con valori loro; prima +1 con l'inclinazione per foro; prima +1 con le spline di un DXF; prima +1 con le ellissi di un DXF; prima +1 coi blocchi inseriti di un DXF; prima +2 con le nuvole LAS/LAZ scritte da laspy; prima +1 col diametro per foro; prima +1 con la carica che non entra nel foro; prima +2 con la quinta fetta del foro per foro [il piano d'innesco XML]; prima +1 con la quarta fetta del foro per foro [la tabella dei fori]; prima +3 con la terza fetta del foro per foro [il comando dalla scheda del foro]; prima +11 con le prime due fette del foro per foro, col lettore DXF di Genesi e i lettori di sismografo e sonda; prima, il 19/09, dopo la correzione di `syncTrattoUI` (trovata da `genesi-snap-estremo.mjs`, G48 — Ruota/Scala tratti restavano visibili mentre si disegnava ancora un tratto, spingendo la tela sotto la barra di navigazione fissa: 40 px bastavano a far cadere il clic di chiusura del tratto sull'icona della barra); 3.727 dopo `deviazioneStatistiche` (G59, media e massima della deviazione RADIALE di perforazione — `Math.hypot(dx,dy)`, non dx/dy col segno: il segno dipende dalla convenzione di assi del rilievo boretrack, ancora non confermata — segnalata dalla ricerca del 19/09 come mancanza reale rispetto al QC statistico di JKSimBlast, verificata prima con un grep per nome); 3.725 dopo `trattiScalati` (G58, terza trasformazione — scala i tratti DALL'ORIGINE, non dal centroide, per correggere un rilievo DXF in un'unità diversa dai metri di Genesi); 3.718 dopo `trattiRuotati` (G57, seconda trasformazione CAD dopo il mirror di G50: ruota tutti i tratti attorno al loro centroide comune, per correggere l'orientamento di un rilievo DXF senza dover reimportare); 3.712 dopo la stessa causa di G56c ritrovata in `innescoSuMaglia` (G56d, un foro senza nessun raccordo che lo raggiunga spariva dalla rete di innesco come il primo della volata); 3.711 dopo `relief=null` che distingue il primo foro della zona da un vicino fuori dalla distanza di adiacenza (G56c, trovato con una verifica diretta sugli export CSV/DXF/XML dopo aver tolto un foro dalla maglia, non da un agente); 3.709 dopo l'annulla premuto a metà di un trascinamento (G56b, dal deep-pass QA in background sulle nove unità appena costruite); 3.708 dopo la guida di allineamento in Y sul trascinamento di un foro (G56, dal delta di una ricerca in background su snap magnetico/tracking dinamico); 3.707 dopo il misfire nel report stampato (G55, _repEsito); 3.706 dopo il limite dello stack di annulla (G54, già scritto il 14/09 e mai provato prima d'ora); 3.705 dopo il semaforo di sintesi letto prima di esportare (G53, fraseGraviExport); 3.704 dopo l'esito della detonazione di Genesi (G52, _riconRiassuntoCampo/csvRiconciliazione); 3.702 dopo l'input relativo/polare di Genesi (G51, coordinataRelativa); 3.695 dopo rifletti la selezione di Genesi (G50, foriRiflessi); 3.691 dopo la selezione multipla dei fori (G49, foriSenzaId); 3.688 dopo lo snap a oggetti di Genesi (G48, puntoSnapEstremo/estremiDisegno); 3.682 dopo il dodicesimo giro (Sentinella, allerteTaratura/badge); 3.676 dopo il sesto
   giro di deep-pass QA su Sentinella/Genesi/Conti — `run-kpi` 3172→3177 — e
   il settimo giro — 3177→3178, correzione del refuso di `terra-sequenza-lotto.mjs`
   più il test sulla sezione Personale presente di Campo — le altre otto invariate)*. La frase va

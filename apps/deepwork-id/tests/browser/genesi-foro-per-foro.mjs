@@ -135,6 +135,12 @@ const DIFETTI = [
   [PAGINA, `.ft-incl{display:none!important}`, `.ft-incl{}`],
   [PAGINA, `grid-template-columns:40px 40px 42px 54px repeat(5,minmax(50px,1fr));gap:4px`, `grid-template-columns:40px 40px 42px 54px repeat(4,minmax(50px,1fr));gap:4px`],
   [PAGINA, `(Object.values(r.propri).some(Boolean)?'<i title="Ha valori suoi`, `((r.propri.kg||r.propri.prof||r.propri.stem)?'<i title="Ha valori suoi`],
+  /* il rientro del file di scambio (26/11): il file non dichiara più la carica
+     del progetto, il lettore torna a usare sempre la media, e il messaggio
+     tace sui fori diversi */
+  [PAGINA, `default:{ diametro_mm:P.diam, profondita_m:P.prof, carica_kg:P.kg, esplosivo:`, `default:{ diametro_mm:P.diam, profondita_m:P.prof, esplosivo:`],
+  [PAGINA, `valoreProgettoDaFile(parseFloat(def.carica_kg), fori.map(x=>parseFloat(x.kg)))`, `valoreProgettoDaFile(NaN, fori.map(x=>parseFloat(x.kg)))`],
+  [PAGINA, `(_diversi?' — '+_diversi:'')`, `''`],
 ];
 
 const colpiti = new Set();
@@ -782,6 +788,26 @@ if (prima && prima.colonneTrovate) {
     await pg.evaluate((a) => { window.__genesi.D2.holes.find((h) => h.id === a).kg = 99; }, a);
     const j2 = await esporta();
     dice(!!j2 && per(j2, a).kg === 35, "cambiato il progetto 2D SENZA risimulare, il file dice ancora la scena simulata (35 kg, non 99)", j2 && per(j2, a));
+    /* ⛔ 26/11 — IL RIENTRO. Misurato prima della correzione: riaprendo un file con un foro scarico
+       la scena ripartiva da «53,17 kg per foro», la media, senza dirlo. Il file adesso dichiara la
+       carica del progetto e il lettore la usa; la media resta per i file che non la dichiarano. */
+    dice(!!j1 && j1.volata.default.carica_kg === P.kg && j1.volata.default.profondita_m === P.prof, `il file dichiara carica e profondità del PROGETTO (${P.kg} kg, ${P.prof} m), accanto a quelle di ogni foro`, j1 && j1.volata.default);
+    if (j1) {
+      const fr = join(R, "__genesi-rientro-" + process.pid + ".volata.json");
+      const rientra = async (j) => { writeFileSync(fr, JSON.stringify(j)); await pg.evaluate(() => { window.__toasts.length = 0; }); await pg.setInputFiles("#fileIn", fr); await pg.waitForTimeout(1800);
+        return pg.evaluate(() => ({ kg: window.__genesi.P.kg, prof: window.__genesi.P.prof, campo: document.getElementById("pKg").value, detto: window.__toasts.join(" | ") })); };
+      try {
+        const media = j1.volata.fori.reduce((t, f) => t + f.kg, 0) / j1.volata.fori.length;
+        const ieri = JSON.parse(JSON.stringify(j1)); delete ieri.volata.default.carica_kg; delete ieri.volata.default.profondita_m;
+        const r0 = await rientra(ieri);
+        dice(Math.abs(r0.kg - media) < 1e-9 && /il file non dichiara la carica del progetto e i fori non sono tutti uguali: uso la media \([\d,]+ kg\), che non è la carica di nessun foro/.test(r0.detto),
+          `un file che NON dichiara la carica del progetto (com'erano quelli di ieri): resta la media (${media.toFixed(2)} kg) — ma adesso DETTA, col suo numero`, r0);
+        const r1 = await rientra(j1);
+        dice(r1.kg === P.kg && +r1.campo === P.kg && r1.prof === P.prof, `⛔ riaperto il file che la dichiara, la scena riparte dalla carica del PROGETTO (${P.kg} kg, ${P.prof} m) — non dalla media dei fori (${media.toFixed(2)})`, r1);
+        dice(/2 fori hanno nel file una carica diversa da quella del progetto: la simulazione riparte dal progetto \(58,0 kg per foro\)/.test(r1.detto) || new RegExp("2 fori hanno nel file una carica diversa da quella del progetto: la simulazione riparte dal progetto").test(r1.detto),
+          "⛔ e dice che due fori avevano una carica loro che la simulazione non usa", r1.detto);
+      } finally { try { unlinkSync(fr); } catch (e) {} }
+    }
   }
   await pg.evaluate(() => { for (const h of window.__genesi.D2.holes) { delete h.kg; delete h.prof; delete h.stem; } });
 }

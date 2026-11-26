@@ -37981,12 +37981,13 @@ test("⛔ shared · avanzamentoDaUltimoRilievo non va più in RangeError su un r
     eq(Math.round(genesi.consumoSpecifico(30, VOL) * 1e4) / 1e4, 0.2857,
       "la media dei soli fori che il dato ce l'hanno dà 0,2857 kg/m³");
     eq(genesi.caricaTotale(12, 30), 360, "e 360 kg: un terzo in meno di carica dichiarata");
-    /* la media dei soli dichiarati sta nella pagina, e chi non l'aveva si conta */
-    eq(/const _mediaDichiarata = \(chiave\)=>\{/.test(CODICE_G20), true,
-      "l'importatore fa la media sui fori che il dato ce l'hanno");
-    eq(/senza: fori\.length - letti\.length/.test(CODICE_G20), true,
-      "e conta quanti non ce l'avevano");
-    eq(/_senza\?' — '\+_senza\+': la media è sui fori che il dato ce l\\'hanno':''/.test(CODICE_G20), true,
+    /* la media dei soli dichiarati: dal 26/11 la fa il modulo (`valoreProgettoDaFile`),
+       quindi si prova CHIAMANDOLA, non leggendo com'è scritta la pagina */
+    eq(genesi.valoreProgettoDaFile(null, [30, 30, 30, NaN, 30, null, 30, "", 30, undefined, NaN, NaN]), { valore: 30, fonte: "media", senza: 6, diversi: 0 },
+      "l'importatore fa la media sui fori che il dato ce l'hanno (30, non 40), e conta quanti non ce l'avevano (6)");
+    eq(/valoreProgettoDaFile\(parseFloat\(def\.carica_kg\), fori\.map\(x=>parseFloat\(x\.kg\)\)\)/.test(CODICE_G20), true,
+      "la pagina chiede al modulo, col valore dichiarato dal file e le cariche dei fori");
+    eq(/_dKg\.senza \? _ricPlur\(_dKg\.senza,'foro','fori'\)\+' senza carica dichiarata'/.test(CODICE_G20), true,
       "⛔ e la bandiera è LETTA da qualcuno: il messaggio dell'import la dice (regola 20 di run-stile)");
   });
 
@@ -38009,8 +38010,8 @@ test("⛔ shared · avanzamentoDaUltimoRilievo non va più in RangeError su un r
     for (const re of [
       /P\.prof = valoreCampo\(gvv\('pProf'\), P\.prof, 6, 18\)/,
       /P\.kg = valoreCampo\(gvv\('pKg'\), P\.kg, 10, 120\)/,
-      /P\.prof = valoreCampo\(_dProf\.media, P\.prof, 6, 18\)/,
-      /P\.kg = valoreCampo\(_dKg\.media, P\.kg, 10, 120\)/,
+      /P\.prof = valoreCampo\(_dProf\.valore, P\.prof, 6, 18\)/,
+      /P\.kg = valoreCampo\(_dKg\.valore, P\.kg, 10, 120\)/,
       /D2\.deckStem = valoreCampo\(gvv\('dDeckStem'\), D2\.deckStem, 0\.3, 4\)/,
       /D2\.relLo=valoreCampo\(gvv\('dlRelLo'\), D2\.relLo, 0\.5, 60\)/,
       /D2\.relHi=valoreCampo\(gvv\('dlRelHi'\), D2\.relHi, D2\.relLo\+0\.5, 99\)/,
@@ -43684,6 +43685,22 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(genesi.valoriPerForoDaPiano([{ x: 3.5, y: 3, incl: 20, kg: 58, prof: 10, stem: 2.2 }], lisci, P).fori[1].incl, 20, "l'inclinazione riletta da un piano torna sul foro in quella posizione");
     eq(genesi.valoriPerForoDaPiano([{ x: 3.5, y: 3, incl: 45 }], lisci, P).scartati, 1, "una fuori dai limiti letta da un file si scarta e si conta");
     eq(genesi.valoriPerForoDaPiano([{ x: 3.5, y: 3, incl: 10 }], lisci, P).riportati, 0, "una uguale a quella del progetto non è un valore proprio");
+  });
+  test("⛔ Genesi · valoreProgettoDaFile: riaprendo un file di scambio il progetto NON è la media dei fori", () => {
+    const undici = Array.from({ length: 11 }, () => 58);
+    /* il caso misurato il 26/11: undici fori a 58 kg e uno lasciato scarico */
+    const ieri = genesi.valoreProgettoDaFile(undefined, [...undici.slice(0, 2), 0, ...undici.slice(2)]);
+    eq([Math.round(ieri.valore * 100) / 100, ieri.fonte, ieri.diversi], [53.17, "media", 12], "un file che NON dichiara la carica del progetto: resta la media (53,17 kg) — e si sa che non è la carica di NESSUNO dei dodici fori");
+    const oggi = genesi.valoreProgettoDaFile(58, [...undici.slice(0, 2), 0, ...undici.slice(2)]);
+    eq(oggi, { valore: 58, fonte: "dichiarato", senza: 0, diversi: 1 }, "⛔ lo stesso file che la DICHIARA: 58 kg, e un foro (lo scarico) ne ha una diversa");
+    eq(genesi.valoreProgettoDaFile("10", [10, 8.5, 10]), { valore: 10, fonte: "dichiarato", senza: 0, diversi: 1 }, "vale anche scritto come testo, e per la profondità");
+    /* tutti uguali: il valore esatto, non una somma divisa */
+    eq(genesi.valoreProgettoDaFile(null, Array.from({ length: 12 }, () => 2.2)), { valore: 2.2, fonte: "media", senza: 0, diversi: 0 }, "dodici fori a 2,2: il progetto è 2,2 esatto (la somma divisa per dodici farebbe 2,1999999999999997 e dodici fori «diversi»)");
+    /* niente da nessuna parte */
+    eq(genesi.valoreProgettoDaFile(null, [NaN, null, ""]), { valore: null, fonte: null, senza: 3, diversi: 0 }, "nessun foro col dato e niente dichiarato: null, non zero — e i tre senza si contano");
+    eq(genesi.valoreProgettoDaFile(null, null), { valore: null, fonte: null, senza: 0, diversi: 0 }, "senza fori: null, non un crollo");
+    eq(genesi.valoreProgettoDaFile(NaN, [30, 50]).fonte, "media", "un dichiarato illeggibile non è un dichiarato: si ripiega sulla media, e lo si dice con la fonte");
+    eq(genesi.valoreProgettoDaFile(0, [0, 0, 58]), { valore: 0, fonte: "dichiarato", senza: 0, diversi: 1 }, "zero DICHIARATO resta zero (lo stringe poi chi lo riceve, coi suoi limiti)");
   });
   test("Genesi · foriPropriPerFoglio: il foglio che si porta in cava elenca i fori diversi dal progetto — e solo quelli", () => {
     const P = { diam: 102, prof: 10, stem: 2.2, kg: 58, incl: 10 };

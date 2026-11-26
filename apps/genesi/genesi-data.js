@@ -2869,6 +2869,35 @@ export function tabellaFori(holes, progetto, ordine){
 }
 
 /* ══════════════════════════════════════════════════════════════════════
+   IL VALORE DEL PROGETTO, RILEGGENDO UN FILE DI SCAMBIO (26/11).
+   ══════════════════════════════════════════════════════════════════════
+   Chi riapre un `.volata.json` deve ricavare la carica e la profondità DEL
+   PROGETTO. Fino al 26/11 lo faceva con la media dei fori del file, e finché
+   i fori erano tutti uguali la media era il progetto. Da quando il file
+   porta i valori veri di ogni foro (F5b) non lo è più — misurato: undici
+   fori a 58 kg e uno lasciato scarico rientravano come «53,17 kg per foro»,
+   una carica che non è di nessun foro, e la simulazione ripartiva da lì
+   senza dirlo.
+    · se il file DICHIARA il valore del progetto, vale quello (`dichiarato`);
+    · se no (un file di ieri) resta la media dei fori che il dato ce l'hanno
+      — e quando sono tutti uguali è quel valore ESATTO, non una somma
+      divisa (2,2 sommato dodici volte e diviso per dodici non fa 2,2);
+    · `senza`: quanti fori il dato non ce l'hanno; `diversi`: quanti ne hanno
+      uno diverso dal valore scelto. Sono le due cose che chi importa deve
+      sentirsi dire: la prima c'era già, la seconda mancava;
+    · nessun dato da nessuna parte: `valore: null`, non zero. */
+export function valoreProgettoDaFile(dichiarato, valoriDeiFori){
+  const n = (x) => (x === null || x === undefined || x === '') ? NaN : +x;
+  const V = (Array.isArray(valoriDeiFori) ? valoriDeiFori : []).map(n);
+  const letti = V.filter(Number.isFinite), senza = V.length - letti.length;
+  const d = n(dichiarato);
+  let valore = null, fonte = null;
+  if (Number.isFinite(d)){ valore = d; fonte = 'dichiarato'; }
+  else if (letti.length){ valore = letti.every((x) => x === letti[0]) ? letti[0] : letti.reduce((s, x) => s + x, 0) / letti.length; fonte = 'media'; }
+  return { valore, fonte, senza, diversi: valore === null ? 0 : letti.filter((x) => x !== valore).length };
+}
+
+/* ══════════════════════════════════════════════════════════════════════
    IL FOGLIO DICE I FORI DIVERSI (26/11).
    ══════════════════════════════════════════════════════════════════════
    Il report di volata — il foglio che si stampa e si porta in cava — scriveva

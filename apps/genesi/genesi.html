@@ -1354,7 +1354,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, reliefCls, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino, activeProf, d2HitTest, d2HitTestPt,
-         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfLeggi, dxfFraseNonLette, DXF_FRECCIA_ARCO_M, valoriPropriDiForo, valoreDiForo, scostamentoPiedeForo, foriPropriPerFoglio, LIMITI_PER_FORO, foriConValoreProprio, foriSenzaValoriPropri, valoreComuneDiFori, contaValoriPropri, tabellaFori, valoriPerForoDaPiano, capienzaFori, MARGINE_CAPIENZA_FORO, scartoCaricheProprie, scartoProfonditaProprie, caricaProgettoDaTotale, firmaMaglia, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, foriRiflessi, trattiRuotati, trattiScalati, coordinataRelativa, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
+         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfLeggi, dxfFraseNonLette, DXF_FRECCIA_ARCO_M, valoriPropriDiForo, valoreDiForo, scostamentoPiedeForo, foriPropriPerFoglio, valoreProgettoDaFile, LIMITI_PER_FORO, foriConValoreProprio, foriSenzaValoriPropri, valoreComuneDiFori, contaValoriPropri, tabellaFori, valoriPerForoDaPiano, capienzaFori, MARGINE_CAPIENZA_FORO, scartoCaricheProprie, scartoProfonditaProprie, caricaProgettoDaTotale, firmaMaglia, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, foriRiflessi, trattiRuotati, trattiScalati, coordinataRelativa, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -3321,7 +3321,10 @@ $('btnExport').onclick = ()=>{
          restava quella che il progetto aveva per caso. Sta con la geometria,
          in gradi dalla verticale. */
       geometria:{ spalla_m:SPALLA, interasse_m:INTERASSE, borraggio_m:D2.stem, inclinazione_gradi:D2.incl, file:Math.max(1, D2.file||1) },
-      default:{ diametro_mm:P.diam, profondita_m:P.prof, esplosivo:(selEsplosivo()||{}).nome||'', ritardo_ms:P.ritardo, innesco:(selInnesco()||{}).short||'' },
+      /* 26/11 — `carica_kg`: la carica DEL PROGETTO. Da quando ogni foro esce
+         con la sua (F5b), chi rilegge il file non poteva più ricavarla: la
+         media dei fori non è la carica di nessuno. */
+      default:{ diametro_mm:P.diam, profondita_m:P.prof, carica_kg:P.kg, esplosivo:(selEsplosivo()||{}).nome||'', ritardo_ms:P.ritardo, innesco:(selInnesco()||{}).short||'' },
       fori, connessioni:[] },
     sim:{ frontePath:null, fronteFormato:null,
       sequenzaTipicaMs:CAL.sequenza.durataTipicaMs } };
@@ -3416,15 +3419,17 @@ $('fileIn').onchange = async e=>{
        media si fa sui fori che il dato ce l'hanno, e quanti non ce l'avevano
        lo dice il messaggio: l'assenza di un dato non è un dato favorevole.
        ⛔ Nessuna soglia toccata: qui si smette di inventare l'ingresso. */
-    const _mediaDichiarata = (chiave)=>{
-      const letti = fori.map(x=>{ const n = parseFloat(x[chiave]); return Number.isFinite(n) ? n : null; }).filter(n=>n!==null);
-      return { media: letti.length ? letti.reduce((s,n)=>s+n,0)/letti.length : null, senza: fori.length - letti.length };
-    };
-    const _dProf = _mediaDichiarata('prof'), _dKg = _mediaDichiarata('kg');
+    /* ⛔ 26/11 — E IL PROGETTO NON È LA MEDIA DEI FORI. Misurato: un file con
+       undici fori a 58 kg e uno lasciato scarico rientrava come «53,17 kg per
+       foro», e la simulazione ripartiva da lì. Se il file DICHIARA il valore
+       del progetto (`default.carica_kg`, `default.profondita_m`) vale quello;
+       la media resta per i file di ieri. Lo decide `valoreProgettoDaFile` del
+       modulo, che conta anche i fori senza dato e quelli diversi. */
+    const _dProf = valoreProgettoDaFile(parseFloat(def.profondita_m), fori.map(x=>parseFloat(x.prof))), _dKg = valoreProgettoDaFile(parseFloat(def.carica_kg), fori.map(x=>parseFloat(x.kg)));
     /* `valoreCampo` è il contratto di casa: il dato se c'è, il valore che il
        progetto sta usando se non c'è, `null` se non c'è nessuno dei due. */
-    P.prof = valoreCampo(_dProf.media, P.prof, 6, 18);
-    P.kg = valoreCampo(_dKg.media, P.kg, 10, 120);
+    P.prof = valoreCampo(_dProf.valore, P.prof, 6, 18);
+    P.kg = valoreCampo(_dKg.valore, P.kg, 10, 120);
     /* FRONTE SAGOMATO da Deepwork: altezza per-foro (skyline) + profilo cresta (forma in pianta) */
     const fr = v.fronte || {};
     const LmImp = P.fori * INTERASSE;
@@ -3457,7 +3462,17 @@ $('fileIn').onchange = async e=>{
        riga la media «sui soli dichiarati» sarebbe un secondo numero muto. */
     const _senza = [ _dKg.senza ? _ricPlur(_dKg.senza,'foro','fori')+' senza carica dichiarata' : '',
                      _dProf.senza ? _ricPlur(_dProf.senza,'foro','fori')+' senza profondità' : '' ].filter(Boolean).join(' · ');
-    toast('✓ Volata importata: '+_ricPlur(fori.length,'foro','fori')+(P.profilo.length?' · fronte sagomato':'')+(j.schemaV?' (schema v'+j.schemaV+')':'')+(_senza?' — '+_senza+': la media è sui fori che il dato ce l\'hanno':''));
+    /* e i fori con una carica LORO: la scena riparte dalla carica del progetto
+       (quale carica debba usare è la decisione 33), quindi quei valori non
+       rientrano — e va detto adesso, a chi sta guardando il file. Se la carica
+       del progetto il file non la dichiara e i fori non sono tutti uguali, la
+       media non è di nessuno: si dice anche quello. */
+    const _kgTx=P.kg===null||P.kg===undefined ? '' : gnum(P.kg,1)+' kg';
+    const _diversi = !_dKg.diversi ? ''
+      : (_dKg.fonte==='dichiarato'
+          ? _ricPlur(_dKg.diversi,'foro ha','fori hanno')+' nel file una carica diversa da quella del progetto: la simulazione riparte dal progetto ('+_kgTx+' per foro)'
+          : 'il file non dichiara la carica del progetto e i fori non sono tutti uguali: uso la media ('+_kgTx+'), che non è la carica di nessun foro');
+    toast('✓ Volata importata: '+_ricPlur(fori.length,'foro','fori')+(P.profilo.length?' · fronte sagomato':'')+(j.schemaV?' (schema v'+j.schemaV+')':'')+(_senza?' — '+_senza+((_dKg.fonte==='media'||_dProf.fonte==='media')?': la media è sui fori che il dato ce l\'hanno':''):'')+(_diversi?' — '+_diversi:''));
   }catch(err){ toast('Import fallito: '+err.message); }
   e.target.value='';
 };
