@@ -58,6 +58,7 @@ const DIFETTI = [
   [MODULO, `if (suo !== null) s += suo - q; }`, `}`],
   [MODULO, `return { kg: (T - somma) / liberi, propri, liberi, sommaProprie: somma };`, `return { kg: T / N, propri, liberi, sommaProprie: somma };`],
   [PAGINA, `if(_stessiFori) computeSeq2D(); else genMaglia2D();`, `genMaglia2D();`],
+  [PAGINA, `const _scartoK = (measureGeom2D(D2).n===nf) ? scartoCaricheProprie(D2.holes, D2.kg) : 0;`, `const _scartoK = 0;`],
 ];
 
 const colpiti = new Set();
@@ -255,6 +256,24 @@ if (prima && prima.colonneTrovate) {
   dice(tutti.kg === 50 && /non c'è nessun foro su cui distribuire/.test(tutti.toast),
     `⛔ tutti i fori con una carica propria: niente da distribuire, lo dice e non divide per zero (carica del progetto ${tutti.kg})`, tutti);
   await pg.evaluate(() => { for (const h of window.__genesi.D2.holes) delete h.kg; });
+
+  /* 6b. F2 — LA SCHEDA DEI NUMERI PRINCIPALI (computeKPI) conta sulla GRIGLIA
+     di progetto. Finché in pianta i fori sono tanti quanti la griglia, segue
+     le cariche proprie; se in pianta ce n'è uno in più o in meno resta il
+     numero nominale del progetto (dichiarato nel codice: la carica vera dei
+     fori disegnati la dicono le altre superfici). */
+  {
+    const kg0 = await pg.evaluate(() => window.__genesi.D2.kg);
+    const q0 = await pg.evaluate(() => window.__genesi.kpiQtot);
+    dice(q0 === Math.round(D2.n * kg0), `scheda dei numeri: senza cariche proprie ${D2.n} × ${kg0} = ${Math.round(D2.n * kg0)} kg (letto ${q0})`, q0);
+    await pg.evaluate((a) => { window.__genesi.D2.holes.find((h) => h.id === a).kg = kg0_piu(); function kg0_piu() { return window.__genesi.D2.kg + 40; } }, a);
+    const q1 = await pg.evaluate(() => window.__genesi.kpiQtot);
+    dice(q1 === Math.round(D2.n * kg0 + 40), `⛔ con un foro 40 kg più carico, la scheda dei numeri dice ${Math.round(D2.n * kg0 + 40)} kg (letto ${q1})`, q1);
+    await pg.evaluate(() => { window.__genesi.D2.holes.push({ id: "in-piu", mx: 30, my: 9 }); });
+    const q2 = await pg.evaluate(() => window.__genesi.kpiQtot);
+    dice(q2 === Math.round(D2.n * kg0), `con un foro in più in pianta rispetto alla griglia resta il numero NOMINALE del progetto (${q2}): i due conti non si mescolano`, q2);
+    await pg.evaluate((a) => { const H = window.__genesi.D2.holes; H.splice(H.findIndex((h) => h.id === "in-piu"), 1); delete H.find((h) => h.id === a).kg; }, a);
+  }
 
   /* 7. ⛔ LA MAGLIA SI RIGENERA SOLO SE CAMBIA LA SUA GEOMETRIA. Misurato il
      26/11: bastava ritoccare il borraggio perché `applyDesign` rigenerasse

@@ -2325,7 +2325,12 @@
   ✅ `syncKgTot`, il campo «Esplosivo totale» a due versi: mostra la carica
   vera, e un totale scritto si distribuisce sui fori SENZA una carica
   propria (`caricaProgettoDaTotale`); tutti con carica propria o totale
-  troppo basso → si rifiuta col motivo. Resta `computeKPI` (sulla griglia).
+  troppo basso → si rifiuta col motivo.
+  ✅ `computeKPI` (la scheda dei numeri, che conta sulla GRIGLIA): segue le
+  cariche proprie quando i fori in pianta sono tanti quanti la griglia;
+  altrimenti resta il nominale di progetto. **Tutti e sei i chiamanti della
+  carica totale sono coerenti.** Restano di F2: consumo specifico e metri
+  perforati per foro.
 - [x] **26/11 · Genesi — ⛔ difetto vero trovato dal banco e corretto: la
   maglia si rigenerava a OGNI parametro toccato.** Cambiando solo il
   borraggio: il foro spostato a mano tornava al suo posto, quello aggiunto

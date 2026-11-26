@@ -3495,7 +3495,15 @@ function computeKPI(){
      1.310 € — il 42% in meno — senza che la guardia di `costoVolata`
      scattasse, perché 0,9 è un numero finito e positivo. */
   const nf=foriDiProgetto(D2.perRow, D2.file);
-  const _cK=costoVolata({ nf, kg:D2.kg, mPerf:metriPerforati(nf, D2.prof, D2.sub),
+  /* F2 (26/11): qui `nf` è la GRIGLIA di progetto (fori per fila × file), non
+     i fori disegnati. Lo scarto delle cariche proprie appartiene ai fori
+     disegnati: si aggiunge solo quando sono TANTI QUANTI la griglia (il caso
+     normale: maglia generata, qualche foro con la sua carica). Se in pianta
+     ci sono più o meno fori della griglia questo numero resta quello
+     nominale del progetto, com'è sempre stato — la carica vera dei fori
+     disegnati la dicono scheda dei costi, report e scheda volata. */
+  const _scartoK = (measureGeom2D(D2).n===nf) ? scartoCaricheProprie(D2.holes, D2.kg) : 0;
+  const _cK=costoVolata({ nf, kg:D2.kg, scartoKg:_scartoK, mPerf:metriPerforati(nf, D2.prof, D2.sub),
     cPerf:D2.cPerf, cExpl:D2.cExpl, cInnesco:D2.cInnesco });
   const qtot=_cK.qtot;
   const fly=flyrockEst();
@@ -8406,6 +8414,7 @@ if(location.hostname==='localhost'||location.hostname==='127.0.0.1'){
     get d2UndoLen(){return d2UndoStack.length}, get d2RedoLen(){return d2RedoStack.length}, D2_UNDO_MAX,
     get frontMesh(){return frontMesh},
     get xrayCyls(){return xrayCyls}, holeInfoShow, buildTicks,
+    get kpiQtot(){return computeKPI().qtot},   // F2 (26/11): sola lettura — la carica totale della scheda dei numeri principali
     get sentKgTotali(){return _sentDati().kgTotali},   // F2 (26/11): sola lettura — la carica totale che parte per Sentinella
     get mic(){return micDaMostrare().mic},   // F2 (26/11): sola lettura, per il banco del foro per foro — dalla stessa porta dei sette lettori della pagina, non da un ottavo
 
