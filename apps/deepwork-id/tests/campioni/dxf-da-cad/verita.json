@@ -1,0 +1,479 @@
+{
+ "line_R12": {
+  "attesi": {
+   "tratti": 1,
+   "polilinee": [
+    [
+     [
+      0,
+      0
+     ],
+     [
+      10,
+      5
+     ]
+    ]
+   ]
+  },
+  "nota": ""
+ },
+ "line_R2000": {
+  "attesi": {
+   "tratti": 1,
+   "polilinee": [
+    [
+     [
+      0,
+      0
+     ],
+     [
+      10,
+      5
+     ]
+    ]
+   ]
+  },
+  "nota": ""
+ },
+ "line_R2010": {
+  "attesi": {
+   "tratti": 1,
+   "polilinee": [
+    [
+     [
+      0,
+      0
+     ],
+     [
+      10,
+      5
+     ]
+    ]
+   ]
+  },
+  "nota": ""
+ },
+ "line_R2018": {
+  "attesi": {
+   "tratti": 1,
+   "polilinee": [
+    [
+     [
+      0,
+      0
+     ],
+     [
+      10,
+      5
+     ]
+    ]
+   ]
+  },
+  "nota": ""
+ },
+ "lwpoly_aperta": {
+  "attesi": {
+   "tratti": 1,
+   "polilinee": [
+    [
+     [
+      0,
+      0
+     ],
+     [
+      10,
+      0
+     ],
+     [
+      10,
+      10
+     ],
+     [
+      0,
+      10
+     ]
+    ]
+   ]
+  },
+  "nota": ""
+ },
+ "lwpoly_chiusa": {
+  "attesi": {
+   "tratti": 1,
+   "polilinee": [
+    [
+     [
+      0,
+      0
+     ],
+     [
+      10,
+      0
+     ],
+     [
+      10,
+      10
+     ],
+     [
+      0,
+      10
+     ],
+     [
+      0,
+      0
+     ]
+    ]
+   ]
+  },
+  "nota": "chiusa: il quarto lato (0,10)->(0,0) esiste nel disegno"
+ },
+ "poly2d_chiusa_R12": {
+  "attesi": {
+   "tratti": 1,
+   "polilinee": [
+    [
+     [
+      0,
+      0
+     ],
+     [
+      10,
+      0
+     ],
+     [
+      10,
+      10
+     ],
+     [
+      0,
+      10
+     ],
+     [
+      0,
+      0
+     ]
+    ]
+   ]
+  },
+  "nota": "chiusa: il quarto lato esiste nel disegno"
+ },
+ "poly3d": {
+  "attesi": {
+   "tratti": 1,
+   "polilinee": [
+    [
+     [
+      0,
+      0
+     ],
+     [
+      10,
+      2
+     ],
+     [
+      20,
+      3
+     ]
+    ]
+   ]
+  },
+  "nota": ""
+ },
+ "blocco_non_inserito": {
+  "attesi": {
+   "tratti": 1,
+   "polilinee": [
+    [
+     [
+      100,
+      100
+     ],
+     [
+      110,
+      100
+     ]
+    ]
+   ]
+  },
+  "nota": "il blocco e solo definito: le sue due linee NON sono nel disegno"
+ },
+ "blocco_inserito": {
+  "attesi": {
+   "tratti": 0,
+   "nonLette": {
+    "INSERT": 1
+   }
+  },
+  "nota": "il contenuto di un blocco inserito non si espande: si DICHIARA (1 blocco inserito), e soprattutto non compare attorno a (0,0)"
+ },
+ "spazio_carta": {
+  "attesi": {
+   "tratti": 1,
+   "polilinee": [
+    [
+     [
+      0,
+      0
+     ],
+     [
+      10,
+      0
+     ]
+    ]
+   ],
+   "spazioCarta": 2
+  },
+  "nota": "le due linee del cartiglio (spazio carta) NON sono geometria del sito"
+ },
+ "unita_mm": {
+  "attesi": {
+   "tratti": 1,
+   "polilinee": [
+    [
+     [
+      0,
+      0
+     ],
+     [
+      10000,
+      0
+     ]
+    ]
+   ],
+   "unita": "millimetri",
+   "larghezza": 10000
+  },
+  "nota": "il file dichiara millimetri: NON si converte da soli (acadiso.dwt dichiara mm anche sui disegni in metri), si riporta unita e ingombro"
+ },
+ "curve_miste": {
+  "attesi": {
+   "tratti": 1,
+   "polilinee": [
+    [
+     [
+      0,
+      0
+     ],
+     [
+      10,
+      0
+     ]
+    ]
+   ],
+   "nonLette": {
+    "ARC": 2,
+    "CIRCLE": 1,
+    "SPLINE": 1,
+    "POINT": 1
+   }
+  },
+  "nota": "1 linea letta su 6 entita: le altre 5 vanno CONTATE, non fatte sparire"
+ },
+ "lwpoly_bulge": {
+  "attesi": {
+   "tratti": 1,
+   "polilinee": [
+    [
+     [
+      0,
+      0
+     ],
+     [
+      10,
+      0
+     ]
+    ]
+   ],
+   "archiComeCorde": 1
+  },
+  "nota": "il tratto e un semicerchio di raggio 5: entra come corda dritta, e va dichiarato"
+ },
+ "lwpoly_specchiata": {
+  "attesi": {
+   "tratti": 1,
+   "polilinee": [
+    [
+     [
+      0.0,
+      0.0
+     ],
+     [
+      -10.0,
+      0.0
+     ],
+     [
+      -10.0,
+      5.0
+     ]
+    ]
+   ]
+  },
+  "nota": "estrusione (0,0,-1): le coordinate nel file sono in OCS, il mondo ha X negata"
+ },
+ "polyface_tin": {
+  "attesi": {
+   "tratti": 1,
+   "polilinee": [
+    [
+     [
+      100,
+      0
+     ],
+     [
+      110,
+      0
+     ]
+    ]
+   ],
+   "nonLette": {
+    "POLYLINE (superficie)": 1
+   }
+  },
+  "nota": "la mesh non e un tratto: una polilinea che passa per i suoi vertici (e per 0,0 dei record-faccia) e geometria inventata"
+ },
+ "crlf": {
+  "attesi": {
+   "tratti": 1,
+   "polilinee": [
+    [
+     [
+      1.5,
+      2.5
+     ],
+     [
+      3.5,
+      4.5
+     ]
+    ]
+   ]
+  },
+  "nota": "fine riga CRLF"
+ },
+ "binario": {
+  "attesi": {
+   "tratti": 0,
+   "binario": true
+  },
+  "nota": "DXF binario: non si legge, e va DICHIARATO binario (non «il file non contiene linee»)"
+ },
+ "line_3d": {
+  "attesi": {
+   "tratti": 1,
+   "polilinee": [
+    [
+     [
+      0,
+      0
+     ],
+     [
+      10,
+      0
+     ]
+    ]
+   ]
+  },
+  "nota": ""
+ },
+ "layer_spento": {
+  "attesi": {
+   "tratti": 2,
+   "polilinee": [
+    [
+     [
+      0,
+      0
+     ],
+     [
+      10,
+      0
+     ]
+    ],
+    [
+     [
+      0,
+      5
+     ],
+     [
+      10,
+      5
+     ]
+    ]
+   ]
+  },
+  "nota": "layer spento: scelta di prodotto (leggerla e ragionevole) — solo censita"
+ },
+ "blocco_con_attributi": {
+  "attesi": {
+   "tratti": 1,
+   "polilinee": [
+    [
+     [
+      0,
+      0
+     ],
+     [
+      10,
+      0
+     ]
+    ]
+   ],
+   "nonLette": {
+    "INSERT": 1
+   }
+  },
+  "nota": "gli ATTRIB e il SEQEND di un blocco inserito non sono entita a se: si conta 1 blocco, e la linea DOPO si legge"
+ },
+ "lwpoly_chiusa_arco": {
+  "attesi": {
+   "tratti": 1,
+   "polilinee": [
+    [
+     [
+      0,
+      0
+     ],
+     [
+      10,
+      0
+     ],
+     [
+      10,
+      10
+     ],
+     [
+      0,
+      10
+     ],
+     [
+      0,
+      0
+     ]
+    ]
+   ],
+   "archiComeCorde": 1
+  },
+  "nota": "l arco sta sul lato che chiude: su una polilinea CHIUSA conta, su una aperta no"
+ },
+ "poly2d_specchiata_R12": {
+  "attesi": {
+   "tratti": 1,
+   "polilinee": [
+    [
+     [
+      0,
+      0
+     ],
+     [
+      -10,
+      0
+     ],
+     [
+      -10,
+      5
+     ]
+    ]
+   ]
+  },
+  "nota": "estrusione (0,0,-1) su una POLYLINE 2D: il mondo ha X negata"
+ }
+}

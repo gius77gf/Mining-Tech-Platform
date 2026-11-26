@@ -1269,7 +1269,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, reliefCls, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino, activeProf, d2HitTest, d2HitTestPt,
-         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfInTratti, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, foriRiflessi, trattiRuotati, trattiScalati, coordinataRelativa, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
+         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfLeggi, dxfFraseNonLette, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, foriRiflessi, trattiRuotati, trattiScalati, coordinataRelativa, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -5692,8 +5692,23 @@ if($('btn-piano-dxf')) $('btn-piano-dxf').onclick=()=>{
     +(haFronte?' + profilo del fronte':' — nessun profilo del fronte disegnato: esce solo il livello FORI')
     +fraseGraviExport());
 };
+/* 26/11 — il bilancio dell'import: quanto è grande ciò che è entrato, in che
+   unità il file DICE di essere, e che cosa è rimasto fuori. Sta sotto l'avviso
+   sull'orientamento, non al suo posto. Le unità non si convertono da sole (la
+   ragione è scritta sopra `dxfLeggi`): si prepara il fattore nel campo di
+   «⤢ Scala tratti» e il bottone lo preme chi guarda la pianta. */
+function _dxfBilancioHtml(letto, fuori){
+  const righe=[];
+  if(letto.ingombro) righe.push('Ingombro letto: <b>'+gnum(letto.ingombro.larghezza,2)+' × '+gnum(letto.ingombro.altezza,2)+'</b> nelle unità del file, che Genesi prende per metri.');
+  if(letto.unita && letto.unita.inMetri!==1) righe.push('Il file dichiara <b>'+_rEsc(letto.unita.nome)+'</b>: se la pianta risulta fuori misura, premi «⤢ Scala tratti» (il fattore '+gnum(letto.unita.inMetri,6)+' è già nel campo). La conversione non è automatica: molti disegni dichiarano un\'unità e sono in un\'altra.');
+  if(fuori) righe.push('Non importati: <b>'+_rEsc(fuori)+'</b> — entrano solo linee e polilinee.');
+  if(letto.spazioCarta) righe.push(_ricPlur(letto.spazioCarta,'entità del foglio di stampa (cartiglio) lasciata fuori','entità del foglio di stampa (cartiglio) lasciate fuori')+'.');
+  if(letto.archiComeCorde) righe.push(_ricPlur(letto.archiComeCorde,'tratto ad arco è entrato','tratti ad arco sono entrati')+' come corda dritta fra i suoi due estremi.');
+  if(!righe.length) return '';
+  return '<div id="d2-dxf-bilancio" style="margin-top:6px;padding:8px 10px;border:1px solid var(--line,rgba(255,255,255,.12));border-radius:8px;color:var(--mut);font-size:12px;line-height:1.5;">'+righe.join('<br>')+'</div>';
+}
 /* G47d (14/09) — Import DXF in SOLA LETTURA, come TRATTI (mai come fori/
-   fronte/piede): la scelta di sicurezza spiegata sopra `dxfInTratti` in
+   fronte/piede): la scelta di sicurezza spiegata sopra `dxfLeggi` in
    genesi-data.js. Un errore di convenzione assi qui produce un'annotazione
    storta, mai un calcolo sbagliato — ma l'avviso resta esplicito perché
    l'utente lo veda e lo controlli, non perché il rischio sia lo stesso
@@ -5703,15 +5718,28 @@ if($('dxfImportFile')) $('dxfImportFile').onchange=async(e)=>{
   const f=e.target.files&&e.target.files[0]; if(!f) return;
   const testo=await f.text(); e.target.value='';
   const box=$('d2-dxf-import-esito');
-  const tratti=dxfInTratti(testo);
+  /* 26/11 — il lettore dice anche che cosa NON ha portato dentro (rimisurato
+     contro file scritti da un CAD vero: vedi `dxfLeggi` in genesi-data.js).
+     Un «3 tratti importati» su un file che ne conteneva venti fra archi e
+     blocchi è un numero tranquillo dove non è stato letto quasi niente. */
+  const letto=dxfLeggi(testo), tratti=letto.tratti, fuori=dxfFraseNonLette(letto.nonLette);
+  const _gialla='margin-top:8px;padding:8px 10px;border:1px solid rgba(255,202,40,.35);border-radius:8px;background:rgba(255,202,40,.07);color:#ffca28;font-size:13px;';
+  if(letto.binario){
+    if(box) box.innerHTML='<div style="'+_gialla+'">«'+_rEsc(f.name)+'» è un DXF <b>binario</b>: Genesi legge il DXF di testo. Riesportalo dal CAD scegliendo «DXF ASCII» (o «DXF testo») e riprova.</div>';
+    toast('DXF binario: riesportalo come DXF di testo'); return;
+  }
   if(!tratti.length){
-    if(box) box.innerHTML='<div style="margin-top:8px;padding:8px 10px;border:1px solid rgba(255,202,40,.35);border-radius:8px;background:rgba(255,202,40,.07);color:#ffca28;font-size:13px;">Nessun tratto trovato in «'+_rEsc(f.name)+'»: il file non contiene LINE, POLYLINE o LWPOLYLINE leggibili (i CIRCLE/TEXT dei fori non vengono importati).</div>';
+    if(box) box.innerHTML='<div style="'+_gialla+'">Nessun tratto trovato in «'+_rEsc(f.name)+'»: il file non contiene LINE, POLYLINE o LWPOLYLINE leggibili (i CIRCLE/TEXT dei fori non vengono importati).'
+      +(fuori?' Nel disegno ci sono: <b>'+_rEsc(fuori)+'</b>.':'')
+      +(letto.spazioCarta?' '+_ricPlur(letto.spazioCarta,'entità sta','entità stanno')+' sul foglio di stampa (cartiglio), non nel disegno.':'')+'</div>';
     toast('Nessun tratto leggibile in questo file'); return;
   }
   d2PushUndo();
   tratti.forEach(t=> D2.tratti.push({ pts:t.pts, aperto:false, origine:'dxf' }));
   drawDesign2D(); renderScheda2D(); syncTrattoUI();
-  if(box) box.innerHTML='<div style="margin-top:8px;padding:8px 10px;border:1px solid rgba(239,83,80,.4);border-radius:8px;background:rgba(239,83,80,.08);color:#ef5350;font-size:12px;"><b>⚠️ Verifica l\'orientamento.</b> Un file DXF esterno può avere una convenzione di assi diversa da quella di Genesi (davanti/dietro, sinistra/destra): guarda dove sono comparsi i tratti sulla pianta prima di fidartene. Sono un riferimento VISIVO — non entrano in nessun calcolo (burden, relief, energia, flyrock) — e si tolgono con ↩ Annulla se l\'orientamento non torna.</div>';
+  if(box) box.innerHTML='<div style="margin-top:8px;padding:8px 10px;border:1px solid rgba(239,83,80,.4);border-radius:8px;background:rgba(239,83,80,.08);color:#ef5350;font-size:12px;"><b>⚠️ Verifica l\'orientamento.</b> Un file DXF esterno può avere una convenzione di assi diversa da quella di Genesi (davanti/dietro, sinistra/destra): guarda dove sono comparsi i tratti sulla pianta prima di fidartene. Sono un riferimento VISIVO — non entrano in nessun calcolo (burden, relief, energia, flyrock) — e si tolgono con ↩ Annulla se l\'orientamento non torna.</div>'
+    +_dxfBilancioHtml(letto, fuori);
+  if(letto.unita && letto.unita.inMetri!==1 && $('dtScalaFattore')) $('dtScalaFattore').value=String(letto.unita.inMetri);
   toast('✓ Importati da «'+f.name+'»: '+_ricPlur(tratti.length,'tratto','tratti')+' — verifica l\'orientamento sulla pianta');
 };
 /* P1.3 — Export piano di innesco in XML stile IREDES (interoperabilità con

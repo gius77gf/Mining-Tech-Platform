@@ -17233,7 +17233,7 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
        "un file che non c'entra niente non produce numeri, produce una frase");
   });
 
-  test("Genesi · dxfInTratti (G47d) legge LINE, POLYLINE e LWPOLYLINE", () => {
+  test("Genesi · dxfLeggi, i tratti (G47d, già dxfInTratti): legge LINE, POLYLINE e LWPOLYLINE", () => {
     /* andata e ritorno contro il nostro STESSO export (dxfPianoFori,
        livello FRONTE): un profilo di quattro punti esce come POLYLINE e
        deve rientrare come UN tratto con gli stessi quattro punti,
@@ -17241,7 +17241,7 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     const profilo = [{x:5,y:0},{x:20,y:3},{x:35,y:1},{x:50,y:2}];
     const fori = [{id:1,mx:0,my:3},{id:2,mx:3.5,my:3}];
     const dxf = genesi.dxfPianoFori(fori, 102, profilo);
-    const tratti = genesi.dxfInTratti(dxf);
+    const tratti = genesi.dxfLeggi(dxf).tratti;
     eq(tratti.length, 1, "un file con fori+fronte porta dentro UN tratto solo (i cerchi/testi dei fori non diventano tratti)");
     eq(tratti[0].pts.length, 4, "il tratto ha i quattro punti del profilo esportato");
     for(let i=0;i<profilo.length;i++){
@@ -17251,18 +17251,18 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
 
     /* un LINE a sé (due punti, il caso più semplice che un CAD produce) */
     const unaLinea = "0\nSECTION\n2\nENTITIES\n0\nLINE\n8\nQUALSIASI\n10\n1.000\n20\n2.000\n30\n0.0\n11\n8.000\n21\n2.000\n30\n0.0\n0\nENDSEC\n0\nEOF\n";
-    const t2 = genesi.dxfInTratti(unaLinea);
+    const t2 = genesi.dxfLeggi(unaLinea).tratti;
     eq(t2.length, 1, "un LINE isolato diventa un tratto di due punti");
     eq(t2[0].pts.length, 2, "due punti, non di più");
     eq(t2[0].pts[0].x, 1, "primo estremo letto giusto"); eq(t2[0].pts[1].x, 8, "secondo estremo letto giusto");
 
     /* i casi che NON devono produrre un tratto */
-    eq(genesi.dxfInTratti("").length, 0, "un file vuoto non produce niente (non un errore)");
-    eq(genesi.dxfInTratti("boh, non è un DXF").length, 0, "un file che non c'entra niente non produce niente");
+    eq(genesi.dxfLeggi("").tratti.length, 0, "un file vuoto non produce niente (non un errore)");
+    eq(genesi.dxfLeggi("boh, non è un DXF").tratti.length, 0, "un file che non c'entra niente non produce niente");
     const lineaZero = "0\nLINE\n10\n5.0\n20\n5.0\n11\n5.0\n21\n5.0\n";
-    eq(genesi.dxfInTratti(lineaZero).length, 0, "un LINE di lunghezza zero (stesso punto due volte) non è un tratto");
+    eq(genesi.dxfLeggi(lineaZero).tratti.length, 0, "un LINE di lunghezza zero (stesso punto due volte) non è un tratto");
     const poliUnPunto = "0\nPOLYLINE\n0\nVERTEX\n10\n1.0\n20\n1.0\n0\nSEQEND\n";
-    eq(genesi.dxfInTratti(poliUnPunto).length, 0, "una POLYLINE con un solo VERTEX non è un tratto (serve almeno un segmento)");
+    eq(genesi.dxfLeggi(poliUnPunto).tratti.length, 0, "una POLYLINE con un solo VERTEX non è un tratto (serve almeno un segmento)");
 
     /* ⛔ 19/09, dal quarto giro di deep-pass QA: LWPOLYLINE è l'entità
        polilinea di DEFAULT di AutoCAD (dal R14), LibreCAD e QCAD — i tre
@@ -17273,11 +17273,71 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
        VERTEX/SEQEND separati. */
     const lw = ["0","SECTION","2","ENTITIES","0","LWPOLYLINE","8","0","90","3","70","0",
       "10","5.0","20","6.0","10","15.0","20","4.0","10","25.0","20","7.0","0","ENDSEC","0","EOF"].join("\n");
-    const tLw = genesi.dxfInTratti(lw);
+    const tLw = genesi.dxfLeggi(lw).tratti;
     eq(tLw.length, 1, "una LWPOLYLINE isolata diventa un tratto");
     eq(tLw[0].pts, [{x:5,y:6},{x:15,y:4},{x:25,y:7}], "i tre vertici, nell'ordine, non l'ultimo ripetuto tre volte");
     const lwUnPunto = "0\nLWPOLYLINE\n90\n1\n70\n0\n10\n1.0\n20\n1.0\n";
-    eq(genesi.dxfInTratti(lwUnPunto).length, 0, "una LWPOLYLINE con un solo vertice non è un tratto");
+    eq(genesi.dxfLeggi(lwUnPunto).tratti.length, 0, "una LWPOLYLINE con un solo vertice non è un tratto");
+  });
+
+  test("Genesi · dxfLeggi (26/11): legge il DISEGNO, non il file — e dichiara ciò che lascia fuori", () => {
+    /* La prova vera sta in dxf-da-cad.mjs, su 23 file scritti da un altro
+       programma (ezdxf). Qui le stesse regole su stringhe minime, perché una
+       funzione esportata ha la sua prova anche dove gira run-kpi da solo. */
+    const dxf = (...righe) => righe.join("\n") + "\n";
+    const conBlocco = dxf("0","SECTION","2","BLOCKS","0","BLOCK","2","SIMBOLO","0","LINE","10","0","20","0","11","1","21","1","0","ENDBLK","0","ENDSEC",
+      "0","SECTION","2","ENTITIES","0","LINE","10","100","20","100","11","110","21","100","0","INSERT","2","SIMBOLO","10","50","20","50","0","ENDSEC","0","EOF");
+    const r = genesi.dxfLeggi(conBlocco);
+    eq(r.tratti.length, 1, "la linea DENTRO la definizione del blocco non è nel disegno: un tratto solo");
+    eq(r.tratti[0].pts, [{x:100,y:100},{x:110,y:100}], "ed è la linea vera, non quella attorno all'origine");
+    eq(r.nonLette, {INSERT:1}, "il blocco inserito si CONTA come non letto");
+    eq(r.nNonLette, 1, "e il totale dei non letti lo dice");
+    eq(r.ingombro, {larghezza:10, altezza:0}, "l'ingombro è quello dei tratti entrati");
+
+    const chiusa = dxf("0","SECTION","2","ENTITIES","0","LWPOLYLINE","90","3","70","1","10","0","20","0","10","10","20","0","10","10","20","10","0","ENDSEC","0","EOF");
+    eq(genesi.dxfLeggi(chiusa).tratti[0].pts, [{x:0,y:0},{x:10,y:0},{x:10,y:10},{x:0,y:0}], "una polilinea chiusa (70=1) porta anche il lato che torna al primo punto");
+    const aperta = chiusa.replace("70\n1\n", "70\n0\n");
+    eq(genesi.dxfLeggi(aperta).tratti[0].pts.length, 3, "e una aperta resta di tre punti: la chiusura non si inventa");
+
+    const carta = dxf("0","SECTION","2","ENTITIES","0","LINE","67","1","10","0","20","0","11","420","21","0","0","LINE","10","0","20","0","11","5","21","0","0","ENDSEC","0","EOF");
+    const rc = genesi.dxfLeggi(carta);
+    eq(rc.tratti.length, 1, "la linea dello spazio carta (67=1) non è terreno");
+    eq(rc.spazioCarta, 1, "e viene contata a parte");
+
+    const specchiata = dxf("0","SECTION","2","ENTITIES","0","LWPOLYLINE","90","2","70","0","10","0","20","0","10","10","20","5","210","0","220","0","230","-1","0","ENDSEC","0","EOF");
+    eq(genesi.dxfLeggi(specchiata).tratti[0].pts, [{x:0,y:0},{x:-10,y:5}], "estrusione (0,0,-1): nel mondo la X è l'opposto di quella scritta");
+
+    const maglia = dxf("0","SECTION","2","ENTITIES","0","POLYLINE","66","1","70","64","0","VERTEX","10","0","20","0","70","192","0","VERTEX","10","10","20","0","70","192","0","VERTEX","10","10","20","10","70","192","0","VERTEX","70","128","71","1","72","2","73","3","0","SEQEND","0","ENDSEC","0","EOF");
+    const rm = genesi.dxfLeggi(maglia);
+    eq(rm.tratti.length, 0, "una superficie a maglia non diventa una polilinea");
+    eq(rm.nonLette, {"POLYLINE (superficie)":1}, "si dichiara");
+
+    const mm = dxf("0","SECTION","2","HEADER","9","$INSUNITS","70","4","0","ENDSEC","0","SECTION","2","ENTITIES","0","LINE","10","0","20","0","11","10000","21","0","0","ENDSEC","0","EOF");
+    const ru = genesi.dxfLeggi(mm);
+    eq(ru.unita, {codice:4, nome:"millimetri", inMetri:0.001}, "l'unità dichiarata dal file si riporta");
+    eq(ru.tratti[0].pts[1].x, 10000, "⛔ ma NON si converte da soli: il modello metrico di AutoCAD dichiara millimetri anche sui disegni in metri");
+    eq(genesi.dxfLeggi(carta).unita, null, "senza dichiarazione l'unità è null, non «metri» per comodità");
+
+    const bin = genesi.dxfLeggi("AutoCAD Binary DXF\r\n\u001a\u0000qualunque cosa");
+    eq(bin.binario, true, "un DXF binario si riconosce");
+    eq(bin.tratti.length, 0, "e non produce tratti");
+    eq(genesi.dxfLeggi(chiusa).binario, false, "un DXF di testo non è binario");
+
+    const arco = dxf("0","SECTION","2","ENTITIES","0","LWPOLYLINE","90","2","70","0","10","0","20","0","42","1.0","10","10","20","0","0","ENDSEC","0","EOF");
+    eq(genesi.dxfLeggi(arco).archiComeCorde, 1, "un tratto ad arco (curvatura 42) entra come corda, e si conta");
+
+    const vuoto = genesi.dxfLeggi("");
+    eq([vuoto.tratti.length, vuoto.nNonLette, vuoto.ingombro, vuoto.unita, vuoto.binario], [0, 0, null, null, false], "un file vuoto: niente letto, niente dichiarato, nessun ingombro inventato");
+  });
+
+  test("Genesi · dxfFraseNonLette: ciò che resta fuori, con le parole di chi disegna", () => {
+    eq(genesi.dxfFraseNonLette({}), "", "se è entrato tutto la frase è vuota");
+    eq(genesi.dxfFraseNonLette(null), "", "e un conto assente non fa crollare niente");
+    eq(genesi.dxfFraseNonLette({ARC:1}), "1 arco", "uno al singolare");
+    eq(genesi.dxfFraseNonLette({ARC:2, CIRCLE:1, INSERT:3}), "3 blocchi inseriti, 2 archi, 1 cerchio", "dal più numeroso, col plurale giusto");
+    eq(genesi.dxfFraseNonLette({TEXT:1, MTEXT:2}), "3 testi", "TEXT e MTEXT sono la stessa cosa per chi guarda: si sommano");
+    eq(genesi.dxfFraseNonLette({WIPEOUT:2}), "2 WIPEOUT", "un tipo senza nome italiano si mostra col suo, non sparisce sotto «altro»");
+    eq(genesi.dxfFraseNonLette({ARC:0}), "", "uno zero non è una voce");
   });
 
   test("⛔ Genesi · fra tirare a indovinare e dirlo, dice", () => {
@@ -43669,7 +43729,15 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(flotta.csvRegistroInterventi(null), flotta.CSV_INTERVENTI_INTESTAZIONE, "null non rompe");
   });
   test("Flotta · csvListaDellaSpesa: le righe da ordinare e le tre avvertenze in fondo, ognuna solo quando la bandiera lo dice", () => {
-    const p = flotta.propostaScorte(D.ricambi, D.interventi, { consegnaGiorni: 7, sicurezzaGiorni: 3, finestraGiorni: 180 });
+    /* ⛔ 26/11: QUESTA PROVA ERA UNA BOMBA A OROLOGERIA. Non passava `oggi`,
+       quindi `propostaScorte` prendeva la data VERA — e gli interventi della
+       dimostrazione sono datati da aprile a luglio 2026: finché l'orologio
+       stava entro 180 giorni la lista aveva qualcosa da ordinare, dal 20/11
+       no (misurato: 21/09 → 1 riga da ordinare, 01/11 → 1, 20/11 → 0). Il
+       giro è caduto senza che nessuno toccasse una riga di Flotta. Una prova
+       che legge l'orologio del giorno in cui gira misura il calendario, non
+       il prodotto: la data si fissa dentro il periodo della dimostrazione. */
+    const p = flotta.propostaScorte(D.ricambi, D.interventi, { consegnaGiorni: 7, sicurezzaGiorni: 3, finestraGiorni: 180, oggi: new Date("2026-08-01T00:00:00") });
     const da = p.righe.filter((r) => r.daOrdinare > 0);
     const csv = flotta.csvListaDellaSpesa(p);
     const righe = csv.split("\r\n");

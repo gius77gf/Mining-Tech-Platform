@@ -5913,3 +5913,78 @@ appartiene a un'altra app. **Nessuna riga di codice**, nessuna proposta:
 è chiuso come "materiale trovato, perimetro sbagliato", non come "non
 c'è" — la ricerca sul PPV/scaled-distance restava comunque già coperta
 dalle sezioni del 12-13/09 di questo stesso file.
+
+## Misura del 2026-11-26 — il lettore DXF contro file scritti da un altro programma (nuovo capitolo: i formati di scambio)
+
+_Timestamp: 2026-11-26T08:29:07Z_ · Mandato del fondatore (26/11): «solo Genesi», e
+«reverse engineering» inteso come studio dei FORMATI e dei concorrenti da
+materiale pubblico — niente decompilazione.
+
+### Il metodo, che è la cosa nuova
+
+Fino a oggi ogni lettore di Genesi era provato contro file scritti da noi:
+andata e ritorno col nostro export, o stringhe composte a mano da chi aveva
+scritto il lettore. Per un file di scambio è la prova sbagliata — le due
+metà possono sbagliare insieme. Il metodo nuovo: **i file li scrive
+l'implementazione di riferimento del formato** (`ezdxf` per il DXF), nelle
+forme che un CAD produce davvero, e la verità attesa la dichiara il
+generatore, non il lettore. I campioni sono committati in
+`apps/deepwork-id/tests/campioni/dxf-da-cad/` (23 file, `genera.py` dice
+come rifarli) e li sorveglia `apps/deepwork-id/tests/dxf-da-cad.mjs`.
+
+### Che cosa ha trovato: 9 file su 23 letti male, tutti in silenzio
+
+Comando: `node leggi_dxf.mjs` sul lettore com'era a `0baef8a9` — «14 ok, 9
+KO su 23 file». Nessun errore, nessun avviso: ogni volta una geometria
+plausibile e sbagliata.
+
+| campione | nel disegno | che cosa leggeva Genesi |
+|---|---|---|
+| blocco definito e mai inserito | 1 linea | 3 linee: le due del simbolo comparivano attorno a (0,0) |
+| blocco inserito a (50,50) | 2 linee a (50,50) | le 2 linee attorno a (0,0) |
+| spazio carta (cartiglio 420×297) | 1 linea | 3 linee: la squadratura del foglio letta come terreno |
+| LWPOLYLINE chiusa | 4 lati | 3 lati: il contorno arrivava aperto |
+| POLYLINE 2D chiusa (R12) | 4 lati | 3 lati |
+| superficie a maglia (TIN) | 1 linea + una mesh | la mesh diventava UNA polilinea per tutti i vertici e per (0,0) |
+| LWPOLYLINE specchiata (estrusione 0,0,-1) | X negative | X positive |
+| DXF binario | 1 linea | «il file non contiene linee» |
+| file che dichiara millimetri | 10 m | 10.000 (letto com'è — vedi sotto) |
+
+### Che cosa è stato fatto (stessa unità)
+
+`dxfLeggi` (in `apps/genesi/genesi-data.js`, al posto di `dxfInTratti`)
+legge **il disegno, non il file**: solo la sezione ENTITIES, niente spazio
+carta, lato di chiusura, sistema dell'oggetto (OCS) sulle entità piane,
+superfici a maglia escluse, binario riconosciuto. E **dichiara** ciò che
+lascia fuori (`nonLette` per tipo, `spazioCarta`, `archiComeCorde`,
+`unita`, `ingombro`): la pagina lo scrive sotto l'avviso sull'orientamento
+(«Non importati: 2 archi, 1 cerchio…»).
+
+⛔ **Le unità NON si convertono da sole, per una ragione misurabile**: il
+modello metrico di AutoCAD (`acadiso.dwt`) dichiara `$INSUNITS = 4`
+(millimetri) anche sui disegni che un topografo fa in metri. Convertire
+sulla parola del file rimpicciolirebbe di mille volte un disegno giusto.
+La pagina mostra l'unità dichiarata e l'ingombro letto, e prepara il
+fattore nel campo di «⤢ Scala tratti»; il bottone lo preme chi guarda.
+
+Verifica: `dxf-da-cad.mjs` 26/0 su 23 campioni; controprova 8 difetti su 8
+visti (ognuno rimesso in memoria fa cadere almeno un campione); banco del
+browser `genesi-dxf-import.mjs` 22/0, con quattro campioni passati dal
+bottone vero.
+
+### Che cosa resta fuori, dichiarato (candidati, non promesse)
+
+1. **Il contenuto dei blocchi inseriti** (INSERT): oggi si contano e si
+   dichiarano, non si espandono. Costo: risolvere traslazione/scala/
+   rotazione/annidamento — l'oracolo c'è già (`ezdxf` sa «esplodere» un
+   blocco), quindi si può fare con la verità in mano. Vale se i rilievi
+   veri dei topografi portano geometria utile dentro i blocchi: **non
+   misurato**, serve un DXF vero di una cava.
+2. **Archi, cerchi e tratti ad arco** (ARC, CIRCLE, `bulge`): oggi fuori o
+   come corde. ⚠️ I cerchi sono fuori **di proposito** — il nostro export
+   scrive i fori come cerchi, e rileggerli come tratti li farebbe tornare
+   dentro come disegni.
+3. **Lo stesso metodo sugli altri lettori**: `parseLAS`/`parsePLY` contro
+   file scritti da `laspy` (LAS 1.0–1.4, formati punto 0–10), e l'export
+   `dxfPianoFori` riletto da `ezdxf` in modo sistematico (il 13/09 era
+   stato fatto una volta, a mano).

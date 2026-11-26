@@ -189,6 +189,46 @@ try {
   } finally { try { unlinkSync(percorsoLw); } catch (e) {} }
 }
 
+/* ⛔ 26/11 — FILE SCRITTI DA UN ALTRO PROGRAMMA, PASSATI DAL BOTTONE VERO.
+   I tre DXF qui sopra li ha scritti a mano chi ha scritto il lettore. Questi
+   quattro li ha scritti `ezdxf` (campioni di `dxf-da-cad.mjs`, dove sta la
+   prova del lettore su tutti e 23): qui si guarda che la PAGINA dica
+   all'utente ciò che il lettore sa — un bilancio di che cosa è rimasto
+   fuori, non solo «N tratti importati». */
+{
+  const campione = (nome) => join(R, "apps", "deepwork-id", "tests", "campioni", "dxf-da-cad", nome + ".dxf");
+  const importa = async (nome) => {
+    const n0 = await pg.evaluate(() => window.__genesi.D2.tratti.length);
+    await pg.setInputFiles("#dxfImportFile", campione(nome));
+    await pg.waitForTimeout(400);
+    return {
+      aggiunti: (await pg.evaluate(() => window.__genesi.D2.tratti.length)) - n0,
+      esito: await pg.evaluate(() => document.getElementById("d2-dxf-import-esito").innerText),
+    };
+  };
+  const miste = await importa("curve_miste");
+  dice(miste.aggiunti === 1, `curve_miste (1 linea, 2 archi, 1 cerchio, 1 spline, 1 punto): entra UN tratto (letti ${miste.aggiunti})`, miste.aggiunti);
+  dice(/Non importati: 2 archi, 1 cerchio, 1 curva spline, 1 punto/.test(miste.esito),
+    "⛔ e la pagina DICE che cosa è rimasto fuori, con le parole di chi disegna", miste.esito.slice(-260));
+  dice(/orientamento/i.test(miste.esito), "l'avviso sull'orientamento resta, sopra il bilancio", miste.esito.slice(0, 60));
+
+  const blocco = await importa("blocco_non_inserito");
+  dice(blocco.aggiunti === 1, `⛔ blocco definito e mai inserito: entra solo la linea vera, non le due del simbolo attorno a (0,0) (letti ${blocco.aggiunti})`, blocco.aggiunti);
+
+  const mm = await importa("unita_mm");
+  dice(/dichiara millimetri/.test(mm.esito), "un file che dichiara millimetri: la pagina lo dice", mm.esito.slice(-300));
+  dice(/10\.000 × 0/.test(mm.esito), "e mostra l'ingombro letto (10.000 × 0), così la scala sbagliata si vede in un numero", mm.esito.slice(-300));
+  const fattore = await pg.evaluate(() => document.getElementById("dtScalaFattore").value);
+  dice(fattore === "0.001", `il fattore per «Scala tratti» è già nel campo, ma il bottone lo preme l'utente (campo: ${fattore})`, fattore);
+  const larghezza = await pg.evaluate(() => { const t = window.__genesi.D2.tratti.at(-1); return Math.abs(t.pts[1].x - t.pts[0].x); });
+  dice(larghezza === 10000, `⛔ e NON converte da sola: il tratto è entrato com'è scritto (${larghezza})`, larghezza);
+
+  const bin = await importa("binario");
+  dice(bin.aggiunti === 0, "un DXF binario non aggiunge tratti", bin.aggiunti);
+  dice(/DXF binario/.test(bin.esito) && !/non contiene/.test(bin.esito), "⛔ e la pagina dice «binario, riesportalo come testo», non «il file non contiene linee»", bin.esito.slice(0, 200));
+  dice(pg.__err.length === 0, "nessun errore di pagina durante i quattro import", pg.__err.slice(0, 2));
+}
+
 if (CONTROPROVA) {
   dice(colpiti.size === DIFETTI.length,
     `l'iniezione ha trovato e sostituito il suo testo nella pagina servita (${colpiti.size}/${DIFETTI.length})`,

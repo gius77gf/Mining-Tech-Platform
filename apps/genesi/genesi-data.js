@@ -3825,16 +3825,70 @@ function _dxfPolilinea(layer, punti){
    VEDE (la pagina lo dice: "verifica l'orientamento") e si annulla con
    un Ctrl+Z, non produce un numero sbagliato — è la stessa differenza
    fra "protegge da un errore" e "un errore qui non può fare danno". */
-function _dxfEntita(testo){
-  const righe = String(testo||'').split(/\r\n|\r|\n/);
-  const entita = [];
-  let cur = null;
+/* ══════════════════════════════════════════════════════════════════════════
+   26/11 — IL LETTORE RIMISURATO CONTRO UN CAD VERO, NON CONTRO SÉ STESSO.
+   ══════════════════════════════════════════════════════════════════════════
+   Fino a oggi le prove di questo lettore erano andata-e-ritorno col NOSTRO
+   export, o stringhe DXF scritte a mano da chi aveva scritto il lettore: le
+   due metà potevano sbagliare insieme. Il 26/11 gli sono stati dati 23 file
+   scritti da `ezdxf` (la libreria di riferimento, la stessa già usata il
+   13/09 per l'export) nelle forme che AutoCAD/LibreCAD/QCAD producono
+   davvero: **9 su 23 letti male**, e nessuno con un errore — tutti con una
+   geometria plausibile e sbagliata. In ordine di danno:
+    · le linee di un BLOCCO (un simbolo: la freccia del nord, il cartiglio)
+      comparivano attorno all'origine anche se il blocco non era mai stato
+      inserito nel disegno — geometria che nel disegno NON C'È;
+    · le linee dello SPAZIO CARTA (la squadratura del foglio, 420×297)
+      entravano come se fossero terreno;
+    · una polilinea CHIUSA (un confine, il perimetro di un fabbricato)
+      perdeva il lato di chiusura: il contorno arrivava aperto;
+    · una superficie a maglia (il TIN di un rilievo) diventava UNA polilinea
+      che passava per tutti i suoi vertici e per (0,0);
+    · una polilinea specchiata (estrusione 0,0,-1) arrivava con la X negata;
+    · un DXF binario rispondeva «non contiene linee», che è falso.
+   La regola che li tiene insieme è quella già scritta sopra: un tratto
+   importato è un riferimento VISIVO, quindi deve essere quello che il CAD
+   mostra — né di più (blocchi, cartiglio) né di meno (il lato che chiude).
+   E ciò che NON si legge si CONTA e si dichiara (`nonLette`), invece di
+   sparire: 1 linea letta su 6 entità non è «1 tratto importato».
+   ⚠️ COSA RESTA FUORI, DICHIARATO: il contenuto dei blocchi INSERITI (si
+   contano, non si espandono); archi, cerchi, spline, ellissi; i tratti ad
+   arco di una polilinea (`bulge`) entrano come CORDE dritte e si contano.
+   ⚠️ LE UNITÀ NON SI CONVERTONO DA SOLE, e non per pigrizia: il modello
+   metrico di AutoCAD (`acadiso.dwt`) dichiara `$INSUNITS = 4` (millimetri),
+   e un topografo che ci disegna in metri consegna un file che «dichiara
+   millimetri» con coordinate in metri. Convertire sulla parola del file
+   rimpicciolirebbe di mille volte un disegno giusto. Si riporta l'unità
+   dichiarata insieme all'INGOMBRO letto, e decide chi guarda la pianta
+   (c'è già «⤢ Scala tratti»). */
+const _DXF_UNITA = {
+  1:{nome:'pollici',inMetri:0.0254}, 2:{nome:'piedi',inMetri:0.3048}, 4:{nome:'millimetri',inMetri:0.001},
+  5:{nome:'centimetri',inMetri:0.01}, 6:{nome:'metri',inMetri:1}, 7:{nome:'chilometri',inMetri:1000},
+  10:{nome:'iarde',inMetri:0.9144}, 14:{nome:'decimetri',inMetri:0.1}, 21:{nome:'piedi topografici USA',inMetri:1200/3937}
+};
+function _dxfStruttura(testo){
+  const t = String(testo||'');
+  const st = { binario:false, haSezioni:false, insunits:null, entita:[] };
+  if(t.slice(0,18)==='AutoCAD Binary DXF'){ st.binario=true; return st; }
+  const righe = t.split(/\r\n|\r|\n/);
+  let sezione=null, attesaNome=false, cur=null, varHeader=null;
   for(let i=0; i+1<righe.length; i+=2){
     const codice = righe[i].trim(), valore = righe[i+1];
     if(codice==='0'){
-      const tipo = valore.trim();
-      if(tipo==='LINE' || tipo==='POLYLINE' || tipo==='VERTEX' || tipo==='SEQEND' || tipo==='LWPOLYLINE'){ cur={tipo, campi:{}, verts:[]}; entita.push(cur); }
-      else cur = null;
+      const tipo = valore.trim(); cur = null;
+      if(tipo==='SECTION'){ st.haSezioni=true; attesaNome=true; sezione=null; }
+      else if(tipo==='ENDSEC'){ sezione=null; }
+      else if(tipo==='EOF'){ break; }
+      /* SOLO la sezione ENTITIES è il disegno. BLOCKS contiene le DEFINIZIONI
+         dei blocchi (in coordinate proprie, attorno all'origine) e, dal
+         R2000, anche gli altri fogli di stampa. Un file senza nessuna
+         sezione (un frammento, o le prove storiche scritte a mano) si legge
+         tutto: lì non c'è niente da cui distinguere. */
+      else if(sezione==='ENTITIES' || !st.haSezioni){ cur={tipo, campi:{}, verts:[]}; st.entita.push(cur); }
+    } else if(attesaNome && codice==='2'){ sezione=valore.trim(); attesaNome=false; }
+    else if(sezione==='HEADER'){
+      if(codice==='9') varHeader=valore.trim();
+      else if(varHeader==='$INSUNITS' && codice==='70'){ const u=parseInt(valore,10); if(Number.isFinite(u)) st.insunits=u; varHeader=null; }
     } else if(cur){
       /* LWPOLYLINE (dal 19/09) porta i suoi vertici DENTRO la stessa entità,
          come coppie di codici 10/20 RIPETUTE una volta per vertice — a
@@ -3843,30 +3897,76 @@ function _dxfEntita(testo){
          chiave "10" terrebbe solo l'ULTIMO vertice: si accumula invece un
          array, un vertice per ogni "10" incontrato (l'ordine del formato
          DXF garantisce che il gruppo 10 di un vertice precede sempre il
-         suo 20). */
-      if(cur.tipo==='LWPOLYLINE' && codice==='10') cur.verts.push({x:+valore, y:NaN});
+         suo 20, e il suo eventuale 42 — la curvatura — li segue). */
+      if(cur.tipo==='LWPOLYLINE' && codice==='10') cur.verts.push({x:+valore, y:NaN, arco:false});
       else if(cur.tipo==='LWPOLYLINE' && codice==='20' && cur.verts.length) cur.verts[cur.verts.length-1].y = +valore;
+      else if(cur.tipo==='LWPOLYLINE' && codice==='42' && cur.verts.length){ if(+valore) cur.verts[cur.verts.length-1].arco = true; }
       else cur.campi[codice]=valore;
     }
   }
-  return entita;
+  return st;
 }
-export function dxfInTratti(testo){
-  const entita = _dxfEntita(testo);
-  const tratti = [];
-  let poliCorrente = null;
-  for(const e of entita){
+/* Le entità PIANE (LWPOLYLINE, POLYLINE 2D) scrivono i vertici nel sistema
+   dell'OGGETTO (OCS), non in quello del mondo: i due coincidono finché il
+   vettore di estrusione (210/220/230) è (0,0,1), cioè quasi sempre — e
+   divergono quando il disegno è stato specchiato, dove diventa (0,0,-1) e la
+   X del mondo è l'opposto di quella scritta. La regola è l'«algoritmo
+   dell'asse arbitrario» della specifica DXF. LINE e le polilinee 3D sono già
+   in coordinate mondo e non passano di qui. */
+function _dxfOcs(campi, quota){
+  let nx=+campi['210'], ny=+campi['220'], nz=+campi['230'];
+  if(!Number.isFinite(nx)) nx=0; if(!Number.isFinite(ny)) ny=0; if(!Number.isFinite(nz)) nz=1;
+  const m=Math.hypot(nx,ny,nz);
+  if(!(m>0) || (Math.abs(nx/m)<1e-9 && Math.abs(ny/m)<1e-9 && nz>0)) return null;   // estrusione normale: OCS = mondo
+  nx/=m; ny/=m; nz/=m;
+  let ax, ay, az;
+  if(Math.abs(nx)<1/64 && Math.abs(ny)<1/64){ ax=nz; ay=0; az=-nx; } else { ax=-ny; ay=nx; az=0; }
+  const ma=Math.hypot(ax,ay,az); ax/=ma; ay/=ma; az/=ma;
+  const bx=ny*az-nz*ay, by=nz*ax-nx*az;
+  const q=Number.isFinite(+quota) ? +quota : 0;
+  return (p)=>({ x:p.x*ax+p.y*bx+q*nx, y:p.x*ay+p.y*by+q*ny });
+}
+export function dxfLeggi(testo){
+  const st = _dxfStruttura(testo);
+  const esito = { tratti:[], nonLette:{}, nNonLette:0, spazioCarta:0, archiComeCorde:0, binario:st.binario, unita:null, ingombro:null };
+  if(st.insunits!=null && _DXF_UNITA[st.insunits]) esito.unita = { codice:st.insunits, nome:_DXF_UNITA[st.insunits].nome, inMetri:_DXF_UNITA[st.insunits].inMetri };
+  const nonLetta = (tipo)=>{ esito.nonLette[tipo]=(esito.nonLette[tipo]||0)+1; esito.nNonLette++; };
+  const chiudi = (pts, chiusa)=>{ if(chiusa && pts.length>=3){ const a=pts[0], z=pts[pts.length-1]; if(a.x!==z.x || a.y!==z.y) pts.push({x:a.x, y:a.y}); } return pts; };
+  let poli = null;        // la POLYLINE in corso (i suoi VERTEX arrivano come entità a sé, fino a SEQEND)
+  let appesa = false;     // dopo un INSERT con attributi: i suoi ATTRIB e il suo SEQEND non sono entità del disegno
+  for(const e of st.entita){
+    if(e.tipo==='VERTEX'){
+      if(!poli) continue;
+      const fv=parseInt(e.campi['70'],10)||0;
+      if((fv&128) && !(fv&64)) continue;                         // record-faccia di una mesh: non è un punto
+      let p={x:+e.campi['10'], y:+e.campi['20']};
+      if(!Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
+      if(poli.ocs) p=poli.ocs(p);
+      poli.pts.push(p); poli.archi.push(!!+e.campi['42']);
+      continue;
+    }
+    if(e.tipo==='SEQEND'){
+      if(poli && poli.pts.length>=2){
+        esito.archiComeCorde += poli.archi.filter((arco,i)=>arco && (poli.chiusa || i<poli.archi.length-1)).length;
+        esito.tratti.push({pts:chiudi(poli.pts, poli.chiusa)});
+      }
+      poli=null; appesa=false; continue;
+    }
+    if(e.tipo==='ATTRIB' && appesa) continue;
+    poli=null; appesa=false;
+    /* codice 67 = 1: l'entità sta nello SPAZIO CARTA (il foglio di stampa
+       col suo cartiglio), non nel modello. Non è geometria del sito. */
+    if(String(e.campi['67']||'').trim()==='1'){ esito.spazioCarta++; continue; }
     if(e.tipo==='LINE'){
       const a={x:+e.campi['10'], y:+e.campi['20']}, b={x:+e.campi['11'], y:+e.campi['21']};
-      if([a.x,a.y,b.x,b.y].every(Number.isFinite) && (a.x!==b.x || a.y!==b.y)) tratti.push({pts:[a,b]});
+      if([a.x,a.y,b.x,b.y].every(Number.isFinite) && (a.x!==b.x || a.y!==b.y)) esito.tratti.push({pts:[a,b]});
     } else if(e.tipo==='POLYLINE'){
-      poliCorrente = [];
-    } else if(e.tipo==='VERTEX' && poliCorrente){
-      const p={x:+e.campi['10'], y:+e.campi['20']};
-      if(Number.isFinite(p.x) && Number.isFinite(p.y)) poliCorrente.push(p);
-    } else if(e.tipo==='SEQEND'){
-      if(poliCorrente && poliCorrente.length>=2) tratti.push({pts:poliCorrente});
-      poliCorrente = null;
+      const f=parseInt(e.campi['70'],10)||0;
+      /* 16 = maglia di poligoni, 64 = mesh a facce (il TIN di un rilievo):
+         i loro VERTEX sono nodi di una SUPERFICIE, non i punti di una linea.
+         Unirli in fila disegnerebbe uno scarabocchio che nel file non c'è. */
+      if(f&(16|64)){ nonLetta('POLYLINE (superficie)'); continue; }
+      poli={ pts:[], chiusa:!!(f&1), archi:[], ocs:(f&8)?null:_dxfOcs(e.campi, e.campi['30']) };
     } else if(e.tipo==='LWPOLYLINE'){
       /* ⛔ 19/09, dal quarto giro di deep-pass QA: LWPOLYLINE è l'entità
          polilinea di DEFAULT scritta da AutoCAD (dal R14/1997), LibreCAD e
@@ -3874,11 +3974,51 @@ export function dxfInTratti(testo){
          interoperabilità. Senza questo ramo un file con SOLO LWPOLYLINE (il
          caso comune) dava tratti:[] e la pagina diceva "il file non contiene
          LINE o POLYLINE leggibili": falso, il file la geometria ce l'aveva. */
-      const pts = e.verts.filter(p=>Number.isFinite(p.x) && Number.isFinite(p.y));
-      if(pts.length>=2) tratti.push({pts});
+      const f=parseInt(e.campi['70'],10)||0, chiusa=!!(f&1), ocs=_dxfOcs(e.campi, e.campi['38']);
+      const buoni=e.verts.filter(p=>Number.isFinite(p.x) && Number.isFinite(p.y));
+      if(buoni.length>=2){
+        /* la curvatura sull'ULTIMO vertice vale solo se la polilinea è chiusa
+           (descrive il tratto che torna al primo): su una aperta non disegna niente */
+        esito.archiComeCorde += buoni.filter((p,i)=>p.arco && (chiusa || i<buoni.length-1)).length;
+        esito.tratti.push({pts:chiudi(buoni.map(p=> ocs ? ocs(p) : {x:p.x, y:p.y}), chiusa)});
+      }
+    } else {
+      if(e.tipo==='INSERT' && String(e.campi['66']||'').trim()==='1') appesa=true;
+      nonLetta(e.tipo);
     }
   }
-  return tratti;
+  if(esito.tratti.length){
+    let x0=Infinity, x1=-Infinity, y0=Infinity, y1=-Infinity;
+    for(const t of esito.tratti) for(const p of t.pts){ if(p.x<x0) x0=p.x; if(p.x>x1) x1=p.x; if(p.y<y0) y0=p.y; if(p.y>y1) y1=p.y; }
+    esito.ingombro = { larghezza:x1-x0, altezza:y1-y0 };
+  }
+  return esito;
+}
+/* ⚠️ `dxfInTratti` (il nome del 14/09) non esiste più: restituiva i soli
+   tratti, e la pagina adesso ha bisogno anche di ciò che NON è entrato. Un
+   alias tenuto per le prove sarebbe stato una funzione esportata che il
+   prodotto non chiama — chi cerca il vecchio nome trova `dxfLeggi(x).tratti`. */
+/* Che cosa c'era nel file e NON è entrato, con le parole di chi disegna e non
+   coi nomi del formato: «2 archi, 1 cerchio, 3 blocchi inseriti». Stringa
+   vuota se è entrato tutto. I tipi che non hanno un nome italiano escono col
+   loro (un nome sconosciuto si mostra, non si nasconde sotto «altro»). */
+const _DXF_NOMI = {
+  ARC:['arco','archi'], CIRCLE:['cerchio','cerchi'], TEXT:['testo','testi'], MTEXT:['testo','testi'],
+  INSERT:['blocco inserito','blocchi inseriti'], SPLINE:['curva spline','curve spline'], ELLIPSE:['ellisse','ellissi'],
+  POINT:['punto','punti'], HATCH:['retino','retini'], DIMENSION:['quota','quote'], '3DFACE':['faccia 3D','facce 3D'],
+  SOLID:['campitura','campiture'], 'POLYLINE (superficie)':['superficie a maglia','superfici a maglia']
+};
+export function dxfFraseNonLette(nonLette){
+  const somma = {};
+  for(const [tipo, n] of Object.entries(nonLette||{})){
+    if(!(n>0)) continue;
+    const nomi = _DXF_NOMI[tipo] || [tipo, tipo];
+    const chiave = nomi[1];
+    if(!somma[chiave]) somma[chiave] = { n:0, nomi };
+    somma[chiave].n += n;
+  }
+  return Object.values(somma).sort((a,b)=>b.n-a.n || (a.nomi[1]<b.nomi[1]?-1:1))
+    .map(v=> v.n+' '+(v.n===1 ? v.nomi[0] : v.nomi[1])).join(', ');
 }
 export function dxfPianoFori(fori, diamMm, profilo){
   const H = Array.isArray(fori) ? fori.filter(h=>h && Number.isFinite(+h.mx) && Number.isFinite(+h.my)) : [];
