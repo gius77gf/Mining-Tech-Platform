@@ -14,7 +14,7 @@
    nelle forme che un CAD produce davvero: quattro versioni del formato,
    polilinee chiuse, blocchi definiti e inseriti, spazio carta, superfici a
    maglia, entità specchiate, unità dichiarate, DXF binario; dal 26/11 gli
-   archi, le ellissi e i blocchi inseriti in tutte le loro forme (ruotati, scalati,
+   archi, le ellissi, le spline e i blocchi inseriti in tutte le loro forme (ruotati, scalati,
    specchiati, annidati, a schiera, con attributi, riferimenti esterni).
    La prima misura, sul lettore com'era: **9 file su 23 letti male**, tutti in
    silenzio e tutti con una geometria plausibile — simboli comparsi attorno
@@ -24,7 +24,7 @@
    CHE COSA PRETENDE, per ogni campione (da `verita.json`, scritto dal
    generatore e non da questa suite):
      · quanti tratti entrano, e con quali punti in coordinate mondo;
-     · dal 26/11, per gli ARCHI (ARC, CIRCLE, ELLIPSE, tratti curvi delle polilinee):
+     · dal 26/11, per le CURVE (ARC, CIRCLE, ELLIPSE, SPLINE, tratti curvi delle polilinee):
        che la spezzata con cui Genesi li rende stia SULLA curva vera. La
        curva vera la dice ezdxf come elenco di primitive esatte (segmenti,
        archi con centro e raggio, cerchi): ogni vertice letto deve starci
@@ -88,8 +88,41 @@ function distEllisse(p, q) {
   return d((lo + hi) / 2);
 }
 function lunghezzaEllisse(q) { const N = 20000; let L = 0, a = puntoEllisse(q, q.t0); for (let i = 1; i <= N; i++) { const b = puntoEllisse(q, q.t0 + (q.t1 - q.t0) * i / N); L += Math.hypot(b[0] - a[0], b[1] - a[1]); a = b; } return L; }
+/* la SPLINE. Il punto si calcola dalle FUNZIONI DI BASE (la formula ricorsiva
+   di Cox–de Boor), cioè in un altro modo da Genesi, che usa l'algoritmo a
+   triangolo di de Boor: due strade diverse verso lo stesso punto. E questo
+   calcolo è un righello, quindi si misura anche lui: `righelloSpline` lo
+   confronta coi 41 punti che ezdxf ha scritto in verita.json (`prove`).
+   Distanza e lunghezza: 4.000 campioni tenuti da parte, poi si raffina. */
+function puntoSpline(q, u) {
+  const g = q.grado, U = q.nodi, n = q.cp.length - 1, u1 = U[n + 1];
+  const N = (i, k) => {
+    if (k === 0) return (U[i] <= u && u < U[i + 1]) || (u === u1 && U[i] < u1 && U[i + 1] === u1) ? 1 : 0;
+    const d1 = U[i + k] - U[i], d2 = U[i + k + 1] - U[i + 1];
+    return (d1 > 0 ? (u - U[i]) / d1 * N(i, k - 1) : 0) + (d2 > 0 ? (U[i + k + 1] - u) / d2 * N(i + 1, k - 1) : 0);
+  };
+  let x = 0, y = 0, w = 0;
+  for (let i = 0; i <= n; i++) { const b = N(i, g) * (q.pesi ? q.pesi[i] : 1); x += b * q.cp[i][0]; y += b * q.cp[i][1]; w += b; }
+  return [x / w, y / w];
+}
+const righelloSpline = (q) => Math.max(...q.prove.map(([u, x, y]) => { const e = puntoSpline(q, u); return Math.hypot(e[0] - x, e[1] - y); }));
+function campioniSpline(q) {
+  if (!q._c) { const N = 4000, u0 = q.nodi[q.grado], u1 = q.nodi[q.cp.length]; q._c = []; for (let i = 0; i <= N; i++) q._c.push(puntoSpline(q, u0 + (u1 - u0) * i / N)); }
+  return q._c;
+}
+function distSpline(p, q) {
+  const c = campioniSpline(q), N = c.length - 1, u0 = q.nodi[q.grado], u1 = q.nodi[q.cp.length];
+  let meglio = Infinity, im = 0;
+  for (let i = 0; i <= N; i++) { const v = Math.hypot(p[0] - c[i][0], p[1] - c[i][1]); if (v < meglio) { meglio = v; im = i; } }
+  const d = (u) => { const e = puntoSpline(q, u); return Math.hypot(p[0] - e[0], p[1] - e[1]); };
+  let lo = u0 + (u1 - u0) * Math.max(0, im - 1) / N, hi = u0 + (u1 - u0) * Math.min(N, im + 1) / N;
+  for (let k = 0; k < 60; k++) { const a = lo + (hi - lo) / 3, b = hi - (hi - lo) / 3; if (d(a) < d(b)) hi = b; else lo = a; }
+  return Math.min(meglio, d((lo + hi) / 2));
+}
+function lunghezzaSpline(q) { const c = campioniSpline(q); let L = 0; for (let i = 1; i < c.length; i++) L += Math.hypot(c[i][0] - c[i - 1][0], c[i][1] - c[i - 1][1]); return L; }
 function distPrimitiva(p, q) {
   if (q.t === "ellisse") return distEllisse(p, q);
+  if (q.t === "spline") return distSpline(p, q);
   if (q.t === "linea") { const dx = q.b[0] - q.a[0], dy = q.b[1] - q.a[1], L = dx * dx + dy * dy; let t = L ? ((p[0] - q.a[0]) * dx + (p[1] - q.a[1]) * dy) / L : 0; t = Math.max(0, Math.min(1, t)); return Math.hypot(p[0] - q.a[0] - t * dx, p[1] - q.a[1] - t * dy); }
   const d = Math.hypot(p[0] - q.c[0], p[1] - q.c[1]);
   if (q.t === "cerchio") return Math.abs(d - q.r);
@@ -97,7 +130,7 @@ function distPrimitiva(p, q) {
   if (pos <= v.ampiezza + 1e-12) return Math.abs(d - q.r);
   return Math.min(Math.hypot(p[0] - q.da[0], p[1] - q.da[1]), Math.hypot(p[0] - q.a[0], p[1] - q.a[1]));
 }
-const lunghezzaPrimitiva = (q) => q.t === "ellisse" ? lunghezzaEllisse(q) : q.t === "linea" ? Math.hypot(q.b[0] - q.a[0], q.b[1] - q.a[1]) : q.t === "cerchio" ? TAU * q.r : q.r * versoArco(q).ampiezza;
+const lunghezzaPrimitiva = (q) => q.t === "ellisse" ? lunghezzaEllisse(q) : q.t === "spline" ? lunghezzaSpline(q) : q.t === "linea" ? Math.hypot(q.b[0] - q.a[0], q.b[1] - q.a[1]) : q.t === "cerchio" ? TAU * q.r : q.r * versoArco(q).ampiezza;
 /* una spezzata letta contro la curva vera: i VERTICI (devono starci sopra), i
    punti di MEZZO dei lati (la freccia), la lunghezza */
 function confronta(pl, prim) {
@@ -121,6 +154,11 @@ function giudica(genesi, nome) {
       if (!c) guai.push("manca la polilinea " + JSON.stringify(pa) + " — letto " + JSON.stringify(letti).slice(0, 160));
     }
   }
+  /* prima di misurare con una spline, si misura il righello: il calcolo di questa suite contro i punti di ezdxf */
+  for (const q of [...(att.curve || []).flat(), ...(att.insieme || [])]) if (q.t === "spline") {
+    const scarto = righelloSpline(q);
+    if (!(scarto < 1e-8)) guai.push(`il RIGHELLO della suite non concorda con ezdxf su una spline: scarto ${scarto} m (non è un difetto di Genesi)`);
+  }
   /* gli archi: per ogni curva vera, il tratto letto che le somiglia di più deve starle addosso */
   if (att.curve) {
     const letti = r.tratti.map((t) => t.pts.map((p) => [p.x, p.y])), tol = genesi.DXF_FRECCIA_ARCO_M;
@@ -130,7 +168,7 @@ function giudica(genesi, nome) {
       if (!m) { guai.push(`curva ${k + 1}: nessun tratto letto`); return; }
       if (m.vertici > 1e-6) guai.push(`curva ${k + 1}: un vertice è fuori dalla curva vera di ${m.vertici.toFixed(6)} m`);
       if (m.freccia > tol + 1e-9) guai.push(`curva ${k + 1}: la spezzata si scosta dalla curva di ${(m.freccia * 1000).toFixed(1)} mm (massimo ${tol * 1000})`);
-      if (m.L > m.Lvera + 1e-6 || m.L < m.Lvera * 0.98) guai.push(`curva ${k + 1}: lunga ${m.L.toFixed(3)} m, la curva vera ${m.Lvera.toFixed(3)}`);
+      if (m.L > m.Lvera + (prim.some((q) => q.t === "spline") ? 1e-4 : 1e-6) || m.L < m.Lvera * 0.98) guai.push(`curva ${k + 1}: lunga ${m.L.toFixed(3)} m, la curva vera ${m.Lvera.toFixed(3)}`);
     });
   }
   /* i blocchi inseriti: TUTTO ciò che è entrato contro TUTTO ciò che il CAD
@@ -145,7 +183,7 @@ function giudica(genesi, nome) {
     const Lvera = att.insieme.reduce((t, q) => t + lunghezzaPrimitiva(q), 0);
     if (vertici > 1e-6) guai.push(`blocchi: un vertice è fuori dal disegno vero di ${vertici.toFixed(6)} m`);
     if (freccia > tol + 1e-9) guai.push(`blocchi: una spezzata si scosta dal disegno vero di ${(freccia * 1000).toFixed(1)} mm (massimo ${tol * 1000})`);
-    if (L > Lvera + 1e-6 || L < Lvera * 0.98) guai.push(`blocchi: entrati ${L.toFixed(3)} m di linee, nel disegno ce ne sono ${Lvera.toFixed(3)}`);
+    if (L > Lvera + (att.insieme.some((q) => q.t === "spline") ? 1e-4 : 1e-6) || L < Lvera * 0.98) guai.push(`blocchi: entrati ${L.toFixed(3)} m di linee, nel disegno ce ne sono ${Lvera.toFixed(3)}`);
   }
   const nl = att.nonLette || {};
   if (JSON.stringify(Object.entries(r.nonLette).sort()) !== JSON.stringify(Object.entries(nl).sort()))
@@ -254,6 +292,26 @@ const DIFETTI = [
    "const a=Math.sqrt(((qM+qm)+Math.sqrt((qM-qm)*(qM-qm)+4*pm*pm))/2);", "const a=Math.sqrt(((qM+qm)-Math.sqrt((qM-qm)*(qM-qm)+4*pm*pm))/2);"],
   ["la freccia di un'ellisse dentro un blocco si misura nel blocco, non nel mondo",
    "const ell=_dxfEllisse(e.campi, scala);", "const ell=_dxfEllisse(e.campi, 1);"],
+  /* le spline (26/11): la spline che resta fuori, i pesi ignorati, i punti di
+     controllo uniti da segmenti, la sola metà guardata, la freccia intera
+     invece di metà, il dominio sbagliato, la chiusa che non chiude, e la
+     spline di soli punti di passaggio «letta» inventandone la curva */
+  ["la spline resta fra le non lette",
+   "const spl=_dxfSpline(e, scala);\n        if(!spl){", "const spl=_dxfSpline(e, scala);\n        {"],
+  ["la spline di soli punti di adattamento si dichiara come una spline qualunque",
+   "nonLetta(!e.verts.length && e.passaggi ? 'SPLINE (punti di adattamento)' : 'SPLINE');", "nonLetta('SPLINE');"],
+  ["i pesi di una spline razionale si ignorano",
+   "const q=P[k-grado+j], w=W ? W[k-grado+j] : 1;", "const q=P[k-grado+j], w=1;"],
+  ["della spline entrano i punti di controllo uniti da segmenti",
+   "const spl=_dxfSpline(e, scala);", "const spl=e.verts.length>=2 ? e.verts.map(q=>({x:q.x, y:q.y})) : null;"],
+  ["si guarda solo la metà di ogni tratto (una S passa per una retta)",
+   "if(Math.max(dalSegmento(pm,pa,pb), dalSegmento(pq,pa,pb), dalSegmento(pr,pa,pb))>tol){", "if(dalSegmento(pm,pa,pb)>tol){"],
+  ["la freccia della spline in un blocco si misura nel blocco, non nel mondo",
+   "const tol = 0.5*DXF_FRECCIA_ARCO_M/(scala>0 ? scala : 1);", "const tol = 0.5*DXF_FRECCIA_ARCO_M;"],
+  ["la spline si calcola su tutti i nodi invece che sul suo dominio",
+   "const u0=U[grado], u1=U[n+1];", "const u0=U[0], u1=U[U.length-1];"],
+  ["una spline di soli punti di passaggio si «legge» lo stesso",
+   "if(!(grado>=1 && grado<=11) || n<grado || U.length!==n+grado+2) return null;", "if(!(grado>=1 && grado<=11) || n<grado || U.length!==n+grado+2) return [{x:0,y:0},{x:1,y:1}];"],
 ];
 
 async function moduloCon(sostituzioni) {
@@ -296,7 +354,7 @@ const conVerita = Object.keys(verita).sort();
 dice(JSON.stringify(sulDisco) === JSON.stringify(conVerita),
   `ogni campione ha la sua verità e viceversa (${sulDisco.length} file .dxf, ${conVerita.length} verità)`,
   "solo sul disco: " + sulDisco.filter((n) => !verita[n]).join(", ") + " · solo in verita.json: " + conVerita.filter((n) => !sulDisco.includes(n)).join(", "));
-dice(sulDisco.length >= 45, `i campioni ci sono tutti (${sulDisco.length}, almeno 45)`);
+dice(sulDisco.length >= 51, `i campioni ci sono tutti (${sulDisco.length}, almeno 51)`);
 
 for (const nome of conVerita) {
   if (!sulDisco.includes(nome)) continue;
@@ -306,8 +364,8 @@ for (const nome of conVerita) {
 
 /* la frase che arriva all'utente, sul campione che la mette più alla prova */
 const miste = genesi.dxfLeggi(testoDi("curve_miste"));
-dice(genesi.dxfFraseNonLette(miste.nonLette) === "1 curva spline, 1 punto" && miste.archiSpezzati === 3,
-  "curve_miste: i due archi e il cerchio sono entrati (3 archi resi a spezzata), e la frase dice che cosa è rimasto fuori — la spline e il punto — con le parole di chi disegna", genesi.dxfFraseNonLette(miste.nonLette) + " · archi " + miste.archiSpezzati);
+dice(genesi.dxfFraseNonLette(miste.nonLette) === "1 punto, 1 spline definita solo dai punti di adattamento" && miste.archiSpezzati === 3,
+  "curve_miste: i due archi e il cerchio sono entrati (3 curve rese a spezzata), e la frase dice che cosa è rimasto fuori — il punto, e la spline scritta senza la sua curva — con le parole di chi disegna", genesi.dxfFraseNonLette(miste.nonLette) + " · archi " + miste.archiSpezzati);
 
 console.log(`\nRisultato DXF da CAD: ${passed} passati, ${failed} falliti  ·  ${sulDisco.length} campioni scritti da ezdxf guardati`);
 process.exit(failed > 0 ? 1 : 0);

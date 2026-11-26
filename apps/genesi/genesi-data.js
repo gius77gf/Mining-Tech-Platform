@@ -4339,9 +4339,10 @@ function _dxfPolilinea(layer, punti){
    mostra — né di più (blocchi, cartiglio) né di meno (il lato che chiude).
    E ciò che NON si legge si CONTA e si dichiara (`nonLette`), invece di
    sparire: 1 linea letta su 6 entità non è «1 tratto importato».
-   ⚠️ COSA RESTA FUORI, DICHIARATO: spline, testi, retini, quote.
-   Archi, cerchi, ellissi e tratti ad arco delle polilinee (`bulge`) dal
-   26/11 ENTRANO, come spezzate (vedi «GLI ARCHI DEL DXF» e «L'ELLISSE DEL
+   ⚠️ COSA RESTA FUORI, DICHIARATO: testi, retini, quote, e le spline
+   scritte coi soli punti di passaggio. Archi, cerchi, ellissi, spline e
+   tratti ad arco delle polilinee (`bulge`) dal 26/11 ENTRANO, come
+   spezzate (vedi «GLI ARCHI DEL DXF», «L'ELLISSE DEL DXF» e «LA SPLINE DEL
    DXF» più sotto), e si contano in `archiSpezzati`; e dal 26/11 entra anche il contenuto dei blocchi
    INSERITI (vedi «I BLOCCHI INSERITI»), contati in `blocchiEspansi`.
    ⚠️ LE UNITÀ NON SI CONVERTONO DA SOLE, e non per pigrizia: il modello
@@ -4402,6 +4403,14 @@ function _dxfStruttura(testo){
       if(cur.tipo==='LWPOLYLINE' && codice==='10') cur.verts.push({x:+valore, y:NaN, bulge:0});
       else if(cur.tipo==='LWPOLYLINE' && codice==='20' && cur.verts.length) cur.verts[cur.verts.length-1].y = +valore;
       else if(cur.tipo==='LWPOLYLINE' && codice==='42' && cur.verts.length){ const b=+valore; if(Number.isFinite(b)) cur.verts[cur.verts.length-1].bulge = b; }
+      /* SPLINE: anche lei porta tutto DENTRO l'entità, a codici ripetuti —
+         i punti di controllo (10/20), i nodi (40), i pesi (41), e a volte i
+         punti di passaggio (11/21), che qui si contano soltanto. */
+      else if(cur.tipo==='SPLINE' && codice==='10') cur.verts.push({x:+valore, y:NaN});
+      else if(cur.tipo==='SPLINE' && codice==='20' && cur.verts.length) cur.verts[cur.verts.length-1].y = +valore;
+      else if(cur.tipo==='SPLINE' && codice==='40') (cur.nodi || (cur.nodi=[])).push(+valore);
+      else if(cur.tipo==='SPLINE' && codice==='41') (cur.pesi || (cur.pesi=[])).push(+valore);
+      else if(cur.tipo==='SPLINE' && codice==='11') cur.passaggi = (cur.passaggi||0)+1;
       else cur.campi[codice]=valore;
     }
   }
@@ -4456,7 +4465,7 @@ function _dxfOcs(campi, quota){
       senso antiorario da un vertice al successivo;
     · si lavora nel sistema dell'oggetto e l'estrusione si applica DOPO, a
       ogni punto: un arco specchiato esce specchiato senza un caso a parte.
-   Le spline restano fra le non lette, dichiarate. */
+   (Ellissi e spline hanno il loro conto più sotto.) */
 export const DXF_FRECCIA_ARCO_M = 0.02;
 function _dxfLati(r, ampiezza, scala){
   const t = Math.min(DXF_FRECCIA_ARCO_M/(scala>0 ? scala : 1), r);
@@ -4497,6 +4506,70 @@ function _dxfEllisse(campi, scala){
   const n=_dxfLati(a, amp, scala), pts=[];
   for(let j=0;j<=n;j++){ const t=t0+amp*j/n; pts.push({x:cx+Mx*Math.cos(t)+mx*Math.sin(t), y:cy+My*Math.cos(t)+my*Math.sin(t)}); }
   if(intera) pts[n]={x:pts[0].x, y:pts[0].y};
+  return pts;
+}
+/* ══════════════════════════════════════════════════════════════════════
+   LA SPLINE DEL DXF (26/11) — letta dove il file dice che curva è.
+   ══════════════════════════════════════════════════════════════════════
+   Una SPLINE è una curva B-spline (NURBS se ha i pesi): grado, NODI, PUNTI
+   DI CONTROLLO. Con quei tre la curva è definita esattamente, e si calcola
+   con l'algoritmo di de Boor — è così che la scrive AutoCAD, sempre.
+   ⚠️ C'è però una seconda forma: la spline che porta SOLO i punti di
+   passaggio (i «punti di adattamento» di AutoCAD), senza nodi né punti di
+   controllo. Lì la curva non è nel
+   file: ogni programma la ricostruisce a modo suo, e due CAD disegnano due
+   curve diverse per gli stessi punti. Unire i punti con segmenti dritti
+   sarebbe inventarne una terza: quella forma resta fra le non lette,
+   dichiarata COL SUO NOME («spline definita solo dai punti di
+   adattamento»), perché chi importa sappia che basta riesportarla. Così anche una spline coi conti che non tornano (nodi ≠ punti
+   di controllo + grado + 1, nodi che tornano indietro, pesi non positivi).
+   I lati non si contano con una formula (la curvatura di una spline cambia
+   lungo la curva): ogni tratto fra due nodi si DIMEZZA finché la curva, a un
+   quarto, a metà e a tre quarti del lato, non sta entro METÀ della freccia
+   dichiarata dalla corda — metà, perché tre punti non sono tutta la curva.
+   Coordinate MONDO, come l'ellisse: l'estrusione non sposta niente.
+   Restituisce null se la curva non è nel file. */
+const _DXF_SPLINE_MAX_PUNTI = 20000;
+function _dxfSpline(e, scala){
+  const grado = Math.round(_dxfOpz(e.campi,'71',3)), flag = parseInt(e.campi['70'],10)||0;
+  const P = e.verts, U = e.nodi||[], n = P.length-1;
+  if(!(grado>=1 && grado<=11) || n<grado || U.length!==n+grado+2) return null;
+  if(!P.every(q=>Number.isFinite(q.x) && Number.isFinite(q.y)) || !U.every(Number.isFinite)) return null;
+  for(let i=1;i<U.length;i++) if(U[i]<U[i-1]) return null;
+  let W = null;
+  if(e.pesi && e.pesi.length){ if(e.pesi.length!==P.length || !e.pesi.every(w=>Number.isFinite(w) && w>0)) return null; W=e.pesi; }
+  const u0=U[grado], u1=U[n+1];
+  /* de Boor, in coordinate omogenee (x·w, y·w, w): con tutti i pesi a 1 è la B-spline semplice */
+  const punto = (u)=>{
+    let k=grado; while(k<n && u>=U[k+1]) k++;
+    const d=[];
+    for(let j=0;j<=grado;j++){ const q=P[k-grado+j], w=W ? W[k-grado+j] : 1; d.push([q.x*w, q.y*w, w]); }
+    for(let r=1;r<=grado;r++) for(let j=grado;j>=r;j--){
+      const i=k-grado+j, den=U[i+grado-r+1]-U[i], a=den>0 ? (u-U[i])/den : 0;
+      d[j]=[(1-a)*d[j-1][0]+a*d[j][0], (1-a)*d[j-1][1]+a*d[j][1], (1-a)*d[j-1][2]+a*d[j][2]];
+    }
+    return {x:d[grado][0]/d[grado][2], y:d[grado][1]/d[grado][2]};
+  };
+  const tol = 0.5*DXF_FRECCIA_ARCO_M/(scala>0 ? scala : 1);
+  const dalSegmento = (q, a, b)=>{ const dx=b.x-a.x, dy=b.y-a.y, L=dx*dx+dy*dy; let t=L ? ((q.x-a.x)*dx+(q.y-a.y)*dy)/L : 0; t=Math.max(0, Math.min(1, t)); return Math.hypot(q.x-a.x-t*dx, q.y-a.y-t*dy); };
+  const pts=[punto(u0)];
+  const tratto = (ua, pa, ub, pb, prof)=>{
+    if(pts.length>=_DXF_SPLINE_MAX_PUNTI) return;
+    const um=(ua+ub)/2, pm=punto(um);
+    if(prof<18){
+      const pq=punto((ua+um)/2), pr=punto((um+ub)/2);
+      if(Math.max(dalSegmento(pm,pa,pb), dalSegmento(pq,pa,pb), dalSegmento(pr,pa,pb))>tol){ tratto(ua, pa, um, pm, prof+1); tratto(um, pm, ub, pb, prof+1); return; }
+    }
+    pts.push(pb);
+  };
+  for(let k=grado;k<=n;k++){
+    const ua=Math.max(U[k], u0), ub=Math.min(U[k+1], u1);
+    if(ub>ua) tratto(ua, punto(ua), ub, punto(ub), 0);
+  }
+  /* nodi tutti uguali: nessun tratto ha una lunghezza, la curva è un punto solo */
+  if(pts.length<2) return null;
+  /* 70 = 1: curva chiusa. Se gli estremi coincidono a meno dell'aritmetica, l'ultimo punto È il primo */
+  if((flag&1) && Math.hypot(pts[0].x-pts[pts.length-1].x, pts[0].y-pts[pts.length-1].y)<1e-9) pts[pts.length-1]={x:pts[0].x, y:pts[0].y};
   return pts;
 }
 /* arco di centro (cx,cy) e raggio r, dall'angolo a0 per `ampiezza` radianti
@@ -4648,6 +4721,12 @@ export function dxfLeggi(testo){
         if(!ell){ nonLetta('ELLIPSE'); continue; }
         metti(ell);
         esito.archiSpezzati++;
+      } else if(e.tipo==='SPLINE'){
+        /* la spline di soli punti di passaggio non ha la sua curva nel file: si dichiara, non si inventa */
+        const spl=_dxfSpline(e, scala);
+        if(!spl){ nonLetta(!e.verts.length && e.passaggi ? 'SPLINE (punti di adattamento)' : 'SPLINE'); continue; }
+        metti(spl);
+        esito.archiSpezzati++;
       } else if(e.tipo==='INSERT'){
         const conAttributi = String(e.campi['66']||'').trim()==='1';
         const nome = String(e.campi['2']||'').trim().toUpperCase(), b = st.blocchi[nome];
@@ -4708,6 +4787,7 @@ const _DXF_NOMI = {
   INSERT:['blocco inserito','blocchi inseriti'], SPLINE:['curva spline','curve spline'], ELLIPSE:['ellisse','ellissi'],
   POINT:['punto','punti'], HATCH:['retino','retini'], DIMENSION:['quota','quote'], '3DFACE':['faccia 3D','facce 3D'],
   SOLID:['campitura','campiture'], 'POLYLINE (superficie)':['superficie a maglia','superfici a maglia'],
+  'SPLINE (punti di adattamento)':['spline definita solo dai punti di adattamento','spline definite solo dai punti di adattamento'],
   ATTRIB:['testo','testi'], ATTDEF:['testo','testi'], 'INSERT (riferimento esterno)':['riferimento a un altro file','riferimenti ad altri file']
 };
 export function dxfFraseNonLette(nonLette){

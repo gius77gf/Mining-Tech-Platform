@@ -37,6 +37,7 @@ def curva(entita):
     if t == 'ARC': return [_arco(entita)]
     if t == 'CIRCLE': return [{'t': 'cerchio', 'c': _p(entita.ocs().to_wcs(entita.dxf.center)), 'r': entita.dxf.radius}]
     if t == 'ELLIPSE': return [_ellisse(entita)]
+    if t == 'SPLINE': return [_spline(entita)]
     out = []
     for v in entita.virtual_entities():                # LWPOLYLINE / POLYLINE: i suoi lati, dritti o ad arco
         if v.dxftype() == 'ARC': out.append(_arco(v))
@@ -55,12 +56,27 @@ def _ellisse(e):
         v = list(e.vertices([t]))[0]; w = c + M * math.cos(t) + m * math.sin(t)
         assert (Vec3(v) - w).magnitude < 1e-9, 'la formula dell ellisse non e quella di ezdxf'
     return {'t': 'ellisse', 'c': _p(c), 'M': _p(M), 'm': _p(m), 't0': t0, 't1': t1}
+# la SPLINE: la curva vera e la B-spline che ezdxf costruisce dai dati del file (grado, nodi, punti di
+# controllo, pesi). In verita.json va la DEFINIZIONE piu 41 punti calcolati da ezdxf (`prove`): la suite
+# ha un suo calcolo della curva, scritto in un altro modo da quello di Genesi, e prima di usarlo come
+# righello lo controlla contro questi punti. Il dominio e quello della teoria: da nodi[grado] a nodi[n+1].
+def _spline(e):
+    b = e.construction_tool(); g = b.degree
+    U = [float(u) for u in b.knots()]; P = [Vec3(c) for c in b.control_points]; n = len(P) - 1
+    W = [float(w) for w in b.weights()] if b.is_rational else None
+    u0, u1 = U[g], U[n + 1]
+    prove = []
+    for k in range(41):
+        u = u0 + (u1 - u0) * k / 40
+        q = b.point(u); prove.append([u, round(q.x, 10), round(q.y, 10)])
+    return {'t': 'spline', 'grado': g, 'nodi': U, 'cp': [_p(c) for c in P], 'pesi': W, 'prove': prove}
 def espanso(spazio):
     prim = []; fuori = {}
     for e in recursive_decompose(spazio):
         t = e.dxftype()
         if t == 'LINE': prim.append({'t': 'linea', 'a': _p(e.dxf.start), 'b': _p(e.dxf.end)})
         elif t == 'ELLIPSE': prim.append(_ellisse(e))
+        elif t == 'SPLINE' and e.control_point_count(): prim.append(_spline(e))
         elif t in ('ARC', 'CIRCLE', 'LWPOLYLINE', 'POLYLINE'): prim += curva(e)
         else: fuori[t] = fuori.get(t, 0) + 1
     return prim, fuori
@@ -128,7 +144,7 @@ m.add_line((0, 0), (10, 0))
 a1 = m.add_arc((5, 5), 3, 0, 90); a2 = m.add_arc((15, 5), 3, 0, 180); c1 = m.add_circle((20, 20), 2)
 m.add_spline([(0, 0), (5, 3), (10, 0), (15, -3)])
 m.add_point((3, 3))
-salva('curve_miste', d, {'tratti': 4, 'polilinee': [[[0, 0], [10, 0]]], 'curve': [curva(a1), curva(a2), curva(c1)], 'archiSpezzati': 3, 'nonLette': {'SPLINE': 1, 'POINT': 1}},
+salva('curve_miste', d, {'tratti': 4, 'polilinee': [[[0, 0], [10, 0]]], 'curve': [curva(a1), curva(a2), curva(c1)], 'archiSpezzati': 3, 'nonLette': {'SPLINE (punti di adattamento)': 1, 'POINT': 1}},
       'la linea, i due archi e il cerchio entrano (gli archi come spezzate); spline e punto vanno CONTATI, non fatti sparire')
 
 # 10. LWPOLYLINE con bulge (tratto ad arco)
@@ -353,6 +369,46 @@ d = ezdxf.new('R2010'); m = d.modelspace()
 b = d.blocks.new('OVALE'); b.add_ellipse((1, 1), major_axis=(3, 1), ratio=0.5, start_param=0.2, end_param=5.0); b.add_line((0, 0), (1, 1))
 m.add_blockref('OVALE', (50, 20), dxfattribs={'xscale': 4, 'yscale': 1.5, 'rotation': 40})
 blocchi('ellisse_in_blocco', d, 2, 1, 1, 'un ellisse in un blocco stirato resta un ellisse (un altra): i punti letti devono starle sopra, con la freccia misurata nel mondo')
+
+# ── LE SPLINE (26/11): la curva e nel file solo se ci sono nodi e punti di controllo ────
+from ezdxf.math import closed_uniform_bspline
+# 42. spline cubica aperta, e una razionale (coi pesi) di secondo grado
+d = ezdxf.new('R2010'); m = d.modelspace()
+s1 = m.add_open_spline([(0, 0), (5, 8), (10, -3), (15, 4), (20, 0)], degree=3)
+s2 = m.add_rational_spline([(0, 10), (5, 18), (10, 7), (15, 14)], weights=[1, 3, 0.5, 1], degree=2)
+salva('spline_aperta_e_razionale', d, {'tratti': 2, 'curve': [curva(s1), curva(s2)], 'archiSpezzati': 2},
+      'grado 3 senza pesi, e grado 2 coi pesi (NURBS): un peso 3 tira la curva verso il suo punto di controllo')
+
+# 43. spline a S perfettamente simmetrica: a META del parametro la curva sta SULLA corda
+d = ezdxf.new('R2010'); m = d.modelspace()
+s3 = m.add_open_spline([(0, 0), (10, 10), (20, -10), (30, 0)], degree=3)
+salva('spline_a_esse', d, {'tratti': 1, 'curve': [curva(s3)], 'archiSpezzati': 1},
+      'una S simmetrica passa per il punto di mezzo della sua corda: chi guarda solo la meta la prende per una linea dritta')
+
+# 44. spline chiusa (periodica: nodi uniformi non agganciati agli estremi)
+d = ezdxf.new('R2010'); m = d.modelspace()
+s4 = m.add_spline(); s4.apply_construction_tool(closed_uniform_bspline([(0, 0), (20, 0), (25, 15), (10, 25), (-5, 12)], order=4)); s4.closed = True
+salva('spline_chiusa', d, {'tratti': 1, 'curve': [curva(s4)], 'archiSpezzati': 1},
+      'nodi uniformi senza ripetizioni agli estremi: la curva vale da nodi[grado] a nodi[n+1], e li si chiude')
+
+# 45. come la scrive un CAD: punti di controllo E punti di passaggio insieme; e grado 5
+d = ezdxf.new('R2010'); m = d.modelspace()
+s5 = m.add_cad_spline_control_frame([(0, 0), (8, 6), (16, -2), (24, 5), (40, 0)])
+s6 = m.add_open_spline([(0, 30), (5, 45), (12, 20), (20, 44), (28, 22), (35, 40), (42, 28), (50, 30)], degree=5)
+salva('spline_da_cad', d, {'tratti': 2, 'curve': [curva(s5), curva(s6)], 'archiSpezzati': 2},
+      'quando il file porta sia i punti di controllo sia quelli di passaggio valgono i primi: sono loro la curva')
+
+# 46. spline di soli punti di passaggio: la curva NON e nel file
+d = ezdxf.new('R2010'); m = d.modelspace()
+m.add_spline([(0, 0), (5, 3), (10, 0), (15, -3)]); m.add_line((0, -10), (15, -10))
+salva('spline_solo_passaggi', d, {'tratti': 1, 'polilinee': [[[0, -10], [15, -10]]], 'nonLette': {'SPLINE (punti di adattamento)': 1}},
+      'senza nodi ne punti di controllo ogni programma disegna una curva diversa: si dichiara, non si uniscono i punti con segmenti')
+
+# 47. spline grande (200 m) dentro un blocco stirato e ruotato
+d = ezdxf.new('R2010'); m = d.modelspace()
+b = d.blocks.new('STRADA'); b.add_open_spline([(0, 0), (30, 20), (-20, 50), (25, 80), (0, 100)], degree=3)
+m.add_blockref('STRADA', (300, 100), dxfattribs={'xscale': 6, 'yscale': 0.7, 'rotation': 25})
+blocchi('spline_in_blocco', d, 1, 1, 1, 'una spline in un blocco stirato di 6 volte PER TRAVERSO alla curva e la spline dei punti di controllo stirati; la freccia si misura nel mondo')
 
 # un campione per riga: le curve di riferimento sono centinaia di punti, e con un rientro per
 # numero il file peserebbe tre volte tanto senza essere piu leggibile

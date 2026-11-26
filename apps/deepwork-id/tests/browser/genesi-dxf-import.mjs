@@ -52,6 +52,8 @@ const DIFETTI = [
   [`if(letto.archiSpezzati) righe.push(`, `if(false) righe.push(`],
   /* i blocchi (26/11): la pagina smette di dire che sono stati esplosi */
   [`if(letto.blocchiEspansi) righe.push(`, `if(false) righe.push(`],
+  /* la spline senza la sua curva (26/11): la pagina smette di dire come farla entrare */
+  [`if(letto.nonLette && letto.nonLette['SPLINE (punti di adattamento)']) righe.push(`, `if(false) righe.push(`],
 ];
 
 const colpiti = new Set();
@@ -214,22 +216,29 @@ try {
     };
   };
   const miste = await importa("curve_miste");
-  dice(miste.aggiunti === 4, `curve_miste (1 linea, 2 archi, 1 cerchio, 1 spline, 1 punto): entrano QUATTRO tratti — la linea, i due archi e il cerchio (letti ${miste.aggiunti})`, miste.aggiunti);
-  dice(/Non importati: 1 curva spline, 1 punto/.test(miste.esito),
-    "⛔ e la pagina DICE che cosa è rimasto fuori, con le parole di chi disegna: la spline e il punto", miste.esito.slice(-260));
-  dice(/3 curve \(archi, cerchi, ellissi\) sono entrate come spezzate: dalla curva vera non si scostano più di 2 cm/.test(miste.esito),
+  dice(miste.aggiunti === 4, `curve_miste (1 linea, 2 archi, 1 cerchio, 1 spline di soli punti di adattamento, 1 punto): entrano QUATTRO tratti — la linea, i due archi e il cerchio (letti ${miste.aggiunti})`, miste.aggiunti);
+  dice(/Non importati: 1 punto, 1 spline definita solo dai punti di adattamento/.test(miste.esito),
+    "⛔ e la pagina DICE che cosa è rimasto fuori, con le parole di chi disegna: il punto, e la spline scritta senza la sua curva", miste.esito.slice(-330));
+  dice(/non porta nel file la sua curva .*convertila in polilinea prima di esportare/.test(miste.esito),
+    "e per quella spline dice anche la strada: convertirla in polilinea nel CAD — un «non importata» senza il come è un vicolo cieco", miste.esito.slice(-420));
+  dice(/3 curve \(archi, cerchi, ellissi, spline\) sono entrate come spezzate: dalla curva vera non si scostano più di 2 cm/.test(miste.esito),
     "⛔ e dice che i tre archi sono entrati come SPEZZATE, con lo scarto massimo: una spezzata non è l'arco", miste.esito.slice(-200));
   /* il tratto ad arco di una polilinea: sulla pianta deve esserci la curva, non la corda */
   const arco = await importa("lwpoly_bulge");
   const punti = await pg.evaluate(() => window.__genesi.D2.tratti.at(-1).pts.map((q) => [q.x, q.y]));
   dice(arco.aggiunti === 1 && punti.length > 10 && punti.every((q) => Math.abs(Math.hypot(q[0] - 5, q[1]) - 5) < 1e-9),
     `⛔ un semicerchio di 5 m di raggio entra come semicerchio (${punti.length} punti, tutti a 5 m dal centro) — non come una corda dritta di 10 m`, punti.slice(0, 3));
-  dice(/1 curva \(arco, cerchio o ellisse\) è entrata come spezzata: dalla curva vera non si scosta più di 2 cm/.test(arco.esito), "e al singolare la frase torna («1 curva … è entrata come spezzata: … non si scosta»)", arco.esito.slice(-140));
+  dice(/1 curva \(arco, cerchio, ellisse o spline\) è entrata come spezzata: dalla curva vera non si scosta più di 2 cm/.test(arco.esito), "e al singolare la frase torna («1 curva … è entrata come spezzata: … non si scosta»)", arco.esito.slice(-140));
   /* 26/11 — l'ellisse: prima «1 ellisse» fra i non importati, ora sulla pianta, chiusa */
   const ovale = await importa("ellisse_intera");
   const giro = await pg.evaluate(() => { const t = window.__genesi.D2.tratti.at(-1).pts; return { n: t.length, chiusa: t[0].x === t.at(-1).x && t[0].y === t.at(-1).y }; });
   dice(ovale.aggiunti === 1 && giro.n > 20 && giro.chiusa, `⛔ un'ellisse entra come un contorno CHIUSO di ${giro.n} punti — prima restava fuori, dichiarata`, giro);
-  dice(!/Non importati/.test(ovale.esito) && /1 curva \(arco, cerchio o ellisse\) è entrata come spezzata/.test(ovale.esito), "e la pagina la conta fra le curve rese a spezzata, non fra i «non importati»", ovale.esito.slice(-220));
+  dice(!/Non importati/.test(ovale.esito) && /1 curva \(arco, cerchio, ellisse o spline\) è entrata come spezzata/.test(ovale.esito), "e la pagina la conta fra le curve rese a spezzata, non fra i «non importati»", ovale.esito.slice(-220));
+  /* 26/11 — la spline come la scrive un CAD (nodi e punti di controllo): sulla pianta c'è la CURVA */
+  const esse = await importa("spline_a_esse");
+  const sale = await pg.evaluate(() => { const t = window.__genesi.D2.tratti.at(-1).pts; return { n: t.length, su: Math.max(...t.map((q) => q.y)), giu: Math.min(...t.map((q) => q.y)) }; });
+  dice(esse.aggiunti === 1 && sale.n > 10 && sale.su > 2 && sale.giu < -2, `⛔ una spline a S entra come una S (${sale.n} punti, da ${sale.giu.toFixed(2)} a ${sale.su.toFixed(2)} m) — non resta fuori e non diventa una retta`, sale);
+  dice(!/Non importati/.test(esse.esito) && !/convertila/.test(esse.esito) && /1 curva \(arco, cerchio, ellisse o spline\) è entrata come spezzata/.test(esse.esito), "e la pagina lo dice — senza il consiglio di convertirla, che qui non serve", esse.esito.slice(-220));
   dice(/orientamento/i.test(miste.esito), "l'avviso sull'orientamento resta, sopra il bilancio", miste.esito.slice(0, 60));
 
   const blocco = await importa("blocco_non_inserito");

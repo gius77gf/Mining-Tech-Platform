@@ -17474,6 +17474,62 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     eq(genesi.dxfFraseNonLette({ELLIPSE:1}), "1 ellisse", "con la sua parola");
   });
 
+  test("Genesi · dxfLeggi: la SPLINE entra dove il file dice che curva è — e la spline di soli punti di adattamento si dichiara", () => {
+    /* Le forme vere sono provate contro ezdxf in dxf-da-cad.mjs. Qui curve di
+       cui si conosce la FORMULA: una B-spline di grado 1 è la sua spezzata,
+       una di grado 2 con tre punti è una parabola, e coi pesi giusti è un
+       quarto di cerchio esatto. */
+    const dxf = (...righe) => righe.join("\n") + "\n";
+    const spline = ({ grado = 3, nodi = [], cp = [], pesi = [], flag = 0, passaggi = [] }, prima = [], dopo = []) => genesi.dxfLeggi(dxf(...prima, "0","SECTION","2","ENTITIES",
+      "0","SPLINE","70",String(flag),"71",String(grado), ...nodi.flatMap((u) => ["40", String(u)]), ...pesi.flatMap((w) => ["41", String(w)]),
+      ...cp.flatMap(([x, y]) => ["10", String(x), "20", String(y), "30", "0"]), ...passaggi.flatMap(([x, y]) => ["11", String(x), "21", String(y), "31", "0"]), ...dopo, "0","ENDSEC","0","EOF"));
+
+    const spezzata = spline({ grado: 1, nodi: [0, 0, 1, 2, 2], cp: [[0, 0], [10, 0], [10, 10]] });
+    eq(spezzata.tratti[0].pts, [{x:0,y:0},{x:10,y:0},{x:10,y:10}], "grado 1: la spline È la spezzata dei suoi punti di controllo — tre punti, nessuno in più");
+    eq([spezzata.tratti.length, spezzata.archiSpezzati, spezzata.nonLette], [1, 1, {}], "un tratto, contato fra le curve rese a spezzata, e niente fra le non lette");
+
+    const parabola = spline({ grado: 2, nodi: [0, 0, 0, 1, 1, 1], cp: [[0, 0], [5, 10], [10, 0]] }).tratti[0].pts;
+    ok(parabola.length > 20 && parabola.every((q) => Math.abs(q.y - 2 * q.x * (1 - q.x / 10)) < 1e-9), "grado 2 con tre punti: ogni punto sta sulla parabola y = 2x(1 − x/10)", parabola.length + " punti");
+    eq([parabola[0], parabola[parabola.length - 1]], [{x:0,y:0},{x:10,y:0}], "e gli estremi sono i punti di controllo estremi, esatti");
+    const scartoParabola = Math.max(...parabola.slice(1).map((q, i) => { const x = (q.x + parabola[i].x) / 2; return Math.abs((q.y + parabola[i].y) / 2 - 2 * x * (1 - x / 10)); }));
+    ok(scartoParabola <= genesi.DXF_FRECCIA_ARCO_M, "il mezzo di ogni lato sta a meno di 2 cm dalla curva", "scarto " + scartoParabola);
+
+    const r2 = Math.SQRT1_2, quarto = spline({ grado: 2, nodi: [0, 0, 0, 1, 1, 1], cp: [[1, 0], [1, 1], [0, 1]], pesi: [1, r2, 1], flag: 4 }).tratti[0].pts;
+    ok(quarto.every((q) => Math.abs(Math.hypot(q.x, q.y) - 1) < 1e-12), "⛔ coi PESI (1; √2/2; 1) quei tre punti sono un quarto di cerchio esatto: ogni punto a distanza 1 dal centro");
+    const senzaPesi = spline({ grado: 2, nodi: [0, 0, 0, 1, 1, 1], cp: [[1, 0], [1, 1], [0, 1]] }).tratti[0].pts;
+    ok(senzaPesi.some((q) => Math.abs(Math.hypot(q.x, q.y) - 1) > 0.05), "e senza pesi sono un'altra curva (una parabola): i pesi non sono un dettaglio");
+
+    /* una S simmetrica passa per il punto di mezzo della sua corda: chi guarda solo la metà la prende per una retta */
+    const esse = spline({ nodi: [0, 0, 0, 0, 1, 1, 1, 1], cp: [[0, 0], [10, 10], [20, -10], [30, 0]] }).tratti[0].pts;
+    ok(esse.length > 10 && esse.some((q) => q.y > 2) && esse.some((q) => q.y < -2), "una S simmetrica non diventa una linea dritta: sale sopra 2 m e scende sotto −2", esse.length + " punti");
+
+    /* chiusa periodica: cinque punti, i primi tre ripetuti in coda, nodi uniformi */
+    const giro = [[0, 0], [20, 0], [25, 15], [10, 25], [-5, 12]];
+    const chiusa = spline({ nodi: Array.from({ length: 12 }, (_, i) => i * 0.1), cp: [...giro, giro[0], giro[1], giro[2]], flag: 1 }).tratti[0].pts;
+    eq(chiusa[0], chiusa[chiusa.length - 1], "⛔ una spline chiusa si chiude ESATTA: l'ultimo punto è il primo, identico — coi nodi a passo 0,1 il conto da solo sbaglierebbe di un milionesimo di miliardesimo di metro, e un contorno quasi chiuso non è chiuso");
+    ok(chiusa.every((q) => q.x > -6 && q.x < 26 && q.y > -1 && q.y < 26), "e vale solo nel suo dominio (da nodi[grado] a nodi[n+1]): fuori di lì la curva scapperebbe verso l'origine");
+
+    /* ⛔ la curva che NON è nel file */
+    const soloPassaggi = spline({ passaggi: [[0, 0], [5, 3], [10, 0], [15, -3]] }, [], ["0","LINE","10","0","20","-10","11","15","21","-10"]);
+    eq([soloPassaggi.tratti.length, soloPassaggi.nonLette], [1, {"SPLINE (punti di adattamento)":1}], "una spline scritta coi soli punti di adattamento: non si uniscono i punti con segmenti, si dichiara col suo nome — e la linea dopo si legge");
+    eq(genesi.dxfFraseNonLette(soloPassaggi.nonLette), "1 spline definita solo dai punti di adattamento", "con le parole di chi usa il CAD");
+    eq(genesi.dxfFraseNonLette({"SPLINE (punti di adattamento)":2, SPLINE:1}), "2 spline definite solo dai punti di adattamento, 1 curva spline", "al plurale, e distinta dalla spline coi conti che non tornano");
+    const conTutteEDue = spline({ nodi: [0, 0, 0, 1, 1, 1], grado: 2, cp: [[0, 0], [5, 10], [10, 0]], passaggi: [[0, 0], [5, 5], [10, 0]] });
+    eq([conTutteEDue.tratti.length, conTutteEDue.nonLette], [1, {}], "quando il file porta punti di controllo E di adattamento (come li scrive AutoCAD) la curva c'è: si legge");
+    /* i conti che non tornano */
+    eq(spline({ grado: 2, nodi: [0, 0, 0, 1, 1], cp: [[0, 0], [5, 10], [10, 0]] }).nonLette, {SPLINE:1}, "nodi ≠ punti di controllo + grado + 1: non è una spline leggibile");
+    eq(spline({ grado: 2, nodi: [0, 0, 0, 2, 1, 3, 3, 3], cp: [[0, 0], [5, 10], [10, 0], [15, 10], [20, 0]] }).nonLette, {SPLINE:1}, "nodi che tornano indietro (…2, 1…) dentro un dominio che sembra sano: nemmeno");
+    eq(spline({ grado: 2, nodi: [0, 0, 0, 1, 1, 1], cp: [[0, 0], [5, 10], [10, 0]], pesi: [1, 0, 1] }).nonLette, {SPLINE:1}, "un peso zero: nemmeno (dividerebbe per zero a metà curva)");
+    eq(spline({ grado: 2, nodi: [0, 0, 0, 1, 1, 1], cp: [[0, 0], [5, 10], [10, 0]], pesi: [1, 2] }).nonLette, {SPLINE:1}, "pesi in numero diverso dai punti di controllo: nemmeno");
+    eq(spline({ grado: 2, nodi: [0, 0, 0, 0, 0, 0], cp: [[0, 0], [5, 10], [10, 0]] }).nonLette, {SPLINE:1}, "nodi tutti uguali (dominio vuoto): nemmeno");
+
+    /* dentro un blocco ingrandito la stessa curva ha più punti: la freccia vale nel mondo */
+    const inBlocco = (scala) => genesi.dxfLeggi(dxf("0","SECTION","2","BLOCKS","0","BLOCK","2","S","10","0","20","0",
+      "0","SPLINE","70","0","71","2","40","0","40","0","40","0","40","1","40","1","40","1","10","0","20","0","10","5","20","10","10","10","20","0","0","ENDBLK","0","ENDSEC",
+      "0","SECTION","2","ENTITIES","0","INSERT","2","S","10","0","20","0","41",String(scala),"42",String(scala),"0","ENDSEC","0","EOF")).tratti[0].pts.length;
+    ok(inBlocco(30) > 3 * inBlocco(1), "a scala 30 la stessa spline ha molti più punti", inBlocco(30) + " contro " + inBlocco(1));
+  });
+
   test("Genesi · dxfFraseNonLette: ciò che resta fuori, con le parole di chi disegna", () => {
     eq(genesi.dxfFraseNonLette({}), "", "se è entrato tutto la frase è vuota");
     eq(genesi.dxfFraseNonLette(null), "", "e un conto assente non fa crollare niente");

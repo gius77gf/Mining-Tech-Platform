@@ -90,15 +90,17 @@ perché un foro senza valori suoi continua a usare quelli del progetto.
    è la **decisione 34**. Fatto intanto ciò che non dipende da lei: il
    lettore LAS provato su nove file veri, e i nove LAZ gemelli riconosciuti
    e mai letti come punti.
-2. **DXF: archi, ellissi, tratti curvi e blocchi inseriti ✅ 26/11** — ARC,
-   cerchi, ellissi e tratti ad arco delle polilinee entrano come spezzate
+2. **DXF: tutte le curve e i blocchi inseriti ✅ 26/11** — ARC, cerchi,
+   ellissi, spline e tratti ad arco delle polilinee entrano come spezzate
    che non si scostano dalla curva vera più di 2 cm; e i **blocchi inseriti si esplodono**: il
    contenuto entra dove il disegno lo mette (punto base, scala anche diversa
    sui due assi, specchio, rotazione, blocchi dentro blocchi, schiere), con
-   la freccia degli archi misurata nel mondo. 45 campioni scritti da ezdxf,
+   la freccia degli archi misurata nel mondo. 51 campioni scritti da ezdxf,
    geometria esatta come verità. Dichiarati e non letti: riferimenti
    esterni (il contenuto sta in un altro file), attributi e testi, retini,
-   quote. **Restano le spline**, l'ultima curva.
+   quote, e le spline scritte coi soli punti di adattamento (la curva non è
+   nel file: la pagina dice di convertirle in polilinea). Del disegno non
+   resta fuori nessuna LINEA.
 3. **Aggancio al cantiere e scambio dei fori** (decisione 32, rimandata).
 4. **Pezzatura da foto** (P2.1 qui sotto) e **modello ML** (P2.2): restano
    dove stavano.
