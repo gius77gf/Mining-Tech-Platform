@@ -29055,6 +29055,30 @@ console.log("\n— Campo: i file che escono —");
     eq(v.micFinestra(_fori(0, 8.001), 60), 60, "e oltre nemmeno");
   });
 
+  test("⛔ Genesi · F2, scartoCaricheProprie e caricaTotale: la carica vera della volata, e senza cariche proprie il conto di prima alla cifra", () => {
+    const H = (mod) => [0, 1, 2, 3, 4].map((i) => ({ mx: i, my: 3, ...(mod[i] || {}) }));
+    eq(v.scartoCaricheProprie(H({}), 58), 0, "nessun foro ha una carica sua: scarto zero");
+    eq(v.scartoCaricheProprie(H({ 1: { kg: 35 }, 3: { kg: 80 } }), 58), -1, "35 e 80 al posto di due 58: −23 + 22 = −1 kg in tutto");
+    eq(v.scartoCaricheProprie(H({ 0: { kg: 0 } }), 58), -58, "un foro scarico toglie la sua carica intera");
+    eq(v.scartoCaricheProprie(H({ 0: { kg: null }, 1: { kg: "" }, 2: { kg: -4 } }), 58), 0, "null, vuoto e negativo non sono cariche proprie");
+    eq(v.scartoCaricheProprie(H({ 0: { kg: 35 } }), null), null, "⛔ senza la carica del progetto lo scarto non si può dire: null, non un numero");
+    eq(v.scartoCaricheProprie(null, 58), 0, "senza fori: zero");
+    /* neutralità di caricaTotale: il terzo argomento assente, zero, null o illeggibile lascia nf × kg alla cifra */
+    for (const kg of [58.3, 12.75, 33.333333, 0.1]) for (const nf of [1, 7, 12, 40]) {
+      for (const sc of [undefined, 0, null, "", "abc", v.scartoCaricheProprie(H({}), kg)])
+        ok(Object.is(v.caricaTotale(nf, kg, sc), nf * kg), `caricaTotale(${nf}, ${kg}, ${JSON.stringify(sc)}) è ${nf} × ${kg} alla cifra`);
+    }
+    eq(v.caricaTotale(5, 58, v.scartoCaricheProprie(H({ 1: { kg: 35 }, 3: { kg: 80 } }), 58)), 289, "cinque fori, due con la loro carica: 58·3 + 35 + 80 = 289");
+    eq(v.caricaTotale(5, 58, v.scartoCaricheProprie(H({ 0: { kg: 0 }, 1: { kg: 0 }, 2: { kg: 0 }, 3: { kg: 0 }, 4: { kg: 0 } }), 58)), 0, "tutti scarichi: zero chili, numero vero");
+    eq(v.caricaTotale(5, null, -10), null, "⛔ senza la carica del progetto resta non calcolabile, qualunque scarto arrivi");
+    /* e costoVolata lo porta fino ai soldi */
+    const base = v.costoVolata({ nf: 5, kg: 58, mPerf: 50, cPerf: 1, cExpl: 2, cInnesco: 3 });
+    const stesso = v.costoVolata({ nf: 5, kg: 58, scartoKg: 0, mPerf: 50, cPerf: 1, cExpl: 2, cInnesco: 3 });
+    eq(stesso, base, "costoVolata con scarto zero: lo stesso oggetto di prima, voce per voce");
+    const vero = v.costoVolata({ nf: 5, kg: 58, scartoKg: -1, mPerf: 50, cPerf: 1, cExpl: 2, cInnesco: 3 });
+    eq([vero.qtot, vero.expl], [289, 578], "con lo scarto: 289 kg di esplosivo, pagati 2 al chilo");
+    eq([vero.perf, vero.innesco], [base.perf, base.innesco], "perforazione e inneschi non c'entrano con la carica: invariati");
+  });
   test("⛔ Genesi · F2, micFinestra: la finestra somma le cariche VERE dei fori — e senza cariche proprie il numero è quello di prima, alla cifra", () => {
     /* NEUTRALITÀ, il vincolo del cantiere foro per foro: un progetto senza
        valori per foro deve dare ESATTAMENTE `fori nella finestra × carica`,

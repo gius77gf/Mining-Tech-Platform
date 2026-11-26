@@ -55,6 +55,7 @@ const DIFETTI = [
    `prof:valoreDiForo(null,'prof',D2), prog:valoreDiForo(null,'kg',D2), borr:valoreDiForo(null,'stem',D2),`],
   [MODULO, `const suo = valoreProprioDiForo(h, 'kg'); return suo === null ? 0 : suo - kg; });`,
    `return 0; });`],
+  [MODULO, `if (suo !== null) s += suo - q; }`, `}`],
 ];
 
 const colpiti = new Set();
@@ -179,6 +180,27 @@ if (prima && prima.colonneTrovate) {
   dice(micCon500 >= 500 && micCon500 > micDopoDue,
     `⛔ dato a un foro 500 kg, la carica massima per ritardo sale ad almeno 500 (${micDopoDue} → ${micCon500}): la finestra somma le cariche vere`, micCon500);
   dice(micTolto === micDopoDue, `e tolta quella carica propria torna esattamente dov'era (${micTolto})`, micTolto);
+
+  /* 4. F2 — LA CARICA TOTALE NELLA SCHEDA VOLATA (CSV) È QUELLA VERA. Si
+     preme il bottone vero e si legge la riga «Carica totale (kg)»: a questo
+     punto il progetto ha un foro a 35 kg e uno scarico (dal passo 2), cioè
+     (35 − carica) + (0 − carica) chili in meno di «fori × carica». */
+  const caricaTotaleScheda = async () => {
+    await pg.evaluate(() => { window.__usciti.length = 0; document.getElementById("btn-scheda-csv").click(); });
+    await pg.waitForTimeout(700);
+    const f = (await pg.evaluate(() => window.__usciti)).find((x) => /scheda_volata/.test(x.nome));
+    if (!f) return null;
+    const riga = decodeURIComponent(f.href.split(",").slice(1).join(",")).split(/\r?\n/).find((r) => /^"?Carica totale \(kg\)/.test(r));
+    return riga ? +riga.split(";")[1] : null;
+  };
+  const totCon = await caricaTotaleScheda();
+  const atteso = Math.round(D2.n * D2.kg + (35 - D2.kg) + (0 - D2.kg));
+  dice(totCon === atteso,
+    `⛔ scheda volata: la carica totale è quella VERA — ${D2.n} fori × ${D2.kg} kg, meno il foro a 35 e quello scarico = ${atteso} kg (letto ${totCon})`, totCon);
+  /* e tolte le cariche proprie torna «fori × carica», cioè il numero di sempre */
+  await pg.evaluate(() => { for (const h of window.__genesi.D2.holes) { delete h.kg; delete h.prof; } });
+  const totSenza = await caricaTotaleScheda();
+  dice(totSenza === Math.round(D2.n * D2.kg), `e senza cariche proprie è ${D2.n} × ${D2.kg} = ${Math.round(D2.n * D2.kg)} kg, com'è sempre stato (letto ${totSenza})`, totSenza);
 }
 dice(pg.__err.length === 0, "la pagina non solleva errori", pg.__err.slice(0, 2));
 

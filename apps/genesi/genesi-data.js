@@ -1666,9 +1666,29 @@ export function caricaSenzaConto(nf, kg){
     come: parti.map(p => p.come).join(' ') };
 }
 /* I chili di esplosivo dell'intera volata, o `null` se non si contano. */
-export function caricaTotale(nf, kg){
+/* F2 (26/11) — LO SCARTO DELLE CARICHE PROPRIE. Di quanti chili i fori che
+   hanno una carica LORO si scostano, in tutto, dalla carica del progetto: la
+   somma di (carica propria − carica del progetto). Zero se nessun foro ne ha
+   una; `null` se la carica del progetto non si legge (di quanto ci si scosta
+   da un numero che non c'è non si può dire). È il solo pezzo che serve per
+   passare da «fori × carica» alla carica VERA della volata senza cambiare
+   il conto di chi cariche proprie non ne ha: n × kg + 0 è n × kg, alla cifra.
+   ⚠️ Vale solo dove «i fori» sono quelli DISEGNATI: sulla griglia di progetto
+   (fori per fila × file) questi scarti non hanno un foro a cui appartenere. */
+export function scartoCaricheProprie(holes, kg){
+  const q = (kg === null || kg === undefined || kg === '') ? NaN : +kg;
+  if (!Number.isFinite(q) || q < 0) return null;
+  let s = 0;
+  for (const h of (holes || [])){ const suo = valoreProprioDiForo(h, 'kg'); if (suo !== null) s += suo - q; }
+  return s;
+}
+/* `scarto` (facoltativo, da `scartoCaricheProprie`): assente, zero o
+   illeggibile lascia il conto ESATTAMENTE com'era — fori × carica. */
+export function caricaTotale(nf, kg, scarto){
   if (caricaSenzaConto(nf, kg)) return null;
-  return +nf * +kg;
+  const base = +nf * +kg;
+  const s = (scarto === null || scarto === undefined || scarto === '') ? NaN : +scarto;
+  return (Number.isFinite(s) && s !== 0) ? base + s : base;
 }
 
 export const COSTO_SENZA_CONTO = {
@@ -1695,7 +1715,8 @@ export function costoVolata(v){
   const num = (x) => (x === null || x === undefined || x === '') ? NaN : +x;
   const prezzo = (x) => { const p = num(x); return (Number.isFinite(p) && p >= 0) ? p : 0; };
   const nf = num(o.nf), mPerf = num(o.mPerf), vol = num(o.vol), ton = num(o.ton), vm = num(o.valMat);
-  const qtot = caricaTotale(o.nf, o.kg), perche = caricaSenzaConto(o.nf, o.kg);
+  /* `o.scartoKg` (F2, 26/11): lo scarto delle cariche proprie dei fori disegnati — lo passa solo chi conta i fori DISEGNATI */
+  const qtot = caricaTotale(o.nf, o.kg, o.scartoKg), perche = caricaSenzaConto(o.nf, o.kg);
   const senzaMetri = !Number.isFinite(mPerf) || mPerf < 0;
   const senzaFori  = !Number.isFinite(nf) || nf < 0;
   const perf    = senzaMetri ? null : mPerf * prezzo(o.cPerf);

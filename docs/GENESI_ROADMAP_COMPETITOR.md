@@ -76,7 +76,7 @@ perché un foro senza valori suoi continua a usare quelli del progetto.
 | Fetta | Che cosa | Che cosa vede l'utente |
 |---|---|---|
 | F1 ✅ 26/11 | Il foro può portare valori suoi (carica, profondità, borraggio), letti da una funzione sola che ripiega sul progetto (`valoreDiForo`); salvati e riaperti col progetto; il piano di carico li scrive già riga per riga | Niente ancora (nessun comando per darli: è F3). Provato che i progetti esistenti escono identici |
-| F2 (in corso) | La carica massima per ritardo (MIC) ✅ 26/11 somma le cariche VERE dei fori (`micFinestra`, identica alla cifra senza cariche proprie). Restano la carica totale e il consumo specifico | I numeri della scheda seguono i fori modificati |
+| F2 (in corso) | La carica massima per ritardo (MIC) ✅ 26/11 somma le cariche VERE dei fori (`micFinestra`, identica alla cifra senza cariche proprie). La carica totale vera ✅ 26/11 nel report e nella scheda volata (`scartoCaricheProprie`); restano gli altri quattro punti che la mostrano (scheda KPI, registro per Sentinella, validatori, il campo «Esplosivo totale» che è a due versi) e il consumo specifico | I numeri della scheda seguono i fori modificati |
 | F3 | Si modificano i fori selezionati (la selezione multipla c'è già): «a questi fori: carica / profondità / borraggio» | Il gesto che ogni concorrente ha |
 | F4 | Tabella dei fori: una riga per foro, modificabile, ordinabile | La vista che un tecnico si aspetta |
 | F5 | Piano di carico, XML e DXF scrivono i valori per foro; il 3D disegna ogni foro lungo e carico com'è | I file che escono dicono la verità |

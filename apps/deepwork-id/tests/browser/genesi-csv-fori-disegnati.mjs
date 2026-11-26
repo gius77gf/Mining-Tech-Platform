@@ -32,7 +32,7 @@ const TIPI = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/jav
 /* IL DIFETTO DA RIMETTERE, parola per parola come stava prima del 17/09. */
 const DIFETTI = [
   [`  const _gCsv=measureGeom2D(D2), _nfCsv=_gCsv.n;
-  const _cKCsv=costoVolata({ nf:_nfCsv, kg:D2.kg, mPerf:metriPerforati(_nfCsv, D2.prof, D2.sub),
+  const _cKCsv=costoVolata({ nf:_nfCsv, kg:D2.kg, scartoKg:scartoCaricheProprie(D2.holes, D2.kg), mPerf:metriPerforati(_nfCsv, D2.prof, D2.sub),
     cPerf:D2.cPerf, cExpl:D2.cExpl, cInnesco:D2.cInnesco });`, ``],
   [`['Fori', _nfCsv],`, `['Fori', k.nf],`],
   [`['Carica totale (kg)', _cKCsv.qtot===null?null:Math.round(_cKCsv.qtot)],`, `['Carica totale (kg)', k.qtot],`],

@@ -1269,7 +1269,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, reliefCls, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino, activeProf, d2HitTest, d2HitTestPt,
-         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfLeggi, dxfFraseNonLette, valoriPropriDiForo, valoreDiForo, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, foriRiflessi, trattiRuotati, trattiScalati, coordinataRelativa, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
+         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfLeggi, dxfFraseNonLette, valoriPropriDiForo, valoreDiForo, scartoCaricheProprie, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, foriRiflessi, trattiRuotati, trattiScalati, coordinataRelativa, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -3666,7 +3666,7 @@ if($('btn-scheda-csv')) $('btn-scheda-csv').onclick=()=>{
      file che il fochino porta in cava accanto al rapportino. Rifatto lo
      stesso conto del Report, sugli stessi fori che il foglio descrive. */
   const _gCsv=measureGeom2D(D2), _nfCsv=_gCsv.n;
-  const _cKCsv=costoVolata({ nf:_nfCsv, kg:D2.kg, mPerf:metriPerforati(_nfCsv, D2.prof, D2.sub),
+  const _cKCsv=costoVolata({ nf:_nfCsv, kg:D2.kg, scartoKg:scartoCaricheProprie(D2.holes, D2.kg), mPerf:metriPerforati(_nfCsv, D2.prof, D2.sub),
     cPerf:D2.cPerf, cExpl:D2.cExpl, cInnesco:D2.cInnesco });
   /* ⛔ IL 07/08 QUESTO FILE ERA LA QUARTA SUPERFICIE CHE NON DICEVA DA DOVE
      VIENE LA PPV, dopo il foglio stampato (corretto il 06/08), la scheda
@@ -4076,7 +4076,7 @@ if($('btn-report')) $('btn-report').onclick=()=>{
   const nf=g.n, mPerf=metriPerforati(nf, D2.prof, D2.sub);
   const _volForo=volumeForo(D2.B, D2.S, D2.prof), vol=(_volForo===null?null:nf*_volForo);
   const rho=R.rho, ton=(vol===null||!Number.isFinite(+rho))?null:vol*rho;
-  const _cR=costoVolata({ nf, kg:D2.kg, mPerf, vol, ton, valMat:D2.valMat,
+  const _cR=costoVolata({ nf, kg:D2.kg, scartoKg:scartoCaricheProprie(D2.holes, D2.kg), mPerf, vol, ton, valMat:D2.valMat,
     cPerf:D2.cPerf, cExpl:D2.cExpl, cInnesco:D2.cInnesco });
   const kgTot=_cR.qtot, cP=_cR.perf, cE=_cR.expl, cI=_cR.innesco, cTot=_cR.tot;
   const eur=(x)=>'€'+gnum(x,0), esc=_rEsc;                      // anche gli euro passano da gnum: una convenzione sola
