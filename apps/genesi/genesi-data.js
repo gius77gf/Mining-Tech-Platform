@@ -1682,6 +1682,32 @@ export function scartoCaricheProprie(holes, kg){
   for (const h of (holes || [])){ const suo = valoreProprioDiForo(h, 'kg'); if (suo !== null) s += suo - q; }
   return s;
 }
+/* F2 (26/11) — IL VERSO INVERSO: da un TOTALE scritto dall'utente alla
+   carica del progetto. Il campo «Esplosivo totale» della pagina è a due
+   versi: mostra la carica della volata e, se ci si scrive un numero, ricalcola
+   la carica per foro. Fino a oggi era `totale / fori`. Con le cariche proprie
+   quel conto farebbe rileggere al campo un totale DIVERSO da quello scritto.
+   La regola discende da F1, non è una scelta nuova: il campo scrive la carica
+   del PROGETTO, e un foro con una carica sua per definizione non la segue.
+   Quindi i fori con una carica propria restano fermi e il totale si
+   distribuisce sugli altri: (totale − somma delle proprie) / fori senza.
+   Senza cariche proprie è `totale / fori`, alla cifra (3000 totali a caso in
+   scratchpad, zero differenze).
+   Risponde `null` se il totale o il numero dei fori non sono positivi. `kg`
+   è `null` quando TUTTI i fori hanno una carica propria (non c'è nessuno su
+   cui distribuire), ed è NEGATIVO quando il totale scritto è meno della somma
+   delle cariche proprie: due casi che la pagina deve dire, non arrotondare. */
+export function caricaProgettoDaTotale(tot, n, holes){
+  const T = (tot === null || tot === undefined || tot === '') ? NaN : +tot;
+  const N = (n === null || n === undefined || n === '') ? NaN : +n;
+  if (!(T > 0) || !(N > 0)) return null;
+  let somma = 0, propri = 0;
+  for (const h of (holes || [])){ const suo = valoreProprioDiForo(h, 'kg'); if (suo !== null){ somma += suo; propri++; } }
+  if (propri === 0) return { kg: T / N, propri: 0, liberi: N, sommaProprie: 0 };
+  const liberi = N - propri;
+  if (!(liberi > 0)) return { kg: null, propri, liberi: 0, sommaProprie: somma };
+  return { kg: (T - somma) / liberi, propri, liberi, sommaProprie: somma };
+}
 /* `scarto` (facoltativo, da `scartoCaricheProprie`): assente, zero o
    illeggibile lascia il conto ESATTAMENTE com'era — fori × carica. */
 export function caricaTotale(nf, kg, scarto){
@@ -2520,6 +2546,27 @@ export function valoriPropriDiForo(h){
   return out;
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   LA FIRMA DELLA MAGLIA (26/11) — quando i fori «non sono più quelli».
+   ══════════════════════════════════════════════════════════════════════════
+   Misurato il 26/11 nel browser, cercando perché il campo «Esplosivo totale»
+   perdeva le cariche proprie: `applyDesign` chiamava `genMaglia2D()` SEMPRE,
+   a ogni parametro toccato. Cambiando SOLO il borraggio: il foro spostato a
+   mano tornava al suo posto, il foro aggiunto sulla tela spariva, il ritardo
+   messo a mano e la carica propria si perdevano (13 fori → 12, primo foro da
+   0,7 a 0) — e per i primi due senza nemmeno un avviso. Il commento di
+   `genMaglia2D` dice «rigenerare butta via i ritardi a mano, ed è giusto: i
+   fori non sono più quelli»: vero quando cambia la GEOMETRIA della maglia,
+   falso quando cambia il borraggio.
+   I cinque numeri da cui `generaMaglia` costruisce le coordinate sono
+   spalla, interasse, numero di file, fori per fila e sfalsamento: finché
+   quelli non cambiano i fori sono gli stessi, e si tengono. La firma si
+   prende quando la maglia NASCE (o quando un progetto salvato rimette i
+   suoi fori) e si confronta con quella dei parametri di adesso. */
+export function firmaMaglia(d){
+  const o = d || {};
+  return [o.B, o.S, o.file, o.perRow, o.stagger].map((x) => (x === null || x === undefined) ? '' : String(x)).join('|');
+}
 export function foriDaDesign(design){
   const d = design || {};
   if (!Array.isArray(d.holes)) return null;

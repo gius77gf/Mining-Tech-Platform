@@ -29079,6 +29079,19 @@ console.log("\n— Campo: i file che escono —");
     eq([vero.qtot, vero.expl], [289, 578], "con lo scarto: 289 kg di esplosivo, pagati 2 al chilo");
     eq([vero.perf, vero.innesco], [base.perf, base.innesco], "perforazione e inneschi non c'entrano con la carica: invariati");
   });
+  test("⛔ Genesi · F2, caricaProgettoDaTotale: il totale scritto si distribuisce sui fori SENZA una carica propria — e senza proprie è totale / fori alla cifra", () => {
+    const H = (mod) => Array.from({ length: 12 }, (_, i) => ({ id: "f" + i, ...(mod[i] || {}) }));
+    for (const [T, N] of [[696, 12], [1234.5, 7], [58.3, 3], [4680, 40], [0.1, 1]])
+      ok(Object.is(v.caricaProgettoDaTotale(T, N, H({})).kg, T / N), `senza cariche proprie: ${T} / ${N} alla cifra`);
+    eq(v.caricaProgettoDaTotale(738, 12, H({ 1: { kg: 100 } })), { kg: 58, propri: 1, liberi: 11, sommaProprie: 100 }, "un foro a 100 kg resta fermo: gli altri undici si dividono 638");
+    eq(v.caricaProgettoDaTotale(600, 12, H({ 1: { kg: 0 }, 2: { kg: 35 } })).kg, 56.5, "uno scarico e uno a 35: (600 − 35) / 10");
+    /* andata e ritorno: la carica che ne esce, rimessa in caricaTotale con lo scarto, ridà il totale scritto */
+    const fori = H({ 1: { kg: 0 }, 2: { kg: 35 } }), r = v.caricaProgettoDaTotale(600, 12, fori);
+    eq(v.caricaTotale(12, r.kg, v.scartoCaricheProprie(fori, r.kg)), 600, "⛔ il campo rilegge il totale che ci è stato scritto: i due versi si chiudono");
+    eq(v.caricaProgettoDaTotale(500, 3, [{ kg: 10 }, { kg: 20 }, { kg: 30 }]), { kg: null, propri: 3, liberi: 0, sommaProprie: 60 }, "⛔ tutti con una carica propria: kg null (niente da distribuire), non una divisione per zero");
+    ok(v.caricaProgettoDaTotale(50, 12, H({ 1: { kg: 100 } })).kg < 0, "⛔ totale minore della somma delle proprie: carica NEGATIVA, che la pagina rifiuta invece di arrotondarla al minimo");
+    eq([v.caricaProgettoDaTotale(0, 12, H({})), v.caricaProgettoDaTotale(100, 0, H({})), v.caricaProgettoDaTotale("abc", 12, H({})), v.caricaProgettoDaTotale(100, null, H({}))], [null, null, null, null], "totale o fori non positivi o illeggibili: null");
+  });
   test("⛔ Genesi · F2, micFinestra: la finestra somma le cariche VERE dei fori — e senza cariche proprie il numero è quello di prima, alla cifra", () => {
     /* NEUTRALITÀ, il vincolo del cantiere foro per foro: un progetto senza
        valori per foro deve dare ESATTAMENTE `fori nella finestra × carica`,
@@ -43151,6 +43164,17 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     const r = genesi.foriDaDesign({ holes: [{ id: "f1-1", mx: 0, my: 3, tMano: null }, { id: "f1-3", mx: 7, my: 3, tMano: 99 }, { id: "m1", mx: 3.5, my: 6 }] });
     eq(r.fori, [{ id: "f1-1", mx: 0, my: 3 }, { id: "f1-3", mx: 7, my: 3, tMano: 99 }, { id: "m1", mx: 3.5, my: 6 }], "⛔ i tre fori tornano con il loro id — f1-2 tolto NON ricompare — e il 99 ms a mano resta");
     eq(r.scartati, 0, "nessuno scartato");
+  });
+  test("Genesi · firmaMaglia: i cinque numeri da cui nascono le coordinate dei fori — cambia solo se cambia la geometria", () => {
+    const D = { B: 3, S: 3.5, file: 2, perRow: 6, stagger: true, kg: 58, prof: 10, stem: 2.2, ritardo: 42 };
+    const f0 = genesi.firmaMaglia(D);
+    eq(f0, "3|3.5|2|6|true", "spalla, interasse, file, fori per fila, sfalsamento");
+    for (const [k, val] of [["kg", 80], ["prof", 12], ["stem", 2.5], ["ritardo", 25], ["diam", 89], ["esplosivo", "anfo"]])
+      eq(genesi.firmaMaglia({ ...D, [k]: val }), f0, `⛔ cambiare ${k} NON cambia la firma: i fori sono gli stessi e si tengono`);
+    for (const [k, val] of [["B", 3.2], ["S", 4], ["file", 3], ["perRow", 7], ["stagger", false]])
+      ok(genesi.firmaMaglia({ ...D, [k]: val }) !== f0, `cambiare ${k} cambia la firma: la maglia si rigenera`);
+    eq(genesi.firmaMaglia(null), "||||", "un progetto assente ha una firma vuota, non un errore");
+    ok(genesi.firmaMaglia({ B: null, S: 3.5, file: 2, perRow: 6 }) !== genesi.firmaMaglia({ B: 0, S: 3.5, file: 2, perRow: 6 }), "null e zero non sono la stessa spalla");
   });
   test("Genesi · F1, valoreDiForo: il valore suo se il foro ne ha uno, se no quello del progetto, e null se non lo sa nessuno", () => {
     const D2 = { kg: 50, prof: 10, stem: 2.2 };

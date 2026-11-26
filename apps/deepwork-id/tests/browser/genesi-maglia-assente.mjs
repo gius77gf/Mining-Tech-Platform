@@ -43,7 +43,7 @@ const TIPI = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/jav
    tabella è quello che `iniezioni-fresche.mjs` sa leggere. */
 const DIFETTI = [
   ["apps/genesi/genesi.html",
-   "  D2.magliaAssente = magliaAssenteMotivo(D2.B, D2.S);\n  if(D2.magliaAssente){ D2.holes=[]; D2.sel=-1; D2.selPrev=-1; D2.lastDet=0; return; }\n  D2.bf = D2.B;",
+   "  D2.magliaAssente = magliaAssenteMotivo(D2.B, D2.S);\n  if(D2.magliaAssente){ D2.holes=[]; D2.sel=-1; D2.selPrev=-1; D2.lastDet=0; D2.firmaMaglia=null; return; }\n  D2.bf = D2.B;",
    "  D2.magliaAssente = null;\n  D2.bf = D2.B;"],
 ];
 

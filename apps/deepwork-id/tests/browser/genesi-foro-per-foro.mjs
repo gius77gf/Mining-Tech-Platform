@@ -56,6 +56,8 @@ const DIFETTI = [
   [MODULO, `const suo = valoreProprioDiForo(h, 'kg'); return suo === null ? 0 : suo - kg; });`,
    `return 0; });`],
   [MODULO, `if (suo !== null) s += suo - q; }`, `}`],
+  [MODULO, `return { kg: (T - somma) / liberi, propri, liberi, sommaProprie: somma };`, `return { kg: T / N, propri, liberi, sommaProprie: somma };`],
+  [PAGINA, `if(_stessiFori) computeSeq2D(); else genMaglia2D();`, `genMaglia2D();`],
 ];
 
 const colpiti = new Set();
@@ -226,6 +228,62 @@ if (prima && prima.colonneTrovate) {
   const schedaCsv = await caricaTotaleScheda();
   dice(schedaCsv === Math.round(vero), `e la scheda volata in CSV pure (${schedaCsv}): tre superfici, una carica`, schedaCsv);
   await pg.evaluate((a) => { delete window.__genesi.D2.holes.find((h) => h.id === a).kg; }, a);
+
+  /* 6. F2 — IL CAMPO «ESPLOSIVO TOTALE» È A DUE VERSI: mostra la carica della
+     volata e, se ci si scrive un totale, ricalcola la carica del progetto.
+     Con cariche proprie i fori che ne hanno una restano FERMI e il totale si
+     distribuisce sugli altri; e il campo deve rileggere il totale scritto. */
+  await pg.evaluate(() => { window.__toasts = []; const t = window.toast; window.toast = function (m) { window.__toasts.push(String(m)); return t.apply(this, arguments); }; });
+  const scrivi = async (v) => {
+    await pg.evaluate((v) => { window.__toasts.length = 0; const el = document.getElementById("dKgTot"); el.value = v; el.dispatchEvent(new Event("change", { bubbles: true })); }, v);
+    await pg.waitForTimeout(350);
+    await pg.evaluate(() => window.__genesi.renderScheda2D());
+    return pg.evaluate(() => ({ kg: window.__genesi.D2.kg, campo: document.getElementById("dKgTot").value, toast: window.__toasts.join(" | ") }));
+  };
+  const n = D2.n;
+  const senza = await scrivi(String(n * 60));
+  dice(senza.kg === 60, `senza cariche proprie, scrivere ${n * 60} dà 60 kg per foro: com'è sempre stato (${senza.kg})`, senza);
+  await pg.evaluate((a) => { window.__genesi.D2.holes.find((h) => h.id === a).kg = 100; }, a);
+  const conUno = await scrivi(String(100 + (n - 1) * 50));
+  dice(conUno.kg === 50, `⛔ con un foro fermo a 100 kg, scrivere ${100 + (n - 1) * 50} dà 50 kg agli ALTRI ${n - 1} (letto ${conUno.kg})`, conUno);
+  dice(+String(conUno.campo).replace(/\./g, "").replace(",", ".") === 100 + (n - 1) * 50, `⛔ e il campo rilegge il totale scritto (${conUno.campo}): i due versi si chiudono`, conUno);
+  const troppoPoco = await scrivi("40");
+  dice(troppoPoco.kg === 50 && /meno della somma delle cariche proprie/.test(troppoPoco.toast),
+    `⛔ un totale minore della carica propria (40 contro 100) si RIFIUTA col motivo, la carica del progetto resta ${troppoPoco.kg}`, troppoPoco);
+  await pg.evaluate(() => { for (const h of window.__genesi.D2.holes) h.kg = 30; });
+  const tutti = await scrivi("900");
+  dice(tutti.kg === 50 && /non c'è nessun foro su cui distribuire/.test(tutti.toast),
+    `⛔ tutti i fori con una carica propria: niente da distribuire, lo dice e non divide per zero (carica del progetto ${tutti.kg})`, tutti);
+  await pg.evaluate(() => { for (const h of window.__genesi.D2.holes) delete h.kg; });
+
+  /* 7. ⛔ LA MAGLIA SI RIGENERA SOLO SE CAMBIA LA SUA GEOMETRIA. Misurato il
+     26/11: bastava ritoccare il borraggio perché `applyDesign` rigenerasse
+     tutti i fori — quello spostato a mano tornava al suo posto, quello
+     aggiunto spariva, ritardo a mano e carica propria si perdevano. Senza
+     questo il «foro per foro» non regge: ogni parametro toccato azzererebbe
+     il lavoro fatto sui fori. */
+  const fotografia = () => pg.evaluate(() => { const H = window.__genesi.D2.holes;
+    return { n: H.length, primoX: H[0].mx, aMano: H.filter((h) => h.id === "prova-m").length, conKg: H.filter((h) => h.kg != null).length, tMano: H.filter((h) => h.tMano != null).length }; });
+  const cambia = async (id, v) => { await pg.evaluate(([id, v]) => { const el = document.getElementById(id); el.value = v;
+    el.dispatchEvent(new Event("input", { bubbles: true })); el.dispatchEvent(new Event("change", { bubbles: true })); }, [id, v]); await pg.waitForTimeout(450); };
+  const x0 = (await fotografia()).primoX;
+  await pg.evaluate(() => { const H = window.__genesi.D2.holes; H[0].mx += 0.7; H.push({ id: "prova-m", mx: 20, my: 9 }); H[1].tMano = 99; H[2].kg = 35; });
+  await cambia("dStem", "2,5");
+  const dopoStem = await fotografia();
+  const stem = await pg.evaluate(() => window.__genesi.D2.stem);
+  dice(stem === 2.5, `il borraggio cambiato è arrivato (${stem})`, stem);
+  dice(dopoStem.n === D2.n + 1 && dopoStem.aMano === 1, `⛔ cambiato SOLO il borraggio, il foro aggiunto a mano c'è ancora (${dopoStem.n} fori)`, dopoStem);
+  dice(Math.abs(dopoStem.primoX - (x0 + 0.7)) < 1e-9, `⛔ il foro spostato a mano è rimasto dov'era stato messo (${dopoStem.primoX})`, dopoStem);
+  dice(dopoStem.tMano === 1 && dopoStem.conKg === 1, "⛔ e ritardo a mano e carica propria non sono andati persi", dopoStem);
+  /* e quando la geometria cambia DAVVERO la maglia si rigenera, e lo dice */
+  await pg.evaluate(() => { window.__toasts.length = 0; });
+  const sPrima = await pg.evaluate(() => window.__genesi.D2.S);
+  await cambia("dS", String(sPrima + 0.5).replace(".", ","));
+  const dopoS = await fotografia();
+  const detto = await pg.evaluate(() => window.__toasts.join(" | "));
+  dice(dopoS.n === D2.n && dopoS.aMano === 0 && dopoS.conKg === 0, `cambiato l'interasse, la maglia si rigenera: i fori non sono più quelli (${dopoS.n} fori, nessuno a mano)`, dopoS);
+  dice(/ritardo messo a mano non vale più/.test(detto) && /foro con valori suoi è tornato a quelli del progetto/.test(detto),
+    "⛔ e dice che cosa si è perso: il ritardo a mano E il foro con valori suoi", detto);
 }
 dice(pg.__err.length === 0, "la pagina non solleva errori", pg.__err.slice(0, 2));
 

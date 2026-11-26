@@ -1269,7 +1269,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, reliefCls, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino, activeProf, d2HitTest, d2HitTestPt,
-         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfLeggi, dxfFraseNonLette, valoriPropriDiForo, valoreDiForo, scartoCaricheProprie, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, foriRiflessi, trattiRuotati, trattiScalati, coordinataRelativa, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
+         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfLeggi, dxfFraseNonLette, valoriPropriDiForo, valoreDiForo, scartoCaricheProprie, caricaProgettoDaTotale, firmaMaglia, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, foriRiflessi, trattiRuotati, trattiScalati, coordinataRelativa, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -5529,6 +5529,8 @@ if($('hgVolate')) $('hgVolate').addEventListener('click',async e=>{
        come sempre. I fori illeggibili si contano e si dicono nel toast. */
     const _fd=foriDaDesign(arr[i].design);
     D2.holes=(_fd&&_fd.fori.length)?_fd.fori:[]; D2.sel=-1; D2.selPt=-1; D2.selPrev=-1;
+    /* 26/11: i fori salvati appartengono ai parametri salvati con loro — la firma si prende qui, se no il primo parametro toccato li rigenererebbe */
+    D2.firmaMaglia=D2.holes.length?firmaMaglia(D2):null;
     /* G37 — `magliaAssente` non è un parametro salvato col progetto (si
        ricalcola da B/S), e senza questo azzeramento resterebbe quello
        dell'ultima volata aperta: una volata sana aperta dopo una rotta
@@ -5877,7 +5879,7 @@ function genMaglia2D(){
      (`computeEnergia2D` e c.) non vengono nemmeno chiamati, perché hanno
      già una guardia su `H.length===0`. Vedi genesi-data.js, blocco G37. */
   D2.magliaAssente = magliaAssenteMotivo(D2.B, D2.S);
-  if(D2.magliaAssente){ D2.holes=[]; D2.sel=-1; D2.selPrev=-1; D2.lastDet=0; return; }
+  if(D2.magliaAssente){ D2.holes=[]; D2.sel=-1; D2.selPrev=-1; D2.lastDet=0; D2.firmaMaglia=null; return; }
   D2.bf = D2.B;                                            // burden tra file = spalla
   /* ⛔ Trasloco G43 (14/09, cantiere B3): il calcolo delle coordinate è
      `generaMaglia` in ./genesi-data.js — non un falso positivo del
@@ -5887,8 +5889,13 @@ function genMaglia2D(){
   /* rigenerare la maglia butta via i ritardi messi a mano, ed è giusto: i fori
      non sono più quelli. Ma va detto, altrimenti spariscono in silenzio. */
   const aMano=(D2.holes||[]).filter(h=>h.tMano!=null).length;
+  /* 26/11: e i valori per foro (carica, profondità, borraggio propri) fanno la stessa fine dei ritardi a mano — si dice */
+  const _conPropri=(D2.holes||[]).filter(h=>Object.keys(valoriPropriDiForo(h)).length).length;
+  D2.firmaMaglia=firmaMaglia(D2);   // la firma si prende quando la maglia NASCE
   D2.holes=holes; D2.sel=-1; D2.selPrev=-1; computeSeq2D();
-  if(aMano && typeof toast==='function') toast('Maglia rigenerata: '+(aMano===1?'il ritardo messo a mano non vale più':'i '+aMano+' ritardi messi a mano non valgono più'));
+  const _persi=[aMano && (aMano===1?'il ritardo messo a mano non vale più':'i '+aMano+' ritardi messi a mano non valgono più'),
+    _conPropri && (_conPropri===1?'il foro con valori suoi è tornato a quelli del progetto':'i '+_conPropri+' fori con valori loro sono tornati a quelli del progetto')].filter(Boolean);
+  if(_persi.length && typeof toast==='function') toast('Maglia rigenerata: '+_persi.join('; '));
 }
 /* ⛔ Trasloco G42 (14/09, cantiere B3, ultima fetta del gruppo): il conto
    vero è `sequenzaSuMaglia` in ./genesi-data.js — stessa famiglia di falso
@@ -7973,7 +7980,16 @@ function applyDesign(){
      scelto (2,5 m) al valore di fabbrica, e `syncDesignInputs` lo riscriveva
      nel campo come se l'avesse deciso lui. */
   if($('dDeckStem')) D2.deckStem = valoreCampo(gvv('dDeckStem'), D2.deckStem, 0.3, 4);
-  genMaglia2D(); drawDesign2D(); renderScheda2D(); renderInspector();   // editing 2D snello, il 3D si aggiorna su "Simula"
+  /* ⛔ 26/11 — LA MAGLIA SI RIGENERA SOLO SE È CAMBIATA LA SUA GEOMETRIA
+     (spalla, interasse, file, fori per fila, sfalsamento: `firmaMaglia`).
+     Qui c'era `genMaglia2D()` secco: bastava ritoccare il borraggio perché
+     un foro spostato a mano tornasse al suo posto, uno aggiunto sparisse, e
+     ritardi a mano e valori per foro andassero persi (misurato: vedi il
+     commento di `firmaMaglia` nel modulo). Se i fori sono gli stessi si
+     ricalcola solo la sequenza, che è ciò che gli altri parametri cambiano. */
+  const _stessiFori = D2.holes.length>0 && !D2.magliaAssente && D2.firmaMaglia===firmaMaglia(D2);
+  if(_stessiFori) computeSeq2D(); else genMaglia2D();
+  drawDesign2D(); renderScheda2D(); renderInspector();   // editing 2D snello, il 3D si aggiorna su "Simula"
 }
 function syncDesignInputs(){
   if(!$('dB')) return;
@@ -8126,7 +8142,7 @@ if($('dKg')) $('dKg').addEventListener('input', ()=>{ D2.kgAuto=false; });
    `caricaTotale`, che è la funzione del blocco G12 e risponde `null` quando
    non c'è niente da moltiplicare — `gsv` un `null` lo scrive come campo vuoto.
    Era la terza scrittura della stessa riga, ed è il difetto della copia debole. */
-function syncKgTot(){ if($('dKgTot')) gsv('dKgTot',caricaTotale(measureGeom2D(D2).n||0, D2.kg),0); }
+function syncKgTot(){ if($('dKgTot')) gsv('dKgTot',caricaTotale(measureGeom2D(D2).n||0, D2.kg, scartoCaricheProprie(D2.holes, D2.kg)),0); }
 if($('dKgTot')) $('dKgTot').addEventListener('change', ()=>{
   /* ⛔ E SVUOTARLO NON VUOL DIRE «ZERO CHILI»: qui `tot` diventava 0, il ramo
      non partiva, e il campo restava VUOTO mentre la volata continuava ad avere
@@ -8150,8 +8166,20 @@ if($('dKgTot')) $('dKgTot').addEventListener('change', ()=>{
     syncKgTot(); return;
   }
   if(tot>0 && n>0){
+    /* F2 (26/11): il totale scritto si distribuisce sui fori SENZA una carica
+       propria — quelli che ne hanno una restano fermi (`caricaProgettoDaTotale`
+       nel modulo, con la ragione). Senza cariche proprie è `tot/n`, com'era. */
+    const _r=caricaProgettoDaTotale(tot, n, D2.holes);
+    if(_r && _r.kg===null){
+      toast('Tutti i '+_ricPlur(_r.propri,'foro ha','fori hanno')+' una carica propria ('+gnum(_r.sommaProprie,1)+' kg in tutto): non c\'è nessun foro su cui distribuire questo totale.');
+      syncKgTot(); return;
+    }
+    if(_r && _r.kg<0){
+      toast('Questo totale è meno della somma delle cariche proprie dei fori ('+gnum(_r.sommaProprie,1)+' kg): agli altri resterebbe una carica negativa. Scrivi un totale più alto, o cambia le cariche proprie.');
+      syncKgTot(); return;
+    }
     D2.kgAuto=false;
-    D2.kg=Math.max(5, Math.min(200, +(tot/n).toFixed(1)));
+    D2.kg=Math.max(5, Math.min(200, +(_r.kg).toFixed(1)));
     gsv('dKg',D2.kg,0);
     applyDesign();
   }
