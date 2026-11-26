@@ -43686,6 +43686,24 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(genesi.valoriPerForoDaPiano([{ x: 3.5, y: 3, incl: 45 }], lisci, P).scartati, 1, "una fuori dai limiti letta da un file si scarta e si conta");
     eq(genesi.valoriPerForoDaPiano([{ x: 3.5, y: 3, incl: 10 }], lisci, P).riportati, 0, "una uguale a quella del progetto non è un valore proprio");
   });
+  test("Genesi · dxfPianoFori: il piede dei fori inclinati esce su un livello suo — e una volata a fori verticali esce com'era", () => {
+    const fori = [{ id: "a", mx: 0, my: 3 }, { id: "b", mx: 3.5, my: 3, incl: 20 }, { id: "c", mx: 7, my: 3, incl: 0 }, { id: "d", mx: 10.5, my: 3, prof: 6 }];
+    const prima = genesi.dxfPianoFori(fori, 102, []);
+    eq(genesi.dxfPianoFori(fori.map(({ incl, ...h }) => h), 102, [], { prof: 10, incl: 0 }), genesi.dxfPianoFori(fori.map(({ incl, ...h }) => h), 102, []), "⛔ NEUTRALITÀ: fori verticali → il file è byte per byte quello senza il quarto argomento");
+    eq(prima.includes("PIEDI"), false, "e senza `progetto` il livello PIEDI non esiste: chi chiamava la funzione ieri riceve il file di ieri");
+    eq(genesi.dxfPianoFori(fori, 102, [], {}).includes("PIEDI") && genesi.dxfPianoFori(fori.slice(0, 1), 102, [], {}).includes("PIEDI"), false, "un progetto che non sa né lunghezza né inclinazione non disegna piedi inventati («non lo so» non è «verticale», e nemmeno «inclinato»)");
+    /* progetto a 10 m e 10°: il piede di ogni foro, coi SUOI valori */
+    const dxf = genesi.dxfPianoFori(fori, 102, [], { prof: 10, incl: 10 });
+    const letto = genesi.dxfLeggi(dxf);
+    const piedi = letto.tratti.filter((t) => t.pts.length === 2).map((t) => t.pts.map((q) => [q.x, Math.round(q.y * 1000) / 1000]));
+    const seno = (g) => Math.sin(g * Math.PI / 180), y = (lung, g) => Math.round((3 - lung * seno(g)) * 1000) / 1000;
+    eq(piedi, [[[0, 3], [0, y(10, 10)]], [[3.5, 3], [3.5, y(10, 20)]], [[10.5, 3], [10.5, y(6, 10)]]],
+      "⛔ tre linee boccaforo→piede: «a» coi valori del progetto (1,74 m verso la faccia), «b» coi suoi 20° (3,42 m), «d» coi suoi 6 m (1,04 m) — e «c», che è verticale di suo, NESSUNA");
+    ok(piedi.every((p) => p[1][1] < p[0][1]), "il piede sta VERSO LA FACCIA (y più piccola: la faccia è a y = 0), come sulla pianta");
+    eq((dxf.match(/\n8\nPIEDI\n/g) || []).length > 0 && (dxf.match(/\n8\nFORI\n/g) || []).length, (prima.match(/\n8\nFORI\n/g) || []).length, "sul livello PIEDI, e il livello FORI è quello di prima (stessi cerchi, stessi numeri)");
+    eq(dxf.replace(/0\nPOLYLINE\n8\nPIEDI[\s\S]*?0\nSEQEND\n/g, ""), prima, "⛔ tolte le linee dei piedi, il resto del file è IDENTICO a quello senza: niente altro è cambiato");
+    eq(letto.tratti.length, 4 + 3, "riaperto col nostro lettore: i quattro cerchi dei fori (contorni) e le tre linee dei piedi, come tratti");
+  });
   test("⛔ Genesi · foriFuoriDalForoTipo e avvisoForoTipo: una previsione sul foro tipo dice per quanti fori NON è stata fatta", () => {
     const lisci = [{ id: "a" }, { id: "b" }, { id: "c" }, { id: "d" }];
     eq(genesi.foriFuoriDalForoTipo(lisci, genesi.CAMPI_DELLA_GITTATA), { fori: 0, perCampo: { kg: 0, stem: 0, diam: 0, incl: 0 }, campi: [] }, "senza valori per foro nessuno è fuori");

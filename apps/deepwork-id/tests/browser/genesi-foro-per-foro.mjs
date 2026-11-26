@@ -148,6 +148,9 @@ const DIFETTI = [
   [PAGINA, `why:(_flyTipo?'<b>⚠ '+_rEsc(_flyTipo)+'</b> Le distanze di sgombero qui sopra valgono per il foro tipo. ':'')+`, `why:`],
   [PAGINA, `['Avviso gittata sul foro tipo', k.flyCalcolabile?avvisoForoTipo(D2.holes, CAMPI_DELLA_GITTATA, 'la gittata'):''],`, `['Avviso gittata sul foro tipo', ''],`],
   [MODULO, `const C = CAMPI_PER_FORO.filter((c) => !Array.isArray(campi) || campi.includes(c));`, `const C = CAMPI_PER_FORO.slice();`],
+  /* il piede nel DXF (26/11): la pagina non passa il progetto (niente piedi), e il piede va dalla parte sbagliata */
+  [PAGINA, `const dxf=dxfPianoFori(D2.holes, D2.diam, D2.profilo, D2);`, `const dxf=dxfPianoFori(D2.holes, D2.diam, D2.profilo);`],
+  [MODULO, `{x:+h.mx, y:+h.my - avanti}]);`, `{x:+h.mx, y:+h.my + avanti}]);`],
 ];
 
 const colpiti = new Set();
@@ -884,6 +887,7 @@ if (prima && prima.colonneTrovate) {
   const rP = +(P.diam / 2000).toFixed(4);
   const dxf0 = await uscito("btn-piano-dxf", /piano_fori\.dxf/);
   dice(!!dxf0 && raggi(dxf0).length === P.n && raggi(dxf0).every((x) => Math.abs(x - rP) < 1e-9), `⛔ NEUTRALITÀ: senza diametri per foro il DXF disegna ogni foro col raggio del progetto (${rP} m)`, dxf0 && raggi(dxf0).slice(0, 3));
+  dice(!!dxf0 && !/PIEDI/.test(dxf0), "⛔ e a fori verticali nel DXF non c'è nessun livello PIEDI: il file è quello di sempre", dxf0 && (dxf0.match(/PIEDI/g) || []).length);
   const xml0 = await uscito("btn-innesco-xml", /piano_innesco\.xml/);
   dice(!!xml0 && (xml0.match(/<HoleDiameter/g) || []).length === 1, "e nel piano d'innesco il diametro compare una volta sola, quello del progetto", xml0 && (xml0.match(/<HoleDiameter/g) || []).length);
 
@@ -1024,6 +1028,16 @@ if (prima && prima.colonneTrovate) {
   const blocco = xml ? xml.split("<Hole ").slice(1).find((b) => { const q = /<Position x="([^"]*)" y="([^"]*)"/.exec(b); return q && Math.abs(+q[1] - pos.x) < 0.006 && Math.abs(+q[2] - pos.y) < 0.006; }) : null;
   dice(!!blocco && /<Inclination unit="deg">20<\/Inclination>/.test(blocco) && (xml.match(/<Inclination /g) || []).length === 1 && (xml.match(/<HoleInclination unit="deg">10<\/HoleInclination>/g) || []).length === 1 && !/DesignInclination/.test(xml),
     "⛔ nel piano d'innesco quel foro porta la SUA inclinazione (solo lui), e il piano dichiara a parte quella del progetto", blocco && blocco.slice(0, 300));
+  /* il piano fori DXF: il piede di ogni foro, sul livello PIEDI */
+  await pg.evaluate(() => { window.__toasts.length = 0; });
+  const dxfP = await uscito("btn-piano-dxf", /piano_fori\.dxf/);
+  const piedi = dxfP ? [...dxfP.matchAll(/0\nPOLYLINE\n8\nPIEDI\n[\s\S]*?0\nSEQEND\n/g)].map((m) => [...m[0].matchAll(/\n10\n([-\d.]+)\n20\n([-\d.]+)/g)].map((q) => [+q[1], +q[2]])) : [];
+  const suoPiede = piedi.find((q) => Math.abs(q[0][0] - pos.x) < 0.006 && Math.abs(q[0][1] - pos.y) < 0.006);
+  const seno = (g) => Math.sin(g * Math.PI / 180);
+  dice(piedi.length === P.n && piedi.every((q) => q.length === 2 && q[1][1] < q[0][1] && Math.abs(q[1][0] - q[0][0]) < 0.0006), `⛔ nel DXF ci sono ${P.n} linee boccaforo→piede sul livello PIEDI, tutte verso la faccia (prima il file disegnava solo il boccaforo)`, piedi.length);
+  dice(!!suoPiede && Math.abs((suoPiede[0][1] - suoPiede[1][1]) - P.prof * seno(20)) < 0.0011 && piedi.filter((q) => Math.abs((q[0][1] - q[1][1]) - P.prof * seno(10)) < 0.0011).length === P.n - 1,
+    `⛔ il piede di QUEL foro è ${(P.prof * seno(20)).toFixed(2)} m più avanti (i suoi 20°), gli altri ${P.n - 1} sono a ${(P.prof * seno(10)).toFixed(2)} m (i 10° del progetto)`, suoPiede);
+  dice(new RegExp(P.n + " piedi sul livello PIEDI").test(await pg.evaluate(() => window.__toasts.join(" | "))), "e il messaggio dell'esportazione lo dice", await pg.evaluate(() => window.__toasts.join(" | ")));
   /* rileggere il piano: si cambia il progetto, si riapre il file dal bottone vero, e il foro riprende i suoi 20° */
   await pg.evaluate(() => { const D = window.__genesi.D2; for (const h of D.holes) delete h.incl; const e = document.getElementById("dIncl"); e.value = "0"; e.dispatchEvent(new Event("change", { bubbles: true })); });
   await pg.waitForTimeout(300);

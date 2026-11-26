@@ -950,7 +950,7 @@ body.scr-sim #tl{bottom:80px}
   <button class="btn" id="btn-rilievo-dev" type="button" style="display:block;margin:8px auto 0;" title="Confronta il burden di progetto col burden vero, calcolato sulla posizione REALE del piede di ogni foro (rilievo boretrack: CSV foro/id;dx_m;dy_m). ATTENZIONE: la convenzione degli assi dx/dy non è ancora stata verificata contro un rilievo boretrack reale — vedi l'avviso nel pannello.">📡 Importa rilievo deviazione fori (CSV)</button>
   <div id="d2-rilievo-esito"></div>
   <button class="btn" id="btn-piano-csv" style="display:block;margin:10px auto 0;">📤 Esporta piano di carico (CSV per il fochino)</button>
-  <button class="btn" id="btn-piano-dxf" style="display:block;margin:8px auto 0;" title="Fori (cerchio + numero) e profilo del fronte, in un file che AutoCAD, LibreCAD, QCAD e QGIS sanno aprire (DXF R12)">📐 Esporta piano fori (DXF per CAD)</button>
+  <button class="btn" id="btn-piano-dxf" style="display:block;margin:8px auto 0;" title="Fori (cerchio + numero), piede dei fori inclinati e profilo del fronte, in un file che AutoCAD, LibreCAD, QCAD e QGIS sanno aprire (DXF R12)">📐 Esporta piano fori (DXF per CAD)</button>
   <input type="file" id="dxfImportFile" accept=".dxf,text/plain" style="display:none;">
   <button class="btn" id="btn-dxf-import" type="button" style="display:block;margin:8px auto 0;" title="Legge LINE e POLYLINE da un file DXF e li porta sulla pianta come tratti liberi (riferimento visivo: non entrano in nessun calcolo di burden/relief/energia — un file esterno può avere una convenzione di assi diversa dalla nostra, verifica l'orientamento dopo l'importazione)">📥 Importa da DXF (come tratti)</button>
   <div id="d2-dxf-import-esito"></div>
@@ -5869,7 +5869,10 @@ $('btn-piano-csv').onclick=async()=>{
    (mx/my dei fori, il profilo del fronte se disegnato/importato). */
 if($('btn-piano-dxf')) $('btn-piano-dxf').onclick=()=>{
   if(!D2.holes.length) genMaglia2D();
-  const dxf=dxfPianoFori(D2.holes, D2.diam, D2.profilo);
+  /* 26/11 — col progetto (`D2`) il file disegna anche il PIEDE dei fori
+     inclinati, sul livello PIEDI; a fori verticali esce com'era */
+  const dxf=dxfPianoFori(D2.holes, D2.diam, D2.profilo, D2);
+  const _nPiedi=D2.holes.filter(h=>scostamentoPiedeForo(h, D2)>0).length;
   const a=document.createElement('a');
   a.href='data:application/dxf;charset=utf-8,'+encodeURIComponent(dxf);
   a.download='genesi_piano_fori.dxf'; a.click();
@@ -5878,6 +5881,7 @@ if($('btn-piano-dxf')) $('btn-piano-dxf').onclick=()=>{
      trovando un solo livello invece di due. */
   const haFronte = Array.isArray(D2.profilo) && D2.profilo.filter(p=>p&&Number.isFinite(+p.x)&&Number.isFinite(+p.y)).length>=2;
   if(typeof toast==='function') toast('✓ Piano fori DXF esportato: '+_ricPlur(D2.holes.length,'foro','fori')
+    +(_nPiedi?' · '+_ricPlur(_nPiedi,'piede','piedi')+' sul livello PIEDI':'')
     +(haFronte?' + profilo del fronte':' — nessun profilo del fronte disegnato: esce solo il livello FORI')
     +fraseGraviExport());
 };

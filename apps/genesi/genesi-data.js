@@ -4932,7 +4932,17 @@ export function dxfFraseNonLette(nonLette){
   return Object.values(somma).sort((a,b)=>b.n-a.n || (a.nomi[1]<b.nomi[1]?-1:1))
     .map(v=> v.n+' '+(v.n===1 ? v.nomi[0] : v.nomi[1])).join(', ');
 }
-export function dxfPianoFori(fori, diamMm, profilo){
+/* IL PIEDE DEI FORI INCLINATI (26/11): il quarto argomento, `progetto`, è
+   facoltativo e serve a UNA cosa — sapere quanto è lungo e quanto è inclinato
+   ogni foro (`scostamentoPiedeForo`: i valori del foro, se no quelli del
+   progetto). Un foro inclinato ha il piede più avanti del boccaforo, verso la
+   faccia (y più piccola: la faccia è a y = 0), ed è il punto che chi traccia e
+   chi controlla il fronte in CAD vuole vedere: esce come una linea
+   boccaforo→piede su un livello suo, `PIEDI`, così si accende e si spegne.
+   ⛔ NEUTRALITÀ: senza `progetto`, o con fori verticali, o dove lunghezza o
+   inclinazione non si sanno, non esce niente di nuovo — il file di una volata
+   a fori verticali è byte per byte quello di prima (provato). */
+export function dxfPianoFori(fori, diamMm, profilo, progetto){
   const H = Array.isArray(fori) ? fori.filter(h=>h && Number.isFinite(+h.mx) && Number.isFinite(+h.my)) : [];
   const raggio = (Number.isFinite(+diamMm) && +diamMm>0) ? (+diamMm/2000) : 0.05; // 50mm di default, mai zero: un cerchio a raggio 0 non si vede e sembra un foro mancante
   let ent = '';
@@ -4943,6 +4953,10 @@ export function dxfPianoFori(fori, diamMm, profilo){
     const suo = valoreProprioDiForo(h, 'diam'), r = suo === null ? raggio : suo/2000;
     ent += _dxfCerchio('FORI', h.mx, h.my, r);
     ent += _dxfTesto('FORI', h.mx+r*1.3, h.my, Math.max(0.15, r*0.9), h.id!=null ? String(h.id) : '');
+  }
+  if(progetto) for(const h of H){
+    const avanti = scostamentoPiedeForo(h, progetto);
+    if(avanti !== null && avanti > 0) ent += _dxfPolilinea('PIEDI', [{x:+h.mx, y:+h.my}, {x:+h.mx, y:+h.my - avanti}]);
   }
   const P = Array.isArray(profilo) ? profilo.filter(p=>p && Number.isFinite(+p.x) && Number.isFinite(+p.y)) : [];
   ent += _dxfPolilinea('FRONTE', P.map(p=>({x:p.x, y:p.y})));
