@@ -2693,9 +2693,21 @@ scritti prendono UNA carica per tutta la volata:
 
 **Come stiamo.** Oggi tutti e tre usano la carica scritta nel progetto,
 anche se qualche foro ne ha una diversa. Finché nessun foro ha valori suoi
-non cambia niente. E ancora non esiste il comando con cui l'utente dà a un
-foro un valore suo (è la fetta F3): quindi oggi il caso non può presentarsi
-a nessuno. Va deciso PRIMA che F3 esca.
+non cambia niente.
+⏱️ *Aggiornato il 26/11 a sera — questa riga diceva «il comando non esiste
+ancora, il caso non può presentarsi a nessuno», ed era vera al mattino.* Il
+comando adesso c'è (scheda del foro, selezione di più fori, tabella dei
+fori), quindi il caso si presenta. Il prodotto fa ciò che avevo scritto qui
+sotto come comportamento prudente, e lo **dichiara** in due punti:
+- accanto alla **pezzatura prevista** compare «foro tipo», con la frase che
+  spiega quanti fori hanno valori loro;
+- nella **scena 3D**, accanto ai comandi dello sparo, compare l'etichetta
+  «◆ foro tipo» (toccandola dice la frase intera).
+Una prova automatica sorveglia che la simulazione **non** cominci a usare la
+carica del singolo foro per conto suo: cambierebbe solo se lo decidi tu.
+I **file che escono** invece dicono già la carica vera di ogni foro (piano
+di carico, piano d'innesco, file di scambio della volata): lì non c'è niente
+da decidere, un foro scarico va scritto scarico.
 
 **Perché serve una decisione, non un'unità automatica.** Non è un errore
 di conto: è il significato di una previsione. Tre strade:

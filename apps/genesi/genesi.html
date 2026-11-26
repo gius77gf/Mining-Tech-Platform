@@ -1145,6 +1145,7 @@ body.scr-sim #tl{bottom:80px}
       <button class="btn sm" data-spd="0.025">slow ×40</button>
     </div>
     <span id="tstate">pronto</span>
+    <button type="button" class="btn sm" id="tfori" hidden style="color:#ffd54f;border-color:rgba(255,213,79,.5)">◆ foro tipo</button>
     <span id="fps"></span>
     <div id="tclock">0 <small>ms</small></div>
   </div>
@@ -1900,7 +1901,7 @@ function buildSim(){
       const hh=P.holes[i], x=hh.x;
       const col=Math.max(0, Math.min((P.foriH?P.foriH.length:1)-1, Math.round((x-INTERASSE/2)/INTERASSE)));
       const h=(P.foriH && P.foriH[col]!=null) ? P.foriH[col] : prof;
-      fori.push({ i, id:hh.id||null, x, tDet:hh.tDet||0, prof:h, h, cz:quotaCresta(P.profilo, x), zoff:hh.zoff||0, kg:P.kg });
+      fori.push({ i, id:hh.id||null, x, tDet:hh.tDet||0, prof:h, h, cz:quotaCresta(P.profilo, x), zoff:hh.zoff||0, kg:P.kg, suoi:hh.suoi||null });
     }
   } else {
     for(let i=0;i<n;i++){                                          // fallback demo manuale: una fila, sequenza ricostruita
@@ -2701,7 +2702,24 @@ function updateInfochip(){
   /* ⚠️ «PF — kg/m³» si legge come un refuso, non come una non-misurabilità:
      la frase si compone PRIMA, fuori dal modello di stringa. */
   const _pfTx = pfVal===null ? '<i style="color:#ffca28">PF non calcolabile</i>' : ('PF '+gfix(pfVal,2)+' kg/m³');
-  $('infochip').innerHTML = `<b>${gnum(P.fori,0)} ${plurale(P.fori,'foro','fori')}</b> · maglia ${gfix(SPALLA,1)}×${gfix(INTERASSE,1)} · ${_inL} <b>${gnum(P.ritardo,1)} ms</b> · ${_sqL} · ${_rkL} · sequenza <b>${gnum(seq,0)} ms</b> · ${_pfTx}`;
+  /* F5b (26/11) — LA SCENA DICE SU CHE COSA È CALCOLATA. Con dei fori che nel
+     progetto hanno carica, profondità o borraggio LORO, la simulazione li
+     conosce (`suoi`) ma non li usa: spara, frammenta e ammucchia col foro tipo
+     del progetto (decisione 33, del fondatore). Finché è così lo si scrive
+     qui, nella riga che descrive la volata, invece di lasciar credere che la
+     scena li rispetti. Il commento sta FUORI dal testo qui sotto: dentro un
+     template sarebbe testo, non un commento. */
+  const _nSuoiScena = SIM.fori.filter(f=>f.suoi && Object.keys(f.suoi).length).length;
+  const _suoiTx = _nSuoiScena ? ` · <b id="sim-foro-tipo" style="color:#ffd54f">simulata sul foro tipo</b>: ${_nSuoiScena} ${plurale(_nSuoiScena,'foro ha','fori hanno')} valori propri` : '';
+  /* la riga qui sotto sta nel pannello «Parametri», che nasce CHIUSO (misurato
+     nello scatto: riquadro 0×0): da sola sarebbe un avviso che nessuno legge.
+     Quindi lo stesso fatto sta anche accanto ai comandi dello sparo, sempre a
+     schermo: un'etichetta che compare solo quando serve, e toccandola dice
+     la frase intera (su un telefono un `title` non si vede). */
+  const _tf=$('tfori');
+  if(_tf){ _tf.hidden=!_nSuoiScena;
+    _tf.onclick=()=>toast('Scena simulata sul FORO TIPO del progetto: '+_nSuoiScena+' '+plurale(_nSuoiScena,'foro ha','fori hanno')+' carica, profondità o borraggio propri, e la simulazione non li usa ancora. I conti del progetto 2D e i file che escono sì.'); }
+  $('infochip').innerHTML = `<b>${gnum(P.fori,0)} ${plurale(P.fori,'foro','fori')}</b> · maglia ${gfix(SPALLA,1)}×${gfix(INTERASSE,1)} · ${_inL} <b>${gnum(P.ritardo,1)} ms</b> · ${_sqL} · ${_rkL} · sequenza <b>${gnum(seq,0)} ms</b> · ${_pfTx}${_suoiTx}`;
   /* ⛔ IL RIQUADRO DELLA GRANULOMETRIA DICE «NON CALCOLABILE» INVECE DI
      DISEGNARE TRE BARRE. Con la carica per foro illeggibile qui uscivano
      «x20 50 · x50 97 · x80 160 cm» e «Fini <2,5 cm: 0%», cioè una volata che
@@ -3240,10 +3258,18 @@ $('btnExport').onclick = ()=>{
      resta volutamente a una riga sola (P è single-row per il 3D, decisione
      già presa e commentata più sopra): questo fix riguarda solo l'onestà
      del file che ESCE verso il sistema terzo. */
-  const fori = SIM.fori.map(f=>({ id:f.id||('foro_'+(f.i+1)), num:f.i+1, x:+f.x.toFixed(2), prof:_vj(f.prof)!==null?_vj(f.prof):_vj(P.prof), diam:P.diam,
-    kg:P.kg, esplosivo:(selEsplosivo()||{}).nome||'',
+  /* ⛔ F5b (26/11) — OGNI FORO ESCE CON LA SUA CARICA. Misurato: dato a un
+     foro 35 kg e 8,5 m e lasciatone un altro SCARICO, nel file uscivano tutti
+     e due con 58 kg e 10 m — `kg:P.kg`, uguale per tutti. È il file che va al
+     gestionale: un foro scarico dichiarato carico. Adesso un foro che ha un
+     valore suo (`f.suoi`, fotografato quando il progetto 2D è diventato scena)
+     lo scrive; il borraggio per foro compare SOLO se è suo. Senza valori per
+     foro il file esce identico a prima, chiave per chiave. */
+  const fori = SIM.fori.map(f=>{ const suoi=f.suoi||{};
+    return { id:f.id||('foro_'+(f.i+1)), num:f.i+1, x:+f.x.toFixed(2), prof:('prof' in suoi)?suoi.prof:(_vj(f.prof)!==null?_vj(f.prof):_vj(P.prof)), diam:P.diam,
+    kg:('kg' in suoi)?suoi.kg:P.kg, ...(('stem' in suoi)?{ borraggio_m:suoi.stem }:{}), esplosivo:(selEsplosivo()||{}).nome||'',
     ritardo:+((f.tNom!=null?f.tNom:f.tDet)||0).toFixed(1),
-    innesco:(selInnesco()||{}).short||'', sequenza:f.i+1, fila:Math.round((f.zoff||0)/Math.max(1,SPALLA))+1 }));
+    innesco:(selInnesco()||{}).short||'', sequenza:f.i+1, fila:Math.round((f.zoff||0)/Math.max(1,SPALLA))+1 }; });
   const out = { schemaV:1, tipo:'volata-deepwork',
     volata:{ id:'vol_demo_genesi', sitoId:null, tipo:'cava', numero:1, data:oggiISO(),
       fronte:{ lunghezza_m:SIM.Lm, altezza_m:SIM.H, profilo:(P.profilo||[]).map(p=>({x:+p.x.toFixed(2),y:+p.z.toFixed(2)})) },
@@ -8281,7 +8307,15 @@ function simulaVolata2D(){
   computeSeq2D();
   if(D2.holes && D2.holes.length){
     const mxs=D2.holes.map(h=>h.mx), mys=D2.holes.map(h=>h.my), minMx=Math.min(...mxs), minMy=Math.min(...mys);
-    P.holes = D2.holes.map(h=>({ id:h.id||null, x:h.mx-minMx+INTERASSE/2, zoff:Math.max(0,h.my-minMy), tDet:h.tDet||0 }));
+    /* F5b (26/11) — `suoi`: i valori PROPRI del foro (carica, profondità,
+       borraggio), fotografati nel momento in cui il progetto diventa scena.
+       ⛔ Li porta e basta: la simulazione continua a leggere `kg` e `prof`
+       di sempre (quale carica debba usare è la decisione 33, del fondatore).
+       Servono al file che ESCE da qui (.volata.json), che deve dire di ogni
+       foro la sua carica vera e non quella del progetto ripetuta. Fotografati
+       qui, e non riletti da D2 al momento dell'export: il file descrive la
+       scena simulata, non un progetto 2D che nel frattempo può essere cambiato. */
+    P.holes = D2.holes.map(h=>({ id:h.id||null, x:h.mx-minMx+INTERASSE/2, zoff:Math.max(0,h.my-minMy), tDet:h.tDet||0, suoi:valoriPropriDiForo(h) }));
   } else P.holes=null;
   simSource='progetto'; if($('pTitle')) $('pTitle').textContent='Volata dal progetto 2D';
   rebuild(); setScreen('sim');

@@ -2405,13 +2405,25 @@
   controprova ha corretto due volte la PROVA: il lettore si provava col
   file dello scrittore (un difetto copriva l'altro), e uno «0 kg» letto dal
   lettore difettoso dava 5 — proprio la carica del progetto in quella passata.
-- [ ] **Genesi, foro per foro — F5b: il `.volata.json` e la scena 3D.** Il
-  file di scambio della volata scrive `kg: P.kg` per ogni foro (i fori hanno
-  l'id del progetto 2D: si aggancia per id). La scena 3D riceve dai fori
-  solo posizione e ritardo (`P.holes`): la LUNGHEZZA disegnata di un foro
-  può seguire la sua profondità; quale CARICA usi la simulazione è la
-  decisione 33 e non si tocca. DXF dei fori: porta solo posizione e
-  diametro, niente da correggere (misurato leggendo `dxfPianoFori`).
+- [x] **26/11 · Genesi, foro per foro — F5b: ⛔ il `.volata.json` scriveva la
+  carica del progetto su OGNI foro.** Misurato nel browser: un foro da
+  35 kg / 8,5 m e uno lasciato scarico uscivano tutti e due con 58 kg e
+  10 m. Ora il progetto 2D, diventando scena, fotografa i valori propri di
+  ogni foro (`suoi`) e il file li scrive (il borraggio per foro solo se è
+  suo); senza valori per foro esce identico, chiave per chiave. ⛔ La
+  SIMULAZIONE non li usa (decisione 33): una prova lo sorveglia, e la scena
+  lo DICE — nella riga del pannello Parametri e, siccome quel pannello nasce
+  chiuso (riquadro 0×0 nello scatto), con l'etichetta «◆ foro tipo» accanto
+  ai comandi dello sparo. Banco `genesi-foro-per-foro.mjs` 110 → 121
+  (controprova 30 iniezioni su 30). DXF dei fori: porta solo posizione e
+  diametro, niente da correggere (letto `dxfPianoFori`). Aggiornata la
+  decisione 33 in `docs/DECISIONI_WEEKEND.md`: diceva «il comando non
+  esiste ancora», vero al mattino.
+- [ ] **Genesi, foro per foro — F6: diametro e inclinazione per foro** (gli
+  ultimi due campi: toccano la geometria 3D e il consumo specifico; prima si
+  censisce CHI li legge — `grep -n "D2.diam\|D2.incl" apps/genesi/genesi.html`
+  — e si decide quali letture sono conti, da portare per foro, e quali sono
+  previsioni, che restano sul foro tipo finché non arriva la decisione 33).
 - [ ] **Genesi — il progetto FORO PER FORO** (26/11, la priorità per «arrivare
   al livello dei concorrenti»): oggi profondità, carica, borraggio, diametro
   e inclinazione sono UNO per volata. Piano a sei fette (F1 fondazione →
@@ -3052,7 +3064,7 @@ nome. Un nome si cerca con `grep`; una riga si sposta.
 grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 ```
 
-- `Genesi, foro per foro — F5b: il \`.volata.json\` e la scena 3D.`
+- `Genesi, foro per foro — F6: diametro e inclinazione per foro`
 - `Genesi — il progetto FORO PER FORO`
 - `F1. \`vitaComponenti\` non distingue un componente sostituito da`
 - `F2. La rampa sequenziale dei grafici (\`--dwg-s1\`) non raggiunge`

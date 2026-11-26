@@ -91,6 +91,14 @@ const DIFETTI = [
   [MODULO, `_tag('Charge','kg',valoreDiForo(h,'kg',p))`, `_tag('Charge','kg',p.kg)`],
   [PAGINA, `const charge=_conDesign ? numOf(plan,'DesignCharge') : numOf(holes[0],'Charge');`, `const charge=numOf(holes[0],'Charge');`],
   [PAGINA, `if(_pf.riportati){ D2.holes=_pf.fori; computeSeq2D(); }`, ``],
+  /* F5b — il .volata.json: la carica e la profondità tornano quelle del
+     progetto per ogni foro; e — il difetto OPPOSTO — la simulazione comincia
+     a usare la carica del foro, cioè la decisione 33 presa di nascosto */
+  [PAGINA, `kg:('kg' in suoi)?suoi.kg:P.kg, `, `kg:P.kg, `],
+  [PAGINA, `prof:('prof' in suoi)?suoi.prof:(`, `prof:(`],
+  [PAGINA, `zoff:hh.zoff||0, kg:P.kg, suoi:hh.suoi||null });`, `zoff:hh.zoff||0, kg:(hh.suoi&&('kg' in hh.suoi))?hh.suoi.kg:P.kg, suoi:hh.suoi||null });`],
+  /* e la scena che smette di dire su che cosa è calcolata */
+  [PAGINA, `const _nSuoiScena = SIM.fori.filter(f=>f.suoi && Object.keys(f.suoi).length).length;`, `const _nSuoiScena = 0;`],
 ];
 
 const colpiti = new Set();
@@ -689,6 +697,52 @@ if (prima && prima.colonneTrovate) {
   await pg.waitForTimeout(900);
   const dopoL = await pg.evaluate(() => { const D = window.__genesi.D2; return { kg: D.kg, propri: D.holes.filter((h) => h.kg !== undefined || h.prof !== undefined || h.stem !== undefined).length, toast: window.__toasts.join(" | ") }; });
   dice(dopoL.kg === P.kg && dopoL.propri === 0 && !/valori/.test(dopoL.toast.replace(/Maglia rigenerata[^|]*/g, "")), `un piano uniforme si riapre com'è sempre stato: carica ${P.kg} kg dal primo foro, nessun valore per foro`, dopoL);
+}
+/* 11. F5b — IL FILE DI SCAMBIO DELLA VOLATA (.volata.json), quello che va al
+   gestionale. Esce dalla scena 3D: si passa dal progetto 2D alla simulazione
+   col bottone vero e si esporta col bottone vero. */
+{
+  console.log("\n── F5b: il .volata.json ──");
+  const esporta = async () => {
+    await pg.evaluate(() => { window.__usciti.length = 0; document.getElementById("btnExport").click(); });
+    await pg.waitForTimeout(700);
+    const f = (await pg.evaluate(() => window.__usciti)).find((x) => /\.volata\.json$/.test(x.nome));
+    if (!f) return null;
+    try { return JSON.parse(await pg.evaluate(async (h) => (await fetch(h)).text(), f.href)); } catch (e) { return null; }
+  };
+  const simula = async () => { await pg.click('#bottomnav button[data-scr="design"]'); await pg.waitForTimeout(400);
+    await pg.evaluate(() => document.getElementById("d2-cta").click()); await pg.waitForTimeout(2500); };
+  await pg.click('#bottomnav button[data-scr="design"]'); await pg.waitForTimeout(400);
+  const P = await pg.evaluate(() => { const D = window.__genesi.D2; for (const h of D.holes) { delete h.kg; delete h.prof; delete h.stem; } return { kg: D.kg, prof: D.prof, n: D.holes.length, ids: D.holes.map((h) => h.id) }; });
+  await simula();
+  const j0 = await esporta();
+  dice(!!j0 && j0.volata.fori.length === P.n, `la volata esce dalla scena 3D con i suoi ${P.n} fori`, j0 && j0.volata.fori.length);
+  if (j0) {
+    dice((await pg.evaluate(() => !!document.getElementById("sim-foro-tipo") || !document.getElementById("tfori").hidden)) === false, "senza valori per foro la scena non porta nessun avviso", "");
+    dice(j0.volata.fori.every((f) => f.kg === P.kg && !("borraggio_m" in f)), `⛔ NEUTRALITÀ: senza valori per foro ogni foro ha la carica del progetto (${P.kg} kg) e nessuna chiave nuova`, j0.volata.fori[0]);
+    const [a, b, c] = [P.ids[2], P.ids[4], P.ids[0]];
+    await pg.evaluate(([a, b]) => { const H = window.__genesi.D2.holes; const x = H.find((h) => h.id === a), y = H.find((h) => h.id === b); x.kg = 35; x.prof = 8.5; x.stem = 1.5; y.kg = 0; }, [a, b]);
+    await simula();
+    const j1 = await esporta();
+    const per = (j, id) => j.volata.fori.find((f) => f.id === id);
+    dice(!!j1 && per(j1, a).kg === 35 && per(j1, a).prof === 8.5 && per(j1, a).borraggio_m === 1.5, `⛔ il foro ${a} esce con 35 kg, 8,5 m e il suo borraggio di 1,5 m — non con i valori del progetto`, j1 && per(j1, a));
+    dice(!!j1 && per(j1, b).kg === 0, `⛔ il foro ${b}, lasciato SCARICO, esce con 0 kg`, j1 && per(j1, b));
+    dice(!!j1 && JSON.stringify(per(j1, c)) === JSON.stringify(per(j0, c)), `il foro ${c}, che non è stato toccato, esce IDENTICO a prima, chiave per chiave`, j1 && per(j1, c));
+    const sim = await pg.evaluate(() => window.__genesi.SIM.fori.map((f) => f.kg));
+    dice(sim.length === P.n && sim.every((k) => k === P.kg), `⛔ e la SIMULAZIONE non è cambiata: ogni foro della scena usa ancora la carica del progetto (${P.kg} kg) — quale carica debba usare è una decisione del fondatore, non una conseguenza di questo file`, sim);
+    const avviso = await pg.evaluate(() => (document.getElementById("infochip") || {}).innerText || "");
+    dice(/simulata sul foro tipo: 2 fori hanno valori propri/.test(avviso), "e lo scrive nella riga che descrive la volata (pannello Parametri): «simulata sul foro tipo: 2 fori hanno valori propri»", avviso.slice(-110));
+    /* ⛔ ma quel pannello nasce chiuso: l'avviso che CONTA è quello sempre a schermo, accanto ai comandi dello sparo */
+    const etichetta = await pg.evaluate(() => { const e = document.getElementById("tfori"), q = e.getBoundingClientRect(); window.__toasts.length = 0; e.click();
+      return { testo: e.innerText.trim(), w: Math.round(q.width), h: Math.round(q.height), dentro: q.left >= 0 && q.right <= innerWidth, detto: window.__toasts.join(" | ") }; });
+    dice(etichetta.w > 40 && etichetta.h > 15 && etichetta.dentro && /foro tipo/.test(etichetta.testo), `⛔ accanto ai comandi dello sparo c'è l'etichetta «${etichetta.testo}», a schermo (${etichetta.w}×${etichetta.h} px)`, etichetta);
+    dice(/FORO TIPO del progetto: 2 fori hanno/.test(etichetta.detto), "e toccandola dice la frase intera", etichetta.detto);
+    /* il file descrive la scena SIMULATA: cambiare il 2D senza risimulare non lo cambia */
+    await pg.evaluate((a) => { window.__genesi.D2.holes.find((h) => h.id === a).kg = 99; }, a);
+    const j2 = await esporta();
+    dice(!!j2 && per(j2, a).kg === 35, "cambiato il progetto 2D SENZA risimulare, il file dice ancora la scena simulata (35 kg, non 99)", j2 && per(j2, a));
+  }
+  await pg.evaluate(() => { for (const h of window.__genesi.D2.holes) { delete h.kg; delete h.prof; delete h.stem; } });
 }
 dice(pg.__err.length === 0, "la pagina non solleva errori", pg.__err.slice(0, 2));
 
