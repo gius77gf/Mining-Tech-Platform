@@ -84,7 +84,7 @@ const DIFETTI = [
   [PAGINA, `if(daRifocalizzare){ daRifocalizzare.focus(); if(typeof daRifocalizzare.select==='function') daRifocalizzare.select(); }`, ``],
   [PAGINA, `if(sec.classList.contains('closed')) return;`, ``],
   [PAGINA, `.ft-pos{display:none!important}`, `.ft-pos{}`],
-  [PAGINA, `' class="'+(r.propri[campo]?'suo':'')+(no?' oltre':'')+'"'`, `' class="'+(no?' oltre':'')+'"'`],
+  [PAGINA, `' class="'+(r.propri[campo]?'suo':'')+(no?' oltre':'')`, `' class="'+(no?' oltre':'')`],
   /* F5 — il piano d'innesco XML: ogni foro torna a uscire con la carica del
      progetto, il lettore torna a prendere per progetto i valori del primo
      foro, i valori per foro riletti non vengono riportati sulla maglia */
@@ -103,9 +103,16 @@ const DIFETTI = [
      capienza torna quella del foro TIPO (il foro accorciato non si vede), il
      messaggio tace, la riga della scheda resta verde */
   [MODULO, `if (rapporto > MARGINE_CAPIENZA_FORO) out.nonEntra.push(riga);`, `if (false) out.nonEntra.push(riga);`],
-  [MODULO, `: caricaForoDaGeometria({ diam: p.diam, prof, sub: p.sub, stem, densita: p.densita });`, `: caricaForoDaGeometria({ diam: p.diam, prof: p.prof, sub: p.sub, stem: p.stem, densita: p.densita });`],
+  [MODULO, `: caricaForoDaGeometria({ diam, prof, sub: p.sub, stem, densita: p.densita });`, `: caricaForoDaGeometria({ diam: p.diam, prof: p.prof, sub: p.sub, stem: p.stem, densita: p.densita });`],
   [PAGINA, `+_capAvviso, _capDopo.length?'err':undefined);`, `, undefined);`],
   [PAGINA, `cls:nNo?'sv-bad':(nLim?'sv-warn':'sv-ok'),`, `cls:'sv-ok',`],
+  /* F6 — il diametro per foro: il DXF torna a disegnare ogni foro col diametro
+     del progetto, l'XML e il file di scambio non lo scrivono, e la colonna in
+     più compare anche sul telefono facendo scorrere la tabella di lato */
+  [MODULO, `const suo = valoreProprioDiForo(h, 'diam'), r = suo === null ? raggio : suo/2000;`, `const r = raggio;`],
+  [MODULO, `if(valoreProprioDiForo(h,'diam')!==null) xml+='      '+_tag('HoleDiameter'`, `if(false) xml+='      '+_tag('HoleDiameter'`],
+  [PAGINA, `diam:('diam' in suoi)?suoi.diam:P.diam,`, `diam:P.diam,`],
+  [PAGINA, `.ft-largo{display:none!important}`, `.ft-largo{}`],
   /* i campi della scheda del foro tornano quelli bianchi del browser, alti 19 px */
   [PAGINA, `#d2-insp input[type=text]{background:#241d12;border:1px solid #473a1f;`, `#d2-insp input[type=nessuno]{background:#241d12;border:1px solid #473a1f;`],
   /* e la colonna del numero stretta com'era: rombo e avviso insieme toccano il ritardo */
@@ -811,6 +818,72 @@ if (prima && prima.colonneTrovate) {
       "ridotta la carica a 5 kg: la riga non è più rossa, i segni spariscono, gli indicatori gravi tornano quelli di prima", [s.riga, s.oltre, s.gravi, s.toast]);
   }
   await pg.evaluate(() => { for (const h of window.__genesi.D2.holes) { delete h.kg; delete h.prof; delete h.stem; } window.__genesi.renderScheda2D(); });
+  await pg.waitForTimeout(250);
+}
+/* 13. F6 — IL DIAMETRO PER FORO: si scrive dalla scheda, lo leggono i conti e
+   i tre file che escono (DXF, piano d'innesco, file di scambio). */
+{
+  console.log("\n── F6: il diametro per foro ──");
+  await pg.click('#bottomnav button[data-scr="design"]'); await pg.waitForTimeout(500);
+  const P = await pg.evaluate(() => { const D = window.__genesi.D2; for (const h of D.holes) { delete h.kg; delete h.prof; delete h.stem; delete h.diam; } window.__genesi.renderScheda2D(); return { diam: D.diam, n: D.holes.length, ids: D.holes.map((h) => h.id) }; });
+  await pg.waitForTimeout(250);
+  const uscito = async (bottone, nome) => { await pg.evaluate((b) => { window.__usciti.length = 0; document.getElementById(b).click(); }, bottone); await pg.waitForTimeout(600);
+    const f = (await pg.evaluate(() => window.__usciti)).find((x) => nome.test(x.nome)); return f ? decodeURIComponent(f.href.split(",").slice(1).join(",")) : null; };
+  const raggi = (dxf) => dxf.split("CIRCLE").slice(1).map((b) => +(/\n40\n([\d.]+)/.exec(b) || [])[1]);
+  const rP = +(P.diam / 2000).toFixed(4);
+  const dxf0 = await uscito("btn-piano-dxf", /piano_fori\.dxf/);
+  dice(!!dxf0 && raggi(dxf0).length === P.n && raggi(dxf0).every((x) => Math.abs(x - rP) < 1e-9), `⛔ NEUTRALITÀ: senza diametri per foro il DXF disegna ogni foro col raggio del progetto (${rP} m)`, dxf0 && raggi(dxf0).slice(0, 3));
+  const xml0 = await uscito("btn-innesco-xml", /piano_innesco\.xml/);
+  dice(!!xml0 && (xml0.match(/<HoleDiameter/g) || []).length === 1, "e nel piano d'innesco il diametro compare una volta sola, quello del progetto", xml0 && (xml0.match(/<HoleDiameter/g) || []).length);
+
+  /* dalla scheda del foro, con la tastiera */
+  const box = await pg.locator("#d2-canvas").boundingBox(); void box;
+  await pg.evaluate(() => { const D = window.__genesi.D2; D.sel = -1; });
+  await pg.locator("#d2-canvas").scrollIntoViewIfNeeded(); await pg.waitForTimeout(120);
+  { const bb = await pg.locator("#d2-canvas").boundingBox();
+    const rel = await pg.evaluate(() => { const D = window.__genesi.D2, m = D._m, c = document.getElementById("d2-canvas"), h = D.holes[3]; return { x: (m.startX + h.mx * m.scale) / c.width, y: (m.faceY + h.my * m.scale) / c.height }; });
+    await pg.mouse.click(bb.x + rel.x * bb.width, bb.y + rel.y * bb.height); await pg.waitForTimeout(300); }
+  const campo0 = await pg.evaluate(() => { const e = document.getElementById("diDiam"); return e ? e.value : null; });
+  dice(campo0 !== null && +campo0 === P.diam, `nella scheda del foro c'è il quarto campo, il diametro, col valore del progetto (${campo0} mm)`, campo0);
+  await pg.evaluate(() => { window.__toasts.length = 0; });
+  await pg.click("#diDiam", { clickCount: 3 }); await pg.keyboard.type("76,5"); await pg.keyboard.press("Tab"); await pg.waitForTimeout(350);
+  let st = await pg.evaluate(() => ({ diam: window.__genesi.D2.holes[3].diam, toast: window.__toasts.join(" | ") }));
+  dice(st.diam === undefined && /numero intero/.test(st.toast), "76,5 mm: rifiutato — un diametro è la misura di un utensile, serve un numero intero", st);
+  await pg.evaluate(() => { window.__toasts.length = 0; });
+  await pg.click("#diDiam", { clickCount: 3 }); await pg.keyboard.type("76"); await pg.keyboard.press("Tab"); await pg.waitForTimeout(400);
+  st = await pg.evaluate(() => ({ diam: window.__genesi.D2.holes[3].diam, toast: window.__toasts.join(" | "), nota: (document.getElementById("diValNota") || {}).innerText || "", cap: (document.getElementById("diCap") || {}).innerText || "" }));
+  dice(st.diam === 76 && /diametro 76 mm — non più quello del progetto/.test(st.toast), "⛔ scritto 76: il foro ha 76 mm suoi, e lo dice col diametro del progetto accanto", st.toast);
+  dice(/diametro suo/.test(st.nota), "la scheda lo segna («diametro suo»)", st.nota);
+  dice(st.cap === "" || /Ø76 mm/.test(st.cap), `se la carica non entra più nel foro ristretto, l'avviso parla del diametro di QUEL foro${st.cap ? " («…" + st.cap.slice(st.cap.indexOf("Ø"), st.cap.indexOf("Ø") + 7) + "»)" : " (qui entra ancora)"}`, st.cap);
+
+  /* i file */
+  const pos = await pg.evaluate(() => { const h = window.__genesi.D2.holes[3]; return { x: h.mx, y: h.my, id: h.id }; });
+  const dxf = await uscito("btn-piano-dxf", /piano_fori\.dxf/);
+  const cerchi = dxf ? dxf.split("CIRCLE").slice(1).map((b) => ({ x: +(/\n10\n([-\d.]+)/.exec(b) || [])[1], y: +(/\n20\n([-\d.]+)/.exec(b) || [])[1], r: +(/\n40\n([\d.]+)/.exec(b) || [])[1] })) : [];
+  const suo = cerchi.find((c) => Math.abs(c.x - pos.x) < 0.006 && Math.abs(c.y - pos.y) < 0.006);
+  dice(!!suo && Math.abs(suo.r - 0.038) < 1e-9 && cerchi.filter((c) => Math.abs(c.r - rP) < 1e-9).length === P.n - 1, `⛔ nel DXF il cerchio di quel foro ha 38 mm di raggio; gli altri ${P.n - 1} quello del progetto`, [suo, cerchi.length]);
+  const xml = await uscito("btn-innesco-xml", /piano_innesco\.xml/);
+  const blocco = xml ? xml.split("<Hole ").slice(1).find((b) => { const q = /<Position x="([^"]*)" y="([^"]*)"/.exec(b); return q && Math.abs(+q[1] - pos.x) < 0.006 && Math.abs(+q[2] - pos.y) < 0.006; }) : null;
+  dice(!!blocco && /<HoleDiameter unit="mm">76<\/HoleDiameter>/.test(blocco) && (xml.match(/<HoleDiameter/g) || []).length === 2, "⛔ nel piano d'innesco quel foro porta il SUO diametro (e solo lui: due HoleDiameter in tutto, progetto e foro)", blocco && blocco.slice(0, 260));
+
+  /* la tabella: la colonna c'è dove c'è posto */
+  if (await pg.evaluate(() => document.getElementById("ft-sec").classList.contains("closed"))) { await pg.evaluate(() => document.getElementById("ft-apri").click()); await pg.waitForTimeout(300); }
+  const colonna = async (W) => { await pg.setViewportSize({ width: W, height: 900 }); await pg.waitForTimeout(350);
+    return pg.evaluate(() => { const e = document.getElementById("ft-diam-3"), sc = document.querySelector(".ft-scorri"), q = e.getBoundingClientRect();
+      return { visibile: q.width > 30, valore: e.value, suo: e.classList.contains("suo"), scorre: [sc.scrollWidth, sc.clientWidth], pagina: [document.documentElement.scrollWidth, innerWidth] }; }); };
+  const largo = await colonna(900);
+  dice(largo.visibile && largo.valore === "76" && largo.suo && largo.scorre[0] <= largo.scorre[1], "⛔ su uno schermo largo la tabella ha la colonna del diametro: 76 su quel foro, segnato come suo, e la tabella non scorre di lato", largo);
+  const tel = await colonna(430);
+  dice(!tel.visibile && tel.scorre[0] <= tel.scorre[1] && tel.pagina[0] <= tel.pagina[1], `⛔ su un telefono (430 px) la colonna non c'è e la tabella ci sta ancora INTERA (${tel.scorre})`, tel);
+
+  /* il file di scambio, dalla scena */
+  await pg.evaluate(() => document.getElementById("d2-cta").click()); await pg.waitForTimeout(2500);
+  await pg.evaluate(() => { window.__usciti.length = 0; document.getElementById("btnExport").click(); }); await pg.waitForTimeout(700);
+  const fj = (await pg.evaluate(() => window.__usciti)).find((x) => /\.volata\.json$/.test(x.nome));
+  let j = null; try { j = fj ? JSON.parse(await pg.evaluate(async (h) => (await fetch(h)).text(), fj.href)) : null; } catch (e) {}
+  dice(!!j && j.volata.fori.find((f) => f.id === pos.id).diam === 76 && j.volata.fori.filter((f) => f.diam === P.diam).length === P.n - 1, `⛔ e nel .volata.json quel foro esce con 76 mm, gli altri con ${P.diam}`, j && j.volata.fori.find((f) => f.id === pos.id));
+  await pg.click('#bottomnav button[data-scr="design"]'); await pg.waitForTimeout(400);
+  await pg.evaluate(() => { for (const h of window.__genesi.D2.holes) { delete h.kg; delete h.prof; delete h.stem; delete h.diam; } window.__genesi.renderScheda2D(); });
   await pg.waitForTimeout(250);
 }
 dice(pg.__err.length === 0, "la pagina non solleva errori", pg.__err.slice(0, 2));

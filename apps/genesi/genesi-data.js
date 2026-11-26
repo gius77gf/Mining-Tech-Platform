@@ -1322,6 +1322,10 @@ export function xmlPianoInnesco(p){
     xml+='      '+_tag('Depth','m',valoreDiForo(h,'prof',p))+'\n';
     xml+='      '+_tag('Charge','kg',valoreDiForo(h,'kg',p))+'\n';
     xml+='      '+_tag('Stemming','m',valoreDiForo(h,'stem',p))+'\n';
+    /* F6 — il diametro del progetto sta già in PlanData (HoleDiameter): dentro
+       il foro compare SOLO quando è suo, così un piano senza diametri per
+       foro esce com'era */
+    if(valoreProprioDiForo(h,'diam')!==null) xml+='      '+_tag('HoleDiameter','mm',valoreProprioDiForo(h,'diam'))+'\n';
     xml+='      <Delay unit="ms">'+e((+h.tDet||0).toFixed(1))+'</Delay>\n';
     xml+='    </Hole>\n';
   });
@@ -2556,7 +2560,15 @@ export function idForoNuovo(holes){
    geometria 3D): chiesti qui rispondono `null`, non il valore del progetto
    di nascosto — un campo che sembra «per foro» e non lo è sarebbe peggio di
    un campo che manca. */
-const _REGOLE_PER_FORO = { kg: (v) => v >= 0, prof: (v) => v > 0, stem: (v) => v >= 0 };
+/* F6 (26/11) — il DIAMETRO è il quarto campo per foro (fori di contorno o di
+   presplit più piccoli, un foro riperforato più largo). È in fondo
+   all'elenco di proposito: chi scorre i campi trova prima i tre di sempre.
+   Lo leggono per foro i CONTI e i FILE (capienza del foro, cerchio nel DXF,
+   piano d'innesco, file di scambio); le PREVISIONI sulla volata (pezzatura,
+   proiezioni, confinamento del colletto, rapporti geometrici) restano sul
+   diametro del progetto, come per la carica (decisione 33).
+   L'inclinazione NON c'è ancora: cambia la geometria del foro nello spazio. */
+const _REGOLE_PER_FORO = { kg: (v) => v >= 0, prof: (v) => v > 0, stem: (v) => v >= 0, diam: (v) => v > 0 };
 export const CAMPI_PER_FORO = Object.keys(_REGOLE_PER_FORO);
 const _numForo = (x) => (x === null || x === undefined || x === '') ? NaN : +x;
 export function valoreProprioDiForo(h, campo){
@@ -2615,11 +2627,14 @@ export const LIMITI_PER_FORO = {
   kg:   { min: 0, max: 200, unita: 'kg', nome: 'la carica del foro' },
   prof: { positivo: true, max: 18, unita: 'm', nome: 'la profondità del foro' },
   stem: { min: 0, max: 6, unita: 'm', nome: 'il borraggio del foro' },
+  /* gli stessi del campo di progetto (50–160 mm, intero): un diametro è la
+     misura di un utensile, non si sceglie al decimo di millimetro */
+  diam: { min: 50, max: 160, unita: 'mm', nome: 'il diametro del foro', intero: true },
 };
 /* «questo numero può essere il valore di un foro?»: una domanda, due posti che
    la fanno (il comando dalla tastiera e il piano riletto da un file) */
 const _dentroLimitiForo = (campo, v) => { const L = LIMITI_PER_FORO[campo];
-  return !!L && Number.isFinite(v) && (L.positivo ? v > 0 : v >= L.min) && v <= L.max; };
+  return !!L && Number.isFinite(v) && (L.positivo ? v > 0 : v >= L.min) && v <= L.max && (!L.intero || Number.isInteger(v)); };
 const _indiciDiFori = (H, indici) => [...new Set((Array.isArray(indici) ? indici : []).filter((i) => Number.isInteger(i) && i >= 0 && i < H.length))];
 /* quanti dei fori `scelti` resterebbero col borraggio più lungo del foro, se diventassero `dopo(h)` */
 const _foriTroppoCorti = (H, scelti, dopo, progetto) => scelti.filter((i) => {
@@ -2767,13 +2782,13 @@ export function capienzaFori(holes, progetto){
   const p = progetto || {};
   const out = { fori: H.length, verificati: 0, nonVerificabili: 0, alLimite: [], nonEntra: [], piuPieno: null };
   H.forEach((h, i) => {
-    const kg = valoreDiForo(h, 'kg', p), prof = valoreDiForo(h, 'prof', p), stem = valoreDiForo(h, 'stem', p);
+    const kg = valoreDiForo(h, 'kg', p), prof = valoreDiForo(h, 'prof', p), stem = valoreDiForo(h, 'stem', p), diam = valoreDiForo(h, 'diam', p);
     const capienza = (prof === null || stem === null) ? null
-      : caricaForoDaGeometria({ diam: p.diam, prof, sub: p.sub, stem, densita: p.densita });
+      : caricaForoDaGeometria({ diam, prof, sub: p.sub, stem, densita: p.densita });
     if (kg === null || capienza === null){ out.nonVerificabili++; return; }
     out.verificati++;
     const rapporto = kg / capienza;
-    const riga = { i, kg, capienza, rapporto, prof, stem };
+    const riga = { i, kg, capienza, rapporto, prof, stem, diam };
     if (out.piuPieno === null || rapporto > out.piuPieno.rapporto) out.piuPieno = riga;
     if (rapporto > MARGINE_CAPIENZA_FORO) out.nonEntra.push(riga);
     else if (kg > capienza) out.alLimite.push(riga);
@@ -2799,7 +2814,7 @@ export function capienzaFori(holes, progetto){
       non sperato: due righe uguali non si scambiano di posto a ogni clic);
     · una colonna che non esiste ordina per numero del foro: una tabella
       in un ordine a caso sarebbe peggio di una nell'ordine di sparo. */
-export const COLONNE_TABELLA_FORI = ['n', 'x', 'spalla', 'tDet', 'kg', 'prof', 'stem'];
+export const COLONNE_TABELLA_FORI = ['n', 'x', 'spalla', 'tDet', 'kg', 'prof', 'stem', 'diam'];
 export function tabellaFori(holes, progetto, ordine){
   const H = Array.isArray(holes) ? holes : [];
   const fin = (v) => (v === null || v === undefined || v === '' || !Number.isFinite(+v)) ? null : +v;
@@ -2808,8 +2823,8 @@ export function tabellaFori(holes, progetto, ordine){
     const seq = fin(h && h.seq);
     return { i, n: (seq === null ? i : seq) + 1, id: (h && h.id) || null,
       x: fin(h && h.mx), spalla: fin(h && h.my), tDet: fin(h && h.tDet), aMano: !!(h && h.tMano != null),
-      kg: valoreDiForo(h, 'kg', progetto), prof: valoreDiForo(h, 'prof', progetto), stem: valoreDiForo(h, 'stem', progetto),
-      propri: { kg: 'kg' in suoi, prof: 'prof' in suoi, stem: 'stem' in suoi } };
+      kg: valoreDiForo(h, 'kg', progetto), prof: valoreDiForo(h, 'prof', progetto), stem: valoreDiForo(h, 'stem', progetto), diam: valoreDiForo(h, 'diam', progetto),
+      propri: { kg: 'kg' in suoi, prof: 'prof' in suoi, stem: 'stem' in suoi, diam: 'diam' in suoi } };
   });
   const campo = (ordine && COLONNE_TABELLA_FORI.includes(ordine.campo)) ? ordine.campo : 'n';
   const verso = (ordine && ordine.verso === 'giu') ? -1 : 1;
@@ -4498,8 +4513,12 @@ export function dxfPianoFori(fori, diamMm, profilo){
   const raggio = (Number.isFinite(+diamMm) && +diamMm>0) ? (+diamMm/2000) : 0.05; // 50mm di default, mai zero: un cerchio a raggio 0 non si vede e sembra un foro mancante
   let ent = '';
   for(const h of H){
-    ent += _dxfCerchio('FORI', h.mx, h.my, raggio);
-    ent += _dxfTesto('FORI', h.mx+raggio*1.3, h.my, Math.max(0.15, raggio*0.9), h.id!=null ? String(h.id) : '');
+    /* F6 (26/11) — un foro con un diametro SUO si disegna col suo: il cerchio
+       è l'unico posto in cui questo file dice quanto è largo un foro. Senza
+       diametri per foro ogni cerchio ha il raggio del progetto, com'era. */
+    const suo = valoreProprioDiForo(h, 'diam'), r = suo === null ? raggio : suo/2000;
+    ent += _dxfCerchio('FORI', h.mx, h.my, r);
+    ent += _dxfTesto('FORI', h.mx+r*1.3, h.my, Math.max(0.15, r*0.9), h.id!=null ? String(h.id) : '');
   }
   const P = Array.isArray(profilo) ? profilo.filter(p=>p && Number.isFinite(+p.x) && Number.isFinite(+p.y)) : [];
   ent += _dxfPolilinea('FRONTE', P.map(p=>({x:p.x, y:p.y})));

@@ -599,7 +599,7 @@ body.scr-sim #tl{bottom:80px}
    borraggio non si sa più di quale foro è la riga. I fondi delle righe sono
    PIENI e la cella ferma eredita quello della sua riga: con un fondo
    trasparente lascerebbe vedere sotto le celle che le scorrono dietro. */
-.ft-h,.ft-r{display:grid;grid-template-columns:40px 40px 42px 54px repeat(3,minmax(50px,1fr));gap:4px;align-items:center;min-width:350px;background-color:#17120a}
+.ft-h,.ft-r{display:grid;grid-template-columns:40px 40px 42px 54px repeat(4,minmax(50px,1fr));gap:4px;align-items:center;min-width:408px;background-color:#17120a}
 .ft-h{background-color:#100c06;padding:2px 8px;border-bottom:1px solid rgba(255,228,180,.14)}
 .ft-h button{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:1px;background-color:transparent;border:none;padding:0;cursor:pointer;font-family:'Barlow',sans-serif;font-size:9px;line-height:1.2;letter-spacing:.07em;text-transform:uppercase;color:var(--mut);text-align:left;white-space:nowrap;min-height:40px}
 .ft-h button small{font-size:9px;letter-spacing:0;text-transform:none;min-height:11px}
@@ -623,6 +623,14 @@ body.scr-sim #tl{bottom:80px}
    320 px, dove per arrivare al borraggio bisognava trascinare la tabella di
    lato dentro una pagina che già scorre in verticale. Escono x e spalla, che
    qui si leggono soltanto e restano nella scheda del foro (un tocco sul numero). */
+/* F6 — la colonna del diametro (`.ft-largo`) c'è solo dove c'è posto: sopra i
+   480 px la tabella ha otto colonne; su un telefono a 430 px le sette di prima
+   ci stanno al pixel (350 su 356), e un'ottava farebbe scorrere tutto di lato.
+   Lì il diametro si scrive dalla scheda del foro, e la nota lo dice. */
+@media(max-width:480px){
+  .ft-h,.ft-r{grid-template-columns:40px 40px 42px 54px repeat(3,minmax(50px,1fr));min-width:350px}
+  .ft-largo{display:none!important}
+}
 @media(max-width:380px){
   .ft-h,.ft-r{grid-template-columns:40px 46px repeat(3,minmax(48px,1fr));min-width:0}
   .ft-pos{display:none!important}
@@ -3287,7 +3295,7 @@ $('btnExport').onclick = ()=>{
      lo scrive; il borraggio per foro compare SOLO se è suo. Senza valori per
      foro il file esce identico a prima, chiave per chiave. */
   const fori = SIM.fori.map(f=>{ const suoi=f.suoi||{};
-    return { id:f.id||('foro_'+(f.i+1)), num:f.i+1, x:+f.x.toFixed(2), prof:('prof' in suoi)?suoi.prof:(_vj(f.prof)!==null?_vj(f.prof):_vj(P.prof)), diam:P.diam,
+    return { id:f.id||('foro_'+(f.i+1)), num:f.i+1, x:+f.x.toFixed(2), prof:('prof' in suoi)?suoi.prof:(_vj(f.prof)!==null?_vj(f.prof):_vj(P.prof)), diam:('diam' in suoi)?suoi.diam:P.diam,
     kg:('kg' in suoi)?suoi.kg:P.kg, ...(('stem' in suoi)?{ borraggio_m:suoi.stem }:{}), esplosivo:(selEsplosivo()||{}).nome||'',
     ritardo:+((f.tNom!=null?f.tNom:f.tDet)||0).toFixed(1),
     innesco:(selInnesco()||{}).short||'', sequenza:f.i+1, fila:Math.round((f.zoff||0)/Math.max(1,SPALLA))+1 }; });
@@ -5966,7 +5974,7 @@ if($('fileXmlIn')) $('fileXmlIn').onchange=async e=>{
     let _pf=null;
     if(_conDesign){
       _pf=valoriPerForoDaPiano(holes.map(h=>{ const q=first(h,'Position');
-        return { x:q?parseFloat(q.getAttribute('x')||''):NaN, y:q?parseFloat(q.getAttribute('y')||''):NaN, prof:numOf(h,'Depth'), kg:numOf(h,'Charge'), stem:numOf(h,'Stemming') }; }), D2.holes, D2);
+        return { x:q?parseFloat(q.getAttribute('x')||''):NaN, y:q?parseFloat(q.getAttribute('y')||''):NaN, prof:numOf(h,'Depth'), kg:numOf(h,'Charge'), stem:numOf(h,'Stemming'), diam:numOf(h,'HoleDiameter') }; }), D2.holes, D2);
       if(_pf.riportati){ D2.holes=_pf.fori; computeSeq2D(); }
     }
     const _pfPersi=_pf ? (_pf.nonRiportati+_pf.scartati) : 0;
@@ -6877,7 +6885,7 @@ function d2Up(){ if(d2AlignGuide!=null){ d2AlignGuide=null; drawDesign2D(); } d2
    borraggio mai più lungo del foro, tutto o niente); qui c'è solo il
    disegno e le frasi. Si applica al `change`, come il ritardo: digitando
    «35» non si passa da 3 kg. Un campo svuotato toglie il valore proprio. */
-const _VAL_FORO=[['kg','diKg','carica',true],['prof','diProf','profondità',true],['stem','diStem','borraggio',false]];   // campo, id del campo, nome, femminile?
+const _VAL_FORO=[['kg','diKg','carica',true],['prof','diProf','profondità',true],['stem','diStem','borraggio',false],['diam','diDiam','diametro',false]];   // campo, id del campo, nome, femminile? (il diametro dal 26/11, F6)
 /* etichetta, campo e unità vanno a capo INSIEME: a 320 px «profondità» restava
    in fondo a una riga e il suo campo cominciava quella dopo (visto nello
    scatto, non nel codice). Lo usano anche x e spalla, che avevano lo stesso difetto. */
@@ -6893,7 +6901,7 @@ function capienzaD2(){
 }
 function capienzaFrase(q, soggetto){
   return gnum(q.kg,0)+' kg in '+(soggetto||'un foro')+' che ne tiene circa '+gnum(q.capienza,0)
-    +' ('+gfix(q.prof,1)+' m di foro, '+gfix(q.stem,1)+' m di borraggio, Ø'+gnum(D2.diam,0)+' mm)';
+    +' ('+gfix(q.prof,1)+' m di foro, '+gfix(q.stem,1)+' m di borraggio, Ø'+gnum(q.diam,0)+' mm)';
 }
 function valoriForoHtml(indici){
   const piu=indici.length>1, note=[];
@@ -6909,7 +6917,7 @@ function valoriForoHtml(indici){
   }
   return '<div id="diVal" style="margin-top:5px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">'+campi
     +(note.length
-      ? '<span id="diValNota" style="color:#ffd54f;font-size:11.5px">◆ '+note.join(' · ')+'</span><button class="btn sm" id="diValProg" style="padding:2px 8px" title="Toglie carica, profondità e borraggio propri: '+(piu?'i fori tornano':'il foro torna')+' ai valori del progetto">↺ valori del progetto</button>'
+      ? '<span id="diValNota" style="color:#ffd54f;font-size:11.5px">◆ '+note.join(' · ')+'</span><button class="btn sm" id="diValProg" style="padding:2px 8px" title="Toglie carica, profondità, borraggio e diametro propri: '+(piu?'i fori tornano':'il foro torna')+' ai valori del progetto">↺ valori del progetto</button>'
       : '<span id="diValNota" style="color:var(--mut2);font-size:11.5px">dal progetto — scrivi un numero per dare '+(piu?'ai fori':'al foro')+' un valore '+(piu?'loro':'suo')+'</span>')
     +'</div>';
 }
@@ -6975,7 +6983,7 @@ function valoriForoCollega(indici){
    la tabella non costa niente: si aggiorna solo il conto accanto al titolo. */
 let _ftOrdine={ campo:'n', verso:'su' }, _ftInCoda=false;
 const _FT_COL=[['n','N°','','numero del foro'],['x','x','m','posizione lungo la fila'],['spalla','spalla','m','distanza dal fronte'],['tDet','ritardo','ms','ritardo'],
-  ['kg','carica','kg','carica'],['prof','prof.','m','profondità'],['stem','borr.','m','borraggio']];
+  ['kg','carica','kg','carica'],['prof','prof.','m','profondità'],['stem','borr.','m','borraggio'],['diam','Ø','mm','diametro']];
 function renderTabellaFori(){
   const sec=$('ft-sec'), corpo=$('ft-corpo'); if(!sec || !corpo) return;
   const nf=D2.holes.length, vp=contaValoriPropri(D2.holes), cnt=$('ft-n');
@@ -6984,12 +6992,12 @@ function renderTabellaFori(){
   if(!nf){ corpo.innerHTML='<div class="ft-nota">Nessun foro in pianta: cambia i parametri della maglia o clicca sulla tela per aggiungerne uno.</div>'; return; }
   const att=document.activeElement, fuoco=(att && att.id && corpo.contains(att)) ? att.id : '';
   const testa=_FT_COL.map(([c,nome,u,lungo])=>{ const on=_ftOrdine.campo===c;
-    return '<button type="button" data-ord="'+c+'" class="'+((c==='x'||c==='spalla')?'ft-pos':'')+(on?' on':'')+'" title="Ordina per '+lungo+(on?(_ftOrdine.verso==='giu'?' (ora dal più grande)':' (ora dal più piccolo)'):'')+'">'
+    return '<button type="button" data-ord="'+c+'" class="'+((c==='x'||c==='spalla')?'ft-pos':(c==='diam'?'ft-largo':''))+(on?' on':'')+'" title="Ordina per '+lungo+(on?(_ftOrdine.verso==='giu'?' (ora dal più grande)':' (ora dal più piccolo)'):'')+'">'
       +'<span>'+nome+'</span><small>'+u+(on?((u?' ':'')+(_ftOrdine.verso==='giu'?'▼':'▲')):'')+'</small></button>'; }).join('');
   const _cap=capienzaD2(), _nonEntra=new Map(_cap.nonEntra.map(q=>[q.i,q]));
   const cella=(r,campo,lungo,fem)=>{ const no=(campo==='kg' && _nonEntra.has(r.i));
     return '<input type="text" inputmode="decimal" id="ft-'+campo+'-'+r.i+'" data-i="'+r.i+'" data-campo="'+campo+'" value="'+(r[campo]===null?'':perCampo(r[campo],2))+'"'
-    +((r.propri[campo]||no)?' class="'+(r.propri[campo]?'suo':'')+(no?' oltre':'')+'"':'')+(no?' title="Non entra: '+capienzaFrase(_nonEntra.get(r.i),'un foro')+'"':'')
+    +((r.propri[campo]||no||campo==='diam')?' class="'+(r.propri[campo]?'suo':'')+(no?' oltre':'')+(campo==='diam'?' ft-largo':'')+'"':'')+(no?' title="Non entra: '+capienzaFrase(_nonEntra.get(r.i),'un foro')+'"':'')
     +' aria-label="'+lungo+' del foro '+r.n+(r.propri[campo]?(fem?', sua':', suo'):', dal progetto')+(no?', non entra nel foro':'')+'">'; };
   corpo.innerHTML='<div class="ft-scorri"><div class="ft-h">'+testa+'</div>'
     +tabellaFori(D2.holes, D2, _ftOrdine).map(r=>'<div class="ft-r'+(r.i===D2.sel?' sel':'')+'" data-i="'+r.i+'">'
@@ -6997,8 +7005,8 @@ function renderTabellaFori(){
       +'<span class="ft-v ft-pos">'+(r.x===null?'—':gfix(r.x,2))+'</span>'
       +'<span class="ft-v ft-pos">'+(r.spalla===null?'—':gfix(r.spalla,2))+'</span>'
       +'<span class="ft-v">'+(r.tDet===null?'—':fmtMs(r.tDet))+(r.aMano?'<i title="Ritardo messo a mano">✎</i>':'')+'</span>'
-      +cella(r,'kg','carica',true)+cella(r,'prof','profondità',true)+cella(r,'stem','borraggio',false)+'</div>').join('')
-    +'</div><div class="ft-nota">'+(_cap.nonEntra.length?'<b id="ft-cap" style="color:#ef9a9a">⚠ In '+_cap.nonEntra.length+' '+plurale(_cap.nonEntra.length,'foro','fori')+' la carica non entra</b> (cella della carica bordata di rosso). ':'')+'Scrivi in una cella per dare a quel foro un valore suo; cella vuota = torna al progetto. ◆ ha valori suoi · ✎ ritardo messo a mano. Posizione e ritardo si leggono e si cambiano nella scheda del foro: tocca il suo numero.</div>';
+      +cella(r,'kg','carica',true)+cella(r,'prof','profondità',true)+cella(r,'stem','borraggio',false)+cella(r,'diam','diametro',false)+'</div>').join('')
+    +'</div><div class="ft-nota">'+(_cap.nonEntra.length?'<b id="ft-cap" style="color:#ef9a9a">⚠ In '+_cap.nonEntra.length+' '+plurale(_cap.nonEntra.length,'foro','fori')+' la carica non entra</b> (cella della carica bordata di rosso). ':'')+'Scrivi in una cella per dare a quel foro un valore suo; cella vuota = torna al progetto. ◆ ha valori suoi · ✎ ritardo messo a mano. Posizione e ritardo — e, su uno schermo stretto, il diametro — si leggono e si cambiano nella scheda del foro: tocca il suo numero.</div>';
   const daRifocalizzare=fuoco && $(fuoco);
   if(daRifocalizzare){ daRifocalizzare.focus(); if(typeof daRifocalizzare.select==='function') daRifocalizzare.select(); }
 }
