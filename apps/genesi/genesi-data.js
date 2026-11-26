@@ -2869,6 +2869,48 @@ export function tabellaFori(holes, progetto, ordine){
 }
 
 /* ══════════════════════════════════════════════════════════════════════
+   LE PREVISIONI SUL FORO TIPO: CHI RESTA FUORI, DETTO (26/11).
+   ══════════════════════════════════════════════════════════════════════
+   Pezzatura e gittata si calcolano coi valori del PROGETTO (quali debbano
+   usare è la decisione 33, del fondatore). Finché è così, un foro con valori
+   suoi è un foro per cui quella previsione NON è stata fatta — e per la
+   gittata non è una sfumatura. Misurato il 26/11: un solo foro con 1,5 m di
+   borraggio in una volata progettata a 2,2 lascia la gittata a 101 m e lo
+   sgombero persone a 404 m; la STESSA formula, con quel borraggio, dà 193 m
+   e 772 m. Il numero stampato vale per il foro tipo, e lo si deve leggere
+   accanto al numero: sullo schermo, sul foglio, nel file.
+   ⛔ Qui NON si decide quale foro usa la previsione e non si tocca nessuna
+   formula né soglia: si CONTA chi resta fuori e si compone UNA frase, la
+   stessa per tutti i posti che la scrivono.
+    · `campi`: i campi che quella previsione legge. Un foro che ha di suo
+      solo un campo che la previsione non usa non è «fuori»;
+    · la frase dice «non è calcolata» e non «è maggiore» o «è minore»: da
+      che parte sbagli non lo si sa senza rifare il conto foro per foro. */
+export const CAMPI_DELLA_GITTATA = ['kg', 'stem', 'diam', 'incl'];
+export const CAMPI_DELLA_PEZZATURA = ['kg', 'prof', 'stem', 'diam'];
+const _NOMI_CAMPI_FORO = { kg: 'carica', prof: 'profondità', stem: 'borraggio', diam: 'diametro', incl: 'inclinazione' };
+export function foriFuoriDalForoTipo(holes, campi){
+  const C = CAMPI_PER_FORO.filter((c) => !Array.isArray(campi) || campi.includes(c));
+  const perCampo = {}; for (const c of C) perCampo[c] = 0;
+  let fori = 0;
+  for (const h of (Array.isArray(holes) ? holes : [])){
+    let fuori = false;
+    for (const c of C) if (valoreProprioDiForo(h, c) !== null){ perCampo[c]++; fuori = true; }
+    if (fuori) fori++;
+  }
+  return { fori, perCampo, campi: C.filter((c) => perCampo[c] > 0) };
+}
+export function avvisoForoTipo(holes, campi, soggetto){
+  const q = foriFuoriDalForoTipo(holes, campi);
+  if (!q.fori) return '';
+  const nomi = q.campi.map((c) => _NOMI_CAMPI_FORO[c]);
+  const elenco = nomi.length > 1 ? nomi.slice(0, -1).join(', ') + ' o ' + nomi[nomi.length - 1] : nomi[0];
+  return q.fori + ' ' + (q.fori === 1 ? 'foro ha' : 'fori hanno') + ' un valore proprio di ' + elenco + ': '
+    + (soggetto || 'questa previsione') + ' è calcolata sul FORO TIPO del progetto, e per '
+    + (q.fori === 1 ? 'quel foro' : 'quei fori') + ' non è calcolata.';
+}
+
+/* ══════════════════════════════════════════════════════════════════════
    IL VALORE DEL PROGETTO, RILEGGENDO UN FILE DI SCAMBIO (26/11).
    ══════════════════════════════════════════════════════════════════════
    Chi riapre un `.volata.json` deve ricavare la carica e la profondità DEL

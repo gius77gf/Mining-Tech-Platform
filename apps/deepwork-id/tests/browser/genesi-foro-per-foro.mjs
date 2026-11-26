@@ -141,6 +141,13 @@ const DIFETTI = [
   [PAGINA, `default:{ diametro_mm:P.diam, profondita_m:P.prof, carica_kg:P.kg, esplosivo:`, `default:{ diametro_mm:P.diam, profondita_m:P.prof, esplosivo:`],
   [PAGINA, `valoreProgettoDaFile(parseFloat(def.carica_kg), fori.map(x=>parseFloat(x.kg)))`, `valoreProgettoDaFile(NaN, fori.map(x=>parseFloat(x.kg)))`],
   [PAGINA, `(_diversi?' — '+_diversi:'')`, `''`],
+  /* la gittata sul foro tipo (26/11): l'etichetta sparisce, la riga torna verde,
+     la frase tace sullo schermo e nel CSV, e conta fuori anche chi non c'entra */
+  [PAGINA, `(_flyTipo?' <span id="fly-foro-tipo">foro tipo</span>':'')`, `''`],
+  [PAGINA, `cls:(_flyTipo && _flyCls==='sv-ok')?'sv-warn':_flyCls,`, `cls:_flyCls,`],
+  [PAGINA, `why:(_flyTipo?'<b>⚠ '+_rEsc(_flyTipo)+'</b> Le distanze di sgombero qui sopra valgono per il foro tipo. ':'')+`, `why:`],
+  [PAGINA, `['Avviso gittata sul foro tipo', k.flyCalcolabile?avvisoForoTipo(D2.holes, CAMPI_DELLA_GITTATA, 'la gittata'):''],`, `['Avviso gittata sul foro tipo', ''],`],
+  [MODULO, `const C = CAMPI_PER_FORO.filter((c) => !Array.isArray(campi) || campi.includes(c));`, `const C = CAMPI_PER_FORO.slice();`],
 ];
 
 const colpiti = new Set();
@@ -1082,6 +1089,47 @@ if (prima && prima.colonneTrovate) {
   await pulisci(0); await pg.waitForTimeout(400);
   await pg.evaluate(() => window.__genesi.renderScheda2D());
   await pg.setViewportSize({ width: 430, height: 900 }); await pg.waitForTimeout(250);
+}
+/* 15. ⛔ LA GITTATA È SUL FORO TIPO — e si deve leggere accanto al numero. Misurato il 26/11:
+   un foro con 1,5 m di borraggio in una volata a 2,2 lascia la gittata a 101 m; la stessa
+   formula con quel borraggio dà 193. Qui non si pretende un numero diverso (è la decisione 33):
+   si pretende che la riga, il messaggio e il file DICANO per quanti fori non è calcolata. */
+{
+  console.log("\n── la gittata sul foro tipo ──");
+  await pg.setViewportSize({ width: 430, height: 900 });
+  await pg.click('#bottomnav button[data-scr="design"]'); await pg.waitForTimeout(500);
+  /* il recettore si porta LONTANO (2 km): così la riga parte VERDE, e si può vedere se resta verde
+     quando non deve. Con la distanza della dimostrazione era già gialla per conto suo, e la prova
+     «non resta verde» passava anche col difetto rimesso — l'ha detto la controprova. */
+  const recPrima = await pg.evaluate(() => { const D = window.__genesi.D2, r = D.recDist; for (const h of D.holes) for (const c of ["kg", "prof", "stem", "diam", "incl"]) delete h[c]; D.recDist = 2000; window.__genesi.renderScheda2D(); return r; });
+  await pg.waitForTimeout(300);
+  const gittata = () => pg.evaluate(() => { const r = document.querySelector('#d2-scheda .sv-row[data-lab="Gittata flyrock (stima)"]'); if (!r) return null;
+    return { val: r.querySelector(".sv-val").innerText.replace(/\s+/g, " ").trim(), cls: r.querySelector(".sv-dot").className.replace("sv-dot", "").trim(), why: r.querySelector(".sv-why").innerText.replace(/\s+/g, " "), etichetta: !!document.getElementById("fly-foro-tipo") }; });
+  const csv = async () => { await pg.evaluate(() => { window.__usciti.length = 0; document.getElementById("btn-scheda-csv").click(); }); await pg.waitForTimeout(700);
+    const f = (await pg.evaluate(() => window.__usciti)).find((x) => /scheda_volata\.csv$/.test(x.nome)); const t = f ? decodeURIComponent(f.href.split(",").slice(1).join(",")) : "";
+    const riga = (re) => (t.split(/\r?\n/).find((r) => re.test(r)) || "").replace(/^[^;]*;/, "").replace(/^"|"$/g, ""); return { propri: riga(/^"?Fori con valori propri/), fly: riga(/^"?Avviso gittata sul foro tipo/), x50: riga(/^"?Avviso frammentazione sul foro tipo/), m: riga(/^"?Gittata flyrock \(m\)/) }; };
+  const g0 = await gittata(), c0 = await csv();
+  dice(!!g0 && !g0.etichetta && !/FORO TIPO/.test(g0.why), "⛔ NEUTRALITÀ: senza valori per foro la riga della gittata non porta nessuna etichetta né avviso", g0);
+  dice(c0.propri === "0" && c0.fly === "" && c0.x50 === "", "e nella scheda CSV: «Fori con valori propri» 0 (un conto, non un vuoto), i due avvisi vuoti", c0);
+  if (g0) {
+    /* un foro con meno borraggio, dal ponte di debug */
+    await pg.evaluate(() => { window.__genesi.D2.holes[6].stem = 1.5; window.__genesi.renderScheda2D(); }); await pg.waitForTimeout(300);
+    const g1 = await gittata(), c1 = await csv();
+    dice(g1.val.replace(/foro tipo/, "").trim() === g0.val, `il numero NON è cambiato (${g0.val}): quale foro usi la previsione è la decisione 33, non questa prova`, [g0.val, g1.val]);
+    dice(g1.etichetta && /foro tipo/.test(g1.val), "⛔ ma accanto al numero adesso c'è «foro tipo»", g1.val);
+    dice(/1 foro ha un valore proprio di borraggio: la gittata è calcolata sul FORO TIPO del progetto, e per quel foro non è calcolata\./.test(g1.why) && /Le distanze di sgombero qui sopra valgono per il foro tipo/.test(g1.why), "⛔ e la spiegazione lo dice per intero: per quel foro la gittata non è calcolata, e le distanze di sgombero valgono per il foro tipo", g1.why.slice(0, 260));
+    dice(g0.cls === "sv-ok" && g1.cls === "sv-warn", `⛔ la riga era VERDE (recettore a 2 km) e non lo resta (${g0.cls} → ${g1.cls}): un pallino tranquillo su una distanza di sgombero che per quel foro nessuno ha calcolato non si può leggere`, [g0.cls, g1.cls]);
+    dice(c1.propri === "1" && /1 foro ha un valore proprio di borraggio: la gittata è calcolata sul FORO TIPO/.test(c1.fly) && c1.m === c0.m, "⛔ e la scheda CSV — il file che si archivia col rapportino — porta lo stesso avviso accanto alla stessa gittata", c1);
+    dice(/1 foro ha un valore proprio di borraggio: la pezzatura è calcolata sul FORO TIPO/.test(c1.x50), "e quello sulla pezzatura", c1.x50);
+    /* un foro che di suo ha solo la PROFONDITÀ: la gittata non la legge, quindi non è «fuori» per lei */
+    await pg.evaluate(() => { const H = window.__genesi.D2.holes; delete H[6].stem; H[4].prof = 8.5; window.__genesi.renderScheda2D(); }); await pg.waitForTimeout(300);
+    const g2 = await gittata(), c2 = await csv();
+    dice(!g2.etichetta && c2.fly === "" && /pezzatura/.test(c2.x50) && c2.propri === "1", "⛔ un foro che di suo ha solo la profondità NON fa scattare l'avviso sulla gittata (che la profondità non la legge) — quello sulla pezzatura sì", [g2.etichetta, c2]);
+    const x50 = await pg.evaluate(() => { const r = document.querySelector('#d2-scheda .sv-row[data-lab="X50 prevista"]'); return r ? r.querySelector(".sv-why").innerText.replace(/\s+/g, " ") : ""; });
+    dice(/1 foro ha un valore proprio di profondità: la pezzatura è calcolata sul FORO TIPO/.test(x50), "e sullo schermo la X50 dice la stessa frase, col campo giusto (prima diceva sempre «carica, profondità o borraggio»)", x50.slice(-200));
+  }
+  await pg.evaluate((r) => { const D = window.__genesi.D2; for (const h of D.holes) for (const c of ["kg", "prof", "stem", "diam", "incl"]) delete h[c]; D.recDist = r; window.__genesi.renderScheda2D(); }, recPrima);
+  await pg.waitForTimeout(250);
 }
 dice(pg.__err.length === 0, "la pagina non solleva errori", pg.__err.slice(0, 2));
 

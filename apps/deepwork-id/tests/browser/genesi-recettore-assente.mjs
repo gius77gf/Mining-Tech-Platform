@@ -36,8 +36,8 @@ const DIFETTI = [
   ["genesi-data.js", "  if(ppvSenzaDistanza(dist)) return null;\n  const sd3=Math.max(0.001,+dist)/Math.cbrt(Math.max(0.1,m));",
    "  const sd3=Math.max(0.001,+dist||0)/Math.cbrt(Math.max(0.1,m));"],
   // C · le due righe flyrock e il presplit
-  ["genesi.html", "      cls:_flySd?'sv-warn':(D2.recDist>=Dper?'sv-ok':(D2.recDist>=Dmez?'sv-warn':'sv-bad')),",
-   "      cls:(D2.recDist>=Dper?'sv-ok':(D2.recDist>=Dmez?'sv-warn':'sv-bad')),"],
+  ["genesi.html", "    const _flyCls=_flySd?'sv-warn':(D2.recDist>=Dper?'sv-ok':(D2.recDist>=Dmez?'sv-warn':'sv-bad'));",
+   "    const _flyCls=(D2.recDist>=Dper?'sv-ok':(D2.recDist>=Dmez?'sv-warn':'sv-bad'));"],
   ["genesi.html", "    const _psOkS = _psD>=8 && _psD<=14, _psOkQ = _psQnoto && _psQ>=0.25 && _psQ<=0.9;",
    "    const _psOkS = _psD>=8 && _psD<=14, _psOkQ = D2.psCharge>=0.25 && D2.psCharge<=0.9;"],
   /* ⛔ D · LO STRATO, non una guardia sola. La prima stesura di questa

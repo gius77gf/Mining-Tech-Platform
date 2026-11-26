@@ -1354,7 +1354,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, reliefCls, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino, activeProf, d2HitTest, d2HitTestPt,
-         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfLeggi, dxfFraseNonLette, DXF_FRECCIA_ARCO_M, valoriPropriDiForo, valoreDiForo, scostamentoPiedeForo, foriPropriPerFoglio, valoreProgettoDaFile, LIMITI_PER_FORO, foriConValoreProprio, foriSenzaValoriPropri, valoreComuneDiFori, contaValoriPropri, tabellaFori, valoriPerForoDaPiano, capienzaFori, MARGINE_CAPIENZA_FORO, scartoCaricheProprie, scartoProfonditaProprie, caricaProgettoDaTotale, firmaMaglia, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, foriRiflessi, trattiRuotati, trattiScalati, coordinataRelativa, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
+         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfLeggi, dxfFraseNonLette, DXF_FRECCIA_ARCO_M, valoriPropriDiForo, valoreDiForo, scostamentoPiedeForo, foriPropriPerFoglio, valoreProgettoDaFile, foriFuoriDalForoTipo, avvisoForoTipo, CAMPI_DELLA_GITTATA, CAMPI_DELLA_PEZZATURA, LIMITI_PER_FORO, foriConValoreProprio, foriSenzaValoriPropri, valoreComuneDiFori, contaValoriPropri, tabellaFori, valoriPerForoDaPiano, capienzaFori, MARGINE_CAPIENZA_FORO, scartoCaricheProprie, scartoProfonditaProprie, caricaProgettoDaTotale, firmaMaglia, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, foriRiflessi, trattiRuotati, trattiScalati, coordinataRelativa, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -3859,6 +3859,9 @@ if($('btn-scheda-csv')) $('btn-scheda-csv').onclick=()=>{
     ['Maglia', k.maglia],
     ['Esplosivo', k.setup],
     ['Fori', _nfCsv],
+    /* 26/11 — quanti fori hanno valori loro (uno zero è un conto, non un vuoto),
+       e più sotto le due previsioni che per quei fori NON sono state fatte */
+    ['Fori con valori propri', contaValoriPropri(D2.holes).fori],
     ['Carica totale (kg)', _cKCsv.qtot===null?null:Math.round(_cKCsv.qtot)],
     /* stessa forma della MIC dieci righe più giù: la cella vuota da sola dice
        «non c'è» e lascia credere a una dimenticanza, la riga accanto dice che
@@ -3875,6 +3878,7 @@ if($('btn-scheda-csv')) $('btn-scheda-csv').onclick=()=>{
        QUALE campo la produce. */
     ['Esito frammentazione', k.fragCalcolabile?'calcolata (Kuz-Ram / Rosin-Rammler)':'non calcolabile'],
     ['Perche la frammentazione non e calcolabile', k.fragCalcolabile?'':k.fragChe],
+    ['Avviso frammentazione sul foro tipo', k.fragCalcolabile?avvisoForoTipo(D2.holes, CAMPI_DELLA_PEZZATURA, 'la pezzatura'):''],
     ['PPV recettore (mm/s)', k.ppv], ['Limite PPV (mm/s)', k.lim],
     /* la norma esce ACCANTO alla sua soglia: quando la cella del limite è vuota
        è l'unica cosa che dice perché — e quando è piena dice a che cosa si
@@ -3921,6 +3925,7 @@ if($('btn-scheda-csv')) $('btn-scheda-csv').onclick=()=>{
     ['Sgombero persone 4x (m)', k.flyPersone],
     ['Esito gittata flyrock', k.flyCalcolabile?'stimata su Richards&Moore/McKenzie/Lundborg':'non calcolabile'],
     ['Perche la gittata non e calcolabile', k.flyCalcolabile?'':k.flyChe],
+    ['Avviso gittata sul foro tipo', k.flyCalcolabile?avvisoForoTipo(D2.holes, CAMPI_DELLA_GITTATA, 'la gittata'):''],
     ['Presplit', k.presplit?'si':'no'],
     /* ⛔ E QUI IL FILE ARCHIVIATO COL RAPPORTINO PORTAVA UN COSTO PIÙ BASSO DEL
        VERO: senza la carica per foro l'addendo dell'esplosivo spariva e la
@@ -4289,6 +4294,9 @@ if($('btn-report')) $('btn-report').onclick=()=>{
      qualcuno si scosta); qui c'è la nota accanto alla riga del progetto e la
      tabella. Senza valori per foro non compare niente: il foglio è com'era. */
   const _fp=foriPropriPerFoglio(D2.holes, D2);
+  /* e le due previsioni che lavorano sul foro tipo lo dicono sul foglio, con la
+     stessa frase dello schermo: è il foglio che decide dove mandare le persone */
+  const _rFlyTipo=avvisoForoTipo(D2.holes, CAMPI_DELLA_GITTATA, 'la gittata'), _rX50Tipo=avvisoForoTipo(D2.holes, CAMPI_DELLA_PEZZATURA, 'la pezzatura');
   const _fpNota=(campo,fem)=>_fp.quanti[campo] ? ' <span class="fpn">del progetto — '+_ricPlur(_fp.quanti[campo],'foro ne ha '+(fem?'una sua':'uno suo'),'fori ne hanno '+(fem?'una loro':'uno loro'))+': vedi «Fori con valori propri»</span>' : '';
   const _fpNomi={ kg:'Carica', prof:'Profondità', stem:'Borraggio', diam:'Diametro', incl:'Inclinazione' };
   const _fpSez=!_fp.conPropri ? '' : '<h2>Fori con valori propri</h2>'
@@ -4308,7 +4316,7 @@ if($('btn-report')) $('btn-report').onclick=()=>{
            volata di cui nessuno aveva letto la carica: tre numeri buoni da
            leggere, nati da un dato che non c'è. `nc` è la stessa forma che il
            foglio usa già per la carica totale e per la MIC. */
-        k.fragCalcolabile ? gnum(k.x20,1)+' / '+gnum(k.x50,1)+' / '+gnum(k.x80,1)+' cm'
+        k.fragCalcolabile ? gnum(k.x20,1)+' / '+gnum(k.x50,1)+' / '+gnum(k.x80,1)+' cm'+(_rX50Tipo?'<br><b>Sul foro tipo</b> — '+esc(_rX50Tipo):'')
                           : '<b>Non calcolabile</b> — '+esc(k.fragChe)+'. '+esc(k.fragCome)],
       ['MIC (carica massima per ritardo)',
         _rM.calcolabile ? gnum(_rMic,1)+' kg (finestra 8 ms)'
@@ -4333,7 +4341,7 @@ if($('btn-report')) $('btn-report').onclick=()=>{
       /* ⚠️ «— m» su un foglio che si porta in cava si legge come una cella
          dimenticata; sulle distanze di sgombero non è una sfumatura. `nc` lo
          scrive a parole, come già fa per il costo e per la carica totale. */
-      ['Gittata flyrock',nc(k.fly,gnum(k.fly,0)+' m')],
+      ['Gittata flyrock',nc(k.fly,gnum(k.fly,0)+' m')+((_rFlyTipo && k.fly!==null && k.fly!==undefined)?'<br><b>Sul foro tipo</b> — '+esc(_rFlyTipo)+' Le distanze di sgombero qui sotto valgono per il foro tipo.':'')],
       ['Sgombero mezzi 2× / persone 4×',nc(k.flyMezzi,gnum(k.flyMezzi,0)+' / '+gnum(k.flyPersone,0)+' m')],
       ['Presplit',k.presplit?'sì':'no']]
       .concat(k.flyCalcolabile?[]:[['Perché la gittata non è calcolabile',esc(k.flyChe)+'. '+esc(k.flyCome)]]))
@@ -7543,13 +7551,24 @@ function renderScheda2D(){
       return;
     }
     const _flySd=ppvSenzaDistanza(D2.recDist);
-    rows.push({lab:'Gittata flyrock (stima)',valStr:gnum(Lpred,0)+' <span>m → sgombero '+gnum(Dmez,0)+' / '+gnum(Dper,0)+' m</span>',
-      cls:_flySd?'sv-warn':(D2.recDist>=Dper?'sv-ok':(D2.recDist>=Dmez?'sv-warn':'sv-bad')),
+    /* ⛔ 26/11 — LA GITTATA È SUL FORO TIPO, E QUI NON È UNA SFUMATURA. Misurato:
+       un solo foro con 1,5 m di borraggio in una volata progettata a 2,2 lascia
+       questa riga a 101 m e lo sgombero persone a 404; la stessa formula, con
+       quel borraggio, dà 193 e 772. Quale foro debba usare la previsione è la
+       decisione 33 (del fondatore) e qui non si tocca né la formula né una
+       soglia: si DICE, accanto al numero, per quanti fori la stima non è stata
+       fatta (`avvisoForoTipo`), e la riga non resta VERDE — un pallino
+       tranquillo su una distanza di sgombero che per quei fori nessuno ha
+       calcolato è il difetto che il principio del fondatore esiste per togliere. */
+    const _flyTipo=avvisoForoTipo(D2.holes, CAMPI_DELLA_GITTATA, 'la gittata');
+    const _flyCls=_flySd?'sv-warn':(D2.recDist>=Dper?'sv-ok':(D2.recDist>=Dmez?'sv-warn':'sv-bad'));
+    rows.push({lab:'Gittata flyrock (stima)',valStr:gnum(Lpred,0)+' <span>m → sgombero '+gnum(Dmez,0)+' / '+gnum(Dper,0)+' m</span>'+(_flyTipo?' <span id="fly-foro-tipo">foro tipo</span>':''),
+      cls:(_flyTipo && _flyCls==='sv-ok')?'sv-warn':_flyCls,
       /* ⚠️ `F.mech0[0]` su un `mech0` nullo ucciderebbe la scheda al disegno, e
          succede nel caso vero in cui il numero è certo ma il nome del
          meccanismo dipende dalla spalla che non c'è (vedi `gittataSenzaSpalla`):
          allora il meccanismo non si nomina invece di nominarne uno a caso. */
-      why:(F.mech0?'meccanismo dominante: '+F.mech0[0]+' (k='+gnum(F.kf,0)+'). ':'quale dei meccanismi domini dipende dalla spalla, che qui non c\'è: la gittata invece non ne dipende, ed è quella scritta qui sopra. ')+'Sgombero consigliato: mezzi 2× ('+gnum(Dmez,0)+' m), persone 4× ('+gnum(Dper,0)+' m) — '
+      why:(_flyTipo?'<b>⚠ '+_rEsc(_flyTipo)+'</b> Le distanze di sgombero qui sopra valgono per il foro tipo. ':'')+(F.mech0?'meccanismo dominante: '+F.mech0[0]+' (k='+gnum(F.kf,0)+'). ':'quale dei meccanismi domini dipende dalla spalla, che qui non c\'è: la gittata invece non ne dipende, ed è quella scritta qui sopra. ')+'Sgombero consigliato: mezzi 2× ('+gnum(Dmez,0)+' m), persone 4× ('+gnum(Dper,0)+' m) — '
         +(_flySd?'<b>non si può dire se il recettore è al sicuro</b>: '+_rEsc(_flySd.che)+'. '+_rEsc(_flySd.come):'recettore a '+gnum(D2.recDist,0)+' m.')
         +' STIMA INDICATIVA (Richards&Moore/McKenzie/Lundborg): NON sostituisce il calcolo normativo delle aree di sgombero né il giudizio del responsabile del tiro.'});
   })();
@@ -7857,7 +7876,7 @@ function renderScheda2D(){
      frammentazione no: lavora sul foro tipo del progetto (quale carica debba
      usare è la decisione 33, del fondatore). Finché è così lo si DICE accanto
      al numero, invece di lasciar credere che la previsione li conosca. */
-  const _nPropri=contaValoriPropri(D2.holes).fori;
+  const _x50Tipo=avvisoForoTipo(D2.holes, CAMPI_DELLA_PEZZATURA, 'la pezzatura'), _nPropri=foriFuoriDalForoTipo(D2.holes, CAMPI_DELLA_PEZZATURA).fori;
   const _Th=rit, _sd=scatterMs(D2), _Rs=_sd/Math.max(1,_Th);   // scatter: unica formula, condivisa col relief per foro
   rows.push({lab:'Brillabilità (BI/A)',valStr:gfix(_A,1)+' <span>A · BI '+gnum(_rf.BI,0)+'</span>',cls:(_A<=6?'sv-ok':(_A<=10?'sv-warn':'sv-bad')),
     why:'rock factor A=0,06·(RMD+JF+RDI+HF) (Lilly/Cunningham): '+_rk.nome+', UCS '+(D2.ucs||_rk.ucs)+' MPa, E '+(D2.eMod||_rk.eMod)+' GPa, fratturazione '+D2.frat+'. RDI '+_rf.RDI+', HF '+_rf.HF+', JF '+_rf.JF+'. '+(_A<=6?'roccia facile: frammenta bene con PF moderato.':(_A<=10?'brillabilità media: cura PF e timing per evitare oversize.':'roccia dura/massiccia: serve PF alto, Ø piccolo o esplosivo ad alta VOD.'))});
@@ -7865,7 +7884,7 @@ function renderScheda2D(){
     ? nonCalcolabile('X50 prevista', _fg.che+'. '+_fg.come)
     : {lab:'X50 prevista',valStr:Math.round(_x50)+' <span>cm</span>'+(_penE>0?' <span>↑bagnato</span>':'')+(_nPropri?' <span id="x50-foro-tipo">foro tipo</span>':''),cls:'sv-info',
     why:'frammentazione mediana (Kuz-Ram, '+_rk.nome+' A='+gfix(_A,1)+' calcolato, RWS '+gnum(_RWS,0)+(_penE>0?' effettiva, ridotta da fori bagnati':'')+'): roccia piu dura (A alto) o meno carica/RWS la rende piu grossolana.'
-      +(_nPropri?' ⚠ '+_nPropri+' '+plurale(_nPropri,'foro ha','fori hanno')+' carica, profondità o borraggio propri: questa previsione è calcolata sul FORO TIPO del progetto, non foro per foro.':'')});
+      +(_x50Tipo?' ⚠ '+_rEsc(_x50Tipo):'')});
   /* === secondo modello: curva KCO/Swebrec (Ouchterlony 2005) — code più realistiche
      del Rosin-Rammler perché il massello è limitato dal blocco in situ e dalla maglia === */
   (function(){

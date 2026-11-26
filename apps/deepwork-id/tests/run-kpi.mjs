@@ -33243,7 +33243,7 @@ test("TIPI_ATTREZZATURA e DEMO.attrezzature: le tre verifiche periodiche già in
     eq(/\(D2\.recDist\|\|300\)/.test(srcG16), false,
       "⛔ il flyrock inverso non si inventa più 300 m di recettore per avere un numero da invertire");
     /* ⛔ i due confronti che di `null` fanno un verdetto */
-    eq(/cls:_flySd\?'sv-warn':/.test(srcG16), true,
+    eq(/const _flyCls=_flySd\?'sv-warn':/.test(srcG16), true,
       "il flyrock chiede se la distanza c'è PRIMA di dipingere il pallino: `null>=404` è falso e cadeva sul rosso");
     eq(/&& !ppvSenzaDistanza\(D2\.recDist\) && D2\.recDist<200/.test(srcG16), true,
       "e il consiglio del presplit non parte più su `null<200`, che è vero");
@@ -43685,6 +43685,29 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(genesi.valoriPerForoDaPiano([{ x: 3.5, y: 3, incl: 20, kg: 58, prof: 10, stem: 2.2 }], lisci, P).fori[1].incl, 20, "l'inclinazione riletta da un piano torna sul foro in quella posizione");
     eq(genesi.valoriPerForoDaPiano([{ x: 3.5, y: 3, incl: 45 }], lisci, P).scartati, 1, "una fuori dai limiti letta da un file si scarta e si conta");
     eq(genesi.valoriPerForoDaPiano([{ x: 3.5, y: 3, incl: 10 }], lisci, P).riportati, 0, "una uguale a quella del progetto non è un valore proprio");
+  });
+  test("⛔ Genesi · foriFuoriDalForoTipo e avvisoForoTipo: una previsione sul foro tipo dice per quanti fori NON è stata fatta", () => {
+    const lisci = [{ id: "a" }, { id: "b" }, { id: "c" }, { id: "d" }];
+    eq(genesi.foriFuoriDalForoTipo(lisci, genesi.CAMPI_DELLA_GITTATA), { fori: 0, perCampo: { kg: 0, stem: 0, diam: 0, incl: 0 }, campi: [] }, "senza valori per foro nessuno è fuori");
+    eq(genesi.avvisoForoTipo(lisci, genesi.CAMPI_DELLA_GITTATA, "la gittata"), "", "⛔ NEUTRALITÀ: e allora la frase è vuota — niente compare accanto al numero");
+    /* il caso misurato: UN foro con meno borraggio */
+    const uno = [{ id: "a" }, { id: "b", stem: 1.5 }, { id: "c" }, { id: "d" }];
+    eq(genesi.avvisoForoTipo(uno, genesi.CAMPI_DELLA_GITTATA, "la gittata"),
+      "1 foro ha un valore proprio di borraggio: la gittata è calcolata sul FORO TIPO del progetto, e per quel foro non è calcolata.", "un foro: al singolare, col campo che ha di suo");
+    /* più fori, più campi; e un foro con due campi suoi conta UNA volta */
+    const tre = [{ id: "a", kg: 0 }, { id: "b", stem: 1.5, kg: 70 }, { id: "c", incl: 20 }, { id: "d", prof: 8 }];
+    eq(genesi.foriFuoriDalForoTipo(tre, genesi.CAMPI_DELLA_GITTATA), { fori: 3, perCampo: { kg: 2, stem: 1, diam: 0, incl: 1 }, campi: ["kg", "stem", "incl"] },
+      "⛔ tre fori fuori per la gittata: «d», che di suo ha solo la profondità, NO — la gittata la profondità non la legge");
+    eq(genesi.avvisoForoTipo(tre, genesi.CAMPI_DELLA_GITTATA, "la gittata"),
+      "3 fori hanno un valore proprio di carica, borraggio o inclinazione: la gittata è calcolata sul FORO TIPO del progetto, e per quei fori non è calcolata.", "al plurale, coi soli campi che qualcuno ha davvero");
+    eq(genesi.foriFuoriDalForoTipo(tre, genesi.CAMPI_DELLA_PEZZATURA).fori, 3, "per la pezzatura sono altri tre: «c», che ha solo l'inclinazione, esce; «d» entra");
+    eq(genesi.foriFuoriDalForoTipo(tre, genesi.CAMPI_DELLA_PEZZATURA).campi, ["kg", "prof", "stem"], "coi campi nell'ordine di sempre");
+    eq(genesi.foriFuoriDalForoTipo(tre).fori, 4, "senza un elenco di campi valgono tutti e cinque: quattro fori");
+    eq(genesi.foriFuoriDalForoTipo([{ stem: "abc" }, { kg: -3 }], genesi.CAMPI_DELLA_GITTATA).fori, 0, "un valore illeggibile o impossibile non è un valore proprio");
+    eq([genesi.foriFuoriDalForoTipo(null).fori, genesi.avvisoForoTipo(null, genesi.CAMPI_DELLA_GITTATA, "la gittata")], [0, ""], "senza fori: zero e nessuna frase, non un crollo");
+    eq(genesi.avvisoForoTipo(uno, genesi.CAMPI_DELLA_GITTATA), "1 foro ha un valore proprio di borraggio: questa previsione è calcolata sul FORO TIPO del progetto, e per quel foro non è calcolata.", "senza soggetto: «questa previsione»");
+    ok(!/maggiore|minore|sicur/.test(genesi.avvisoForoTipo(tre, genesi.CAMPI_DELLA_GITTATA, "la gittata")), "⛔ la frase dice «non è calcolata»: non promette da che parte sbagli");
+    eq([genesi.CAMPI_DELLA_GITTATA, genesi.CAMPI_DELLA_PEZZATURA], [["kg", "stem", "diam", "incl"], ["kg", "prof", "stem", "diam"]], "i campi dichiarati: quelli che le due previsioni leggono dal progetto");
   });
   test("⛔ Genesi · valoreProgettoDaFile: riaprendo un file di scambio il progetto NON è la media dei fori", () => {
     const undici = Array.from({ length: 11 }, () => 58);

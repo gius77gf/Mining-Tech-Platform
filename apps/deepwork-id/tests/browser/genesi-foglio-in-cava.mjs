@@ -120,6 +120,10 @@ const DIFETTI = [
   ["const _fpNota=(campo,fem)=>_fp.quanti[campo] ? ", "const _fpNota=(campo,fem)=>false ? "],
   ["return '<td>'+(r.propri[c]?'<b>'+tx+'</b>':tx)+'</td>'; }", "return '<td>'+tx+'</td>'; }"],
   ["+((c==='kg' && r[c]===0)?' (scarico)':'');", "+'';"],
+  /* la gittata sul foro tipo (26/11): il foglio torna a stampare la distanza di
+     sgombero senza dire per quanti fori non è stata calcolata */
+  ["+((_rFlyTipo && k.fly!==null && k.fly!==undefined)?'<br><b>Sul foro tipo</b> — '+esc(_rFlyTipo)+' Le distanze di sgombero qui sotto valgono per il foro tipo.':'')", ""],
+  ["+(_rX50Tipo?'<br><b>Sul foro tipo</b> — '+esc(_rX50Tipo):'')", ""],
 ];
 
 const colpiti = new Set();
@@ -524,6 +528,11 @@ console.log("\n· un foro lasciato scarico e accorciato, uno più inclinato: il 
   dice(/del progetto — 1 foro ne ha una sua: vedi «Fori con valori propri»/.test(rigaFoglio(t, /Carica per foro/)), "⛔ e accanto a «Carica per foro» il foglio dice che è quella del PROGETTO e che un foro ne ha una sua", rigaFoglio(t, /Carica per foro/));
   dice(/1 foro ne ha una sua/.test(rigaFoglio(t, /Inclinazione/)) && /1 foro ne ha una sua/.test(rigaFoglio(t, /Profondità \/ sottoperf/)), "lo stesso accanto a profondità e inclinazione", [rigaFoglio(t, /Inclinazione/), rigaFoglio(t, /Profondità \/ sottoperf/)]);
   dice(!/del progetto —/.test(rigaFoglio(t, /^\s*Borraggio/)) && !/del progetto —/.test(rigaFoglio(t, /Diametro foro/)), "e NON accanto a borraggio e diametro, che nessun foro ha diversi", [rigaFoglio(t, /^\s*Borraggio/), rigaFoglio(t, /Diametro foro/)]);
+  /* ⛔ e le due previsioni sul foro tipo lo dicono SUL FOGLIO: è lui che si porta in cava */
+  dice(/Sul foro tipo — 2 fori hanno un valore proprio di carica o inclinazione: la gittata è calcolata sul FORO TIPO del progetto, e per quei fori non è calcolata\. Le distanze di sgombero qui sotto valgono per il foro tipo/.test(rigaFoglio(t, /Gittata flyrock/)),
+    "⛔ accanto alla gittata il foglio dice che è sul foro tipo e per quanti fori NON è calcolata — prima stampava la distanza di sgombero e basta", rigaFoglio(t, /Gittata flyrock/));
+  dice(/Sul foro tipo — 1 foro ha un valore proprio di carica o profondità: la pezzatura è calcolata sul FORO TIPO/.test(rigaFoglio(t, /Frammentazione x20/)), "e accanto alla pezzatura (lì conta il foro scarico e accorciato; quello solo più inclinato no)", rigaFoglio(t, /Frammentazione x20/));
+  dice(!/Sul foro tipo/.test(liscio), "⛔ NEUTRALITÀ: senza valori per foro il foglio non dice «foro tipo» da nessuna parte", (/Sul foro tipo[^\n]*/.exec(liscio) || [""])[0]);
   await larghezzaFoglio(b, pg, "il foglio coi fori diversi");
   if (SCATTI) { const p2 = await b.newPage({ viewport: { width: 390, height: 900 } }); await p2.setContent(html); await p2.screenshot({ path: join(CARTELLA_SCATTI, "fori-propri-390.png"), fullPage: true }); await p2.close(); }
   dice(pg.__errori.length === 0, "la pagina non solleva errori", pg.__errori[0]);
