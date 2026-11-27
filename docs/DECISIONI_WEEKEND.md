@@ -1116,6 +1116,7 @@ momento.
 | **33** | Genesi: con cariche diverse da foro a foro, quale carica ricevono la previsione di frammentazione e la simulazione 3D? (26/11) — ⚠️ **e la GITTATA: questa parte tocca la sicurezza, leggila per prima** | quale delle tre strade: il foro tipo del progetto (dichiarandolo), la media dei fori, oppure la previsione rifatta foro per foro. Per la gittata e le distanze di sgombero: se devono valere per il foro PIÙ SFAVOREVOLE. Vedi la sezione 33. |
 | **34** | Genesi: le nuvole di punti LAZ (LAS compresso) — adottare un decodificatore a sorgente aperto dentro il prodotto, oppure restare al rifiuto con le istruzioni? (26/11) | un sì o un no a far entrare nel prodotto un componente di terzi (gratuito, licenza libera, circa 300 kB). Vedi la sezione 34. |
 | **35** | Genesi: la spalla AL PIEDE dei fori inclinati — Genesi non conosce la pendenza del fronte, quindi non sa dire se il piede di un foro sta troppo vicino alla faccia (o la buca) (26/11) | come vuoi che la conosca: fronte parallelo ai fori del progetto, un campo «pendenza del fronte», oppure niente avviso. Vedi la sezione 35. |
+| **36** | Genesi (e le altre app): i file CSV che si scaricano non dichiarano come sono scritti gli accenti e i simboli — aperti con un programma che presume la scrittura di Windows, «3×3,5 m · Ø102» diventa «3Ã—3.5 m Â· Ã˜102» (27/11, misurato su quattro file veri) | prima una prova tua di due minuti (apri un file con Excel e dimmi che cosa vedi), poi se aggiungere la marca che lo dichiara ai file fatti per le persone. Vedi la sezione 36. |
 
 ⚠️ **Correzione, 02/08.** Qui prima c'era scritto che *dieci* di queste
 diciannove erano la stessa domanda. **Sono quattro.** Le ho contate una per una
@@ -2866,6 +2867,59 @@ modo di chiamarla, correggimi.
 quale spalla al piede vuoi l'avviso (una quota della spalla di progetto? un
 numero di diametri?). E come la chiamate in cava. Finché non rispondi resta
 la strada 3: il piede si vede, nessuno lo giudica.
+
+## 36. Genesi (e le altre app): i CSV che si scaricano — con Excel gli accenti si leggono giusti?
+
+*(27/11, nata facendo leggere i file che Genesi scrive a programmi che non
+sono i nostri. Qui dentro ciò che ho misurato è detto misurato; ciò che non
+ho potuto misurare — Excel sul tuo computer — è detto, ed è la prima cosa
+che ti chiedo.)*
+
+**Il fatto, in parole semplici.** I file CSV che Genesi fa scaricare (la
+scheda volata, il confronto fra due progetti, il piano di carico, il file
+per Sentinella) contengono accenti e simboli: «è», «°», «×», «·», «Ø». Un
+file di testo non dice da solo come quei caratteri sono scritti: lo deve
+indovinare il programma che lo apre. I nostri sono scritti nel modo moderno
+(UTF-8), senza la piccola marca iniziale che lo dichiara.
+
+**Che cosa ho misurato.** Ho premuto i quattro bottoni veri e ho aperto i
+file con un lettore che non è il nostro. Tutti e quattro: nessuna marca
+iniziale, e da 8 a 32 byte fuori dall'alfabeto semplice. Letti come li legge
+un programma che presume la scrittura di Windows (Windows-1252), la riga
+«Maglia;3×3.5 m · Ø102 · 10 m» diventa **«Maglia;3Ã—3.5 m Â· Ã˜102 Â· 10
+m»**, e un fronte chiamato «n°2» diventa «nÂ°2». I numeri non cambiano: si
+rovinano le parole e i simboli.
+
+**Che cosa NON so, e lo dico.** Se l'Excel che usate in cava fa così. Mi
+risulta (di seconda mano, non provato qui: in questo ambiente Excel non
+c'è) che Excel, aprendo un CSV col doppio clic, presuma proprio la
+scrittura di Windows quando la marca manca. Ma versioni e impostazioni
+contano, e non scrivo una correzione sulla parola di un sentito dire.
+
+**Che cosa serve da te, per prima cosa (due minuti).** In Genesi, nel
+Progetto 2D, premi «Esporta scheda volata (CSV)», apri il file scaricato con Excel
+col doppio clic e guarda la riga «Maglia»: si legge «3×3,5 m · Ø102» o
+compaiono lettere strane (Ã, Â)? Dimmi quale delle due.
+
+**Le strade, se si legge male.**
+1. **Aggiungere la marca ai file fatti per le PERSONE** (scheda volata,
+   confronto, riconciliazione, legge di sito): Excel li apre giusti. I file
+   fatti per le MACCHINE (piano di carico per Campo, file per Sentinella)
+   restano come sono, perché li leggono le nostre app. È la strada che
+   propongo. Il lettore di CSV condiviso dalle nostre app la marca la sa
+   già saltare (provato: un file che comincia con la marca si legge uguale).
+2. **Aggiungerla a tutti.** Più semplice da ricordare; ma un programma di
+   terzi che legge il piano di carico potrebbe trovarsi tre byte in più in
+   testa alla prima colonna. Da non fare alla cieca.
+3. **Togliere accenti e simboli dai file** (scrivere «x» invece di «×»,
+   «diam.» invece di «Ø»). Regge ovunque, ma i file diventano più poveri e i
+   nomi che scrivi tu (un fronte, un esplosivo) con un accento resterebbero
+   comunque un problema.
+
+**Probabilmente vale per tutte le app**, non solo per Genesi — ma questo
+NON l'ho misurato: ho aperto solo i file di Genesi. Le altre compongono le
+celle con la stessa funzione condivisa, quindi me lo aspetto uguale; i loro
+file non li ho aperti. Oggi lavoro solo su Genesi, e qui mi fermo.
 
 ## Cosa procede intanto SENZA di te
 I cicli automatici continuano su ciò che è sicuro e non gated: seconde

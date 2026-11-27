@@ -2748,6 +2748,33 @@
   Python. ⚠️ Che cosa non dice: non c'è uno schema pubblico contro cui
   validare — il file è una bozza «in stile IREDES», dichiarata tale.
   Giro `node`: 45 → 47 comandi.
+- [x] **Genesi — i CSV che escono, letti da un altro programma** *(27/11,
+  misura; nessuna modifica al prodotto)*: premuti i bottoni veri di scheda
+  volata, piano di carico, file per Sentinella e confronto A/B con nomi
+  difficili (un `;`, virgolette, accenti, un a capo, una formula), e letti i
+  file col modulo `csv` di Python in modo severo. Scheda, confronto e file
+  per Sentinella: colonne costanti su ogni riga (2, 3 e 21), il `;` e le
+  virgolette dentro un nome protetti. **Due cose trovate**, tutt'e due
+  portate fuori da questa unità invece che corrette di iniziativa: (1) il
+  piano di carico non protegge l'id del foro — voce aperta qui sotto, perché
+  la funzione sta in `shared/` e la legge Campo; (2) i quattro file sono
+  UTF-8 senza marca iniziale, e un programma che presume Windows-1252 legge
+  «3Ã—3.5 m Â· Ã˜102»: è la **decisione 36**, che comincia chiedendo al
+  fondatore di aprirne uno con Excel.
+- [ ] **Genesi → Campo — il piano di carico CSV non protegge l'id del foro**
+  ⏸️ *fuori dal mandato «solo Genesi»: la riga la compone `pianoCsvGenesi`
+  in `shared/dw-ponti.js`, e Campo la ricompone e la rilegge con
+  `parsePianoCsv`.* Misurato il 27/11 premendo il bottone vero con tre id
+  difficili: l'ultima colonna esce come `String(r.idForo || "")`, nuda. Un
+  id con un `;` dà una riga da **14 colonne invece di 13**; un id con un a
+  capo spezza la riga in due (la seconda è una sola cella); un id che
+  comincia con `=` esce come **formula** (`=SOMMA(A1:A9)`), senza
+  l'apostrofo di guardia che gli altri file di Genesi mettono con `csvCell`.
+  ⚠️ Quanto è probabile: gli id che Genesi dà ai fori sono `f1-3`; un id
+  così arriva solo da un file importato (un `.volata.json` scritto altrove).
+  La cura è una riga (`csvCell` sull'id) ma va fatta insieme al lettore di
+  Campo, provando l'andata e ritorno nei due versi — e con un lettore che
+  non sia il nostro, come qui. Da fare quando il mandato torna su `shared/`.
 - [ ] **Genesi — il piede che esce dalla faccia** ⏸️ *in attesa della
   decisione 35*: con l'inclinazione per foro la pianta mostra il piede di
   ogni foro; in dimostrazione, un foro da 10 m a 20° con 3 m di spalla ha il
@@ -3440,6 +3467,7 @@ nome. Un nome si cerca con `grep`; una riga si sposta.
 grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 ```
 
+- `Genesi → Campo — il piano di carico CSV non protegge l'id del foro`
 - `Genesi — il piede che esce dalla faccia`
 - `F1. \`vitaComponenti\` non distingue un componente sostituito da`
 - `F2. La rampa sequenziale dei grafici (\`--dwg-s1\`) non raggiunge`
