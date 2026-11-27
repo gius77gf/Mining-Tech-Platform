@@ -43912,18 +43912,18 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(numeri(genesi.piantaPerFoglio({ ...P, holes: [{ mx: 0, my: 3, seq: 2 }, { mx: 3.5, my: 3, seq: 0 }, { mx: 7, my: 3 }] })), [3, 1, 3], "il numero è `seq + 1`; un foro senza sequenza prende il suo posto nell'elenco, come nella tabella");
     /* troppo fitta per scriverci dentro: il disegno tace e la legenda dice dove guardare */
     const fitta = genesi.piantaPerFoglio({ ...P, holes: maglia(30, 6) }, { larghezza: 358 });
-    eq([quanti(fitta, /class="p-foro"/g), quanti(fitta, /class="p-n"/g), quanti(fitta, /class="p-t"/g), voci(fitta)], [180, 0, 0, ["numeri dei fori: in tabella, con la posizione", "ritardi: nella tabella dei fori"]],
+    eq([quanti(fitta, /class="p-foro"/g), quanti(fitta, /class="p-n"/g), quanti(fitta, /class="p-t"/g), voci(fitta)], [180, 0, 0, ["numeri dei fori: in tabella, con la posizione", "ritardi: nella tabella dei fori", "fondo arancio: nei gruppi che fanno la MIC"]],
       "⛔ 180 fori in 358 px: nessun numero illeggibile, nessun ritardo ammucchiato — e la legenda dice dove trovarli");
     const cf = cerchi(fitta); let tocca = 0; for (let i = 0; i < cf.length; i++) for (let j = i + 1; j < cf.length; j++) if (Math.hypot(cf[i].x - cf[j].x, cf[i].y - cf[j].y) < cf[i].r + cf[j].r - 0.3) tocca++;
     eq(tocca, 0, "e nemmeno lì due fori si toccano");
     const larga = genesi.piantaPerFoglio({ ...P, holes: maglia(30, 6) });
-    eq([quanti(larga, /class="p-n"/g), quanti(larga, /class="p-t"/g), voci(larga)], [180, 0, ["nel foro: numero d'ordine di sparo", "ritardi: nella tabella dei fori"]], "sulla carta (680) gli stessi 180 fori hanno il numero; i ritardi no, e la legenda lo dice");
+    eq([quanti(larga, /class="p-n"/g), quanti(larga, /class="p-t"/g), voci(larga)], [180, 0, ["nel foro: numero d'ordine di sparo", "ritardi: nella tabella dei fori", "fondo arancio: nei gruppi che fanno la MIC"]], "sulla carta (680) gli stessi 180 fori hanno il numero; i ritardi no, e la legenda lo dice");
     /* valori suoi, piede, tratti, verso */
     const ricca = genesi.piantaPerFoglio({ ...P, dir: "dx", holes: maglia(12, 2).map((h, i) => (i === 3 ? { ...h, kg: 0 } : i === 7 ? { ...h, stem: 1.5 } : h)),
       piede: [{ x: 0, y: -1.2 }, { x: 38, y: -1 }], tratti: [{ pts: [{ x: 2, y: 8 }, { x: 20, y: 9 }], origine: "dxf" }, { pts: [{ x: 5, y: 7 }] }, { pts: [{ x: 22, y: 8 }, { x: 30, y: 8 }] }] });
     eq(cerchi(ricca).map((q, i) => (q.bordo > 2 ? i + 1 : 0)).filter(Boolean), [4, 8], "⛔ bordo spesso ai fori con valori suoi, e solo a quelli");
     eq([quanti(ricca, /class="p-piede"/g), quanti(ricca, /class="p-tratto"/g), quanti(ricca, /class="p-tratto"[^>]*stroke-dasharray/g)], [1, 2, 1], "il piede, e i tratti con almeno due punti: quello importato è tratteggiato");
-    eq(voci(ricca), ["nel foro: numero d'ordine di sparo", "sotto il foro: ritardo in ms", "bordo spesso: foro con valori suoi", "tratteggio ocra: piede", "linea blu: tratto (tratteggiata se importato)"], "la legenda nomina tutto e solo quello che c'è sul disegno");
+    eq(voci(ricca), ["nel foro: numero d'ordine di sparo", "sotto il foro: ritardo in ms", "bordo spesso: foro con valori suoi", "fondo arancio: nei gruppi che fanno la MIC", "tratteggio ocra: piede", "linea blu: tratto (tratteggiata se importato)"], "la legenda nomina tutto e solo quello che c'è sul disegno");
     eq([/text-anchor="end" fill="#2e7d32">sequenza di sparo/.test(ricca), /text-anchor="start" fill="#2e7d32">sequenza di sparo/.test(svg)], [true, true], "la freccia della sequenza sta dalla parte da cui si spara, come sulla tela");
     const tutte = [...new Set([svg, uno, fitta, larga, ricca].flatMap(voci))];
     eq(tutte.filter((v) => (v.length + 3) * 5 > 320 - 72), [], "⛔ ogni voce di legenda, da sola, sta nel disegno più stretto (248 px): la prima stesura ne aveva una da 91 caratteri che usciva dal foglio sul telefono");
@@ -43997,7 +43997,7 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     ok(/_rM\.calcolabile \? gnum\(_rMic,1\)\+' kg \(finestra 8 ms\)'\+\(_rM\.chi\?'<br>'\+esc\(_rM\.chi\):''\)\n/.test(pag), "e il foglio la stampa sotto il numero");
     ok(/micChe:_m\.che, micCome:_m\.come, micChi:_m\.chi,/.test(pag) && /\['Fori che formano la MIC', k\.micCalcolabile\?\(k\.micChi\|\|''\):''\],/.test(pag), "e il CSV della scheda volata la porta in una riga sua, in coda al gruppo della MIC — la stessa frase, non una ricomposta");
     const mod = readFileSync(join(HERE, "../../genesi/genesi-data.js"), "utf8");
-    eq([(mod.match(/_finestreDiCarica\(H, kg\)/g) || []).length, (mod.match(/t0 \+ FINESTRA_MIC_MS\)/g) || []).length, /t0 \+ 8\b/.test(mod)], [4, 1, false], "⛔ nel modulo la finestra si conta in UN posto solo: la definizione e i suoi tre chiamanti (il numero, chi la forma, le cariche nel tempo), e nessun «+ 8» scritto a mano altrove");
+    eq([(mod.match(/_finestreDiCarica\(H, kg\)/g) || []).length, (mod.match(/t0 \+ FINESTRA_MIC_MS\)/g) || []).length, /t0 \+ 8\b/.test(mod)], [5, 1, false], "⛔ nel modulo la finestra si conta in UN posto solo: la definizione e i suoi quattro chiamanti (il numero, chi la forma, le cariche nel tempo, i fori da colorare sulla pianta), e nessun «+ 8» scritto a mano altrove");
   });
   test("⛔ Genesi · le cariche nel tempo: la barra più alta È la MIC, le altezze stanno nel rapporto dei chili, e uno zero si disegna zero", () => {
     const T = (tempi, altro) => tempi.map((t, i) => ({ tDet: t, seq: i, ...((altro && altro[i]) || {}) }));
@@ -44040,6 +44040,28 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
     ok(/const _rTempi=diagrammaTempiPerFoglio\(D2\.holes, D2\.kg, \{ larghezza:_rLarga \}\);/.test(pag), "⛔ il foglio lo compone dagli stessi fori e dalla stessa carica della MIC, alla stessa larghezza della pianta");
     ok(/   \+\(_rTempi \? '<h2>Cariche nel tempo<\/h2>'\+_rTempi : ''\)\n   \+_fpSez\n/.test(pag), "e lo mette dopo «Carica & sequenza»; se non c'è niente da disegnare non resta un titolo vuoto");
+  });
+  test("⛔ Genesi · sulla pianta del foglio hanno il fondo arancio i fori dei gruppi che arrivano alla MIC — e nessun altro", () => {
+    const P = { S: 3.5, B: 3, bf: 3, dir: "sx", kg: 58 };
+    const F = (tempi, altro) => tempi.map((t, i) => ({ mx: i * 3.5, my: 3, seq: i, ...(t === null ? {} : { tDet: t }), ...((altro && altro[i]) || {}) }));
+    const arancio = (d) => [...genesi.piantaPerFoglio(d).matchAll(/<circle class="p-foro"[^>]*fill="(#[0-9a-f]+)"/g)].map((m) => m[1] === "#ffd9b8");
+    const voce = (d) => /fondo arancio: nei gruppi che fanno la MIC/.test(genesi.piantaPerFoglio(d));
+    eq([arancio({ ...P, holes: F([0, 42, 84, 84, 126]) }), voce({ ...P, holes: F([0, 42, 84, 84, 126]) })], [[false, false, true, true, false], true], "due fori sullo stesso ritardo: loro due, e la legenda lo dice");
+    eq(arancio({ ...P, holes: F([0, 0, 42, 84, 84]) }), [true, true, false, true, true], "⛔ TUTTI i gruppi alla pari, non solo quello che la frase nomina: il disegno fa vedere dove sono le coincidenze");
+    eq(arancio({ ...P, holes: F([0, 42, 84, 88, 91.5, 126]) }), [false, false, true, true, true, false], "tre fori su ritardi diversi ma entro 8 ms");
+    eq([arancio({ ...P, holes: F([0, 42, 84]) }), voce({ ...P, holes: F([0, 42, 84]) })], [[false, false, false], false], "⛔ ogni foro da solo: nessuno colorato (li colorerebbe tutti, cioè non direbbe niente) e nessuna voce in legenda");
+    eq(arancio({ ...P, holes: F([0, 42, 42], [{ kg: 200 }]) }), [true, false, false], "un foro grosso che da solo batte una coppia: lui solo");
+    eq(arancio({ ...P, holes: F([0, 42, 42], [{ kg: 116 }]) }), [true, true, true], "e se da solo la PAREGGIA, lui e la coppia");
+    eq([arancio({ ...P, holes: F([null, null, 42]) }), arancio({ ...P, holes: F([0, null, 42]) }), voce({ ...P, holes: F([null, null, 42]) })], [[false, false, false], [false, false, false], false],
+      "⛔ un foro senza ritardo finisce a 0 ms per prudenza del conto: quel gruppo è un artefatto, e sul disegno NON si colora come se fosse una coincidenza del progetto");
+    eq([arancio({ ...P, kg: 0, holes: F([0, 0, 42]) }), arancio({ S: 3.5, B: 3, holes: F([0, 0, 42]) }), arancio({ ...P, kg: "x", holes: F([0, 0, 42]) })], [[false, false, false], [false, false, false], [false, false, false]],
+      "tutti scarichi, carica assente o non leggibile: nessun colore, e nessuna eccezione");
+    /* ⛔ si riconoscono per INDICE: il terzo foro non ha sequenza e prende il numero 3 come il primo, ma parte a 200 ms */
+    eq(arancio({ ...P, holes: [{ mx: 0, my: 3, seq: 2, tDet: 84 }, { mx: 3.5, my: 3, seq: 0, tDet: 84 }, { mx: 7, my: 3, tDet: 200 }] }), [true, true, false], "⛔ due fori con lo stesso numero: si colora quello che sta nel gruppo, non il suo omonimo");
+    /* un foro non collocabile non sposta gli altri: il secondo non ha posizione, ma resta nel conto della MIC */
+    eq(arancio({ ...P, holes: [{ mx: 0, my: 3, seq: 0, tDet: 0 }, { seq: 1, tDet: 0 }, { mx: 7, my: 3, seq: 2, tDet: 42 }] }), [true, false], "un foro senza posizione non si disegna, ma conta: quello che parte con lui è colorato, il terzo no");
+    const mod = readFileSync(join(HERE, "../../genesi/genesi-data.js"), "utf8");
+    eq((mod.match(/_finestreDiCarica\(H, kg\)/g) || []).length, 5, "⛔ e anche qui le finestre sono quelle di `micFinestra`: la definizione e quattro chiamanti");
   });
   test("⛔ Genesi · eUnTocco e i tocchi sulla pianta: un dito conduce, il secondo ferma tutto, col dito si crea alzandolo", () => {
     eq(genesi.eUnTocco(100, 100, 100, 100), true, "il dito si alza dov'era: è un tocco");

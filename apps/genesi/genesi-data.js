@@ -1683,6 +1683,27 @@ export function finestraDellaMic(holes, kg){
   return { kg: m.kg, da: m.t0, a: Math.max(...m.dentro.map((j) => ts[j])), fori: m.dentro.map(numero).sort((a, b) => a - b),
     altre: pari.size - 1, daSoli: finestre.every((f) => f.dentro.length === 1), senzaTempo: m.dentro.filter((j) => !fin(H[j] && H[j].tDet)).length };
 }
+/* I FORI DA COLORARE SULLA PIANTA DEL FOGLIO (27/11): gli indici dei fori che stanno in una
+   finestra che arriva alla MIC — TUTTI i gruppi alla pari, non solo quello che la frase nomina.
+   Vuoto quando colorarli non direbbe niente, o direbbe il falso:
+    · la MIC non si conta, o è zero (tutti scarichi);
+    · ogni foro parte da solo: li colorerebbe tutti, cioè nessuno;
+    · un foro di quei gruppi non ha un ritardo leggibile: il gruppo esiste solo perché il
+      conto, per prudenza, mette a 0 ms chi il ritardo non ce l'ha — è un artefatto, non una
+      coincidenza del progetto, e sul disegno sembrerebbe un fatto. */
+function _indiciNellaMic(H, kg){
+  const vuoto = new Set();
+  if (!Array.isArray(H) || micSenzaConto(H, kg)) return vuoto;
+  const { finestre } = _finestreDiCarica(H, kg);
+  if (finestre.every((f) => f.dentro.length === 1)) return vuoto;
+  let mic = null;
+  for (const f of finestre) if (mic === null || f.kg > mic) mic = f.kg;
+  if (!(mic > 0)) return vuoto;
+  const out = new Set();
+  for (const f of finestre) if (f.kg === mic) for (const j of f.dentro) out.add(j);
+  for (const j of out) { const t = H[j] && H[j].tDet; if (t === null || t === undefined || t === '' || !Number.isFinite(+t)) return vuoto; }
+  return out;
+}
 /* la frase, una per lo schermo e per il foglio. Sta in piedi da sola (comincia
    da «La MIC»): viene scritta in coda a testi che parlano anche d'altro. */
 export function fraseFinestraMic(f){
@@ -3171,8 +3192,12 @@ export function piantaPerFoglio(d, opz){
   const prof = punti(d && d.profilo), piede = punti(d && d.piede).sort((a, b) => a.x - b.x);
   const tratti = (Array.isArray(d && d.tratti) ? d.tratti : []).map((t) => ({ importato: !!(t && t.origine === 'dxf'), pts: punti(t && t.pts) })).filter((t) => t.pts.length >= 2);
   const H = (Array.isArray(d && d.holes) ? d.holes : []).map((h, i) => ({ h, i })).filter(({ h }) => h && fin(h.mx) && fin(h.my))
-    .map(({ h, i }) => ({ x: +h.mx, y: +h.my + interpProf(prof, +h.mx), n: (fin(h.seq) ? +h.seq : i) + 1, t: fin(h.tDet) ? +h.tDet : null, suo: Object.keys(valoriPropriDiForo(h)).length > 0 }));
+    .map(({ h, i }) => ({ i, x: +h.mx, y: +h.my + interpProf(prof, +h.mx), n: (fin(h.seq) ? +h.seq : i) + 1, t: fin(h.tDet) ? +h.tDet : null, suo: Object.keys(valoriPropriDiForo(h)).length > 0 }));
   if (!H.length) return '';
+  /* i fori dei gruppi che arrivano alla MIC hanno il fondo arancio: lo stesso arancio delle barre
+     di «Cariche nel tempo». Si riconoscono per INDICE, non per numero: due fori possono avere lo
+     stesso numero (uno senza sequenza), e colorare l'omonimo sarebbe un'accusa falsa. */
+  const nellaMic = _indiciNellaMic(d && d.holes, d && d.kg);
   const L = (fin(o.larghezza) && +o.larghezza >= 320) ? +o.larghezza : 680, padX = 36, padTop = 52, padBot = 84, OLTRE = 1.5, SCALA_MAX = 40, ALTEZZA_MAX = 460, RAGGIO_MIN_NUMERO = 6.2;   // sotto i 6,2 px di raggio il numero sarebbe più basso di 6,5 px: non si scrive
   const tp = tratti.flatMap((t) => t.pts);
   /* il fronte si disegna un metro e mezzo oltre il primo e l'ultimo foro: quel tratto fa parte
@@ -3190,6 +3215,7 @@ export function piantaPerFoglio(d, opz){
   const leg = [coiNumeri ? 'nel foro: numero d\'ordine di sparo' : 'numeri dei fori: in tabella, con la posizione',
     coiRitardi ? 'sotto il foro: ritardo in ms' : (haRitardi ? 'ritardi: nella tabella dei fori' : null),
     H.some((p) => p.suo) ? 'bordo spesso: foro con valori suoi' : null,
+    H.some((p) => nellaMic.has(p.i)) ? 'fondo arancio: nei gruppi che fanno la MIC' : null,
     piede.length >= 2 ? 'tratteggio ocra: piede' : null,
     tratti.length ? 'linea blu: tratto' + (tratti.some((t) => t.importato) ? ' (tratteggiata se importato)' : '') : null].filter(Boolean);
   /* la legenda va a capo: le voci si dispongono per larghezza stimata (5 px a carattere, a corpo 9,5).
@@ -3208,7 +3234,7 @@ export function piantaPerFoglio(d, opz){
   /* la scritta del fronte DOPO le linee, con un alone bianco: resta leggibile anche se il piede le passa sotto */
   out.push('<text x="' + f1(X(minx)) + '" y="' + f1(Y(interpProf(prof, minx)) - 8) + '" font-size="11" font-weight="700" fill="#a05a00" stroke="#fff" stroke-width="3.5" paint-order="stroke" stroke-linejoin="round">FRONTE — faccia libera</text>');
   H.forEach((p) => { const cx = f1(X(p.x));
-    out.push('<circle class="p-foro" cx="' + cx + '" cy="' + f1(Y(p.y)) + '" r="' + f1(r) + '" fill="#fff" stroke="#1a1a1a" stroke-width="' + (p.suo ? 2.6 : 1.2) + '"/>');
+    out.push('<circle class="p-foro" cx="' + cx + '" cy="' + f1(Y(p.y)) + '" r="' + f1(r) + '" fill="' + (nellaMic.has(p.i) ? '#ffd9b8' : '#fff') + '" stroke="#1a1a1a" stroke-width="' + (p.suo ? 2.6 : 1.2) + '"/>');
     if (coiNumeri) out.push('<text class="p-n" x="' + cx + '" y="' + f1(Y(p.y) + r * 0.36) + '" font-size="' + f1(r * 1.05) + '" font-weight="700" text-anchor="middle" fill="#1a1a1a">' + p.n + '</text>');
     if (coiRitardi && p.t !== null) out.push('<text class="p-t" x="' + cx + '" y="' + f1(Y(p.y) + r + 10) + '" font-size="8.5" text-anchor="middle" fill="#555">' + Math.round(p.t) + '</text>');
   });
