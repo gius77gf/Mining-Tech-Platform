@@ -89,7 +89,10 @@ perché un foro senza valori suoi continua a usare quelli del progetto.
    sbagliato.* Leggerlo vuol dire far entrare un decodificatore di terzi:
    è la **decisione 34**. Fatto intanto ciò che non dipende da lei: il
    lettore LAS provato su nove file veri, e i nove LAZ gemelli riconosciuti
-   e mai letti come punti.
+   e mai letti come punti. **Dal 27/11 anche il lettore PLY** (la via che
+   il messaggio del LAZ indica) è provato su 21 file scritti da `plyfile`:
+   ne leggeva male 7 in silenzio (punti presi dai byte di un altro elemento,
+   colori a 16 bit e in virgola mobile sbagliati), corretti.
 2. **DXF: tutte le curve e i blocchi inseriti ✅ 26/11** — ARC, cerchi,
    ellissi, spline e tratti ad arco delle polilinee entrano come spezzate
    che non si scostano dalla curva vera più di 2 cm; e i **blocchi inseriti si esplodono**: il

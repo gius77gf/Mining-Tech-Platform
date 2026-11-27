@@ -69,42 +69,92 @@ const PLY_RD = {
   int: (d, o, l) => d.getInt32(o, l), uint: (d, o, l) => d.getUint32(o, l), int32: (d, o, l) => d.getInt32(o, l), uint32: (d, o, l) => d.getUint32(o, l),
   float: (d, o, l) => d.getFloat32(o, l), float32: (d, o, l) => d.getFloat32(o, l), double: (d, o, l) => d.getFloat64(o, l), float64: (d, o, l) => d.getFloat64(o, l)
 };
+/* ⛔ 27/11 — IL LETTORE PLY CONTRO FILE SCRITTI DA UN ALTRO PROGRAMMA (`plyfile`,
+   campioni in `tests/campioni/ply-da-plyfile/`). Fin lì era provato con buffer
+   costruiti da chi aveva scritto il lettore, e su 15 file veri 3 si leggevano
+   MALE, tutti in silenzio:
+   1. UN ALTRO ELEMENTO PRIMA DEI VERTICI (il PLY lo permette: una telecamera,
+      le facce scritte per prime). Il lettore partiva a leggere i vertici
+      subito dopo l'intestazione, cioè DENTRO i byte dell'altro elemento:
+      coordinate come −1,7·10²⁹, e nessun errore. Ora l'intestazione si legge
+      elemento per elemento e i vertici si cercano dove stanno (saltando anche
+      gli elementi a lunghezza variabile, lista per lista);
+   2. I COLORI A 16 BIT si dividevano per 255: valori fino a 257 dove il
+      colore va da 0 a 1. Il tetto ora è quello del TIPO scritto nel file;
+   3. I COLORI IN VIRGOLA MOBILE (già fra 0 e 1) si dividevano per 255 anche
+      loro: nuvola quasi nera. Ora restano com'è scritto — e se il file li
+      porta in virgola mobile ma fra 0 e 255 (succede), lo dice il massimo
+      letto: sopra 1 si divide per 255. È l'unica cosa che qui si DEDUCE dai
+      dati invece che dal formato, ed è dichiarata.
+   E due cose che prima finivano male senza dire perché: un tipo di dato che
+   non si conosce (valeva zero byte: tutto ciò che seguiva si leggeva
+   spostato) e un file più corto di quanto l'intestazione dichiara (in testo
+   tornavano meno punti senza dirlo — una nuvola a metà dà un volume a metà).
+   Adesso sono due errori col loro nome. */
+const PLY_COL_MAX = { char: 255, uchar: 255, int8: 255, uint8: 255, short: 65535, ushort: 65535, int16: 65535, uint16: 65535, int: 255, uint: 255, int32: 255, uint32: 255 };
+const _plySz = (t) => { if (!(t in PLY_SZ)) throw new Error('PLY con un tipo di dato che non conosco («' + t + '»)'); return PLY_SZ[t]; };
 export function parsePLY(buf, maxpts = MAXPTS) {
   const bytes = new Uint8Array(buf); let hdrEnd = -1; const tok = 'end_header';
   for (let i = 0; i < bytes.length - tok.length; i++) { let ok = true; for (let j = 0; j < tok.length; j++) { if (bytes[i + j] !== tok.charCodeAt(j)) { ok = false; break; } } if (ok) { hdrEnd = i + tok.length; break; } }
   if (hdrEnd < 0) throw new Error('PLY senza header');
   while (hdrEnd < bytes.length && bytes[hdrEnd] !== 10) hdrEnd++; hdrEnd++;
   const lines = new TextDecoder().decode(bytes.subarray(0, hdrEnd)).split(/\r?\n/);
-  let format = 'ascii', vcount = 0, inV = false; const props = [];
+  let format = 'ascii', cur = null; const elementi = [];
   for (const ln of lines) {
     const t = ln.trim().split(/\s+/);
     if (t[0] === 'format') format = t[1];
-    else if (t[0] === 'element') { inV = (t[1] === 'vertex'); if (inV) vcount = +t[2]; }
-    else if (t[0] === 'property' && inV) { if (t[1] === 'list') props.push({ list: true }); else props.push({ type: t[1], name: t[t.length - 1] }); }
+    else if (t[0] === 'element') { cur = { nome: t[1], n: +t[2], props: [] }; elementi.push(cur); }
+    else if (t[0] === 'property' && cur) { if (t[1] === 'list') cur.props.push({ list: true, tc: t[2], ti: t[3] }); else cur.props.push({ type: t[1], name: t[t.length - 1] }); }
   }
+  const iv = elementi.findIndex((e) => e.nome === 'vertex');
+  const vcount = iv >= 0 ? elementi[iv].n : 0;
   if (!vcount) throw new Error('PLY senza vertici');
+  const props = elementi[iv].props, prima = elementi.slice(0, iv);
   const idx = {}; props.forEach((p, i) => { if (p.name) idx[p.name] = i; });
   for (const n of ['x', 'y', 'z']) if (!(n in idx)) throw new Error('PLY senza coordinata ' + n);
   const hasCol = ('red' in idx) && ('green' in idx) && ('blue' in idx);
+  const troncato = (letti) => new Error('PLY troncato: l\'intestazione dichiara ' + vcount + ' punti, nel file ce ne sono ' + letti);
   const step = Math.max(1, Math.ceil(vcount / maxpts)); const pos = [], col = [];
   if (format === 'ascii') {
     const body = new TextDecoder().decode(bytes.subarray(hdrEnd)).split(/\r?\n/); let vi = 0;
+    let salta = 0; for (const e of prima) salta += (e.n > 0 ? e.n : 0);
     for (const ln of body) {
       if (vi >= vcount) break; const s = ln.trim(); if (!s) continue;
-      if (vi % step === 0) { const v = s.split(/\s+/).map(Number); pos.push(v[idx.x], v[idx.y], v[idx.z]); if (hasCol) col.push(v[idx.red] / 255, v[idx.green] / 255, v[idx.blue] / 255); }
+      if (salta > 0) { salta--; continue; }
+      if (vi % step === 0) { const v = s.split(/\s+/).map(Number); pos.push(v[idx.x], v[idx.y], v[idx.z]); if (hasCol) col.push(v[idx.red], v[idx.green], v[idx.blue]); }
       vi++;
     }
+    if (vi < vcount) throw troncato(vi);
   } else {
     const le = (format !== 'binary_big_endian'); const dv = new DataView(buf, hdrEnd);
-    let stride = 0; for (const p of props) { if (p.list) throw new Error('PLY con facce/liste: caricalo come OBJ per la mesh'); stride += PLY_SZ[p.type] || 0; }
-    const off = []; { let a = 0; for (const p of props) { off.push(a); a += PLY_SZ[p.type] || 0; } }
+    let stride = 0; const off = [];
+    for (const p of props) { if (p.list) throw new Error('PLY con facce/liste: caricalo come OBJ per la mesh'); off.push(stride); stride += _plySz(p.type); }
+    /* dove cominciano i vertici: dopo gli elementi che l'intestazione dichiara PRIMA di loro */
+    let base = 0;
+    try {
+      for (const e of prima) {
+        if (e.props.every((p) => !p.list)) { let rec = 0; for (const p of e.props) rec += _plySz(p.type); base += (e.n > 0 ? e.n : 0) * rec; }
+        else for (let k = 0; k < e.n; k++) for (const p of e.props) {
+          if (p.list) { const n = PLY_RD[p.tc] ? PLY_RD[p.tc](dv, base, le) : NaN; base += _plySz(p.tc) + n * _plySz(p.ti); }
+          else base += _plySz(p.type);
+        }
+      }
+    } catch (e) { if (e instanceof RangeError) throw troncato(0); throw e; }
+    if (!(base + vcount * stride <= dv.byteLength)) throw troncato(Math.max(0, Math.floor((dv.byteLength - base) / stride)));
     for (let i = 0; i < vcount; i++) {
       if (i % step === 0) {
-        const b = i * stride;
+        const b = base + i * stride;
         pos.push(PLY_RD[props[idx.x].type](dv, b + off[idx.x], le), PLY_RD[props[idx.y].type](dv, b + off[idx.y], le), PLY_RD[props[idx.z].type](dv, b + off[idx.z], le));
-        if (hasCol) col.push(PLY_RD[props[idx.red].type](dv, b + off[idx.red], le) / 255, PLY_RD[props[idx.green].type](dv, b + off[idx.green], le) / 255, PLY_RD[props[idx.blue].type](dv, b + off[idx.blue], le) / 255);
+        if (hasCol) col.push(PLY_RD[props[idx.red].type](dv, b + off[idx.red], le), PLY_RD[props[idx.green].type](dv, b + off[idx.green], le), PLY_RD[props[idx.blue].type](dv, b + off[idx.blue], le));
       }
     }
+  }
+  if (hasCol) {
+    /* il colore in 0…1: il tetto è quello del TIPO; per la virgola mobile lo dice il massimo letto */
+    const tetti = ['red', 'green', 'blue'].map((c) => PLY_COL_MAX[props[idx[c]].type] || 0);
+    let mobile = 1;
+    if (tetti.some((t) => !t)) { let m = 0; for (let i = 0; i < col.length; i++) if (!tetti[i % 3] && col[i] > m) m = col[i]; mobile = m > 1 ? 255 : 1; }
+    for (let i = 0; i < col.length; i++) col[i] = col[i] / (tetti[i % 3] || mobile);
   }
   return { count: pos.length / 3, pos, col: hasCol ? col : null, total: vcount, step };
 }

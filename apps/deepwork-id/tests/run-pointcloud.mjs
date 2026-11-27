@@ -225,6 +225,62 @@ test("parseLAS contro LAZ veri (laspy + lazrs): riconosciuti come compressi, MAI
   /* il gemello LAS di ogni LAZ si legge: lo stesso contenuto, non compresso, è la via che il messaggio indica */
   ok(Object.keys(veritaLas).every((n) => pc.parseLAS(bufDi(n + ".las"), 1e9).count === veritaLas[n].n), "e il gemello non compresso di ognuno si legge per intero");
 });
+/* ⛔ IL PLY SCRITTO DA UN ALTRO PROGRAMMA (27/11): stesso metodo del LAS qui
+   sopra. I campioni in `campioni/ply-da-plyfile/` li scrive `plyfile`, la
+   verità (`verita.json`) la scrive il generatore rileggendoli con plyfile.
+   Sul lettore com'era: 7 file su 21 letti MALE, tutti in silenzio — punti
+   presi dai byte di un altro elemento (coordinate come −1,7·10²⁹), colori a
+   16 bit fino a 257 su una scala che va da 0 a 1, colori in virgola mobile
+   quasi neri. */
+const CAMPIONI_PLY = join(HERE, "campioni", "ply-da-plyfile");
+const veritaPly = JSON.parse(readFileSync(join(CAMPIONI_PLY, "verita.json"), "utf8"));
+const bufPly = (nome) => { const b = readFileSync(join(CAMPIONI_PLY, nome)); return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength); };
+test("parsePLY contro PLY scritti da plyfile: testo e binario nei due ordini, 32 e 64 bit, colori a 8 e 16 bit e in virgola mobile, altri elementi prima e dopo — punti e colori esatti", () => {
+  const nomi = Object.keys(veritaPly);
+  const sulDisco = readdirSync(CAMPIONI_PLY).filter((f) => f.endsWith(".ply")).map((f) => f.slice(0, -4)).sort();
+  eq(sulDisco, nomi.slice().sort(), "ogni campione ha la sua verità e viceversa: un file aggiunto senza verità non passa inosservato");
+  ok(nomi.length >= 21, `i campioni ci sono tutti (${nomi.length}, almeno 21)`);
+  eq([...new Set(nomi.map((n) => veritaPly[n].formato))].sort(), ["ascii", "binary_big_endian", "binary_little_endian"], "testo, binario little endian e binario big endian");
+  eq([...new Set(nomi.map((n) => String(veritaPly[n].colore)))].sort(), ["f4", "i4", "null", "u1", "u2"], "senza colore, e coi colori a 8 bit, a 16 bit, interi a 32 bit e in virgola mobile");
+  let punti = 0;
+  for (const n of nomi) {
+    const v = veritaPly[n], r = pc.parsePLY(bufPly(n + ".ply"), 1e9);
+    eq(r.count, v.n, `${n}: tutti i ${v.n} punti`);
+    v.idx.forEach((i, k) => {
+      const q = [r.pos[3 * i], r.pos[3 * i + 1], r.pos[3 * i + 2]];
+      ok(q.every((x, j) => Math.abs(x - v.xyz[k][j]) <= 1e-9 * Math.max(1, Math.abs(v.xyz[k][j]))), `${n}: il punto ${i} è dove lo ha scritto plyfile (${v.xyz[k].join(" ")}) — letto ${q.join(" ")} (${v.nota})`);
+      punti++;
+      if (v.rgb) { ok(!!r.col, `${n}: ha il colore`);
+        const c = [r.col[3 * i], r.col[3 * i + 1], r.col[3 * i + 2]];
+        ok(c.every((x, j) => Math.abs(x - v.rgb[k][j] / v.tetto) < 1e-6), `${n}: il colore del punto ${i} è quello scritto (${v.rgb[k].join(" ")} su ${v.tetto}) — letto ${c.join(" ")} (${v.nota})`); }
+    });
+    if (v.rgb) ok(r.col.every((x) => x >= 0 && x <= 1), `${n}: ⛔ ogni colore sta fra 0 e 1 (${v.nota})`);
+    else ok(!r.col, `${n}: ⛔ un file senza colore non ne guadagna uno inventato`);
+  }
+  ok(punti >= 3 * 20 + 1, `guardati ${punti} punti in ${nomi.length} file`);
+  /* il caso peggiore di prima, detto per esteso: le coordinate non sono mai numeri impossibili */
+  const prima = pc.parsePLY(bufPly("bin_le_altro_elemento_prima.ply"), 1e9);
+  ok(prima.pos.every((x) => Number.isFinite(x) && Math.abs(x) < 1000), "bin_le_altro_elemento_prima: ⛔ nessuna coordinata fuori dalla nuvola (prima: −1,7·10²⁹, letta dai byte dell'elemento precedente)");
+});
+test("parsePLY: un file più corto di quanto dichiara e un tipo sconosciuto sono ERRORI col loro nome, non punti a caso né punti in meno", () => {
+  const errore = (buf) => { try { const r = pc.parsePLY(buf, 1e9); return "letto: " + r.count + " punti"; } catch (e) { return e.message; } };
+  /* tagliati QUI, da campioni scritti da plyfile: un terzo dei byte dei vertici in meno */
+  const intero = bufPly("bin_le_xyz_rgb.ply");
+  eq(errore(intero.slice(0, intero.byteLength - 15 * 30)), "PLY troncato: l'intestazione dichiara 90 punti, nel file ce ne sono 60", "binario troncato: lo dice, e dice quanti punti interi ci sono davvero");
+  const conPrima = bufPly("bin_le_facce_prima.ply");
+  ok(/^PLY troncato: l'intestazione dichiara 90 punti, nel file ce ne sono \d+$/.test(errore(conPrima.slice(0, conPrima.byteLength - 100))), "troncato anche quando i vertici vengono dopo un altro elemento: " + errore(conPrima.slice(0, conPrima.byteLength - 100)));
+  const fineIntestazione = new TextDecoder("latin1").decode(new Uint8Array(conPrima).subarray(0, 400)).indexOf("end_header\n") + 11;
+  ok(fineIntestazione > 11, "premessa: l'intestazione del campione finisce dove ce la si aspetta");
+  eq(errore(conPrima.slice(0, fineIntestazione + 10)), "PLY troncato: l'intestazione dichiara 90 punti, nel file ce ne sono 0", "e quando il taglio cade DENTRO l'elemento che precede i vertici: zero punti, detto");
+  const testo = new TextDecoder().decode(new Uint8Array(bufPly("testo_xyz_rgb.ply"))).split("\n");
+  const meno = new TextEncoder().encode(testo.slice(0, testo.length - 21).join("\n") + "\n").buffer;
+  eq(errore(meno), "PLY troncato: l'intestazione dichiara 90 punti, nel file ce ne sono 70", "⛔ testo troncato: prima tornavano 70 punti senza dirlo — una nuvola a metà dà un volume a metà");
+  /* un tipo che il lettore non conosce valeva ZERO byte: tutto ciò che seguiva si leggeva spostato */
+  const ignoto = new TextEncoder().encode("ply\nformat binary_little_endian 1.0\nelement vertex 1\nproperty float x\nproperty float y\nproperty float z\nproperty float128 qualita\nend_header\n" + "\0".repeat(28)).buffer;
+  eq(errore(ignoto), "PLY con un tipo di dato che non conosco («float128»)", "un tipo sconosciuto è un errore col suo nome");
+  /* e gli interi campioni si leggono: gli errori non scattano sui file sani */
+  eq([errore(intero), errore(conPrima)], ["letto: 90 punti", "letto: 90 punti"], "⛔ i due campioni interi si leggono: la guardia non è un interruttore");
+});
 test("volumeCumulo: invariante per traslazione (coordinate centrate o UTM)", () => {
   const a = pc.volumeCumulo(boxCloud(10, 8, 2, 0.25), 0.5).volume;
   const posT = boxCloud(10, 8, 2, 0.25).map((v, i) => v + [512000, 5043000, 100][i % 3]);

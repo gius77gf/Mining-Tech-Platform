@@ -5982,8 +5982,10 @@ bottone vero.
 > (`campioni/las-da-laspy/`); **l'export `dxfPianoFori` riletto da `ezdxf`
 > in modo sistematico: fatto il 27/11** (`dxf-nostro-da-cad.mjs`, nove
 > disegni, e due difetti veri trovati — un nome con un accento arrivava
-> storpiato, un foro senza nome lasciava un testo vuoto). **Di questo elenco
-> resta aperto solo `parsePLY` contro un file scritto da un altro.**
+> storpiato, un foro senza nome lasciava un testo vuoto). **E `parsePLY`
+> contro file scritti da `plyfile`: fatto il 27/11** (`campioni/ply-da-plyfile/`,
+> 21 file: il lettore ne leggeva male 7, in silenzio). **Di questo elenco
+> non resta aperto niente.**
 > Le tre righe restano scritte com'erano, per la storia.
 
 1. **Il contenuto dei blocchi inseriti** (INSERT): oggi si contano e si
