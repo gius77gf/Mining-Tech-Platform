@@ -28,8 +28,8 @@
    ⏱️ 27/11 — C'È ANCHE GENESI, per i pezzi del suo foglio che sono già
    funzioni pure del modulo (la pianta, la tabella dei fori, le cariche nel
    tempo, lo storico della riconciliazione, e dal 27/11 sera il CSV della
-   legge di sito e quello del confronto A/B). ⚠️ NON è tutto Genesi: il
-   foglio intero e due CSV (scheda volata, piano di carico) li compone
+   legge di sito, quello del confronto A/B e il piano di carico). ⚠️ NON
+   è tutto Genesi: il foglio intero e il CSV della scheda volata li compone
    ancora la pagina, e qui NON ci sono —
    quelli li aprono i banchi del browser. Il conto dichiara quanti sono di
    Genesi, perché «142 documenti» non si legga come «tutto».
@@ -152,6 +152,7 @@ const doc = (a, nome, f) => DOC.push({ app: a, nome, f });
 
 { // GENESI — i pezzi del foglio che sono funzioni pure (vedi l'intestazione: non è tutto Genesi)
   const genesi = await import(join(HERE, "..", "..", "genesi", "genesi-data.js"));
+  const pontiG = await import(join(HERE, "..", "..", "..", "shared", "dw-ponti.js"));   // il testo del piano di carico lo scrive `pianoCsvGenesi`, condiviso con Campo
   const P = { B: 3, S: 3.5, bf: 3, file: 2, perRow: 8, stagger: true, dir: "sx", sequenza: "diagonale", ritardo: 42, ritardoFila: 100, kg: 58, prof: 10, stem: 2.2, diam: 102, incl: 0, sub: 0.9 };
   const volata = (q, ritocca) => { const d = { ...P, ...q }; d.holes = genesi.generaMaglia(d.B, d.S, d.file, d.perRow, d.bf, d.stagger);
     genesi.sequenzaSuMaglia(d.holes, d.ritardo, d.ritardoFila, d.S, d.dir, d.sequenza); if (ritocca) ritocca(d); return d; };
@@ -166,6 +167,7 @@ const doc = (a, nome, f) => DOC.push({ app: a, nome, f });
     doc("genesi", "piantaPerFoglio " + veste + " (telefono)", () => genesi.piantaPerFoglio(d, { larghezza: 358 }));
     doc("genesi", "tabellaForiPerFoglio " + veste, () => genesi.tabellaForiPerFoglio(d.holes, d));
     doc("genesi", "diagrammaTempiPerFoglio " + veste, () => genesi.diagrammaTempiPerFoglio(d.holes, d.kg));
+    doc("genesi", "piano di carico " + veste, () => pontiG.pianoCsvGenesi(genesi.righePianoDiCarico(d.holes, d)));
     doc("genesi", "fraseFinestraMic " + veste, () => "MIC " + genesi.micFinestra(d.holes, d.kg) + " kg. " + genesi.fraseFinestraMic(genesi.finestraDellaMic(d.holes, d.kg)));
   }
   /* due gruppi alla pari: l'unico caso in cui la frase dice «Un altro gruppo» — nelle cinque vesti gli altri gruppi sono zero o molti,

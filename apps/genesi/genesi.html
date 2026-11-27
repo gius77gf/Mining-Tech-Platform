@@ -1438,7 +1438,7 @@ import { sitoFit, csvLeggeDiSito, righeDiDatoCsv, ppvLimit, ppvSenzaSoglia, ppvS
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, reliefCls, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino, activeProf, d2HitTest, d2HitTestPt,
-         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfLeggi, dxfFraseNonLette, DXF_FRECCIA_ARCO_M, fraseMagliaAssente, scalaTestoTela, raggioForoTela, raggioPresaTela, righeDiVoci, eUnTocco, vistaLimitata, vistaApplica, vistaZoomAttorno, gestoDueDita, VISTA_ZOOM_MAX, valoriPropriDiForo, valoreDiForo, scostamentoPiedeForo, foriPropriPerFoglio, piantaPerFoglio, tabellaForiPerFoglio, diagrammaTempiPerFoglio, valoreProgettoDaFile, foriFuoriDalForoTipo, avvisoForoTipo, CAMPI_DELLA_GITTATA, CAMPI_DELLA_PEZZATURA, LIMITI_PER_FORO, foriConValoreProprio, foriSenzaValoriPropri, valoreComuneDiFori, contaValoriPropri, tabellaFori, valoriPerForoDaPiano, capienzaFori, MARGINE_CAPIENZA_FORO, scartoCaricheProprie, scartoProfonditaProprie, caricaProgettoDaTotale, firmaMaglia, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, foriRiflessi, trattiRuotati, trattiScalati, coordinataRelativa, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
+         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfLeggi, dxfFraseNonLette, DXF_FRECCIA_ARCO_M, fraseMagliaAssente, scalaTestoTela, raggioForoTela, raggioPresaTela, righeDiVoci, eUnTocco, vistaLimitata, vistaApplica, vistaZoomAttorno, gestoDueDita, VISTA_ZOOM_MAX, valoriPropriDiForo, valoreDiForo, scostamentoPiedeForo, foriPropriPerFoglio, piantaPerFoglio, tabellaForiPerFoglio, diagrammaTempiPerFoglio, righePianoDiCarico, valoreProgettoDaFile, foriFuoriDalForoTipo, avvisoForoTipo, CAMPI_DELLA_GITTATA, CAMPI_DELLA_PEZZATURA, LIMITI_PER_FORO, foriConValoreProprio, foriSenzaValoriPropri, valoreComuneDiFori, contaValoriPropri, tabellaFori, valoriPerForoDaPiano, capienzaFori, MARGINE_CAPIENZA_FORO, scartoCaricheProprie, scartoProfonditaProprie, caricaProgettoDaTotale, firmaMaglia, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, foriRiflessi, trattiRuotati, trattiScalati, coordinataRelativa, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -5943,14 +5943,7 @@ $('btn-piano-csv').onclick=async()=>{
      shared/ scrive il file E il testo che Campo ricompone dal record letto
      dall'organizzazione — stesso testo, stesso lettore. Qui si raccolgono solo
      i numeri, con `null` dove non si leggono (la cella esce vuota). */
-  const righePiano=D2.holes.slice().sort((a,b)=>a.tDet-b.tDet).map((h,i)=>({ foro:i+1, x:h.mx, fila:h.my,
-    /* F1 (26/11): profondità, carica e borraggio escono PER FORO — il valore
-       suo se il foro ne ha uno, se no quello del progetto (identico a prima
-       per ogni progetto che valori per foro non ne ha) — e `null` se non lo
-       sa nessuno dei due: è la stessa domanda di `_pc`, fatta a una funzione */
-    prof:valoreDiForo(h,'prof',D2), prog:valoreDiForo(h,'kg',D2), borr:valoreDiForo(h,'stem',D2),
-    rit:h.tDet!=null?h.tDet:null, relief:h.relief!=null?h.relief:null, burden:h.burdenLoc!=null?h.burdenLoc:null,
-    spaz:h.spazLoc!=null?h.spazLoc:null, vol:h.volLoc!=null?h.volLoc:null, pf:h.pfLoc!=null?h.pfLoc:null, idForo:h.id||'' }));
+  const righePiano=righePianoDiCarico(D2.holes, D2);   // 27/11: le righe le prepara il modulo, dove anche `node` le può aprire
   const csv=pianoCsvGenesi(righePiano);
   const a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);

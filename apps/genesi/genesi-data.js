@@ -1724,6 +1724,24 @@ export function finestraDellaMic(holes, kg){
   return { kg: m.kg, da: m.t0, a: Math.max(...m.dentro.map((j) => ts[j])), fori: m.dentro.map(numero).sort((a, b) => a - b),
     altre: pari.size - 1, daSoli: finestre.every((f) => f.dentro.length === 1), senzaTempo: m.dentro.filter((j) => !fin(H[j] && H[j].tDet)).length };
 }
+/* LE RIGHE DEL PIANO DI CARICO (27/11, fetta di B3: Genesi continua a uscire dalla pagina).
+   Il TESTO del file lo scrive `pianoCsvGenesi` di shared/ (lo stesso che Campo ricompone); le RIGHE le
+   preparava l'`onclick` di `btn-piano-csv`, dove `node` non arriva. Sono entrate com'erano, campo per
+   campo (provato sugli stessi fori contro l'espressione di prima: identiche):
+    · nell'ordine dei ritardi, e «foro» è il posto in quell'ordine — lo stesso numero che il foro ha
+      sulla pianta e nella tabella del foglio (`seq + 1`: stesso ordinamento stabile per ritardo);
+    · `null` dove un numero non si legge (la cella esce vuota), mai zero. */
+export function righePianoDiCarico(holes, progetto){
+  const D2 = progetto;
+  return (Array.isArray(holes) ? holes : []).slice().sort((a,b)=>a.tDet-b.tDet).map((h,i)=>({ foro:i+1, x:h.mx, fila:h.my,
+    /* F1 (26/11): profondità, carica e borraggio escono PER FORO — il valore
+       suo se il foro ne ha uno, se no quello del progetto (identico a prima
+       per ogni progetto che valori per foro non ne ha) — e `null` se non lo
+       sa nessuno dei due: è la stessa domanda di `_pc`, fatta a una funzione */
+    prof:valoreDiForo(h,'prof',D2), prog:valoreDiForo(h,'kg',D2), borr:valoreDiForo(h,'stem',D2),
+    rit:h.tDet!=null?h.tDet:null, relief:h.relief!=null?h.relief:null, burden:h.burdenLoc!=null?h.burdenLoc:null,
+    spaz:h.spazLoc!=null?h.spazLoc:null, vol:h.volLoc!=null?h.volLoc:null, pf:h.pfLoc!=null?h.pfLoc:null, idForo:h.id||'' }));
+}
 /* I FORI DA COLORARE SULLA PIANTA DEL FOGLIO (27/11): gli indici dei fori che stanno in una
    finestra che arriva alla MIC — TUTTI i gruppi alla pari, non solo quello che la frase nomina.
    Vuoto quando colorarli non direbbe niente, o direbbe il falso:

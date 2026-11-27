@@ -44135,6 +44135,31 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(genesi.righeDiDatoCsv(csv), 23, "ventitré righe di dato, più l'intestazione");
     ok(/toast\('✓ Confronto A\/B esportato: '\+_ricPlur\(righeDiDatoCsv\(csv\),'riga di confronto','righe di confronto'\)\);/.test(pag), "⛔ il messaggio di conferma le conta sul file uscito: `R` nella pagina non c'è più");
   });
+  test("⛔ Genesi · righePianoDiCarico: le righe del piano di carico le prepara il modulo, e il numero del foro è quello della pianta", () => {
+    const P = { B: 3, S: 3.5, bf: 3, kg: 58, prof: 10, stem: 2.2, diam: 102, incl: 0 };
+    const volata = (tFila) => { const H = genesi.generaMaglia(3, 3.5, 2, 8, 3, true); genesi.sequenzaSuMaglia(H, 42, tFila, 3.5, "sx", "diagonale"); return H; };
+    /* ⛔ il numero «foro» del piano è lo STESSO che il foro ha sulla pianta e nella tabella del foglio (`seq + 1`) — anche coi ritardi alla pari */
+    for (const tFila of [100, 63]) { const H = volata(tFila), R = genesi.righePianoDiCarico(H, P);
+      eq(R.map((r) => r.idForo), H.slice().sort((a, b) => a.seq - b.seq).map((h) => h.id), "ritardo fra le file " + tFila + " ms: le righe sono nell'ordine di sparo, e la riga n è il foro che sulla pianta porta il numero n");
+      eq(R.map((r) => r.foro), R.map((_, i) => i + 1), "numerate da 1, senza buchi"); }
+    /* ⚠️ la premessa è scritta, e la prima stesura l'ha fatta CADERE: avevo messo 84 ms credendo che desse fori alla pari, e
+       ne dà sedici distinti su sedici (lo sfalsamento sposta la seconda fila di mezzo passo). Con 63 sono dieci su sedici. */
+    eq(new Set(volata(63).map((h) => h.tDet)).size, 10, "(premessa: con 63 ms fra le file ci sono DAVVERO fori alla pari — dieci istanti per sedici fori; se no il caso non proverebbe niente)");
+    /* i valori: quello del foro se ne ha uno suo, se no il progetto, se no null — e i campi locali solo se ci sono */
+    const H = volata(100); H[2].kg = 0; H[4].prof = 8.5; H[4].stem = 1.5; H[1].relief = 12.5; H[1].burdenLoc = 2.9; H[1].spazLoc = 3.4; H[1].volLoc = 98; H[1].pfLoc = 0.59;
+    const R = genesi.righePianoDiCarico(H, P), di = (h) => R.find((r) => r.idForo === h.id);
+    eq([di(H[2]).prog, di(H[4]).prof, di(H[4]).borr, di(H[0]).prog, di(H[0]).prof, di(H[0]).borr], [0, 8.5, 1.5, 58, 10, 2.2], "⛔ il foro lasciato scarico esce con 0 (un fatto), quello accorciato con la SUA profondità e il SUO borraggio, gli altri col progetto");
+    eq([di(H[1]).relief, di(H[1]).burden, di(H[1]).spaz, di(H[1]).vol, di(H[1]).pf, di(H[0]).relief, di(H[0]).pf], [12.5, 2.9, 3.4, 98, 0.59, null, null], "i campi locali ci sono dove sono stati calcolati; dove no sono `null` (cella vuota), non zero");
+    const senza = genesi.righePianoDiCarico(volata(100), { ...P, kg: null, prof: "", stem: undefined });
+    eq([...new Set(senza.map((r) => JSON.stringify([r.prof, r.prog, r.borr])))], ["[null,null,null]"], "⛔ un progetto senza carica, profondità e borraggio leggibili: `null` in tutte le righe — mai la parola «null», mai zero");
+    eq([genesi.righePianoDiCarico([], P), genesi.righePianoDiCarico(null, P), genesi.righePianoDiCarico(undefined, P)], [[], [], []], "nessun foro, nessuna riga — e nessuna eccezione");
+    /* il file che ne esce (lo scrive `pianoCsvGenesi`, condiviso con Campo): una riga per foro, e nessun «null» a testo */
+    const csv = ponti.pianoCsvGenesi(senza);
+    eq([csv.trim().split("\n").length, /null|undefined|NaN/.test(csv), csv.split("\n")[1]], [17, false, "1;0.00;3.00;;;;0;;;;;;f1-1"], "sedici fori, sedici righe più l'intestazione; le tre celle che non si leggono escono VUOTE");
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    ok(/const righePiano=righePianoDiCarico\(D2\.holes, D2\);/.test(pag) && /const csv=pianoCsvGenesi\(righePiano\);/.test(pag) && /pianoDaGenesi\(righePiano,/.test(pag), "la pagina chiede le righe al modulo, e con le STESSE righe scrive il file e il piano per Campo");
+    eq(/relief:h\.relief!=null/.test(pag), false, "⛔ nella pagina quelle righe non ci sono più: non è rimasta una seconda copia");
+  });
   test("⛔ Genesi · eUnTocco e i tocchi sulla pianta: un dito conduce, il secondo ferma tutto, col dito si crea alzandolo", () => {
     eq(genesi.eUnTocco(100, 100, 100, 100), true, "il dito si alza dov'era: è un tocco");
     eq([genesi.eUnTocco(100, 100, 106, 108), genesi.eUnTocco(100, 100, 107, 107.1)], [false, true], "⛔ 10 px esatti non sono più un tocco (6-8-10), 9,97 sì: la soglia è esclusiva");

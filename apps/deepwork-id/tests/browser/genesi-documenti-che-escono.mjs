@@ -184,7 +184,10 @@ const srv = createServer((q, s) => {
   if (existsSync(p) && statSync(p).isDirectory()) p = join(p, "index.html");
   if (!existsSync(p)) { s.writeHead(404); return s.end("no"); }
   let corpo = readFileSync(p);
-  if (CONTROPROVA && p.endsWith("apps/genesi/genesi.html")) {
+  /* ⏱️ 27/11: alla pagina E al modulo. Le righe del piano di carico sono salite in `righePianoDiCarico`, e l'iniezione su
+     `idForo` con loro: applicando alla sola pagina non avrebbe più trovato il suo pezzo (il banco lo avrebbe detto —
+     pretende che TUTTE le iniezioni mordano — ma la controprova sarebbe caduta per questo, non per un difetto). */
+  if (CONTROPROVA && (p.endsWith("apps/genesi/genesi.html") || p.endsWith("apps/genesi/genesi-data.js"))) {
     let t = corpo.toString("utf8");
     for (const [a, b] of DIFETTI) { if (t.includes(a)) { colpiti.add(a); t = t.split(a).join(b); } }
     corpo = Buffer.from(t, "utf8");

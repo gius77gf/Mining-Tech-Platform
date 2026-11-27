@@ -51,7 +51,9 @@ const TIPI = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/jav
    controprova spenta (CLAUDE.md, 05/09). */
 const PAGINA = "apps/genesi/genesi.html", MODULO = "apps/genesi/genesi-data.js";
 const DIFETTI = [
-  [PAGINA, `prof:valoreDiForo(h,'prof',D2), prog:valoreDiForo(h,'kg',D2), borr:valoreDiForo(h,'stem',D2),`,
+  /* ⏱️ riancorata il 27/11 dalla PAGINA al MODULO: le righe del piano di carico sono salite in `righePianoDiCarico`
+     (dentro la funzione il progetto si chiama ancora `D2`: il corpo è entrato com'era). L'ha detta `iniezioni-fresche`. */
+  [MODULO, `prof:valoreDiForo(h,'prof',D2), prog:valoreDiForo(h,'kg',D2), borr:valoreDiForo(h,'stem',D2),`,
    `prof:valoreDiForo(null,'prof',D2), prog:valoreDiForo(null,'kg',D2), borr:valoreDiForo(null,'stem',D2),`],
   [MODULO, `const suo = valoreProprioDiForo(h, 'kg'); return suo === null ? 0 : suo - kg; });`,
    `return 0; });`],
