@@ -161,6 +161,9 @@ const DIFETTI = [
   [PAGINA, `'':'<div id="cmp-fly-tipo"`, `'':'<div hidden`],
   [PAGINA, `['Fori con valori propri',_fpA.fori,_fpB.fori],`, `['Fori con valori propri',_fpA.fori||0,_fpB.fori||0],`],
   [PAGINA, `['Fori fuori dal foro tipo (gittata)',_fpA.fuoriGittata,_fpB.fuoriGittata],`, ``],
+  /* la riga che resta nello storico (27/11): tace i fori con valori loro, e la X50 non dice «foro tipo» */
+  [MODULO, `(propri > 0 ? ' · ' + gnum(propri, 0) + ' con valori propri' : '')`, `''`],
+  [MODULO, `(tipo > 0 ? ' (foro tipo)' : '')`, `''`],
 ];
 
 const colpiti = new Set();
@@ -1238,6 +1241,47 @@ if (prima && prima.colonneTrovate) {
 
   await pg.evaluate((s) => { window.__genesi.D2.stem = s; }, stemPrima); await pulisci();
   await pg.waitForTimeout(250);
+}
+/* 17. ⛔ LA RIGA CHE RESTA NELLO STORICO (27/11). Chi salva una volata lascia in Home una riga —
+   «12 fori · 600 kg · X50 34 cm» — che si rilegge mesi dopo. Non diceva che la volata aveva fori con
+   valori loro: due volate con la stessa maglia e cariche diverse si leggevano uguali. Si salva col
+   bottone VERO, e si legge il record salvato e la riga in Home. */
+{
+  console.log("\n── la riga che resta nello storico ──");
+  await pg.setViewportSize({ width: 430, height: 900 });
+  await pg.click('#bottomnav button[data-scr="design"]'); await pg.waitForTimeout(400);
+  const pulisci = () => pg.evaluate(() => { const D = window.__genesi.D2; for (const h of D.holes) for (const c of ["kg", "prof", "stem", "diam", "incl"]) delete h[c]; window.__genesi.renderScheda2D(); });
+  const salvaCome = async (nome) => {
+    await pg.click("#btn-salva-volata"); await pg.waitForSelector("#modal-campo", { timeout: 4000 }).catch(() => {});
+    await pg.fill("#modal-campo", nome).catch(() => {}); await pg.click("#modal-foot .mbtn.primary").catch(() => {}); await pg.waitForTimeout(600);
+    const v = (await pg.evaluate(async () => window.__genesi.GDB.volate())).find((x) => x.nome === nome);
+    return v ? String(v.sintesi) : null;
+  };
+  const kgDi = (s) => { const m = /· ([\d.]+) kg ·/.exec(s || ""); return m ? Number(m[1].replace(/\./g, "")) : NaN; };
+  await pulisci();
+  const kgProgetto = await pg.evaluate(() => +window.__genesi.D2.kg);
+  const s0 = await salvaCome("Banco · volata liscia");
+  dice(/^\d+ fori · [\d.]+ kg · X50 \d+ cm$/.test(s0 || ""), `⛔ NEUTRALITÀ: senza valori per foro la riga salvata è quella di sempre («${s0}»)`, s0);
+  /* un foro lasciato scarico: il caso misurato */
+  await pg.evaluate(() => { window.__genesi.D2.holes[2].kg = 0; window.__genesi.renderScheda2D(); }); await pg.waitForTimeout(250);
+  const s1 = await salvaCome("Banco · un foro scarico");
+  dice(/^\d+ fori · 1 con valori propri · [\d.]+ kg · X50 \d+ cm \(foro tipo\)$/.test(s1 || ""), `⛔ con un foro scarico la riga lo dice, e la X50 dichiara di essere sul foro tipo («${s1}»)`, s1);
+  dice(Math.abs((kgDi(s0) - kgDi(s1)) - kgProgetto) <= 1, `e la carica totale scritta è quella VERA: ${kgDi(s0)} → ${kgDi(s1)} kg, cioè la carica di un foro in meno (${kgProgetto} kg)`, [s0, s1, kgProgetto]);
+  /* un foro con la sola inclinazione sua: si dice, ma la X50 non la legge */
+  await pg.evaluate(() => { const H = window.__genesi.D2.holes; delete H[2].kg; H[5].incl = 20; window.__genesi.renderScheda2D(); }); await pg.waitForTimeout(250);
+  const s2 = await salvaCome("Banco · un foro inclinato");
+  dice(/· 1 con valori propri ·/.test(s2 || "") && !/foro tipo/.test(s2 || "") && kgDi(s2) === kgDi(s0), `un foro con la sola inclinazione sua: si dice, ma la X50 NON porta «foro tipo» e la carica totale è quella di prima («${s2}»)`, s2);
+  /* e in Home la riga si legge, senza uscire dal suo riquadro */
+  await pg.setViewportSize({ width: 320, height: 800 }); await pg.waitForTimeout(150);
+  await pg.click('#bottomnav button[data-scr="home"]'); await pg.waitForTimeout(600);
+  const casa = await pg.evaluate(() => { const L = document.getElementById("hgVolate"); const righe = [...L.querySelectorAll(".hg-item")];
+    return { testo: L.innerText.replace(/\s+/g, " "), fuori: Math.max(0, ...righe.map((r) => r.scrollWidth - r.clientWidth)), larga: L.getBoundingClientRect().right - window.innerWidth }; });
+  dice(casa.testo.includes(s1) && casa.testo.includes(s2), "⛔ in Home le due righe si leggono per intero accanto ai nomi delle volate", casa.testo.slice(0, 300));
+  dice(casa.fuori <= 0 && casa.larga <= 0, `e a 320 px la riga più lunga non esce dal suo riquadro né dallo schermo (${casa.fuori} px, ${Math.round(casa.larga)} px)`, casa);
+  if (process.env.DW_SCATTO_AB) await pg.screenshot({ path: process.env.DW_SCATTO_AB.replace(/\.png$/, "-home-320.png"), fullPage: true });
+  await pg.setViewportSize({ width: 430, height: 900 });
+  await pg.click('#bottomnav button[data-scr="design"]'); await pg.waitForTimeout(400);
+  await pulisci(); await pg.waitForTimeout(250);
 }
 dice(pg.__err.length === 0, "la pagina non solleva errori", pg.__err.slice(0, 2));
 

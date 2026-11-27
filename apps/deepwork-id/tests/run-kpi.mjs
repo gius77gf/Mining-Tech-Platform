@@ -43757,6 +43757,29 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
       "lo scatto (computeKPI) porta i tre conti, presi dalle stesse funzioni della scheda");
     ok(/\(_fpA\.gittataSuTutti && _fpB\.gittataSuTutti\) \? vincitoreKpi\(A\.kpi\.fly,B\.kpi\.fly\) : null/.test(genesiHtml), "⛔ e il verde sulla gittata passa da `gittataSuTutti` di TUTT'E DUE gli scatti");
   });
+  test("⛔ Genesi · sintesiVolata: la riga che resta nello storico dice i fori con valori loro, e non scrive mai la parola «null»", () => {
+    const base = { nf: 12, qtot: 600, x50: 34, fragCalcolabile: true, foriPropri: 0, flyTipo: 0, fragTipo: 0 };
+    eq(genesi.sintesiVolata(base), "12 fori · 600 kg · X50 34 cm", "⛔ NEUTRALITÀ: senza valori per foro la riga è quella di sempre, carattere per carattere");
+    eq(genesi.sintesiVolata({ nf: 12, qtot: 600, x50: 34, fragCalcolabile: true }), "12 fori · 600 kg · X50 34 cm", "e un oggetto di numeri senza i tre conti (composto prima) dà la stessa riga: non si inventa un «nessuno»");
+    /* il caso misurato: un foro lasciato scarico */
+    eq(genesi.sintesiVolata({ ...base, qtot: 550, foriPropri: 1, flyTipo: 1, fragTipo: 1 }), "12 fori · 1 con valori propri · 550 kg · X50 34 cm (foro tipo)",
+      "⛔ un foro con la carica sua: la riga lo dice, la carica totale è quella vera e la X50 dichiara di essere sul foro tipo");
+    eq(genesi.sintesiVolata({ ...base, foriPropri: 3, flyTipo: 3, fragTipo: 0 }), "12 fori · 3 con valori propri · 600 kg · X50 34 cm",
+      "tre fori con la sola inclinazione loro: si dicono, ma la X50 (che l'inclinazione non la legge) NON porta «foro tipo»");
+    /* le due trappole che questa riga ha già pagato */
+    eq(genesi.sintesiVolata({ ...base, qtot: null }), "12 fori · carica totale non calcolabile · X50 34 cm", "⛔ carica totale non calcolabile: lo dice, non scrive «null kg» né «0 kg»");
+    eq(genesi.sintesiVolata({ ...base, qtot: null, x50: null, fragCalcolabile: false }), "12 fori · carica totale non calcolabile · X50 non calcolabile", "⛔ e la X50: «non calcolabile», non «X50 null cm»");
+    eq(genesi.sintesiVolata({ ...base, x50: 97, fragCalcolabile: false, fragTipo: 2 }), "12 fori · 600 kg · X50 non calcolabile", "una X50 non calcolabile non porta né il numero né «foro tipo»");
+    ok(![base, { ...base, qtot: null }, { ...base, qtot: undefined, x50: undefined }, { nf: null }, {}].some((k) => /null|undefined|NaN/.test(genesi.sintesiVolata(k))),
+      "⛔ in nessuna forma la riga contiene «null», «undefined» o «NaN»");
+    eq(genesi.sintesiVolata({ ...base, nf: 1 }), "1 foro · 600 kg · X50 34 cm", "un foro solo: al singolare");
+    eq(genesi.sintesiVolata({ ...base, nf: 1250, qtot: 62500, foriPropri: 1100 }), "1.250 fori · 1.100 con valori propri · 62.500 kg · X50 34 cm", "le migliaia col punto, in tutt'e tre i numeri (uguale in Node e nel browser)");
+    eq([genesi.sintesiVolata(null), genesi.sintesiVolata(undefined), genesi.sintesiVolata("x")], ["", "", ""], "senza numeri: stringa vuota — la pagina tiene la riga di ripiego, non una riga rotta");
+    /* la pagina la chiama, e non compone più la riga da sé */
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    ok(/const _sv=sintesiVolata\(computeKPI\(\)\); if\(_sv\) sintesi=_sv;/.test(pag), "volSnapshot prende la riga da `sintesiVolata`");
+    ok(!/sintesi=_ricPlur\(k\.nf/.test(pag), "e la copia che la componeva nella pagina non c'è più");
+  });
   test("⛔ Genesi · valoreProgettoDaFile: riaprendo un file di scambio il progetto NON è la media dei fori", () => {
     const undici = Array.from({ length: 11 }, () => 58);
     /* il caso misurato il 26/11: undici fori a 58 kg e uno lasciato scarico */

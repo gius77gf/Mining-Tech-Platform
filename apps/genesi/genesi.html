@@ -1350,7 +1350,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          fattoreRoccia, x50DaMisure, ondaDaCsv, ondaPercheNo, _sitoParseCsv, tempiDetonazione, sommaRitardata,
          ppvDaSd, caricaDaX50Target, rwsEffettiva, PENALITA_ACQUA, deviazioneForiDaCsv, deviazioneStatistiche, burdenVeroDaRilievo, burdenPerForo,
          quotaCresta, distanzaDaSpezzata, spaziaturaTipica, _spazTipico, tempoInPunto, passoIsocrone, isoPasso,
-         fileDeiFori, INN_TAGLI, taglioRealizzabile, innTaglioOk, _cmpNum, _cmpKg, _cmpEur, _cmpPf, _cmpCm, _cmpFly, cmpForiPropri,
+         fileDeiFori, INN_TAGLI, taglioRealizzabile, innTaglioOk, _cmpNum, _cmpKg, _cmpEur, _cmpPf, _cmpCm, _cmpFly, cmpForiPropri, sintesiVolata,
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, reliefCls, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino, activeProf, d2HitTest, d2HitTestPt,
@@ -5560,14 +5560,11 @@ function volSnapshot(nome){
      stringa finisce SALVATA nello storico e riletta in Home mesi dopo, cioè è
      un documento a tutti gli effetti. Con la carica totale non calcolabile la
      sintesi lo dice, invece di scrivere «null kg» o un rassicurante «0 kg». */
-  try{ const k=computeKPI(); sintesi=_ricPlur(k.nf,'foro','fori')
-        +' · '+(k.qtot===null?'carica totale non calcolabile':gnum(k.qtot,0)+' kg')
-        /* ⛔ E LA STESSA TRAPPOLA, DUE CAMPI PIÙ IN LÀ: `+k.x50+` con `x50` a
-           `null` incolla la PAROLA «null» — la sintesi finisce nello storico
-           e si rilegge in Home mesi dopo. Ed è il caso peggiore da rileggere,
-           perché prima della guardia scriveva «X50 97 cm» su una volata sana:
-           un allarme archiviato per sempre. */
-        +' · '+(k.fragCalcolabile?'X50 '+gnum(k.x50,0)+' cm':'X50 non calcolabile'); }catch(e){}
+  /* la riga la compone `sintesiVolata` nel modulo (27/11), dove si prova: dice anche quanti
+     fori hanno valori loro, e «foro tipo» accanto alla X50 quando per qualcuno non è calcolata.
+     La trappola che questo punto ha già pagato due volte resta scritta là: un numero che
+     manca incollato a una stringa scrive la PAROLA, e questa riga si rilegge mesi dopo. */
+  try{ const _sv=sintesiVolata(computeKPI()); if(_sv) sintesi=_sv; }catch(e){}
   return { id:'v'+Date.now(), nome:nome,
     data:timbroLocale(),
     /* ⛔ 19/09, dalla ricerca continua: GDB.utente (uid+email di chi è

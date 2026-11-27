@@ -2935,6 +2935,30 @@ export function cmpForiPropri(kpi){
 }
 
 /* ══════════════════════════════════════════════════════════════════════
+   LA RIGA CHE RESTA NELLO STORICO (27/11).
+   ══════════════════════════════════════════════════════════════════════
+   Chi salva una volata lascia in Home UNA riga — «12 fori · 600 kg · X50 34
+   cm» — che si rilegge mesi dopo: è un documento. Fino al 27/11 la componeva
+   la pagina, e nessuna prova la guardava; e da quando un foro può avere
+   valori suoi quella riga non diceva che la volata ne aveva. Due volate con
+   la stessa maglia e cariche diverse foro per foro si leggevano uguali, e la
+   X50 scritta lì è quella del FORO TIPO (decisione 33).
+   La carica totale è già quella vera (la somma dei fori). Qui si aggiunge
+   quanti fori hanno valori loro, e accanto alla X50 «foro tipo» quando per
+   qualcuno non è calcolata. ⛔ Neutralità: senza valori per foro la riga è
+   quella di sempre, carattere per carattere. Un conto che non c'è (un
+   oggetto di numeri composto prima) non aggiunge niente: non si inventa un
+   «nessuno». */
+export function sintesiVolata(k){
+  if (!k || typeof k !== 'object') return '';
+  const propri = _cmpNum(k.foriPropri), tipo = _cmpNum(k.fragTipo);
+  return conta(k.nf, 'foro', 'fori')
+    + (propri > 0 ? ' · ' + gnum(propri, 0) + ' con valori propri' : '')
+    + ' · ' + (_cmpNum(k.qtot) === null ? 'carica totale non calcolabile' : gnum(k.qtot, 0) + ' kg')
+    + ' · ' + (k.fragCalcolabile ? 'X50 ' + gnum(k.x50, 0) + ' cm' + (tipo > 0 ? ' (foro tipo)' : '') : 'X50 non calcolabile');
+}
+
+/* ══════════════════════════════════════════════════════════════════════
    IL VALORE DEL PROGETTO, RILEGGENDO UN FILE DI SCAMBIO (26/11).
    ══════════════════════════════════════════════════════════════════════
    Chi riapre un `.volata.json` deve ricavare la carica e la profondità DEL
