@@ -24,7 +24,10 @@
      · (27/11) che la frase sulla MIC — quali fori la formano e quando — è VERA sulla
        tabella dello stesso foglio: i fori nominati stanno entro 8 ms, le loro cariche
        fanno il numero scritto, e quel numero è il massimo che si ricava ricontando le
-       finestre sulla tabella, qui, a mano. E che la scheda dice la stessa frase.
+       finestre sulla tabella, qui, a mano. E che la scheda dice la stessa frase;
+     · (27/11) che il disegno «Cariche nel tempo» ha una barra per ogni ritardo distinto
+       della tabella, alta in proporzione ai chili ricontati sulla tabella, con in arancio
+       quelle — e solo quelle — che arrivano alla MIC.
 
    ⛔ LA CONTROPROVA È UN DIFETTO PER VOLTA (`ATTIVE`), con il controllo che deve cadere
    scritto accanto (`BERSAGLI`, stesso ordine di `DIFETTI`): rimessi insieme si coprono.
@@ -61,7 +64,7 @@ const DIFETTI = [
   /* 6 · il foglio torna a dipendere da come si guarda lo schermo: strato nascosto, niente fori */
   [PAGINA, "  const _rPianta=piantaPerFoglio(D2, {", "  const _rPianta=piantaPerFoglio(D2.strati.fori.visibile ? D2 : { ...D2, holes:[] }, {"],
   /* 7 · il disegno torna largo 680 punti comunque: su un telefono le scritte scendono a 5 px */
-  [PAGINA, "{ larghezza:Math.max(320, Math.min(680, (window.innerWidth||720)-32)) }", "{ larghezza:680 }"],
+  [PAGINA, "  const _rLarga=Math.max(320, Math.min(680, (window.innerWidth||720)-32));", "  const _rLarga=680;"],
   /* 8 · la tabella non ha più il suo riquadro: su uno schermo stretto scorre tutta la pagina */
   [PAGINA, "    +'.tfs{overflow-x:auto}@media(max-width:560px){", "    +'@media(max-width:560px){"],
   /* 9 · il ritardo sotto il foro non è più quello della riga */
@@ -80,6 +83,14 @@ const DIFETTI = [
   [PAGINA, "' kg (finestra 8 ms)'+(_rM.chi?'<br>'+esc(_rM.chi):'')\n", "' kg (finestra 8 ms)'\n"],
   /* 16 · la scheda non lo dice più (nel ramo di tutti i giorni: soglia e distanza ci sono) */
   [PAGINA, "' m: oltre, il PPV supera il limite.'+(_m2.chi?' '+_rEsc(_m2.chi):'')});", "' m: oltre, il PPV supera il limite.'});"],
+  /* 17 · le barre delle cariche nel tempo non sono più proporzionali ai chili */
+  [MODULO, "const h = f.kg / mic * altaBarre; if (!(h > 0)) return;", "const h = (f.kg / mic) * (f.kg / mic) * altaBarre; if (!(h > 0)) return;"],
+  /* 18 · nessuna barra in arancio: la MIC non si riconosce più */
+  [MODULO, "'<rect class=\"t-b' + (f.kg === mic ? ' t-max' : '')", "'<rect class=\"t-b' + ('')"],
+  /* 19 · il disegno delle cariche nel tempo resta largo 680 punti anche sul telefono */
+  [PAGINA, "  const _rTempi=diagrammaTempiPerFoglio(D2.holes, D2.kg, { larghezza:_rLarga });", "  const _rTempi=diagrammaTempiPerFoglio(D2.holes, D2.kg);"],
+  /* 20 · il disegno delle cariche nel tempo non entra più nel foglio */
+  [PAGINA, "   +(_rTempi ? '<h2>Cariche nel tempo</h2>'+_rTempi : '')\n", ""],
 ];
 let ATTIVE = DIFETTI;
 
@@ -170,7 +181,7 @@ async function foglio(pg) {
   await pop.waitForTimeout(150);
   const L = await pop.evaluate(() => {
     const svg = document.querySelector("svg.pianta");
-    const out = { svg: document.querySelectorAll("svg").length, markup: document.body.innerHTML, sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth,
+    const out = { svg: document.querySelectorAll("svg.pianta").length, markup: document.body.innerHTML, sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth,
       titoli: [...document.querySelectorAll("h2")].map((h) => h.textContent) };
     if (svg) {
       const vb = svg.viewBox.baseVal;
@@ -181,6 +192,11 @@ async function foglio(pg) {
       const sc = svg.querySelector("path.p-scala"); out.scalaD = sc ? sc.getAttribute("d") : "";
       out.piede = svg.querySelectorAll("polyline.p-piede").length; out.tratti = svg.querySelectorAll("polyline.p-tratto").length;
     }
+    const st = document.querySelector("svg.tempi");
+    if (st) { const vb = st.viewBox.baseVal;
+      out.tempi = { k: st.getBoundingClientRect().width / vb.width, larga: vb.width, alta: vb.height,
+        barre: [...st.querySelectorAll("rect.t-b")].map((r) => ({ x: +r.getAttribute("x") + +r.getAttribute("width") / 2, w: +r.getAttribute("width"), h: +r.getAttribute("height"), max: r.classList.contains("t-max") })).sort((a, c) => a.x - c.x),
+        testi: [...st.querySelectorAll("text")].map((t) => { const q = t.getBBox(); return { t: t.textContent, fs: +t.getAttribute("font-size"), x0: q.x, x1: q.x + q.width, y0: q.y, y1: q.y + q.height }; }) }; }
     const tf = document.querySelector("table.tf"), box = document.querySelector(".tfs");
     if (tf) {
       out.testa = [...tf.querySelectorAll("thead th")].map((th) => th.textContent);
@@ -238,6 +254,10 @@ function comuni(nome, L, nFori) {
   dice(tocca === 0 && esce === 0, `${nome}: nessun foro sopra un altro, tutti dentro il disegno`, `si toccano ${tocca} coppie, fuori ${esce}`);
   const bassi = L.testi.filter((q) => q.fs * L.k < 6.5).map((q) => `«${q.t}» ${(q.fs * L.k).toFixed(1)}px`);
   dice(!bassi.length, `${nome}: ogni scritta del disegno è alta almeno 6,5 px sullo schermo che la mostra (la più bassa: ${Math.min(...L.testi.map((q) => q.fs * L.k)).toFixed(1)})`, bassi.slice(0, 5));
+  const Tm = L.tempi;
+  if (!Tm) dice(false, `${nome}: il disegno delle cariche nel tempo c'è, e si legge`, "nel foglio non c'è nessun `svg.tempi`");
+  else { const fuoriT = Tm.testi.filter((q) => q.x0 < -0.5 || q.x1 > Tm.larga + 0.5 || q.y0 < -0.5 || q.y1 > Tm.alta + 0.5).map((q) => `«${q.t}»`), sopraT = sovrapposti(Tm.testi), bassiT = Tm.testi.filter((q) => q.fs * Tm.k < 6.5).map((q) => `«${q.t}» ${(q.fs * Tm.k).toFixed(1)}px`), barreFuori = Tm.barre.filter((q) => q.x - q.w / 2 < 0 || q.x + q.w / 2 > Tm.larga).length;
+    dice(Tm.barre.length > 0 && !fuoriT.length && !sopraT.length && !bassiT.length && !barreFuori, `${nome}: il disegno delle cariche nel tempo c'è, e si legge — nessuna scritta esce, si sovrappone o scende sotto i 6,5 px, ogni barra sta dentro (${Tm.barre.length} barre)`, JSON.stringify({ fuori: fuoriT.slice(0, 3), sopra: sopraT.slice(0, 3), bassi: bassiT.slice(0, 3), barreFuori })); }
   dice(L.sw <= L.cw + 0.5 && (L.tf.w <= L.tf.box + 0.5 || L.tf.scorre === "auto"), `${nome}: la pagina non scorre di lato, e la tabella sta nel suo riquadro o ci scorre dentro`, JSON.stringify({ pagina: `${L.sw}/${L.cw}`, tabella: `${Math.round(L.tf.w)}/${Math.round(L.tf.box || 0)}`, riquadro: L.tf.scorre }));
   return true;
 }
@@ -351,9 +371,10 @@ async function fitta() {
 /* la MIC ricontata QUI sulla tabella del foglio: per ogni riga, i chili delle righe che partono entro 8 ms da lei */
 function micDallaTabella(L) {
   const r = L.righe.map((q) => ({ n: num(q[COL.n].t), t: num(q[COL.tDet].t), kg: num(q[COL.kg].t) }));
-  let mic = 0, vicini = 0;
-  for (const a of r) { let s = 0, c = 0; for (const q of r) if (q.t >= a.t && q.t < a.t + 8) { s += q.kg; c++; } if (s > mic) mic = s; if (c > 1) vicini++; }
-  return { mic, vicini, r };
+  let mic = 0, vicini = 0; const perIstante = new Map();
+  for (const a of r) { let s = 0, c = 0; for (const q of r) if (q.t >= a.t && q.t < a.t + 8) { s += q.kg; c++; } if (s > mic) mic = s; if (c > 1) vicini++; perIstante.set(a.t, s); }
+  /* gli istanti distinti in ordine di tempo, coi chili della finestra che si apre lì */
+  return { mic, vicini, r, istanti: [...perIstante].map(([t, kg]) => ({ t, kg })).sort((a, c) => a.t - c.t) };
 }
 const fraseScheda = (pg) => pg.evaluate(() => { const e = document.querySelector('.sv-row[data-lab="MIC (carica/ritardo)"] .sv-why'); return e ? e.textContent : null; });
 async function mic() {
@@ -370,6 +391,12 @@ async function mic() {
         `MIC a gruppi: il foglio dice quali fori formano la MIC — nella tabella quei fori stanno entro 8 ms, le loro cariche fanno i ${scritta} kg scritti, ed è il massimo che si riconta dalla tabella`,
         JSON.stringify({ frase, nomi, ritardi: ts, somma: miei.reduce((a, q) => a + q.kg, 0), scritta, ricontata: T.mic }));
       dice(!!frase && !!scheda && scheda.includes(frase), "MIC a gruppi: la scheda dice la stessa frase del foglio", JSON.stringify({ scheda, frase }));
+      /* le cariche nel tempo, contro la tabella dello stesso foglio */
+      const B = L.tempi ? L.tempi.barre : [], ist = T.istanti, alMax = ist.filter((q) => Math.abs(q.kg - T.mic) < 0.06).length;
+      dice(B.length === ist.length && B.filter((q) => q.max).length === alMax && alMax < ist.length,
+        `MIC a gruppi: le cariche nel tempo hanno una barra per ogni ritardo distinto della tabella (${ist.length}), e in arancio quelle — e solo quelle — che arrivano alla MIC (${alMax})`, JSON.stringify({ barre: B.length, arancio: B.filter((q) => q.max).length, istanti: ist.length, alMax }));
+      const hmax = Math.max(...B.map((q) => q.h)), storte = B.length === ist.length ? B.filter((q, i) => Math.abs(q.h / hmax - ist[i].kg / T.mic) > 0.02).length : -1, diversi = new Set(ist.map((q) => q.kg)).size;
+      dice(storte === 0 && diversi >= 2, `MIC a gruppi: le altezze delle barre stanno nel rapporto dei chili ricontati sulla tabella (${diversi} valori diversi fra loro, non un campione solo)`, JSON.stringify({ storte, diversi, altezze: B.slice(0, 6).map((q) => q.h), chili: ist.slice(0, 6).map((q) => q.kg) }));
     }
     /* E3 — sullo stesso progetto, un foro da 200 kg: la MIC diventa lui, ma NON è vero che ogni foro parte da solo */
     await pg.evaluate(() => { const D = window.__genesi.D2; D.holes[0].kg = 200; window.__genesi.renderScheda2D(); }); await pg.waitForTimeout(300);
@@ -380,6 +407,9 @@ async function mic() {
       dice(frase.startsWith(`La MIC la forma il foro ${n0}, che parte da solo.`) && T.vicini > 0 && num((L3.mic || [""])[0]) === 200,
         `MIC con un foro grosso: il foglio nomina il foro ${n0} e non dice che ogni foro parte da solo (nella tabella ${T.vicini} fori ne hanno un altro entro 8 ms)`, JSON.stringify({ riga: L3.mic, vicini: T.vicini }));
       dice(!!frase && !!scheda3 && scheda3.includes(frase), "MIC con un foro grosso: la scheda dice la stessa frase del foglio", JSON.stringify({ scheda3, frase }));
+      const B3 = L3.tempi ? L3.tempi.barre : [], t0 = (T.r.find((q) => q.n === n0) || {}).t, dove = T.istanti.findIndex((q) => q.t === t0), arancio = B3.map((q, i) => (q.max ? i : -1)).filter((i) => i >= 0);
+      dice(B3.length === T.istanti.length && arancio.length === 1 && arancio[0] === dove && B3[dove].h === Math.max(...B3.map((q) => q.h)),
+        `MIC con un foro grosso: nelle cariche nel tempo c'è UNA barra in arancio, quella del foro ${n0}, ed è la più alta`, JSON.stringify({ barre: B3.length, istanti: T.istanti.length, arancio, dove }));
     }
   }
   await pg.__ctx.close();
@@ -395,7 +425,7 @@ async function mic() {
   await pg.__ctx.close();
 }
 
-const ATTESE = (8 + 2 + 1) + (8 + 2 + 6 + 1) + (2 * (8 + 2) + 1) + (8 + 2) + (8 + 1) + 5;
+const ATTESE = (9 + 2 + 1) + (9 + 2 + 6 + 1) + (2 * (9 + 2) + 1) + (9 + 2) + (9 + 1) + 8;
 let riuscita;
 if (!CONTROPROVA) {
   await base(); await propri(); await telefono([390, 320]); await fitta(); await mic();
@@ -418,6 +448,10 @@ if (!CONTROPROVA) {
     ["«ogni foro parte da solo» detto a torto", mic, /non dice che ogni foro parte da solo/],
     ["il foglio non dice più quali fori formano la MIC", mic, /il foglio dice quali fori formano la MIC/],
     ["la scheda non lo dice più", mic, /MIC a gruppi: la scheda dice la stessa frase/],
+    ["le barre non sono più proporzionali ai chili", mic, /le altezze delle barre stanno nel rapporto dei chili/],
+    ["nessuna barra in arancio", mic, /in arancio quelle — e solo quelle/],
+    ["le cariche nel tempo restano larghe 680 punti sul telefono", () => telefono([390]), /il disegno delle cariche nel tempo c'è, e si legge/],
+    ["le cariche nel tempo non entrano più nel foglio", base, /il disegno delle cariche nel tempo c'è, e si legge/],
   ];
   const esiti = [];
   for (let k = 0; k < DIFETTI.length; k++) {
@@ -436,7 +470,7 @@ if (nonMisurati.length) {
   console.log(`\n⚠️ NON MISURATI (${nonMisurati.length}) — non è «a posto», è «non ho guardato»:`);
   for (const x of nonMisurati) console.log(`   · ${x}`);
 }
-console.log(`\nRisultato foglio con la pianta di Genesi: ${ok} passati, ${ko} falliti  ·  ${ATTESE} asserzioni attese nel passaggio sano (11 sulla volata di base, 17 coi valori propri, 21 sul telefono, 19 sulla maglia fitta, 5 sulla MIC)`);
+console.log(`\nRisultato foglio con la pianta di Genesi: ${ok} passati, ${ko} falliti  ·  ${ATTESE} asserzioni attese nel passaggio sano (12 sulla volata di base, 18 coi valori propri, 23 sul telefono, 21 sulla maglia fitta, 8 sulla MIC e le cariche nel tempo)`);
 await b.close();
 srv.close();
 /* una controprova RIUSCITA esce 0: ogni difetto, da solo, ha fatto cadere il controllo che lo

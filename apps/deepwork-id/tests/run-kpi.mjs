@@ -43946,7 +43946,7 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq([genesi.tabellaForiPerFoglio([], P), genesi.tabellaForiPerFoglio(null, P), genesi.tabellaForiPerFoglio(undefined)], ["", "", ""], "senza fori non c'è tabella");
     /* ── la pagina ── */
     const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
-    ok(/const _rPianta=piantaPerFoglio\(D2, \{ larghezza:Math\.max\(320, Math\.min\(680, \(window\.innerWidth\|\|720\)-32\)\) \}\), _rTabFori=tabellaForiPerFoglio\(D2\.holes, D2\);/.test(pag),
+    ok(/const _rLarga=Math\.max\(320, Math\.min\(680, \(window\.innerWidth\|\|720\)-32\)\);\n  const _rPianta=piantaPerFoglio\(D2, \{ larghezza:_rLarga \}\), _rTabFori=tabellaForiPerFoglio\(D2\.holes, D2\);/.test(pag),
       "⛔ il foglio compone pianta e tabella dal PROGETTO (`D2`), non dalla tela: né la vista né gli strati nascosti entrano; la larghezza è quella della finestra");
     ok(/\(_rPianta \? '<h2>Pianta della volata<\/h2>'\+_rPianta : ''\)\n   \+sec\('Geometria',/.test(pag) && /    \+body\n    \+_rTabFori\n    \+_repEsito\n    \+firma/.test(pag), "la pianta apre il foglio, la tabella dei fori sta dopo le sezioni e prima della firma");
     ok(/'\.tfs\{overflow-x:auto\}@media\(max-width:560px\)\{table\.tf\{font-size:10px\}/.test(pag), "sullo schermo stretto la tabella si stringe, e dove non basta scorre nel suo riquadro invece di far scorrere la pagina");
@@ -43996,7 +43996,49 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq((pag.match(/\+\(_m2\.chi\?' '\+_rEsc\(_m2\.chi\):''\)\}\);/g) || []).length, 3, "⛔ la scheda la scrive in tutti e TRE i rami in cui la MIC si conta (con la soglia, senza la soglia, senza la distanza)");
     ok(/_rM\.calcolabile \? gnum\(_rMic,1\)\+' kg \(finestra 8 ms\)'\+\(_rM\.chi\?'<br>'\+esc\(_rM\.chi\):''\)\n/.test(pag), "e il foglio la stampa sotto il numero");
     const mod = readFileSync(join(HERE, "../../genesi/genesi-data.js"), "utf8");
-    eq([(mod.match(/_finestreDiCarica\(H, kg\)/g) || []).length, (mod.match(/t0 \+ FINESTRA_MIC_MS\)/g) || []).length, /t0 \+ 8\b/.test(mod)], [3, 1, false], "⛔ nel modulo la finestra si conta in UN posto solo: la definizione e i suoi due chiamanti, e nessun «+ 8» scritto a mano altrove");
+    eq([(mod.match(/_finestreDiCarica\(H, kg\)/g) || []).length, (mod.match(/t0 \+ FINESTRA_MIC_MS\)/g) || []).length, /t0 \+ 8\b/.test(mod)], [4, 1, false], "⛔ nel modulo la finestra si conta in UN posto solo: la definizione e i suoi tre chiamanti (il numero, chi la forma, le cariche nel tempo), e nessun «+ 8» scritto a mano altrove");
+  });
+  test("⛔ Genesi · le cariche nel tempo: la barra più alta È la MIC, le altezze stanno nel rapporto dei chili, e uno zero si disegna zero", () => {
+    const T = (tempi, altro) => tempi.map((t, i) => ({ tDet: t, seq: i, ...((altro && altro[i]) || {}) }));
+    const barre = (s) => [...s.matchAll(/<rect class="t-b( t-max)?" x="([\d.-]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)"/g)].map((m) => ({ max: !!m[1], x: +m[2] + +m[4] / 2, h: +m[5], w: +m[4] }));
+    const tacche = (s) => [...s.matchAll(/<text class="t-ms" x="([\d.]+)"[^>]*>([^<]*)<\/text>/g)].map((m) => ({ x: +m[1], t: +m[2].replace(/\./g, "").replace(",", ".") }));
+    /* ── i dati ── */
+    const H = T([0, 42, 84, 84, 84, 126, 130]), F = genesi.caricheNelTempo(H, 58);
+    eq(F, [{ da: 0, kg: 58, fori: 1 }, { da: 42, kg: 58, fori: 1 }, { da: 84, kg: 174, fori: 3 }, { da: 126, kg: 116, fori: 2 }, { da: 130, kg: 58, fori: 1 }],
+      "una voce per ISTANTE distinto, in ordine di tempo: tre fori a 84 ms aprono una finestra sola; quella di 126 prende anche il foro a 130, quella di 130 no");
+    let diversi = 0, seme = 11; const rnd = () => { seme = (seme * 1664525 + 1013904223) >>> 0; return seme / 4294967296; };
+    for (let k = 0; k < 400; k++) { const n = 1 + Math.floor(rnd() * 30), kg = [58.3, 60, 12.75][Math.floor(rnd() * 3)];
+      const R = Array.from({ length: n }, (_, i) => { const h = { tDet: Math.round(rnd() * 3000) / 10, seq: i }; if (rnd() < 0.2) h.kg = Math.round(rnd() * 2000) / 10; return h; });
+      const C = genesi.caricheNelTempo(R, kg);
+      if (!Object.is(Math.max(...C.map((f) => f.kg)), genesi.micFinestra(R, kg)) || C.some((f, i) => i > 0 && f.da <= C[i - 1].da)) diversi++; }
+    eq(diversi, 0, "⛔ su 400 volate a caso il massimo delle voci è la MIC di `micFinestra`, alla cifra (`Object.is`), e gli istanti sono in ordine e senza doppioni");
+    eq([genesi.caricheNelTempo([], 58), genesi.caricheNelTempo(T([0]), null)], [null, null], "`null` dove la MIC non si conta");
+    /* ── il disegno ── */
+    const svg = genesi.diagrammaTempiPerFoglio(H, 58), B = barre(svg), tk = tacche(svg);
+    eq([B.length, B.filter((q) => q.max).length, /MIC 174 kg/.test(svg), /NaN|undefined|null|Infinity/.test(svg)], [5, 1, true, false], "una barra per istante, una sola in arancio (la MIC), col numero scritto");
+    ok(Math.abs(B[2].h / B[0].h - 3) < 0.03 && Math.abs(B[3].h / B[0].h - 2) < 0.03, "⛔ le altezze stanno nel rapporto dei chili: 174 è tre volte 58, 116 il doppio — due valori diversi, non un campione solo");
+    eq(B.findIndex((q) => q.max), 2, "la barra arancio è quella di 84 ms");
+    /* l'asse dei tempi dice il vero: due tacche danno la scala, e la barra di 84 ms sta a 84 ms */
+    const pxPerMs = (tk[tk.length - 1].x - tk[0].x) / (tk[tk.length - 1].t - tk[0].t);
+    ok(tk.length >= 2 && Math.abs((B[2].x - tk[0].x) / pxPerMs - 84) < 0.5 && Math.abs((B[4].x - tk[0].x) / pxPerMs - 130) < 0.5, "⛔ letta sulle tacche dell'asse, la barra della MIC sta a 84 ms e l'ultima a 130");
+    ok(tk.length <= 8 && tk.every((q) => Number.isInteger(q.t)), "le tacche sono tonde e al più otto");
+    /* uno zero si disegna zero */
+    const sc = genesi.diagrammaTempiPerFoglio(T([0, 42, 84], [null, { kg: 0 }, null]), 58);
+    eq([genesi.caricheNelTempo(T([0, 42, 84], [null, { kg: 0 }, null]), 58).map((f) => f.kg), barre(sc).length], [[58, 0, 58], 2], "⛔ un foro scarico apre una finestra da 0 kg: la voce c'è, la barra NO — niente altezza minima «per farla vedere»");
+    eq([genesi.diagrammaTempiPerFoglio(T([0, 42]), 0), genesi.diagrammaTempiPerFoglio([], 58), genesi.diagrammaTempiPerFoglio(null, 58), genesi.diagrammaTempiPerFoglio(T([0, 42]), null)], ["", "", "", ""], "⛔ tutti scarichi, nessun foro, MIC non contabile: nessun disegno (stringa vuota, non una cornice con dentro niente)");
+    /* i casi al bordo */
+    const uno = genesi.diagrammaTempiPerFoglio(T([100, 100, 100]), 58), tu = tacche(uno);
+    eq([barre(uno).length, tu.map((q) => q.t), Math.abs(barre(uno)[0].x - tu[tu.length - 1].x) < 0.11, barre(uno)[0].w], [1, [0, 20, 40, 60, 80, 100], true, 12], "tutti i fori a 100 ms: una barra sola, sulla tacca dei 100 (l'asse parte comunque da zero), e larga 12 px — non quanto tutto il disegno");
+    const zero = genesi.diagrammaTempiPerFoglio(T([0, 0]), 58);
+    eq([barre(zero).length, tacche(zero).map((q) => q.t), /NaN|Infinity/.test(zero)], [1, [0], false], "⛔ tutti i fori a 0 ms: una barra, una tacca, e nessuna divisione per zero (l'asse non ha lunghezza)");
+    const fitto = genesi.diagrammaTempiPerFoglio(Array.from({ length: 300 }, (_, i) => ({ tDet: i, seq: i })), 58, { larghezza: 358 }), Bf = barre(fitto);
+    ok(/viewBox="0 0 358 /.test(fitto) && Bf.length === 300 && Bf.every((q) => q.w === 1.5) && Bf.every((q) => q.x - q.w / 2 >= 0 && q.x + q.w / 2 <= 358), "⛔ 300 istanti in 358 px (meno di un px l'uno): le barre non scendono sotto 1,5 px e restano dentro il disegno");
+    const voci = [...new Set([svg, fitto].flatMap((s) => [...s.matchAll(/<text class="t-leg"[^>]*>([^<]*)<\/text>/g)].flatMap((m) => m[1].split(" · "))))];
+    eq([voci, voci.filter((v) => (v.length + 3) * 5 > 320 - 72)], [["barra: i chili che partono entro 8 ms da lì", "in arancio: la MIC"], []], "la legenda dice che cosa è una barra e che cosa è l'arancio, e ogni voce sta nel disegno più stretto");
+    /* ── la pagina ── */
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    ok(/const _rTempi=diagrammaTempiPerFoglio\(D2\.holes, D2\.kg, \{ larghezza:_rLarga \}\);/.test(pag), "⛔ il foglio lo compone dagli stessi fori e dalla stessa carica della MIC, alla stessa larghezza della pianta");
+    ok(/   \+\(_rTempi \? '<h2>Cariche nel tempo<\/h2>'\+_rTempi : ''\)\n   \+_fpSez\n/.test(pag), "e lo mette dopo «Carica & sequenza»; se non c'è niente da disegnare non resta un titolo vuoto");
   });
   test("⛔ Genesi · eUnTocco e i tocchi sulla pianta: un dito conduce, il secondo ferma tutto, col dito si crea alzandolo", () => {
     eq(genesi.eUnTocco(100, 100, 100, 100), true, "il dito si alza dov'era: è un tocco");

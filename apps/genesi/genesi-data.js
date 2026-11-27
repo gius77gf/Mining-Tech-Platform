@@ -1697,6 +1697,63 @@ export function fraseFinestraMic(f){
       + (f.senzaTempo > 0 ? ' (' + (f.senzaTempo === 1 ? 'uno non ha' : f.senzaTempo + ' non hanno') + ' un ritardo assegnato, e per il conto vale 0 ms)' : '');
   return 'La MIC la formano i fori ' + chi + ', che ' + quando + '.' + altre;
 }
+/* ══════════════════════════════════════════════════════════════════════
+   LE CARICHE NEL TEMPO (27/11) — il disegno della MIC.
+   ══════════════════════════════════════════════════════════════════════
+   La frase dice quali fori formano la MIC; il disegno fa vedere TUTTE le
+   finestre: per ogni istante in cui parte un foro, i chili che partono
+   negli 8 ms da lì. È lo stesso conto di `micFinestra` (stesse finestre,
+   `_finestreDiCarica`): la barra più alta È la MIC, non una sua stima.
+    · `caricheNelTempo`: una voce per ISTANTE distinto, in ordine di tempo
+      (due fori sullo stesso ritardo aprono la stessa finestra: una barra);
+      `null` dove la MIC non si conta;
+    · `diagrammaTempiPerFoglio`: le barre, per la carta. L'altezza è
+      proporzionale ai chili e UNO ZERO SI DISEGNA ZERO (una finestra di
+      soli fori scarichi non ha barra: niente altezza minima «per farla
+      vedere»); in arancio le finestre che arrivano alla MIC; l'asse dei
+      tempi ha tacche tonde. Stringa vuota se non c'è niente da disegnare
+      (MIC non contabile, o tutti i fori scarichi). */
+export function caricheNelTempo(holes, kg){
+  const H = holes;
+  if (micSenzaConto(H, kg)) return null;
+  const visti = new Set(), out = [];
+  for (const f of _finestreDiCarica(H, kg).finestre) if (!visti.has(f.t0)) { visti.add(f.t0); out.push({ da: f.t0, kg: f.kg, fori: f.dentro.length }); }
+  return out.sort((a, b) => a.da - b.da);
+}
+export function diagrammaTempiPerFoglio(holes, kg, opz){
+  const F = Array.isArray(holes) ? caricheNelTempo(holes, kg) : null;
+  if (!F || !F.length) return '';
+  const mic = Math.max(...F.map((f) => f.kg));
+  if (!(mic > 0)) return '';
+  const o = opz || {}, fin = (v) => v !== null && v !== undefined && v !== '' && Number.isFinite(+v);
+  const L = (fin(o.larghezza) && +o.larghezza >= 320) ? +o.larghezza : 680, padL = 36, padR = 36, padTop = 26, altaBarre = 90, base = padTop + altaBarre;
+  const tMax = F[F.length - 1].da, largaT = L - padL - padR, X = (t) => padL + (tMax > 0 ? t / tMax : 0) * largaT;
+  /* la larghezza della barra: sette decimi del passo più stretto fra due istanti, fra 1,5 e 12 px */
+  let passo = largaT; for (let i = 1; i < F.length; i++) passo = Math.min(passo, X(F[i].da) - X(F[i - 1].da));
+  const w = Math.max(1.5, Math.min(12, passo * 0.7));
+  const f1 = (v) => (Math.round(v * 10) / 10).toFixed(1);
+  const leg = ['barra: i chili che partono entro ' + FINESTRA_MIC_MS + ' ms da lì', 'in arancio: la MIC'];
+  const legRighe = righeDiVoci(leg.map((t) => (t.length + 3) * 5), L - padL - padR), alta = base + 34 + legRighe.length * 13;
+  const out = [];
+  out.push('<svg xmlns="http://www.w3.org/2000/svg" class="tempi" viewBox="0 0 ' + L + ' ' + alta + '" width="100%" role="img" aria-label="Cariche nel tempo: ' + gnum(F.length, 0) + (F.length === 1 ? ' istante' : ' istanti') + ' di partenza, carica massima per ritardo ' + gnum(mic, 1) + ' kg" style="max-width:' + L + 'px;display:block;margin:0 auto;font-family:system-ui,Arial,sans-serif">');
+  out.push('<rect x="0.5" y="0.5" width="' + (L - 1) + '" height="' + (alta - 1) + '" fill="#fff" stroke="#d8d8d8"/>');
+  /* la riga della MIC, con il suo numero */
+  out.push('<path class="t-mic" d="M' + padL + ' ' + padTop + 'H' + (L - padR) + '" stroke="#c05a00" stroke-width="1" stroke-dasharray="4 3"/>');
+  out.push('<text class="t-micn" x="' + padL + '" y="' + (padTop - 6) + '" font-size="10" font-weight="700" fill="#a05a00">MIC ' + gnum(mic, 1) + ' kg</text>');
+  F.forEach((f) => { const h = f.kg / mic * altaBarre; if (!(h > 0)) return;
+    out.push('<rect class="t-b' + (f.kg === mic ? ' t-max' : '') + '" x="' + f1(X(f.da) - w / 2) + '" y="' + f1(base - h) + '" width="' + f1(w) + '" height="' + f1(h) + '" fill="' + (f.kg === mic ? '#c05a00' : '#8f8f8f') + '"/>'); });
+  out.push('<path d="M' + padL + ' ' + base + 'H' + (L - padR) + '" stroke="#1a1a1a" stroke-width="1.2"/>');
+  /* le tacche dei tempi: un passo tondo, al più sette tacche; con un istante solo, la sua */
+  const passi = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000], pt = tMax > 0 ? (passi.find((p) => tMax / p <= 6) || 10000) : 0;
+  const tacche = []; if (tMax > 0) for (let t = 0; t <= tMax + 1e-9; t += pt) tacche.push(t); else tacche.push(F[0].da);
+  tacche.forEach((t) => { out.push('<path class="t-tacca" d="M' + f1(X(t)) + ' ' + base + 'v4" stroke="#1a1a1a" stroke-width="1"/>');
+    out.push('<text class="t-ms" x="' + f1(X(t)) + '" y="' + (base + 15) + '" font-size="9.5" text-anchor="middle" fill="#1a1a1a">' + gnum(t, 1) + '</text>'); });
+  /* «ms» sta 17 px oltre la fine dell'asse: l'ultima tacca può cadere proprio lì, e la sua cifra è larga fino a 24 px */
+  out.push('<text class="t-u" x="' + (L - padR + 17) + '" y="' + (base + 15) + '" font-size="9.5" fill="#555">ms</text>');
+  legRighe.forEach((riga, k) => out.push('<text class="t-leg" x="' + padL + '" y="' + (base + 34 + k * 13) + '" font-size="9.5" fill="#555">' + riga.map((i) => leg[i]).join(' · ') + '</text>'));
+  out.push('</svg>');
+  return out.join('');
+}
 
 /* ══════════════════════════════════════════════════════════════════════════
    G12 · LA CARICA TOTALE E IL COSTO DELLA VOLATA — «non lo so» invece di zero
