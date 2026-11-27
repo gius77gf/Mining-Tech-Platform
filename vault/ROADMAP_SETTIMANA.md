@@ -3092,9 +3092,13 @@
   scheda dice la stessa frase; controprova da 11 a 16 difetti.
   ⚠️ Limiti detti: la frase nomina UN gruppo (il primo nel tempo) e conta
   gli altri, non li elenca; sulla pianta i fori della MIC non sono ancora
-  evidenziati; il CSV della scheda volata non porta la frase (prima di
-  allargare un file che esce si guarda chi lo rilegge: in questa unità non
-  è stato guardato).
+  evidenziati. ✅ Il CSV della scheda volata la porta, dalla sera stessa:
+  riga «Fori che formano la MIC», in coda al gruppo della MIC. Guardato
+  prima chi rilegge quel file: solo i banchi, e per NOME del parametro
+  (`grep -ln "scheda_volata\|MIC carica per ritardo"` su test, app e
+  shared → tre banchi e la pagina), quindi una riga in più non sposta
+  niente. Il banco preme il bottone, apre il file e pretende la stessa
+  frase del foglio (84 controlli, 21 difetti in controprova).
 - [x] **Genesi — sul report, il disegno «Cariche nel tempo»** *(27/11, sera)*.
   La frase dice quali fori formano la MIC; il disegno fa vedere TUTTE le
   finestre: una barra per ogni istante in cui parte un foro, alta quanto i

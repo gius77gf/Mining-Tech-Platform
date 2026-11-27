@@ -27,7 +27,9 @@
        finestre sulla tabella, qui, a mano. E che la scheda dice la stessa frase;
      · (27/11) che il disegno «Cariche nel tempo» ha una barra per ogni ritardo distinto
        della tabella, alta in proporzione ai chili ricontati sulla tabella, con in arancio
-       quelle — e solo quelle — che arrivano alla MIC.
+       quelle — e solo quelle — che arrivano alla MIC;
+     · (27/11) che il CSV della scheda volata porta la stessa frase sulla MIC, nella riga
+       «Fori che formano la MIC» (il file si prende premendo il bottone).
 
    ⛔ LA CONTROPROVA È UN DIFETTO PER VOLTA (`ATTIVE`), con il controllo che deve cadere
    scritto accanto (`BERSAGLI`, stesso ordine di `DIFETTI`): rimessi insieme si coprono.
@@ -91,6 +93,8 @@ const DIFETTI = [
   [PAGINA, "  const _rTempi=diagrammaTempiPerFoglio(D2.holes, D2.kg, { larghezza:_rLarga });", "  const _rTempi=diagrammaTempiPerFoglio(D2.holes, D2.kg);"],
   /* 20 · il disegno delle cariche nel tempo non entra più nel foglio */
   [PAGINA, "   +(_rTempi ? '<h2>Cariche nel tempo</h2>'+_rTempi : '')\n", ""],
+  /* 21 · il CSV della scheda volata non dice più chi forma la MIC */
+  [PAGINA, "    ['Fori che formano la MIC', k.micCalcolabile?(k.micChi||''):''],\n", "    ['Fori che formano la MIC', ''],\n"],
 ];
 let ATTIVE = DIFETTI;
 
@@ -148,6 +152,9 @@ async function apri(larghezza, design) {
   const ctx = await b.newContext({ viewport: { width: larghezza, height: 950 }, hasTouch: larghezza < 600 });
   /* il foglio chiama `print()` da sé dopo 350 ms: in un banco non deve aprire niente */
   await ctx.addInitScript(() => { window.print = () => {}; });
+  /* e i file che la pagina fa scaricare (`a.download` + `a.click()`) restano qui, col loro testo */
+  await ctx.addInitScript(() => { window.__usciti = []; const vero = HTMLAnchorElement.prototype.click;
+    HTMLAnchorElement.prototype.click = function () { if (this.download && /^data:/.test(this.href)) window.__usciti.push({ nome: this.download, testo: decodeURIComponent(this.href.replace(/^data:[^,]*,/, "")) }); else return vero.call(this); }; });
   const pg = await ctx.newPage();
   const errori = []; pg.on("pageerror", (e) => errori.push(e.message));
   await pg.addInitScript((dd) => {
@@ -377,6 +384,10 @@ function micDallaTabella(L) {
   return { mic, vicini, r, istanti: [...perIstante].map(([t, kg]) => ({ t, kg })).sort((a, c) => a.t - c.t) };
 }
 const fraseScheda = (pg) => pg.evaluate(() => { const e = document.querySelector('.sv-row[data-lab="MIC (carica/ritardo)"] .sv-why'); return e ? e.textContent : null; });
+/* preme «Esporta scheda volata (CSV)» e legge, nel file che esce, la riga del parametro chiesto (null se il file o la riga non ci sono) */
+const rigaCsvScheda = (pg, parametro) => pg.evaluate((parametro) => { window.__usciti.length = 0; document.getElementById("btn-scheda-csv").click();
+  const u = window.__usciti.find((q) => q.nome === "genesi_scheda_volata.csv"); if (!u) return null;
+  const r = u.testo.split("\n").find((x) => x.startsWith(parametro + ";")); return r === undefined ? null : r.slice(parametro.length + 1); }, parametro);
 async function mic() {
   /* E1 — fra le file 100 ms: due fori di file diverse cadono a 5 ms uno dall'altro */
   let pg = await apri(1280, { ...DESIGN, ritardoFila: 100 });
@@ -391,6 +402,8 @@ async function mic() {
         `MIC a gruppi: il foglio dice quali fori formano la MIC — nella tabella quei fori stanno entro 8 ms, le loro cariche fanno i ${scritta} kg scritti, ed è il massimo che si riconta dalla tabella`,
         JSON.stringify({ frase, nomi, ritardi: ts, somma: miei.reduce((a, q) => a + q.kg, 0), scritta, ricontata: T.mic }));
       dice(!!frase && !!scheda && scheda.includes(frase), "MIC a gruppi: la scheda dice la stessa frase del foglio", JSON.stringify({ scheda, frase }));
+      const nelCsv = await rigaCsvScheda(pg, "Fori che formano la MIC");
+      dice(!!frase && nelCsv === frase, "MIC a gruppi: il CSV della scheda volata dice la stessa frase, nella riga «Fori che formano la MIC»", JSON.stringify({ nelCsv, frase }));
       /* le cariche nel tempo, contro la tabella dello stesso foglio */
       const B = L.tempi ? L.tempi.barre : [], ist = T.istanti, alMax = ist.filter((q) => Math.abs(q.kg - T.mic) < 0.06).length;
       dice(B.length === ist.length && B.filter((q) => q.max).length === alMax && alMax < ist.length,
@@ -407,6 +420,8 @@ async function mic() {
       dice(frase.startsWith(`La MIC la forma il foro ${n0}, che parte da solo.`) && T.vicini > 0 && num((L3.mic || [""])[0]) === 200,
         `MIC con un foro grosso: il foglio nomina il foro ${n0} e non dice che ogni foro parte da solo (nella tabella ${T.vicini} fori ne hanno un altro entro 8 ms)`, JSON.stringify({ riga: L3.mic, vicini: T.vicini }));
       dice(!!frase && !!scheda3 && scheda3.includes(frase), "MIC con un foro grosso: la scheda dice la stessa frase del foglio", JSON.stringify({ scheda3, frase }));
+      const nelCsv3 = await rigaCsvScheda(pg, "Fori che formano la MIC");
+      dice(!!frase && nelCsv3 === frase, "MIC con un foro grosso: il CSV della scheda volata dice la stessa frase", JSON.stringify({ nelCsv3, frase }));
       const B3 = L3.tempi ? L3.tempi.barre : [], t0 = (T.r.find((q) => q.n === n0) || {}).t, dove = T.istanti.findIndex((q) => q.t === t0), arancio = B3.map((q, i) => (q.max ? i : -1)).filter((i) => i >= 0);
       dice(B3.length === T.istanti.length && arancio.length === 1 && arancio[0] === dove && B3[dove].h === Math.max(...B3.map((q) => q.h)),
         `MIC con un foro grosso: nelle cariche nel tempo c'è UNA barra in arancio, quella del foro ${n0}, ed è la più alta`, JSON.stringify({ barre: B3.length, istanti: T.istanti.length, arancio, dove }));
@@ -425,7 +440,7 @@ async function mic() {
   await pg.__ctx.close();
 }
 
-const ATTESE = (9 + 2 + 1) + (9 + 2 + 6 + 1) + (2 * (9 + 2) + 1) + (9 + 2) + (9 + 1) + 8;
+const ATTESE = (9 + 2 + 1) + (9 + 2 + 6 + 1) + (2 * (9 + 2) + 1) + (9 + 2) + (9 + 1) + 10;
 let riuscita;
 if (!CONTROPROVA) {
   await base(); await propri(); await telefono([390, 320]); await fitta(); await mic();
@@ -452,6 +467,7 @@ if (!CONTROPROVA) {
     ["nessuna barra in arancio", mic, /in arancio quelle — e solo quelle/],
     ["le cariche nel tempo restano larghe 680 punti sul telefono", () => telefono([390]), /il disegno delle cariche nel tempo c'è, e si legge/],
     ["le cariche nel tempo non entrano più nel foglio", base, /il disegno delle cariche nel tempo c'è, e si legge/],
+    ["il CSV della scheda non dice più chi forma la MIC", mic, /il CSV della scheda volata dice la stessa frase/],
   ];
   const esiti = [];
   for (let k = 0; k < DIFETTI.length; k++) {
@@ -470,7 +486,7 @@ if (nonMisurati.length) {
   console.log(`\n⚠️ NON MISURATI (${nonMisurati.length}) — non è «a posto», è «non ho guardato»:`);
   for (const x of nonMisurati) console.log(`   · ${x}`);
 }
-console.log(`\nRisultato foglio con la pianta di Genesi: ${ok} passati, ${ko} falliti  ·  ${ATTESE} asserzioni attese nel passaggio sano (12 sulla volata di base, 18 coi valori propri, 23 sul telefono, 21 sulla maglia fitta, 8 sulla MIC e le cariche nel tempo)`);
+console.log(`\nRisultato foglio con la pianta di Genesi: ${ok} passati, ${ko} falliti  ·  ${ATTESE} asserzioni attese nel passaggio sano (12 sulla volata di base, 18 coi valori propri, 23 sul telefono, 21 sulla maglia fitta, 10 sulla MIC e le cariche nel tempo)`);
 await b.close();
 srv.close();
 /* una controprova RIUSCITA esce 0: ogni difetto, da solo, ha fatto cadere il controllo che lo

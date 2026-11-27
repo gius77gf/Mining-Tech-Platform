@@ -43995,6 +43995,7 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     ok(/chi:es\.calcolabile \? fraseFinestraMic\(finestraDellaMic\(D2\.holes, D2\.kg\)\) : '',/.test(pag), "⛔ la frase la decide `micDaMostrare`, una volta per tutti i lettori — sugli stessi fori e la stessa carica della MIC");
     eq((pag.match(/\+\(_m2\.chi\?' '\+_rEsc\(_m2\.chi\):''\)\}\);/g) || []).length, 3, "⛔ la scheda la scrive in tutti e TRE i rami in cui la MIC si conta (con la soglia, senza la soglia, senza la distanza)");
     ok(/_rM\.calcolabile \? gnum\(_rMic,1\)\+' kg \(finestra 8 ms\)'\+\(_rM\.chi\?'<br>'\+esc\(_rM\.chi\):''\)\n/.test(pag), "e il foglio la stampa sotto il numero");
+    ok(/micChe:_m\.che, micCome:_m\.come, micChi:_m\.chi,/.test(pag) && /\['Fori che formano la MIC', k\.micCalcolabile\?\(k\.micChi\|\|''\):''\],/.test(pag), "e il CSV della scheda volata la porta in una riga sua, in coda al gruppo della MIC — la stessa frase, non una ricomposta");
     const mod = readFileSync(join(HERE, "../../genesi/genesi-data.js"), "utf8");
     eq([(mod.match(/_finestreDiCarica\(H, kg\)/g) || []).length, (mod.match(/t0 \+ FINESTRA_MIC_MS\)/g) || []).length, /t0 \+ 8\b/.test(mod)], [4, 1, false], "⛔ nel modulo la finestra si conta in UN posto solo: la definizione e i suoi tre chiamanti (il numero, chi la forma, le cariche nel tempo), e nessun «+ 8» scritto a mano altrove");
   });

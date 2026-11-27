@@ -3759,7 +3759,7 @@ function computeKPI(){
     fragCalcolabile:_fk.calcolabile && _rr.calcolabile, fragChe:_fk.che, fragCome:_fk.come,
     x20:x20===null?null:Math.round(x20), x50:x50===null?null:Math.round(x50), x80:x80===null?null:Math.round(x80),
     mic:_m.calcolabile?+mic.toFixed(1):null, micCalcolabile:_m.calcolabile,
-    micChe:_m.che, micCome:_m.come, db:_m.db===null?null:Math.round(_m.db),
+    micChe:_m.che, micCome:_m.come, micChi:_m.chi, db:_m.db===null?null:Math.round(_m.db),
     /* ⛔ E LA QUARTA DELLA FAMIGLIA: LA GITTATA. `Math.round(null)` fa **0**, e
        uno zero qui significa «non serve sgombero» — il tranquillo peggiore di
        tutti, perché questo numero lo leggono in sei (confronto A/B, CSV della
@@ -4023,6 +4023,9 @@ if($('btn-scheda-csv')) $('btn-scheda-csv').onclick=()=>{
        c'è» e lascia credere a una dimenticanza, non a una non-misurabilità */
     ['Esito MIC', k.micCalcolabile?'contata sui fori del disegno':'non calcolabile'],
     ['Perche la MIC non e calcolabile', k.micCalcolabile?'':k.micChe],
+    /* 27/11 — quali fori la formano e quando: la stessa frase della scheda e del foglio (`micDaMostrare().chi`).
+       Riga in più, in coda al gruppo della MIC: chi legge il file per nome del parametro non se ne accorge. */
+    ['Fori che formano la MIC', k.micCalcolabile?(k.micChi||''):''],
     ['Base della previsione PPV', k.ppvBase&&k.ppvBase.breve],
     ['Referti della legge di sito', k.ppvBase&&k.ppvBase.fonte==='sito' ? k.ppvBase.referti : ''],
     /* gli avvisi escono in una cella loro e per intero: «provvisoria» ed
