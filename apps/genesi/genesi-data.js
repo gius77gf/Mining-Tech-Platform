@@ -4371,6 +4371,55 @@ export function raggioPresaTela(tipoPuntatore, passoPx){
   if(!Number.isFinite(p) || !(p > 0)) return base;
   return Math.max(8, Math.min(base, 0.5 * p));
 }
+/* ═══════════════════════════════════════════════════════════════════════
+   LA VISTA DELLA PIANTA: INGRANDIMENTO E SPOSTAMENTO (27/11)
+   ═══════════════════════════════════════════════════════════════════════
+   La pianta mostrava sempre TUTTA la maglia a misura fissa: su un telefono,
+   con 20 fori per fila, i pallini si stringono a 4 px e i numeri non si
+   scrivono più (misurato). La vista dice di quanto la pianta è ingrandita
+   (`z`, da 1 a `VISTA_ZOOM_MAX`) e di quanto è spostata (`px`, `py`, in px di
+   schermo). NON è un dato del progetto: non si salva, e a `z = 1` è ferma —
+   la pianta «adattata» non si può trascinare via per sbaglio.
+   · `vistaLimitata` tiene la vista nei suoi limiti: l'ingrandimento fra 1 e
+     il tetto, lo spostamento mai oltre il bordo di ciò che l'ingrandimento
+     ha portato fuori dalla tela. Un valore non leggibile è «ferma».
+   · `vistaApplica` porta la mappatura di base (metri → px) nella vista,
+     attorno a un perno (`ox`, `oy`): chi disegna e chi tocca usano la STESSA
+     mappatura, quindi un foro ingrandito si prende dove lo si vede.
+   · `vistaZoomAttorno` ingrandisce tenendo fermo il punto (`cx`, `cy`): il
+     metro che sta sotto le dita resta sotto le dita.
+   · `gestoDueDita` legge un gesto a due dita: di quanto si sono allontanate
+     (il fattore) e di quanto si è spostato il punto di mezzo. Dita posate
+     nello stesso punto non inventano un fattore. */
+export const VISTA_ZOOM_MAX = 6;
+const VISTA_FERMA = Object.freeze({ z: 1, px: 0, py: 0 });
+export function vistaLimitata(v, larga, alta){
+  const z0 = v && Number.isFinite(+v.z) ? +v.z : 1;
+  const z = Math.max(1, Math.min(VISTA_ZOOM_MAX, z0));
+  const L = Number.isFinite(+larga) && +larga > 0 ? +larga : 0, A = Number.isFinite(+alta) && +alta > 0 ? +alta : 0;
+  const mx = (z - 1) * L / 2, my = (z - 1) * A / 2;
+  const px = v && Number.isFinite(+v.px) ? Math.max(-mx, Math.min(mx, +v.px)) : 0;
+  const py = v && Number.isFinite(+v.py) ? Math.max(-my, Math.min(my, +v.py)) : 0;
+  return { z, px: px || 0, py: py || 0 };
+}
+export function vistaApplica(m, v, ox, oy){
+  if(!m) return null;
+  const w = v || VISTA_FERMA, z = Number.isFinite(+w.z) && +w.z > 0 ? +w.z : 1;
+  return { scale: m.scale * z, startX: (m.startX - ox) * z + ox + (+w.px || 0), faceY: (m.faceY - oy) * z + oy + (+w.py || 0) };
+}
+export function vistaZoomAttorno(v, fattore, cx, cy, ox, oy, larga, alta){
+  const a = vistaLimitata(v, larga, alta), f = Number.isFinite(+fattore) && +fattore > 0 ? +fattore : 1;
+  const z = Math.max(1, Math.min(VISTA_ZOOM_MAX, a.z * f)), r = z / a.z;
+  const X = Number.isFinite(+cx) ? +cx : ox, Y = Number.isFinite(+cy) ? +cy : oy;
+  return vistaLimitata({ z, px: X - ox - (X - ox - a.px) * r, py: Y - oy - (Y - oy - a.py) * r }, larga, alta);
+}
+export function gestoDueDita(a0, b0, a1, b1){
+  const ok = [a0, b0, a1, b1].every((p) => p && Number.isFinite(+p.x) && Number.isFinite(+p.y));
+  if(!ok) return null;
+  const d0 = Math.hypot(b0.x - a0.x, b0.y - a0.y), d1 = Math.hypot(b1.x - a1.x, b1.y - a1.y);
+  const m0 = { x: (a0.x + b0.x) / 2, y: (a0.y + b0.y) / 2 }, m1 = { x: (a1.x + b1.x) / 2, y: (a1.y + b1.y) / 2 };
+  return { fattore: d0 > 1 ? d1 / d0 : 1, cx: m0.x, cy: m0.y, dx: m1.x - m0.x, dy: m1.y - m0.y };
+}
 /* Un tocco è un TOCCO, o è l'inizio di una passata? Lo decide quanto si è
    mosso il dito fra quando si posa e quando si alza: meno di `sogliaPx` (10 px
    di schermo, se non detto) è un tocco. Serve alla pianta: col dito un foro

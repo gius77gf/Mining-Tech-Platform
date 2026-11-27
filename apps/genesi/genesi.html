@@ -503,6 +503,13 @@ body.scr-sim #tl{bottom:80px}
 #d2-head .d2-title{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:19px;letter-spacing:.05em;text-transform:uppercase;background:linear-gradient(180deg,#ffe08a,#ffab00 55%,#ff6d00);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;filter:drop-shadow(0 0 12px rgba(255,140,30,.35))}
 #d2-head .d2-chip{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:#ffd54f;padding:3px 10px;border-radius:999px;background:rgba(255,171,0,.1);border:1px solid rgba(255,171,0,.26)}
 #d2-wrap{display:flex;justify-content:center;padding:8px 14px 4px}
+/* 27/11 — i tre comandi della vista stanno SOTTO la tela e sempre a schermo: il pizzico da
+   solo non basta (chi usa un dito solo, o il mouse, deve poter ingrandire lo stesso). */
+#d2-vista{display:flex;align-items:center;justify-content:flex-end;gap:8px;width:100%;max-width:560px;margin:0 auto;padding:2px 14px 4px}
+#d2-vista .btn{font-size:15px;font-weight:700}
+#d2-vista #dvAdatta{font-size:12px;font-weight:600}
+#d2-vista .btn:disabled{opacity:.38;cursor:default}
+#dvQuanto{min-width:46px;text-align:center;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:.04em;color:var(--mut);font-variant-numeric:tabular-nums}
 #d2-canvas{width:100%;max-width:560px;height:auto;touch-action:none;background:linear-gradient(180deg,#171108,#0d0a06);border:1px solid rgba(255,228,180,.16);border-radius:18px;box-shadow:0 18px 50px rgba(0,0,0,.5),0 0 0 1px rgba(255,171,0,.06),0 1px 0 rgba(255,240,210,.14) inset}
 /* Fase 1 — pannello di progettazione (maglia editabile) */
 #d2-ctrl{width:100%;max-width:560px;margin:0 auto 2px;padding:0 14px}
@@ -1004,6 +1011,12 @@ body.scr-sim #tl{bottom:80px}
       <input type="text" inputmode="decimal" id="dlRelHi" step="0.5" min="1" max="99" value="15" title="Sopra questo valore il relief è eccessivo"></label>
   </div>
   <div id="d2-wrap"><canvas id="d2-canvas" width="960" height="600"></canvas></div>
+  <div id="d2-vista" role="group" aria-label="Ingrandimento della pianta">
+    <button type="button" class="btn sm" id="dvMeno" title="Rimpicciolisci la pianta" aria-label="Rimpicciolisci la pianta">−</button>
+    <span id="dvQuanto" aria-live="polite">100%</span>
+    <button type="button" class="btn sm" id="dvPiu" title="Ingrandisci la pianta" aria-label="Ingrandisci la pianta">+</button>
+    <button type="button" class="btn sm" id="dvAdatta" title="Rivedi tutta la pianta">Adatta</button>
+  </div>
   <div id="d2-insp"></div>
   <div id="d2-tabella"><div class="ft-box"><div class="dc-sec closed" id="ft-sec"><button type="button" class="dc-sec-h" id="ft-apri" aria-expanded="false" aria-controls="ft-corpo">Tabella dei fori <span class="ft-n" id="ft-n"></span><span class="dc-sec-x">▾</span></button><div class="ft-corpo" id="ft-corpo"></div></div></div></div>
   <div id="d2-scheda"></div>
@@ -1423,7 +1436,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, reliefCls, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino, activeProf, d2HitTest, d2HitTestPt,
-         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfLeggi, dxfFraseNonLette, DXF_FRECCIA_ARCO_M, fraseMagliaAssente, scalaTestoTela, raggioForoTela, raggioPresaTela, righeDiVoci, eUnTocco, valoriPropriDiForo, valoreDiForo, scostamentoPiedeForo, foriPropriPerFoglio, valoreProgettoDaFile, foriFuoriDalForoTipo, avvisoForoTipo, CAMPI_DELLA_GITTATA, CAMPI_DELLA_PEZZATURA, LIMITI_PER_FORO, foriConValoreProprio, foriSenzaValoriPropri, valoreComuneDiFori, contaValoriPropri, tabellaFori, valoriPerForoDaPiano, capienzaFori, MARGINE_CAPIENZA_FORO, scartoCaricheProprie, scartoProfonditaProprie, caricaProgettoDaTotale, firmaMaglia, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, foriRiflessi, trattiRuotati, trattiScalati, coordinataRelativa, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
+         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfLeggi, dxfFraseNonLette, DXF_FRECCIA_ARCO_M, fraseMagliaAssente, scalaTestoTela, raggioForoTela, raggioPresaTela, righeDiVoci, eUnTocco, vistaLimitata, vistaApplica, vistaZoomAttorno, gestoDueDita, VISTA_ZOOM_MAX, valoriPropriDiForo, valoreDiForo, scostamentoPiedeForo, foriPropriPerFoglio, valoreProgettoDaFile, foriFuoriDalForoTipo, avvisoForoTipo, CAMPI_DELLA_GITTATA, CAMPI_DELLA_PEZZATURA, LIMITI_PER_FORO, foriConValoreProprio, foriSenzaValoriPropri, valoreComuneDiFori, contaValoriPropri, tabellaFori, valoriPerForoDaPiano, capienzaFori, MARGINE_CAPIENZA_FORO, scartoCaricheProprie, scartoProfonditaProprie, caricaProgettoDaTotale, firmaMaglia, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, foriRiflessi, trattiRuotati, trattiScalati, coordinataRelativa, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -1687,6 +1700,10 @@ const SEED = 19250606;
 /* ============ parametri correnti ============ */
 const P = { fori:12, ritardo:42, dir:'sx', prof:10, kg:60, diam:102, vento:0.8, profilo:[], foriH:null };
 /* modello di progettazione 2D (Fase 1) — editor multi-fila disaccoppiato dal 3D single-row */
+/* 27/11 — la VISTA della pianta (ingrandimento e spostamento): non è un dato del progetto, non
+   si salva, e torna ferma quando si apre una volata. Sta qui, prima di `D2`, perché
+   `drawDesign2D` la legge fin dal primo disegno. */
+let d2Vista={ z:1, px:0, py:0 };
 const D2 = { B:3.0, S:3.5, file:1, perRow:12, bf:3.0, diam:102, prof:10, kg:60, ritardo:42, ritardoFila:84, stem:2.2, sub:0.9, dir:'sx', stagger:true, incl:0, kgAuto:true, esplosivo:'anfo-standard', innesco:'nonel', roccia:'calcare', ucs:100, eMod:55, frat:'media', bagnato:false, acquaCol:0, presplit:false, psSpacing:0.9, psCharge:0.4, sequenza:'diagonale', recDist:300, recNorma:'din-res', recFreq:25, cPerf:8, cExpl:1.5, cInnesco:12, valMat:0, decks:1, deckStem:1.0, tool:'fori', profilo:[], piede:[], selPt:-1, holes:[], sel:-1, selPrev:-1, lastDet:0, _m:null, magliaAssente:null,
   /* G47c-2 (14/09) — tratti liberi: annotazioni sulla pianta senza la
      semantica di prodotto di foro/fronte/piede (segnare una faglia, una
@@ -5825,6 +5842,7 @@ if($('hgVolate')) $('hgVolate').addEventListener('click',async e=>{
        mostrerebbe ancora "pianta non disegnabile". Se qui non ci sono fori
        salvati, sarà `genMaglia2D()` a deciderlo di nuovo con la misura. */
     D2.magliaAssente=null;
+    d2Vista={ z:1, px:0, py:0 };   // 27/11: una volata aperta si vede intera, non con l'ingrandimento di quella di prima
     /* ⛔ 18/09, dal quarto giro di deep-pass: `D2.tratti` non veniva mai
        azzerato qui, a differenza di holes/sel/magliaAssente. Un tratto
        disegnato a mano (o importato da DXF) su un progetto sopravviveva
@@ -6766,14 +6784,26 @@ function drawDesign2D(){
   let bg=ctx.createLinearGradient(0,0,0,Hc); bg.addColorStop(0,'#1c150b'); bg.addColorStop(1,'#0d0a06');
   ctx.fillStyle=bg; ctx.fillRect(0,0,W,Hc);
   const bottomY=Hc-padBot;
-  const scale=Math.min(scaleW, (bottomY-padTop)/depthTot);
-  const faceY=padTop - minY*scale;                       // FRONTE verso l'alto (my cresce verso il basso, nella roccia)
-  const startX=padX + ((W-2*padX)-Wd*scale)/2 - minx*scale;
+  /* 27/11 — LA VISTA. La mappatura «adattata» (tutta la maglia nella tela) si calcola come
+     sempre; poi passa da `vistaApplica`, che la ingrandisce e la sposta attorno al centro
+     dell'area della maglia. Da qui in giù `scale`, `startX` e `faceY` sono quelli DELLA VISTA,
+     e li usano tutti — chi disegna, i livelli, e `D2._m` per chi tocca: un foro ingrandito si
+     prende dove lo si vede. Ciò che si ingrandisce è ritagliato fra le righe in alto e la
+     legenda in basso (`ritaglia`), e le scritte di cornice si disegnano fuori dal ritaglio. */
+  const scale0=Math.min(scaleW, (bottomY-padTop)/depthTot);
+  const faceY0=padTop - minY*scale0;                     // FRONTE verso l'alto (my cresce verso il basso, nella roccia)
+  const startX0=padX + ((W-2*padX)-Wd*scale0)/2 - minx*scale0;
+  const _vista={ ox:W/2, oy:(padTop+bottomY)/2, W:W, H:bottomY-padTop, su:padTop-24, giu:bottomY+18 };
+  d2Vista=vistaLimitata(d2Vista, _vista.W, _vista.H);
+  const { scale, startX, faceY }=vistaApplica({ scale:scale0, startX:startX0, faceY:faceY0 }, d2Vista, _vista.ox, _vista.oy);
+  const ritaglia=()=>{ ctx.save(); ctx.beginPath(); ctx.rect(0, _vista.su, W, _vista.giu-_vista.su); ctx.clip(); }, sritaglia=()=>ctx.restore();
+  d2VistaSync();
   const mx2=mx=>startX+mx*scale, my2=my=>faceY+my*scale;
   /* `D2._m` resta in PUNTI DI TELA, come le coordinate che `d2EvtToCanvas` dà a chi tocca:
      i conti di chi trascina non cambiano. `u` dice quanti punti vale un px di schermo, per
      le tolleranze — che sono distanze sotto un dito, non sulla tela. */
-  D2._m={scale:scale*kT, startX:startX*kT, faceY:faceY*kT, u:kT};
+  D2._m={scale:scale*kT, startX:startX*kT, faceY:faceY*kT, u:kT, vista:_vista};
+  ritaglia();
   ctx.fillStyle='rgba(255,140,30,.05)';
   ctx.fillRect(mx2(minx)-22, faceY, (maxx-minx)*scale+44, (my2(maxy)-faceY)+16);
   ctx.strokeStyle='rgba(255,210,140,.05)'; ctx.lineWidth=1;
@@ -6951,16 +6981,19 @@ function drawDesign2D(){
     /* 27/11 — pianta `bassa`: sotto il foro c'è subito la fila dopo, e le due quote ci
        finivano sopra (visto nello scatto a 320). Vanno nella riga libera in alto, quella del
        punto scelto — che in quel momento non serve: è degli strumenti Fronte e Piede. */
+    sritaglia();   // la quota del foro scelto, in alto, è una scritta di cornice
     if(bassa && !((D2.tool==='fronte'||D2.tool==='piede') && D2.selPt>=0)){
       const _q=[Number.isFinite(h.burdenLoc)?'B '+gfix(h.burdenLoc,2)+' m':null, Number.isFinite(h.spazLoc)?'S '+gfix(h.spazLoc,2)+' m':null].filter(Boolean);
       if(_q.length){ ctx.fillStyle='#ffd579'; ctx.textAlign='right'; ctx.font="600 12px 'Barlow Condensed',sans-serif";
         ctx.fillText('foro '+((h.seq!=null?h.seq:D2.sel)+1)+': '+_q.join(' · '), W-padX, stretta?72:66); }
     }
+    ritaglia();
   }
   /* le righe in alto. Larga: il riepilogo a destra e la freccia a sinistra stanno sulla stessa
      riga (30/34), le isocrone a 48, il punto scelto a 66. Stretta: affiancati non ci stanno —
      il riepilogo ha la riga sua (18), la freccia con la sua scritta ACCANTO la seconda (38),
      poi le isocrone (56) e il punto scelto (72). */
+  sritaglia();   // freccia, riepilogo, isocrone e legenda: cornice
   const yRiep=stretta?18:30, yFr=stretta?38:34, yIso=stretta?56:48, yPunto=stretta?72:66, lFr=stretta?46:110;
   const sign=D2.dir==='sx'?1:-1, ax0=sign>0?padX:W-padX, ax1=sign>0?padX+lFr:W-padX-lFr;
   ctx.strokeStyle='#66bb6a'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(ax0,yFr); ctx.lineTo(ax1,yFr); ctx.stroke();
@@ -6972,6 +7005,7 @@ function drawDesign2D(){
   if(isoInfo){ ctx.fillStyle=isoColore(.35); ctx.textAlign='right'; ctx.font="600 11px 'Barlow Condensed',sans-serif";
     ctx.fillText('isocrone ogni '+isoInfo.passo+' ms · ultimo foro a '+Math.round(D2.lastDet||0)+' ms', W-padX, yIso); }
   if(D2.rel || eneInfo) _legendaDisegna(ctx,gGeo,_leg,_legRighe);      // una legenda per volta in fondo alla pianta: due si sovrapporrebbero
+  ritaglia();    // i punti del fronte, del tratto e le guide sono di nuovo contenuto
   if(D2.tool==='fronte'||D2.tool==='piede'){ const arr=activeProf(D2); arr.forEach((p,k)=>{ const X=mx2(p.x), Y=my2(p.y); ctx.beginPath(); ctx.arc(X,Y,7,0,7); ctx.fillStyle=(k===D2.selPt)?'#fff':(D2.tool==='piede'?'#ffe27a':'#ffd54f'); ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle='#ff6d00'; ctx.stroke(); }); }
   if(D2.tool==='tratto'){ const ultimo=D2.tratti[D2.tratti.length-1]; if(ultimo && ultimo.aperto) ultimo.pts.forEach(p=>{ const X=mx2(p.x), Y=my2(p.y); ctx.beginPath(); ctx.arc(X,Y,5,0,7); ctx.fillStyle='#8cbedc'; ctx.fill(); ctx.lineWidth=1.5; ctx.strokeStyle='#1c150b'; ctx.stroke(); });
     /* G48 — l'anello verde dice "qui il prossimo click si aggancia a un
@@ -6995,6 +7029,7 @@ function drawDesign2D(){
      codice (vedi lo screenshot in scratchpad). La riga libera è quella in
      alto a destra, dove il fori-mode scrive già il riepilogo: y=66 non la
      usa nessun'altra riga (30 = riepilogo fori, 48 = isocrone). */
+  sritaglia();   // da qui in giù solo cornice: il punto scelto e il suggerimento
   if((D2.tool==='fronte'||D2.tool==='piede') && D2.selPt>=0){
     const arr=activeProf(D2), p=arr[D2.selPt];
     if(p){ ctx.fillStyle='#ffd579'; ctx.textAlign='right'; ctx.font="600 12px 'Barlow Condensed',sans-serif";
@@ -7188,7 +7223,44 @@ function d2Up(){ if(d2AlignGuide!=null){ d2AlignGuide=null; drawDesign2D(); } d2
    E `pointercancel` (il browser che si riprende il tocco) chiude il gesto: prima non era
    ascoltato, e un foro restava «in trascinamento» per il tocco dopo. */
 const d2Punt=new Map();
-let d2Primo=null, d2Attesa=null;
+let d2Primo=null, d2Attesa=null, d2Due=null;
+/* 27/11 — LA VISTA SI MUOVE COSÌ. Due dita: allontanarle ingrandisce attorno al punto che sta
+   fra loro, muoverle insieme sposta (`gestoDueDita` + `vistaZoomAttorno`). Un dito sul vuoto,
+   a pianta ingrandita, sposta la vista — a pianta adattata non fa niente, com'era. Col mouse:
+   Ctrl + rotella. E i tre bottoni sotto la tela, per chi il pizzico non lo può fare. */
+function d2VistaSync(){
+  const q=$('dvQuanto'); if(!q) return;
+  q.textContent=Math.round(d2Vista.z*100)+'%';
+  const fermo=d2Vista.z<=1.0001;
+  if($('dvMeno')) $('dvMeno').disabled=fermo;
+  if($('dvAdatta')) $('dvAdatta').disabled=fermo && !d2Vista.px && !d2Vista.py;
+  if($('dvPiu')) $('dvPiu').disabled=d2Vista.z>=VISTA_ZOOM_MAX-0.0001;
+}
+function d2VistaZoom(fattore, cx, cy){
+  const g=D2._m && D2._m.vista; if(!g) return;
+  d2Vista=vistaZoomAttorno(d2Vista, fattore, cx==null?g.ox:cx, cy==null?g.oy:cy, g.ox, g.oy, g.W, g.H);
+  drawDesign2D();
+}
+/* ⛔ A pianta ingrandita un foro può stare SOTTO la cornice (le righe in alto, la legenda): lì non
+   è disegnato — il ritaglio lo taglia — ma la mappatura sa ancora dov'è, e un tocco sul riepilogo
+   lo sceglierebbe o lo trascinerebbe senza che si veda. Fuori dall'area ritagliata, a pianta
+   ingrandita, un tocco non prende e non crea niente: sposta solo la vista. (È anche il modo di
+   spostarla col mouse, che dentro l'area crea e trascina come sempre.) */
+function d2FuoriVista(e){
+  const g=D2._m && D2._m.vista; if(!g || d2Vista.z<=1) return false;
+  const r=$('d2-canvas').getBoundingClientRect(), y=(e.clientY-r.top)*(g.W/(r.width||g.W));
+  return y<g.su || y>g.giu;
+}
+function d2Pizzico(){
+  const g=D2._m && D2._m.vista; if(!g || d2Punt.size<2) return;
+  const [a, b]=[...d2Punt.values()];
+  if(!d2Due){ d2Due={ a:{...a}, b:{...b}, v:{...d2Vista} }; return; }
+  const q=gestoDueDita(d2Due.a, d2Due.b, a, b); if(!q) return;
+  const r=$('d2-canvas').getBoundingClientRect(), k=g.W/(r.width||g.W);
+  const v=vistaZoomAttorno(d2Due.v, q.fattore, (q.cx-r.left)*k, (q.cy-r.top)*k, g.ox, g.oy, g.W, g.H);
+  d2Vista=vistaLimitata({ z:v.z, px:v.px+q.dx*k, py:v.py+q.dy*k }, g.W, g.H);
+  drawDesign2D();
+}
 function d2SulVuoto(e){ const p=d2EvtToCanvas(e);
   if(D2.tool==='tratto') return true;
   if(D2.tool==='fronte'||D2.tool==='piede') return d2HitTestPt(D2, p.x,p.y, _presaPx(e, false))<0;
@@ -7201,24 +7273,38 @@ function d2AnnullaGesto(){
 }
 function d2PuntGiu(e){
   d2Punt.set(e.pointerId, { x:e.clientX, y:e.clientY });
-  if(d2Punt.size>=2){ if(d2Primo!==null){ d2AnnullaGesto(); d2Primo=null; } e.preventDefault(); return; }
+  if(d2Punt.size>=2){ if(d2Primo!==null){ d2AnnullaGesto(); d2Primo=null; }
+    /* il gesto a due dita comincia QUI, con le dita dove sono adesso: preso al primo movimento
+       (un dito si era già mosso) il pizzico dava ×2,67 invece di ×3 e il punto fra le dita
+       scivolava di 6,6 px — misurato */
+    const due=[...d2Punt.values()]; d2Due=d2Punt.size===2 ? { a:{...due[0]}, b:{...due[1]}, v:{...d2Vista} } : null;
+    e.preventDefault(); return; }
   d2Primo=e.pointerId;
-  if(e.pointerType==='touch' && !e.shiftKey && d2SulVuoto(e)){ d2Attesa={ x:e.clientX, y:e.clientY, mosso:false }; e.preventDefault(); return; }
+  if(d2FuoriVista(e)){ d2Attesa={ x:e.clientX, y:e.clientY, mosso:false, v:{...d2Vista}, soloVista:true }; e.preventDefault(); return; }
+  if(e.pointerType==='touch' && !e.shiftKey && d2SulVuoto(e)){ d2Attesa={ x:e.clientX, y:e.clientY, mosso:false, v:{...d2Vista} }; e.preventDefault(); return; }
   d2Down(e);
 }
 function d2PuntMuove(e){
   if(d2Punt.has(e.pointerId)) d2Punt.set(e.pointerId, { x:e.clientX, y:e.clientY });
-  if(d2Punt.size>=2) return;
+  if(d2Punt.size>=2){ d2Pizzico(); e.preventDefault(); return; }
   if(d2Punt.size===1 && e.pointerId!==d2Primo) return;
-  if(d2Attesa){ if(!eUnTocco(d2Attesa.x, d2Attesa.y, e.clientX, e.clientY)) d2Attesa.mosso=true; return; }
+  if(d2Attesa){
+    if(!eUnTocco(d2Attesa.x, d2Attesa.y, e.clientX, e.clientY)) d2Attesa.mosso=true;
+    /* un dito sul vuoto che si muove: a pianta ingrandita sposta la vista */
+    const g=D2._m && D2._m.vista;
+    if(d2Attesa.mosso && g && d2Attesa.v.z>1){ const r=$('d2-canvas').getBoundingClientRect(), k=g.W/(r.width||g.W);
+      d2Vista=vistaLimitata({ z:d2Attesa.v.z, px:d2Attesa.v.px+(e.clientX-d2Attesa.x)*k, py:d2Attesa.v.py+(e.clientY-d2Attesa.y)*k }, g.W, g.H); drawDesign2D(); }
+    return;
+  }
   d2Move(e);
 }
 function d2PuntSu(e, annullato){
   const posato=d2Punt.delete(e.pointerId);
+  d2Due=null;
   if(e.pointerId===d2Primo){
     const a=d2Attesa; d2Attesa=null; d2Primo=null;
     if(annullato) d2AnnullaGesto();
-    else if(a && !a.mosso && eUnTocco(a.x, a.y, e.clientX, e.clientY)) d2Down({ clientX:a.x, clientY:a.y, shiftKey:false, pointerType:'touch', preventDefault(){} });
+    else if(a && !a.soloVista && !a.mosso && eUnTocco(a.x, a.y, e.clientX, e.clientY)) d2Down({ clientX:a.x, clientY:a.y, shiftKey:false, pointerType:'touch', preventDefault(){} });
     d2Up();
   } else if(!posato) d2Up();
 }
@@ -7582,7 +7668,15 @@ function renderInspector(){
     toast('Spalla allineata al foro '+n+': '+gfix(h.my,2)+' m (la posizione lungo la fila non è cambiata)');
   };
 }
-(function(){ const cv=$('d2-canvas'); if(cv){ cv.addEventListener('pointerdown',d2PuntGiu); cv.addEventListener('pointermove',d2PuntMuove); window.addEventListener('pointerup',e=>d2PuntSu(e,false)); window.addEventListener('pointercancel',e=>d2PuntSu(e,true)); } })();
+(function(){ const cv=$('d2-canvas'); if(cv){ cv.addEventListener('pointerdown',d2PuntGiu); cv.addEventListener('pointermove',d2PuntMuove); window.addEventListener('pointerup',e=>d2PuntSu(e,false)); window.addEventListener('pointercancel',e=>d2PuntSu(e,true));
+  /* la vista col mouse: Ctrl + rotella ingrandisce attorno al puntatore (è anche il pizzico del
+     trackpad, che il browser consegna così). Senza Ctrl la rotella resta della pagina. */
+  cv.addEventListener('wheel', e=>{ if(!(e.ctrlKey||e.metaKey)) return; const g=D2._m && D2._m.vista; if(!g) return; e.preventDefault();
+    const r=cv.getBoundingClientRect(), k=g.W/(r.width||g.W); d2VistaZoom(Math.exp(-e.deltaY*0.0025), (e.clientX-r.left)*k, (e.clientY-r.top)*k); }, { passive:false });
+  if($('dvPiu')) $('dvPiu').onclick=()=>d2VistaZoom(1.5);
+  if($('dvMeno')) $('dvMeno').onclick=()=>d2VistaZoom(1/1.5);
+  if($('dvAdatta')) $('dvAdatta').onclick=()=>{ d2Vista={ z:1, px:0, py:0 }; drawDesign2D(); };
+  d2VistaSync(); } })();
 
 /* ===== Fase 0 — scheda volata: validatore di progetto live (regole + "perché") ===== */
 /* stato "aperto" delle voci della scheda (persiste tra i ricalcoli) + clic delegato */

@@ -46,6 +46,15 @@
    NESSUN foro nasca o si sposti; e, nel verso opposto, che trascinare un
    foro con un dito lo sposti ancora.
 
+   E LA VISTA (27/11, sera): la pianta si ingrandisce e si sposta — pizzico,
+   due dita, i tre bottoni sotto la tela, Ctrl + rotella. Qui si fa un pizzico
+   vero su una maglia fitta e si pretende: il foro che stava fra le dita resta
+   fra le dita; nessun foro nasce o si sposta (cambia la vista, non il
+   progetto); i numeri dei fori, che adattati non si scrivevano, ingranditi si
+   leggono; la cornice resta ferma e i fori sono disegnati DENTRO il ritaglio;
+   un tocco sul foro ingrandito sceglie quel foro; un tocco sulla cornice, dove
+   sotto — invisibile — c'è un foro, non prende niente.
+
    ⚠️ CHE COSA NON GUARDA: il fronte modellato a mano con molti punti, i tratti
    importati da un DXF, il piede; le maglie con più di 20 fori per fila (lì i
    pallini restano da 4 px e si toccano: è il limite di una pianta senza
@@ -88,11 +97,23 @@ const DIFETTI_DETTAGLI = [
   /* il suggerimento in fondo torna su una riga sola */
   ["apps/genesi/genesi.html", "  const _suggRighe=cMis.measureText(_sugg).width>W-24 ? _sugg.split(' · ') : [_sugg];", "  const _suggRighe=[_sugg];"],
   /* la mappatura per chi tocca torna in px di schermo mentre chi tocca parla in punti di tela */
-  ["apps/genesi/genesi.html", "  D2._m={scale:scale*kT, startX:startX*kT, faceY:faceY*kT, u:kT};", "  D2._m={scale, startX, faceY, u:kT};"],
+  ["apps/genesi/genesi.html", "  D2._m={scale:scale*kT, startX:startX*kT, faceY:faceY*kT, u:kT, vista:_vista};", "  D2._m={scale, startX, faceY, u:kT, vista:_vista};"],
   /* i tocchi tornano com'erano: ogni dito è un gesto a sé, e si crea posandolo */
   ["apps/genesi/genesi.html",
    "cv.addEventListener('pointerdown',d2PuntGiu); cv.addEventListener('pointermove',d2PuntMuove); window.addEventListener('pointerup',e=>d2PuntSu(e,false)); window.addEventListener('pointercancel',e=>d2PuntSu(e,true));",
    "cv.addEventListener('pointerdown',d2Down); cv.addEventListener('pointermove',d2Move); window.addEventListener('pointerup',d2Up);"],
+  /* la vista: il pizzico ingrandisce attorno al centro della tela invece che al punto fra le dita */
+  ["apps/genesi/genesi.html",
+   "  const v=vistaZoomAttorno(d2Due.v, q.fattore, (q.cx-r.left)*k, (q.cy-r.top)*k, g.ox, g.oy, g.W, g.H);",
+   "  const v=vistaZoomAttorno(d2Due.v, q.fattore, g.ox, g.oy, g.ox, g.oy, g.W, g.H);"],
+  /* la vista: il contenuto non è più ritagliato, e ingrandito finisce sopra le scritte di cornice */
+  ["apps/genesi/genesi.html",
+   "ctx.rect(0, _vista.su, W, _vista.giu-_vista.su); ctx.clip(); }",
+   "ctx.rect(0, _vista.su, W, _vista.giu-_vista.su); }"],
+  /* la vista: un foro finito sotto la cornice, invisibile, torna a farsi prendere */
+  ["apps/genesi/genesi.html",
+   "  if(d2FuoriVista(e)){ d2Attesa=",
+   "  if(false){ d2Attesa="],
 ];
 const TABELLA = CONTRO_DETT ? DIFETTI_DETTAGLI : DIFETTI;
 /* ⛔ UNO PER VOLTA. La prima stesura rimetteva i sei dettagli insieme, e uno solo — la
@@ -155,16 +176,22 @@ const FITTA = { ...DESIGN, perRow: 20, file: 3 };
 /* IL REGISTRO: ogni testo e ogni cerchio che la pagina disegna sulla tela della pianta, con
    la trasformazione attiva in quel momento. Si monta PRIMA che la pagina parta. */
 const REGISTRO = () => {
-  const P = CanvasRenderingContext2D.prototype, ft = P.fillText, ar = P.arc;
+  const P = CanvasRenderingContext2D.prototype, ft = P.fillText, ar = P.arc, sv = P.save, rs = P.restore, cl = P.clip;
+  /* il RITAGLIO attivo quando si disegna: `clip` lo accende, `save`/`restore` lo ricordano e lo
+     rimettono. Serve a sapere se un foro è stato disegnato dentro l'area ritagliata o fuori. */
+  const mia = (c) => c.canvas && c.canvas.id === "d2-canvas";
+  P.save = function () { if (mia(this)) (this.__pila || (this.__pila = [])).push(this.__rit || 0); return sv.apply(this, arguments); };
+  P.restore = function () { if (mia(this) && this.__pila && this.__pila.length) this.__rit = this.__pila.pop(); return rs.apply(this, arguments); };
+  P.clip = function () { if (mia(this)) this.__rit = (this.__rit || 0) + 1; return cl.apply(this, arguments); };
   P.fillText = function (t, x, y) {
     if (window.__reg && this.canvas && this.canvas.id === "d2-canvas") {
       const m = this.getTransform(), px = parseFloat((this.font.match(/([\d.]+)px/) || [])[1]);
-      window.__reg.testi.push({ t: String(t), x, y, w: this.measureText(String(t)).width, px, al: this.textAlign, bl: this.textBaseline, a: m.a, b: m.b, c: m.c, d: m.d, e: m.e, f: m.f });
+      window.__reg.testi.push({ t: String(t), x, y, w: this.measureText(String(t)).width, px, al: this.textAlign, bl: this.textBaseline, a: m.a, b: m.b, c: m.c, d: m.d, e: m.e, f: m.f, rit: this.__rit || 0 });
     }
     return ft.apply(this, arguments);
   };
   P.arc = function (x, y, r) {
-    if (window.__reg && this.canvas && this.canvas.id === "d2-canvas") { const m = this.getTransform(); window.__reg.archi.push({ x, y, r, a: m.a, b: m.b, e: m.e, f: m.f }); }
+    if (window.__reg && this.canvas && this.canvas.id === "d2-canvas") { const m = this.getTransform(); window.__reg.archi.push({ x, y, r, a: m.a, b: m.b, e: m.e, f: m.f, rit: this.__rit || 0 }); }
     return ar.apply(this, arguments);
   };
 };
@@ -201,6 +228,7 @@ const pronta = (pg) => pg.evaluate(() => document.body.className.includes("scr-d
 const leggi = (pg) => pg.evaluate(async () => {
   const cv = document.getElementById("d2-canvas"), r = cv.getBoundingClientRect(), k = cv.width / r.width;
   window.__reg = { testi: [], archi: [] };
+  { const c = cv.getContext("2d"); c.__rit = 0; c.__pila = []; }
   window.dispatchEvent(new Event("resize"));
   await new Promise((f) => setTimeout(f, 120));
   const reg = window.__reg; window.__reg = null;
@@ -210,19 +238,19 @@ const leggi = (pg) => pg.evaluate(async () => {
     const corpo = q.px * Math.hypot(q.a, q.b) / k, W = q.w * q.a / k, X = q.x * q.a / k, Y = q.y * q.d / k;
     const x0 = q.al === "center" ? X - W / 2 : q.al === "right" || q.al === "end" ? X - W : X;
     const y0 = q.bl === "middle" ? Y - corpo / 2 : Y - corpo * 0.8;
-    return { t: q.t, corpo: +corpo.toFixed(2), base, numero: /^\d+([.,]\d+)?$/.test(q.t.trim()), x0: +x0.toFixed(1), x1: +(x0 + W).toFixed(1), y0: +y0.toFixed(1), y1: +(y0 + corpo).toFixed(1) };
+    return { t: q.t, corpo: +corpo.toFixed(2), base, rit: q.rit, numero: /^\d+([.,]\d+)?$/.test(q.t.trim()), x0: +x0.toFixed(1), x1: +(x0 + W).toFixed(1), y0: +y0.toFixed(1), y1: +(y0 + corpo).toFixed(1) };
   });
   /* i fori, dove la mappatura per chi tocca dice che sono (punti di tela), e il cerchio più
      piccolo che la pagina ha disegnato lì: il pallino */
   const archiBase = reg.archi.filter((a) => Math.abs(a.b) < 1e-6 && Math.abs(a.e) < 1e-6 && Math.abs(a.f) < 1e-6);
-  let senzaCerchio = 0, raggio = Infinity;
+  let senzaCerchio = 0, raggio = Infinity, fuoriRitaglio = 0;
   const fori = D.holes.map((h) => {
     const px = m.startX + h.mx * m.scale, py = m.faceY + h.my * m.scale;
     const qui = archiBase.filter((a) => Math.hypot(a.x * a.a - px, a.y * a.a - py) < 0.75);
-    if (!qui.length) senzaCerchio++; else raggio = Math.min(raggio, ...qui.map((a) => a.r * a.a / k));
+    if (!qui.length) senzaCerchio++; else { raggio = Math.min(raggio, ...qui.map((a) => a.r * a.a / k)); if (qui.some((a) => !a.rit)) fuoriRitaglio++; }
     return { x: px / k, y: py / k };
   });
-  return { k: +k.toFixed(3), larga: +r.width.toFixed(1), alta: +r.height.toFixed(1), punti: cv.width, testi, fori, senzaCerchio, raggio: Number.isFinite(raggio) ? +raggio.toFixed(2) : null,
+  return { k: +k.toFixed(3), larga: +r.width.toFixed(1), alta: +r.height.toFixed(1), punti: cv.width, testi, fori, senzaCerchio, fuoriRitaglio, raggio: Number.isFinite(raggio) ? +raggio.toFixed(2) : null,
     passo: +(Math.min(D.S, D.bf || D.B) * m.scale / k).toFixed(2), sel: D.sel, n: D.holes.length };
 });
 
@@ -352,13 +380,21 @@ async function gesti(larghezze) {
     for (let k = 1; k <= 6; k++) { await dita("touchMove", [[xa - k * 6, vuotoY], [xb + k * 6, vuotoY]]); await pg.waitForTimeout(16); } await dita("touchEnd", []); await pg.waitForTimeout(250);
     dopo = await foto();
     dice(uguale(prima, dopo), `⛔ ${larghezza} · un pizzico con due dita sul vuoto non crea nessun foro (prima ne creava due)`, JSON.stringify({ fori: [prima.fori.length, dopo.fori.length], annulla: [prima.annulla, dopo.annulla] }));
+    /* ⏱️ 27/11, sera: da quando la pianta si ingrandisce, un pizzico di prova la INGRANDISCE davvero —
+       e i tocchi dopo, fatti alle posizioni lette prima, cadevano nel vuoto: il banco diceva «un dito
+       non trascina più», ed era lui a toccare dove il foro non c'era. Dopo ogni pizzico la pianta
+       torna adattata («Adatta», se c'è ed è acceso) e le posizioni si rileggono. */
+    const adatta = async () => { await pg.evaluate(() => { const b2 = document.getElementById("dvAdatta"); if (b2 && !b2.disabled) b2.click(); }); await pg.waitForTimeout(200);
+      await pg.evaluate(() => document.getElementById("d2-canvas").scrollIntoView({ block: "center" })); await pg.waitForTimeout(150); return (await centro(pg, 2)); };
+    let qq = await adatta();
     /* c · un pizzico che parte SU due fori */
-    prima = await foto(); const A = [c.x + L.fori[2].x, c.y + L.fori[2].y], B = [c.x + L.fori[5].x, c.y + L.fori[5].y];
+    prima = await foto(); let A = [qq.c.x + qq.L.fori[2].x, qq.c.y + qq.L.fori[2].y], B = [qq.c.x + qq.L.fori[5].x, qq.c.y + qq.L.fori[5].y];
     await dita("touchStart", [A]); await pg.waitForTimeout(30); await dita("touchStart", [A, B]);
     for (let k = 1; k <= 6; k++) { await dita("touchMove", [[A[0] - k * 6, A[1]], [B[0] + k * 6, B[1]]]); await pg.waitForTimeout(16); } await dita("touchEnd", []); await pg.waitForTimeout(250);
     dopo = await foto();
     dice(uguale(prima, dopo), `⛔ ${larghezza} · un pizzico partito su due fori non ne sposta nessuno (prima uno finiva a 14 metri)`, JSON.stringify(dopo.fori.map((f, i) => [i, +(f[0] - prima.fori[i][0]).toFixed(2)]).filter((z) => z[1] !== 0)));
     /* d · il secondo dito che arriva A METÀ di un trascinamento: il foro torna dov'era */
+    qq = await adatta(); A = [qq.c.x + qq.L.fori[2].x, qq.c.y + qq.L.fori[2].y]; B = [qq.c.x + qq.L.fori[5].x, qq.c.y + qq.L.fori[5].y];
     prima = await foto();
     await dita("touchStart", [A]); for (let k = 1; k <= 3; k++) { await dita("touchMove", [[A[0] + k * 8, A[1]]]); await pg.waitForTimeout(16); }
     const aMeta = await foto();
@@ -366,6 +402,7 @@ async function gesti(larghezze) {
     dopo = await foto();
     dice(aMeta.fori[2][0] !== prima.fori[2][0] && uguale(prima, dopo), `⛔ ${larghezza} · un secondo dito a metà di un trascinamento lo annulla: il foro, che si stava muovendo, torna dov'era`, JSON.stringify({ prima: prima.fori[2], aMeta: aMeta.fori[2], dopo: dopo.fori[2], annulla: [prima.annulla, dopo.annulla] }));
     /* e · il verso opposto: UN dito su un foro lo trascina ancora */
+    qq = await adatta(); A = [qq.c.x + qq.L.fori[2].x, qq.c.y + qq.L.fori[2].y];
     prima = await foto();
     await dita("touchStart", [A]); for (let k = 1; k <= 4; k++) { await dita("touchMove", [[A[0], A[1] + k * 6]]); await pg.waitForTimeout(16); } await dita("touchEnd", []); await pg.waitForTimeout(250);
     dopo = await foto();
@@ -376,10 +413,90 @@ async function gesti(larghezze) {
   }
 }
 
-const ATTESE = 3 * (6 * 4 + 2 * 3 + 2 + 1) + (3 * 3) + (3 * 3) + (2 * 6);
+/* ───── 5 · LA VISTA: ingrandire e spostare la pianta ───── */
+async function vista() {
+  console.log("\n· la vista: ingrandire e spostare");
+  const stato = (pg) => pg.evaluate(() => { const D = window.__genesi.D2; const b = (id) => { const e = document.getElementById(id), r = e.getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height), sx: Math.round(r.left), dx: Math.round(window.innerWidth - r.right), spento: e.disabled }; };
+    return { quanto: document.getElementById("dvQuanto").textContent, fori: D.holes.map((h) => [h.mx, h.my]), sel: D.sel, annulla: window.__genesi.d2UndoLen, meno: b("dvMeno"), piu: b("dvPiu"), adatta: b("dvAdatta") }; });
+  const inVista = (pg) => pg.evaluate(() => document.getElementById("d2-canvas").scrollIntoView({ block: "center" }));
+  const numeriDeiFori = (L) => L.testi.filter((q) => q.base && /^\d+$/.test(q.t.trim()));
+  const cornice = (L) => L.testi.filter((q) => / fori · /.test(q.t) || /^trascina un foro/.test(q.t)).map((q) => [q.t, q.x0, q.y0, q.rit]);
+  /* ── sul telefono, col dito, con la maglia fitta ── */
+  { const pg = await apri(320, FITTA, true);
+    if (!(await pronta(pg))) { nonMisurati.push("la vista a 320 px (la volata non si è aperta nel 2D)"); await pg.__ctx.close(); }
+    else {
+      const cdp = await pg.__ctx.newCDPSession(pg);
+      const dita = (type, pts) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: pts.map((p, i) => ({ x: p[0], y: p[1], id: i + 1, radiusX: 8, radiusY: 8, force: 1 })) });
+      const i = 30, s0 = await stato(pg), L0 = await leggi(pg), c = await pg.locator("#d2-canvas").boundingBox();
+      dice(s0.quanto === "100%" && s0.meno.spento && s0.adatta.spento && !s0.piu.spento && [s0.meno, s0.piu, s0.adatta].every((x) => x.w >= 44 && x.h >= 44 && x.sx >= 12 && x.dx >= 12),
+        "320 · a pianta adattata: «100%», «−» e «Adatta» spenti, «+» acceso — e i tre bottoni sono da 44×44 px, a 12 px dai bordi", JSON.stringify([s0.quanto, s0.meno, s0.piu, s0.adatta]));
+      /* il pizzico: le dita partono a 40 px l'una dall'altra, attorno al foro, e arrivano a 120 → ×3 */
+      const fx = c.x + L0.fori[i].x, fy = c.y + L0.fori[i].y;
+      await dita("touchStart", [[fx - 20, fy]]); await dita("touchStart", [[fx - 20, fy], [fx + 20, fy]]);
+      for (let k = 1; k <= 8; k++) { await dita("touchMove", [[fx - 20 - k * 5, fy], [fx + 20 + k * 5, fy]]); await pg.waitForTimeout(16); } await dita("touchEnd", []); await pg.waitForTimeout(250);
+      const s1 = await stato(pg), L1 = await leggi(pg), scarto = +Math.hypot(L1.fori[i].x - L0.fori[i].x, L1.fori[i].y - L0.fori[i].y).toFixed(2);
+      dice(s1.quanto === "300%" && scarto < 1.5, `⛔ 320 · un pizzico che triplica la distanza fra le dita porta la pianta al 300%, e il foro che stava fra le dita resta fra le dita (scarto ${scarto} px)`, JSON.stringify({ quanto: s1.quanto, prima: L0.fori[i], dopo: L1.fori[i] }));
+      dice(JSON.stringify(s1.fori) === JSON.stringify(s0.fori) && s1.annulla === s0.annulla && !s1.meno.spento && !s1.adatta.spento, "⛔ 320 · ingrandire non crea e non sposta nessun foro: cambia la vista, non il progetto (e «−» e «Adatta» si accendono)", JSON.stringify({ fori: [s0.fori.length, s1.fori.length], annulla: [s0.annulla, s1.annulla] }));
+      const n0 = numeriDeiFori(L0), n1 = numeriDeiFori(L1);
+      dice(n0.length === 0 && n1.length === L1.n && n1.every((q) => q.corpo >= 9 - 0.05), `⛔ 320 · maglia fitta: adattata i numeri dei fori non si scrivono (${n0.length}), ingrandita si leggono (${n1.length} numeri da ${n1.length ? Math.min(...n1.map((q) => q.corpo)) : "—"} px)`, JSON.stringify([n0.length, n1.length]));
+      dice(JSON.stringify(cornice(L1)) === JSON.stringify(cornice(L0)) && cornice(L1).length === 2 && cornice(L1).every((x) => x[3] === 0) && L1.senzaCerchio === 0 && L1.fuoriRitaglio === 0,
+        "⛔ 320 · ingrandita, la cornice resta ferma (riepilogo e suggerimento dov'erano, fuori dal ritaglio) e tutti i fori sono disegnati DENTRO il ritaglio: non finiscono sopra le scritte", JSON.stringify({ prima: cornice(L0), dopo: cornice(L1), fuoriRitaglio: L1.fuoriRitaglio, senzaCerchio: L1.senzaCerchio }));
+      /* un tocco sul foro ingrandito */
+      await pg.touchscreen.tap(c.x + L1.fori[i].x, c.y + L1.fori[i].y + 8); await pg.waitForTimeout(300);
+      const s2 = await stato(pg);
+      dice(s2.sel === i && s2.fori.length === s0.fori.length, "⛔ 320 · a pianta ingrandita un tocco a 8 px dal centro del foro sceglie QUEL foro: chi tocca e chi disegna usano la stessa mappatura", JSON.stringify({ scelto: s2.sel, atteso: i, fori: s2.fori.length }));
+      /* un foro finito sotto la cornice: si porta la vista in basso finché una fila sta sotto il riepilogo, e si tocca lì */
+      const yBasso = c.y + c.height - 14;
+      await dita("touchStart", [[c.x + c.width * 0.5, yBasso]]); for (let k = 1; k <= 6; k++) { await dita("touchMove", [[c.x + c.width * 0.5, yBasso - k * 12]]); await pg.waitForTimeout(16); } await dita("touchEnd", []); await pg.waitForTimeout(250);
+      const L2 = await leggi(pg), su = await pg.evaluate(() => window.__genesi.D2._m.vista.su);
+      const nascosti = L2.fori.map((f, k) => [k, f]).filter(([, f]) => f.y < su - 12 && f.y > 8 && f.x > 20 && f.x < L2.larga - 20);
+      if (!nascosti.length) nonMisurati.push("il tocco su un foro nascosto dalla cornice a 320 px (nessun foro è finito sotto le righe in alto)");
+      else { const [k, f] = nascosti[0], prima = await stato(pg);
+        await pg.touchscreen.tap(c.x + f.x, c.y + f.y); await pg.waitForTimeout(300);
+        const dopo = await stato(pg);
+        dice(dopo.sel === prima.sel && JSON.stringify(dopo.fori) === JSON.stringify(prima.fori) && dopo.annulla === prima.annulla, `⛔ 320 · un tocco sulla cornice, dove sotto — invisibile — c'è il foro ${k + 1}, non lo sceglie e non crea niente (${nascosti.length} fori nascosti dalla cornice)`, JSON.stringify({ sceltoPrima: prima.sel, sceltoDopo: dopo.sel, fori: [prima.fori.length, dopo.fori.length] })); }
+      /* un dito sulla cornice, trascinato: sposta la vista, e basta */
+      const s3 = await stato(pg), L3 = await leggi(pg);
+      await dita("touchStart", [[c.x + c.width * 0.6, yBasso]]); for (let k = 1; k <= 6; k++) { await dita("touchMove", [[c.x + c.width * 0.6 - k * 10, yBasso]]); await pg.waitForTimeout(16); } await dita("touchEnd", []); await pg.waitForTimeout(250);
+      const s4 = await stato(pg), L4 = await leggi(pg), passo = +(L4.fori[i].x - L3.fori[i].x).toFixed(1);
+      dice(Math.abs(passo + 60) < 1.5 && JSON.stringify(s4.fori) === JSON.stringify(s3.fori) && s4.annulla === s3.annulla, `320 · a pianta ingrandita un dito trascinato di 60 px sposta la vista di 60 px (misurati ${-passo}) e non crea e non sposta nessun foro`, JSON.stringify({ passo, fori: [s3.fori.length, s4.fori.length] }));
+      /* «Adatta»: tutto torna dov'era, e adattata la stessa passata non sposta niente */
+      await pg.click("#dvAdatta"); await pg.waitForTimeout(250); await inVista(pg);
+      const c5 = await pg.locator("#d2-canvas").boundingBox(), L5 = await leggi(pg), s5 = await stato(pg);
+      await dita("touchStart", [[c5.x + c5.width * 0.6, c5.y + c5.height - 14]]); for (let k = 1; k <= 6; k++) { await dita("touchMove", [[c5.x + c5.width * 0.6 - k * 10, c5.y + c5.height - 14]]); await pg.waitForTimeout(16); } await dita("touchEnd", []); await pg.waitForTimeout(250);
+      const L6 = await leggi(pg), s6 = await stato(pg);
+      dice(s5.quanto === "100%" && Math.hypot(L5.fori[i].x - L0.fori[i].x, L5.fori[i].y - L0.fori[i].y) < 0.6 && Math.abs(L6.fori[i].x - L5.fori[i].x) < 0.1 && JSON.stringify(s6.fori) === JSON.stringify(s0.fori),
+        "⛔ 320 · «Adatta» rimette la pianta com'era, al pixel; e a pianta adattata la stessa passata non sposta niente — non si trascina via per sbaglio", JSON.stringify({ quanto: s5.quanto, prima: L0.fori[i], adattata: L5.fori[i], dopoLaPassata: L6.fori[i] }));
+      dice(pg.__errori.length === 0, "320: nessun errore di pagina ingrandendo e spostando", pg.__errori[0]);
+      await pg.__ctx.close();
+    }
+  }
+  /* ── sul computer, col mouse ── */
+  { const pg = await apri(1280, DESIGN, false);
+    if (!(await pronta(pg))) { nonMisurati.push("la vista a 1280 px (la volata non si è aperta nel 2D)"); await pg.__ctx.close(); }
+    else {
+      const s0 = await stato(pg), L0 = await leggi(pg);
+      await pg.click("#dvPiu"); await pg.waitForTimeout(200); const s1 = await stato(pg);
+      await pg.click("#dvMeno"); await pg.waitForTimeout(200); const s2 = await stato(pg), L2 = await leggi(pg);
+      dice(s0.quanto === "100%" && s1.quanto === "150%" && s2.quanto === "100%" && Math.hypot(L2.fori[5].x - L0.fori[5].x, L2.fori[5].y - L0.fori[5].y) < 0.6, "1280 · i bottoni: «+» porta al 150%, «−» riporta al 100% e la pianta torna com'era", JSON.stringify([s0.quanto, s1.quanto, s2.quanto]));
+      /* Ctrl + rotella sopra un foro: quel foro resta sotto il puntatore */
+      await inVista(pg); const c = await pg.locator("#d2-canvas").boundingBox(), La = await leggi(pg);
+      await pg.mouse.move(c.x + La.fori[5].x, c.y + La.fori[5].y); await pg.keyboard.down("Control"); await pg.mouse.wheel(0, -240); await pg.keyboard.up("Control"); await pg.waitForTimeout(250);
+      const s3 = await stato(pg), Lb = await leggi(pg), sc = +Math.hypot(Lb.fori[5].x - La.fori[5].x, Lb.fori[5].y - La.fori[5].y).toFixed(2);
+      dice(parseInt(s3.quanto, 10) > 150 && sc < 1.5 && JSON.stringify(s3.fori) === JSON.stringify(s0.fori), `⛔ 1280 · Ctrl + rotella sopra un foro ingrandisce (${s3.quanto}) e quel foro resta sotto il puntatore (scarto ${sc} px); nessun foro creato o spostato`, JSON.stringify({ quanto: s3.quanto, prima: La.fori[5], dopo: Lb.fori[5] }));
+      /* la rotella SENZA Ctrl resta della pagina */
+      await pg.mouse.wheel(0, 120); await pg.waitForTimeout(200); const s4 = await stato(pg);
+      dice(s4.quanto === s3.quanto, "1280 · senza Ctrl la rotella non ingrandisce: resta della pagina", JSON.stringify([s3.quanto, s4.quanto]));
+      dice(pg.__errori.length === 0, "1280: nessun errore di pagina", pg.__errori[0]);
+      await pg.__ctx.close();
+    }
+  }
+}
+
+const ATTESE = 3 * (6 * 4 + 2 * 3 + 2 + 1) + (3 * 3) + (3 * 3) + (2 * 6) + (10 + 4);
 let riuscita;
 if (!CONTRO_DETT) {
-  await viste([320, 430, 1280]); await tocco(TOCCHI); await fitta([320, 430, 1280]); await gesti([320, 430]);
+  await viste([320, 430, 1280]); await tocco(TOCCHI); await fitta([320, 430, 1280]); await gesti([320, 430]); await vista();
   if (CONTROPROVA) {
     console.log(`(iniezioni: ${colpiti.size}/${TABELLA.length} hanno trovato il loro pezzo)`);
     dice(colpiti.size === TABELLA.length, `l'iniezione ha trovato e sostituito il suo testo nella pagina servita (${colpiti.size}/${TABELLA.length})`, [...colpiti].map((x) => x.slice(0, 40)));
@@ -398,6 +515,9 @@ if (!CONTRO_DETT) {
     ["il suggerimento in fondo torna su una riga sola", () => viste([320]), /strumento Tratto: nessun testo esce dalla tela/],
     ["la mappatura per chi tocca torna in px di schermo", () => viste([430]), /DOVE la mappatura per chi tocca dice che sono/],
     ["i tocchi tornano com'erano: ogni dito un gesto a sé", () => gesti([320]), /un pizzico con due dita sul vuoto non crea nessun foro/],
+    ["il pizzico ingrandisce attorno al centro della tela", () => vista(), /resta fra le dita/],
+    ["il contenuto non è più ritagliato", () => vista(), /DENTRO il ritaglio/],
+    ["un foro sotto la cornice torna a farsi prendere", () => vista(), /un tocco sulla cornice, dove sotto/],
   ];
   const esitiD = [];
   for (let k = 0; k < DIFETTI_DETTAGLI.length; k++) {
@@ -416,7 +536,7 @@ if (nonMisurati.length) {
   console.log(`\n⚠️ NON MISURATI (${nonMisurati.length}) — non è «a posto», è «non ho guardato»:`);
   for (const x of nonMisurati) console.log(`   · ${x}`);
 }
-console.log(`\nRisultato pianta sullo schermo di Genesi: ${ok} passati, ${ko} falliti  ·  ${ATTESE} asserzioni attese nel passaggio sano (33 per larghezza × 3 nelle viste, 9 sul tocco, 9 sulla maglia fitta, 12 sui gesti)`);
+console.log(`\nRisultato pianta sullo schermo di Genesi: ${ok} passati, ${ko} falliti  ·  ${ATTESE} asserzioni attese nel passaggio sano (33 per larghezza × 3 nelle viste, 9 sul tocco, 9 sulla maglia fitta, 12 sui gesti, 14 sulla vista)`);
 await b.close();
 srv.close();
 /* una controprova RIUSCITA esce 0: ha fallito come doveva, con tutte le iniezioni sul bersaglio

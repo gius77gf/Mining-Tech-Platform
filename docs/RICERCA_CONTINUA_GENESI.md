@@ -6072,6 +6072,16 @@ senza un'ipotesi o un dato nuovo: decisione 35.
 
 ## Ricerca del 2026-11-27 — ingrandire e spostare una pianta col dito (solo il mondo, quasi tutto di seconda mano)
 
+> ⏱️ **Usata lo stesso giorno** (voce di roadmap «la pianta si ingrandisce e
+> si sposta»). Che cosa ne è entrato, deciso da chi aveva il codice: il
+> pizzico attorno al punto fra le dita; due dita per spostare; i bottoni
+> «−», «+», «Adatta» come alternativa a un puntatore solo (è il punto letto
+> per intero: WCAG 2.2, «Pointer Gestures»); `touch-action:none` e una cache
+> dei puntatori (MDN, letto). Che cosa NON è entrato: il doppio tocco (le
+> fonti non sono d'accordo su che cosa faccia) e ogni numero di seconda
+> mano. Le domande 1-5 e 7 in fondo hanno avuto risposta nel codice; la 10
+> (lo spostamento per sbaglio di un foro) è la decisione 37, del fondatore.
+
 *Proposto da ricerca, non verificato. Lanciata mentre si chiudeva la voce «la
 pianta si legge e si tocca dal telefono», per la voce rimasta aperta: «la
 pianta non ha l'ingrandimento». Consegna SOLO la metà sul mondo, come vuole la

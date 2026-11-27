@@ -43839,12 +43839,49 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
     ok(/const ctx=cv\.getContext\('2d'\); ctx\.setTransform\(kT,0,0,kT,0,0\);/.test(pag), "⛔ il disegno è scalato in un posto solo: da lì in giù i numeri sono px veri");
     ok(/const HcT=Math\.round\(Hc\*kT\); if\(cv\.height!==HcT\) cv\.height=HcT;/.test(pag), "l'altezza della tela segue la stessa scala");
-    ok(/D2\._m=\{scale:scale\*kT, startX:startX\*kT, faceY:faceY\*kT, u:kT\};/.test(pag), "⛔ la mappatura per chi tocca resta in punti di tela (le unità di d2EvtToCanvas) e porta con sé `u`");
+    ok(/D2\._m=\{scale:scale\*kT, startX:startX\*kT, faceY:faceY\*kT, u:kT, vista:_vista\};/.test(pag), "⛔ la mappatura per chi tocca resta in punti di tela (le unità di d2EvtToCanvas) e porta con sé `u` (⏱️ 27/11: e le misure della vista)");
     ok(/const rF=raggioForoTela\(Math\.min\(D2\.S, D2\.bf\|\|D2\.B\)\*scale\), rr=rF\/9;/.test(pag), "il raggio del pallino lo decide il modulo dal passo a schermo");
     eq((pag.match(/ctx\.arc\(cx,cy,[0-9.]+\*rr,/g) || []).length, 8, "⛔ gli otto cerchi del foro (pallino, bordo, anelli) seguono tutti lo stesso raggio: nessuno è rimasto fisso");
     ok(/if\(rF>=6\.5\)\{ ctx\.fillStyle='#1a140b';/.test(pag), "sotto i 6,5 px di raggio il numero del foro non si scrive: non si leggerebbe");
     eq(/function drawReliefLegenda|function drawEnergiaLegenda/.test(pag), false, "le due legende scritte su una riga sola non ci sono più");
     ok(/const padBot=56\+Math\.max\(0,_legRighe\.length-1\)\*15\+\(_suggRighe\.length-1\)\*13;/.test(pag), "⛔ il posto per la legenda e il suggerimento che vanno a capo si fa PRIMA di impaginare la maglia");
+  });
+  test("⛔ Genesi · la vista della pianta: ingrandire tiene fermo il punto sotto le dita, e non porta mai la pianta fuori dalla tela", () => {
+    const m = { scale: 8, startX: 34, faceY: 104 }, ox = 146, oy = 150, W = 292, H = 100;
+    eq(genesi.vistaApplica(m, { z: 1, px: 0, py: 0 }, ox, oy), m, "⛔ NEUTRALITÀ: la vista ferma lascia la mappatura com'è, alla cifra");
+    eq(genesi.vistaApplica(m, null, ox, oy), m, "e una vista assente è una vista ferma");
+    eq(genesi.vistaApplica(null, { z: 2, px: 0, py: 0 }, ox, oy), null, "senza mappatura non c'è niente da ingrandire");
+    const X = (mx, v) => { const q = genesi.vistaApplica(m, v, ox, oy); return q.startX + mx * q.scale; };
+    eq([1, 2, 3.5].map((z) => +X((ox - m.startX) / m.scale, { z, px: 0, py: 0 }).toFixed(6)), [146, 146, 146], "il punto al centro dell'area resta al centro a ogni ingrandimento");
+    /* ingrandire attorno a un punto: il metro che sta sotto le dita resta lo stesso */
+    const sotto = (cx, v) => { const q = genesi.vistaApplica(m, v, ox, oy); return +((cx - q.startX) / q.scale).toFixed(6); };
+    const v0 = { z: 1, px: 0, py: 0 }, v1 = genesi.vistaZoomAttorno(v0, 2, 200, 130, ox, oy, W, H);
+    eq([v1.z, sotto(200, v1)], [2, sotto(200, v0)], "⛔ ×2 attorno a x = 200: sotto quel punto c'è lo stesso metro di prima");
+    const v2 = genesi.vistaZoomAttorno(v1, 1.5, 60, 120, ox, oy, W, H);
+    eq([v2.z, sotto(60, v2)], [3, sotto(60, v1)], "anche partendo da una vista già ingrandita, e attorno a un altro punto");
+    const v3 = genesi.vistaZoomAttorno(genesi.vistaZoomAttorno(v0, 2, 200, 130, ox, oy, W, H), 0.5, 200, 130, ox, oy, W, H);
+    eq([+v3.z.toFixed(6), +v3.px.toFixed(6), +v3.py.toFixed(6)], [1, 0, 0], "⛔ andata e ritorno attorno allo stesso punto: si torna alla vista ferma");
+    eq([genesi.vistaZoomAttorno(v0, NaN, 200, 130, ox, oy, W, H), genesi.vistaZoomAttorno(v0, 0, 200, 130, ox, oy, W, H), genesi.vistaZoomAttorno(v0, -2, 200, 130, ox, oy, W, H)], [v0, v0, v0], "un fattore non leggibile, zero o negativo non muove niente");
+    /* i limiti */
+    eq(genesi.vistaLimitata({ z: 0.3, px: 50, py: -20 }, W, H), { z: 1, px: 0, py: 0 }, "⛔ sotto 1 non si scende, e a 1 la pianta è FERMA: adattata non si trascina via");
+    eq(genesi.vistaLimitata({ z: 99, px: 0, py: 0 }, W, H).z, genesi.VISTA_ZOOM_MAX, "il tetto dell'ingrandimento");
+    eq(genesi.vistaLimitata({ z: 2, px: 9999, py: -9999 }, W, H), { z: 2, px: 146, py: -50 }, "⛔ lo spostamento si ferma al bordo di ciò che l'ingrandimento ha portato fuori (metà tela per ogni ×1 in più)");
+    eq([genesi.vistaLimitata(null, W, H), genesi.vistaLimitata(undefined, W, H), genesi.vistaLimitata({ z: NaN, px: NaN, py: "x" }, W, H)], [v0, v0, v0], "una vista non leggibile è una vista ferma");
+    eq(genesi.vistaLimitata({ z: 2, px: 10, py: 10 }, NaN, null), { z: 2, px: 0, py: 0 }, "senza le misure della tela non c'è spostamento");
+    /* due dita */
+    eq(genesi.gestoDueDita({ x: 100, y: 100 }, { x: 140, y: 100 }, { x: 80, y: 100 }, { x: 160, y: 100 }), { fattore: 2, cx: 120, cy: 100, dx: 0, dy: 0 }, "pizzico puro: le dita a distanza doppia, il punto di mezzo fermo");
+    eq(genesi.gestoDueDita({ x: 100, y: 100 }, { x: 140, y: 100 }, { x: 110, y: 130 }, { x: 150, y: 130 }), { fattore: 1, cx: 120, cy: 100, dx: 10, dy: 30 }, "due dita che si muovono insieme: nessun ingrandimento, solo spostamento");
+    eq(genesi.gestoDueDita({ x: 100, y: 100 }, { x: 100, y: 100 }, { x: 90, y: 100 }, { x: 110, y: 100 }).fattore, 1, "⛔ dita posate nello stesso punto: nessun fattore inventato (la divisione per zero farebbe Infinity)");
+    eq([genesi.gestoDueDita({ x: 1, y: 1 }, null, { x: 1, y: 1 }, { x: 2, y: 2 }), genesi.gestoDueDita({ x: NaN, y: 1 }, { x: 1, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 2 })], [null, null], "un dito mancante o non leggibile: nessun gesto");
+    /* la pagina */
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    ok(/const \{ scale, startX, faceY \}=vistaApplica\(\{ scale:scale0, startX:startX0, faceY:faceY0 \}, d2Vista, _vista\.ox, _vista\.oy\);/.test(pag), "⛔ la mappatura della pianta passa dalla vista in UN punto: chi disegna e chi tocca usano la stessa");
+    ok(/D2\._m=\{scale:scale\*kT, startX:startX\*kT, faceY:faceY\*kT, u:kT, vista:_vista\};/.test(pag), "e la mappatura per chi tocca porta con sé le misure della vista");
+    eq((pag.match(/(?<!s)ritaglia\(\);/g) || []).length, (pag.match(/sritaglia\(\);/g) || []).length, "⛔ ogni ritaglio aperto viene chiuso: tanti `ritaglia()` quanti `sritaglia()`");
+    ok(/D2\.magliaAssente=null;\n    d2Vista=\{ z:1, px:0, py:0 \};/.test(pag), "aprendo una volata la vista torna ferma");
+    eq(/vista|d2Vista/.test((pag.match(/function volSnapshot\([^]*?\n\}/) || [""])[0]), false, "⛔ e la vista NON entra nella volata salvata: non è un dato del progetto");
+    ok(/const due=\[\.\.\.d2Punt\.values\(\)\]; d2Due=d2Punt\.size===2 \? \{ a:\{\.\.\.due\[0\]\}, b:\{\.\.\.due\[1\]\}, v:\{\.\.\.d2Vista\} \} : null;/.test(pag), "⛔ il gesto a due dita comincia quando il secondo dito si posa, non al primo movimento");
+    ok(/id="dvMeno"[^>]*aria-label="Rimpicciolisci la pianta"/.test(pag) && /id="dvPiu"[^>]*aria-label="Ingrandisci la pianta"/.test(pag) && /id="dvAdatta"/.test(pag), "i tre bottoni ci sono, coi loro nomi: il pizzico non è l'unica via");
   });
   test("⛔ Genesi · eUnTocco e i tocchi sulla pianta: un dito conduce, il secondo ferma tutto, col dito si crea alzandolo", () => {
     eq(genesi.eUnTocco(100, 100, 100, 100), true, "il dito si alza dov'era: è un tocco");
@@ -43854,13 +43891,13 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq([genesi.eUnTocco(0, 0, 3, 4, 0), genesi.eUnTocco(0, 0, 3, 4, NaN), genesi.eUnTocco(0, 0, 3, 4, -2)], [true, true, true], "una soglia non leggibile vale 10");
     eq([genesi.eUnTocco(NaN, 0, 0, 0), genesi.eUnTocco(0, 0, undefined, 0), genesi.eUnTocco("a", 0, 0, 0)], [false, false, false], "⛔ coordinate non leggibili NON sono un tocco: nel dubbio non si crea niente");
     const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
-    ok(/cv\.addEventListener\('pointerdown',d2PuntGiu\); cv\.addEventListener\('pointermove',d2PuntMuove\); window\.addEventListener\('pointerup',e=>d2PuntSu\(e,false\)\); window\.addEventListener\('pointercancel',e=>d2PuntSu\(e,true\)\);/.test(pag),
+    ok(/cv\.addEventListener\('pointerdown',d2PuntGiu\); cv\.addEventListener\('pointermove',d2PuntMuove\); window\.addEventListener\('pointerup',e=>d2PuntSu\(e,false\)\); window\.addEventListener\('pointercancel',e=>d2PuntSu\(e,true\)\);\n/.test(pag),
       "⛔ la tela ascolta i tocchi dalle tre porte nuove — e `pointercancel`, che prima non ascoltava nessuno");
     eq(/addEventListener\('pointer(?:down|move|up)',\s*d2(?:Down|Move|Up)\)/.test(pag), false, "nessun ascoltatore chiama più d2Down/d2Move/d2Up direttamente: ogni tocco passa dalla disciplina");
-    ok(/if\(d2Punt\.size>=2\)\{ if\(d2Primo!==null\)\{ d2AnnullaGesto\(\); d2Primo=null; \} e\.preventDefault\(\); return; \}/.test(pag), "⛔ il secondo dito annulla il gesto del primo, e non ne comincia uno suo");
+    ok(/if\(d2Punt\.size>=2\)\{ if\(d2Primo!==null\)\{ d2AnnullaGesto\(\); d2Primo=null; \}\n/.test(pag), "⛔ il secondo dito annulla il gesto del primo, e non ne comincia uno suo di modifica");
     ok(/if\(d2Punt\.size===1 && e\.pointerId!==d2Primo\) return;/.test(pag), "i movimenti di un dito che non conduce non spostano niente");
-    ok(/if\(e\.pointerType==='touch' && !e\.shiftKey && d2SulVuoto\(e\)\)\{ d2Attesa=\{ x:e\.clientX, y:e\.clientY, mosso:false \};/.test(pag), "⛔ col dito, sul vuoto, non si crea posando: si aspetta");
-    ok(/else if\(a && !a\.mosso && eUnTocco\(a\.x, a\.y, e\.clientX, e\.clientY\)\) d2Down\(/.test(pag), "e si crea quando il dito si alza senza essersi mosso — con la stessa `d2Down` di sempre");
+    ok(/if\(e\.pointerType==='touch' && !e\.shiftKey && d2SulVuoto\(e\)\)\{ d2Attesa=\{ x:e\.clientX, y:e\.clientY, mosso:false, v:\{\.\.\.d2Vista\} \};/.test(pag), "⛔ col dito, sul vuoto, non si crea posando: si aspetta");
+    ok(/else if\(a && !a\.soloVista && !a\.mosso && eUnTocco\(a\.x, a\.y, e\.clientX, e\.clientY\)\) d2Down\(/.test(pag), "e si crea quando il dito si alza senza essersi mosso — con la stessa `d2Down` di sempre");
     ok(/if\(cambiato\)\{ d2ApplySnap\(d2UndoStack\.pop\(\)\); d2BtnSync\(\); d2dragPushed=false; \}/.test(pag), "annullare un gesto rimette lo stato di prima SOLO se quel gesto aveva cambiato qualcosa");
   });
   test("⛔ Genesi · righeDiVoci: una legenda va a capo quando non ci sta, e non perde nessuna voce", () => {
