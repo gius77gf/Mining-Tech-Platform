@@ -29054,8 +29054,9 @@ console.log("\n— Campo: i file che escono —");
     eq((pag.match(/let best=-1, ?bd=18\*18/g) || []).length, 0, "la ricerca del punto più vicino non è più scritta in casa (era due volte)");
     eq((pag.match(/function d2HitTest|function d2HitTestPt|function activeProf/g) || []).length, 0, "⚠️ 14/09, B3: d2HitTest, d2HitTestPt e activeProf sono usciti insieme, i legami non ci sono più");
     ok(typeof v.d2HitTest === "function" && typeof v.d2HitTestPt === "function" && typeof v.activeProf === "function", "vivono nel modulo, con D2 come primo argomento esplicito");
-    eq((pag.match(/d2HitTest\(D2,/g) || []).length, 1, "d2HitTest dal suo unico punto");
-    eq((pag.match(/d2HitTestPt\(D2,/g) || []).length, 1, "d2HitTestPt dal suo unico punto");
+    eq((pag.match(/d2HitTest\(D2,/g) || []).length, 2, "d2HitTest da due punti soli (⏱️ 27/11: era uno): `d2Down`, e `d2SulVuoto` che fa la STESSA domanda un attimo prima — col dito, per sapere se il tocco cade sul vuoto");
+    eq((pag.match(/d2HitTest\(D2, p\.x,p\.y, _presaPx\(e, true\)\)/g) || []).length, 2, "⛔ e tutt'e due con lo stesso raggio di presa: se fossero diversi, un tocco potrebbe essere «sul vuoto» per l'una e «su un foro» per l'altra");
+    eq((pag.match(/d2HitTestPt\(D2, p\.x,p\.y, _presaPx\(e, false\)\)/g) || []).length, 2, "d2HitTestPt da due punti soli (⏱️ 27/11: era uno), `d2Down` e `d2SulVuoto`, con lo stesso raggio");
     eq((pag.match(/activeProf\(D2\)/g) || []).length, 4, "activeProf dai suoi quattro punti");
     ok(/const v=verdettoValidatore\(x,lo,hi,wlo,whi\);/.test(pag) && /non-calcolabile/.test(pag), "badge chiede il verdetto al modulo e sa scrivere «non calcolabile»");
     eq((pag.match(/if\(x<lo\)\{ cls=/g) || []).length, 0, "la regola non è più scritta in casa");
@@ -43844,6 +43845,23 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     ok(/if\(rF>=6\.5\)\{ ctx\.fillStyle='#1a140b';/.test(pag), "sotto i 6,5 px di raggio il numero del foro non si scrive: non si leggerebbe");
     eq(/function drawReliefLegenda|function drawEnergiaLegenda/.test(pag), false, "le due legende scritte su una riga sola non ci sono più");
     ok(/const padBot=56\+Math\.max\(0,_legRighe\.length-1\)\*15\+\(_suggRighe\.length-1\)\*13;/.test(pag), "⛔ il posto per la legenda e il suggerimento che vanno a capo si fa PRIMA di impaginare la maglia");
+  });
+  test("⛔ Genesi · eUnTocco e i tocchi sulla pianta: un dito conduce, il secondo ferma tutto, col dito si crea alzandolo", () => {
+    eq(genesi.eUnTocco(100, 100, 100, 100), true, "il dito si alza dov'era: è un tocco");
+    eq([genesi.eUnTocco(100, 100, 106, 108), genesi.eUnTocco(100, 100, 107, 107.1)], [false, true], "⛔ 10 px esatti non sono più un tocco (6-8-10), 9,97 sì: la soglia è esclusiva");
+    eq(genesi.eUnTocco(100, 100, 100, 250), false, "⛔ il caso misurato: una passata di 150 px non è un tocco — prima creava un foro");
+    eq([genesi.eUnTocco(0, 0, 3, 4, 5), genesi.eUnTocco(0, 0, 3, 4, 6)], [false, true], "la soglia si può passare da fuori");
+    eq([genesi.eUnTocco(0, 0, 3, 4, 0), genesi.eUnTocco(0, 0, 3, 4, NaN), genesi.eUnTocco(0, 0, 3, 4, -2)], [true, true, true], "una soglia non leggibile vale 10");
+    eq([genesi.eUnTocco(NaN, 0, 0, 0), genesi.eUnTocco(0, 0, undefined, 0), genesi.eUnTocco("a", 0, 0, 0)], [false, false, false], "⛔ coordinate non leggibili NON sono un tocco: nel dubbio non si crea niente");
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    ok(/cv\.addEventListener\('pointerdown',d2PuntGiu\); cv\.addEventListener\('pointermove',d2PuntMuove\); window\.addEventListener\('pointerup',e=>d2PuntSu\(e,false\)\); window\.addEventListener\('pointercancel',e=>d2PuntSu\(e,true\)\);/.test(pag),
+      "⛔ la tela ascolta i tocchi dalle tre porte nuove — e `pointercancel`, che prima non ascoltava nessuno");
+    eq(/addEventListener\('pointer(?:down|move|up)',\s*d2(?:Down|Move|Up)\)/.test(pag), false, "nessun ascoltatore chiama più d2Down/d2Move/d2Up direttamente: ogni tocco passa dalla disciplina");
+    ok(/if\(d2Punt\.size>=2\)\{ if\(d2Primo!==null\)\{ d2AnnullaGesto\(\); d2Primo=null; \} e\.preventDefault\(\); return; \}/.test(pag), "⛔ il secondo dito annulla il gesto del primo, e non ne comincia uno suo");
+    ok(/if\(d2Punt\.size===1 && e\.pointerId!==d2Primo\) return;/.test(pag), "i movimenti di un dito che non conduce non spostano niente");
+    ok(/if\(e\.pointerType==='touch' && !e\.shiftKey && d2SulVuoto\(e\)\)\{ d2Attesa=\{ x:e\.clientX, y:e\.clientY, mosso:false \};/.test(pag), "⛔ col dito, sul vuoto, non si crea posando: si aspetta");
+    ok(/else if\(a && !a\.mosso && eUnTocco\(a\.x, a\.y, e\.clientX, e\.clientY\)\) d2Down\(/.test(pag), "e si crea quando il dito si alza senza essersi mosso — con la stessa `d2Down` di sempre");
+    ok(/if\(cambiato\)\{ d2ApplySnap\(d2UndoStack\.pop\(\)\); d2BtnSync\(\); d2dragPushed=false; \}/.test(pag), "annullare un gesto rimette lo stato di prima SOLO se quel gesto aveva cambiato qualcosa");
   });
   test("⛔ Genesi · righeDiVoci: una legenda va a capo quando non ci sta, e non perde nessuna voce", () => {
     eq(genesi.righeDiVoci([50, 60, 70], 1000), [[0, 1, 2]], "⛔ NEUTRALITÀ: quando ci sta è una riga sola, come prima");

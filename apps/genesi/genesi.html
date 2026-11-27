@@ -1423,7 +1423,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, reliefCls, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino, activeProf, d2HitTest, d2HitTestPt,
-         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfLeggi, dxfFraseNonLette, DXF_FRECCIA_ARCO_M, fraseMagliaAssente, scalaTestoTela, raggioForoTela, raggioPresaTela, righeDiVoci, valoriPropriDiForo, valoreDiForo, scostamentoPiedeForo, foriPropriPerFoglio, valoreProgettoDaFile, foriFuoriDalForoTipo, avvisoForoTipo, CAMPI_DELLA_GITTATA, CAMPI_DELLA_PEZZATURA, LIMITI_PER_FORO, foriConValoreProprio, foriSenzaValoriPropri, valoreComuneDiFori, contaValoriPropri, tabellaFori, valoriPerForoDaPiano, capienzaFori, MARGINE_CAPIENZA_FORO, scartoCaricheProprie, scartoProfonditaProprie, caricaProgettoDaTotale, firmaMaglia, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, foriRiflessi, trattiRuotati, trattiScalati, coordinataRelativa, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
+         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfLeggi, dxfFraseNonLette, DXF_FRECCIA_ARCO_M, fraseMagliaAssente, scalaTestoTela, raggioForoTela, raggioPresaTela, righeDiVoci, eUnTocco, valoriPropriDiForo, valoreDiForo, scostamentoPiedeForo, foriPropriPerFoglio, valoreProgettoDaFile, foriFuoriDalForoTipo, avvisoForoTipo, CAMPI_DELLA_GITTATA, CAMPI_DELLA_PEZZATURA, LIMITI_PER_FORO, foriConValoreProprio, foriSenzaValoriPropri, valoreComuneDiFori, contaValoriPropri, tabellaFori, valoriPerForoDaPiano, capienzaFori, MARGINE_CAPIENZA_FORO, scartoCaricheProprie, scartoProfonditaProprie, caricaProgettoDaTotale, firmaMaglia, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, foriRiflessi, trattiRuotati, trattiScalati, coordinataRelativa, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -7168,6 +7168,60 @@ function d2Move(e){
   for(let k=0;k<D2.holes.length;k++){ if(k===d2drag) continue; const oy=D2.holes[k].my; if(Math.abs(oy-my)<=tolAY){ d2AlignGuide=oy; break; } }
   D2.holes[d2drag].mx=+mx.toFixed(2); D2.holes[d2drag].my=+my.toFixed(2); computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector(); }
 function d2Up(){ if(d2AlignGuide!=null){ d2AlignGuide=null; drawDesign2D(); } d2drag=-1; d2dragPt=-1; }
+/* ⛔ 27/11 — I TOCCHI SULLA PIANTA: UN DITO CONDUCE, IL SECONDO FERMA TUTTO, E COL DITO SI
+   CREA ALZANDOLO. Fino a oggi ogni dito che si posava sulla tela era un `d2Down` a sé, e ogni
+   movimento di QUALUNQUE dito un `d2Move`. Misurato sul telefono, coi tocchi veri:
+     · una passata verticale partita dal vuoto della pianta — chi vuole scorrere la pagina —
+       creava un foro nuovo (o, partita vicino a un foro, lo trascinava via);
+     · un pizzico sul vuoto creava DUE fori;
+     · un pizzico partito su due fori ne spostava uno di 14 metri: l'indice del foro in
+       trascinamento è uno solo, e i due diti se lo contendevano.
+   Nessun errore e nessun avviso: solo una volata cambiata senza che chi tocca lo sappia.
+   Tre regole, e `d2Down`/`d2Move`/`d2Up` restano quelli di prima sotto:
+     1. conduce UN puntatore (`d2Primo`): i movimenti degli altri non spostano niente;
+     2. il secondo dito che si posa ANNULLA il gesto del primo (un foro appena nato torna a
+        non esserci, un foro in trascinamento torna dov'era) — due dita non sono un gesto di
+        modifica;
+     3. col dito, ciò che CREA sul vuoto (un foro, un punto del fronte o del tratto) nasce
+        quando il dito si alza senza essersi mosso (`eUnTocco`, 10 px). Col mouse e con la
+        penna resta com'era: si crea premendo, e si trascina subito.
+   E `pointercancel` (il browser che si riprende il tocco) chiude il gesto: prima non era
+   ascoltato, e un foro restava «in trascinamento» per il tocco dopo. */
+const d2Punt=new Map();
+let d2Primo=null, d2Attesa=null;
+function d2SulVuoto(e){ const p=d2EvtToCanvas(e);
+  if(D2.tool==='tratto') return true;
+  if(D2.tool==='fronte'||D2.tool==='piede') return d2HitTestPt(D2, p.x,p.y, _presaPx(e, false))<0;
+  return d2HitTest(D2, p.x,p.y, _presaPx(e, true))<0; }
+function d2AnnullaGesto(){
+  const cambiato=d2dragPushed;
+  if(cambiato){ d2ApplySnap(d2UndoStack.pop()); d2BtnSync(); d2dragPushed=false; }
+  d2drag=-1; d2dragPt=-1; d2Attesa=null; d2HoverSnap=null; d2AlignGuide=null;
+  if(!cambiato) drawDesign2D();
+}
+function d2PuntGiu(e){
+  d2Punt.set(e.pointerId, { x:e.clientX, y:e.clientY });
+  if(d2Punt.size>=2){ if(d2Primo!==null){ d2AnnullaGesto(); d2Primo=null; } e.preventDefault(); return; }
+  d2Primo=e.pointerId;
+  if(e.pointerType==='touch' && !e.shiftKey && d2SulVuoto(e)){ d2Attesa={ x:e.clientX, y:e.clientY, mosso:false }; e.preventDefault(); return; }
+  d2Down(e);
+}
+function d2PuntMuove(e){
+  if(d2Punt.has(e.pointerId)) d2Punt.set(e.pointerId, { x:e.clientX, y:e.clientY });
+  if(d2Punt.size>=2) return;
+  if(d2Punt.size===1 && e.pointerId!==d2Primo) return;
+  if(d2Attesa){ if(!eUnTocco(d2Attesa.x, d2Attesa.y, e.clientX, e.clientY)) d2Attesa.mosso=true; return; }
+  d2Move(e);
+}
+function d2PuntSu(e, annullato){
+  const posato=d2Punt.delete(e.pointerId);
+  if(e.pointerId===d2Primo){
+    const a=d2Attesa; d2Attesa=null; d2Primo=null;
+    if(annullato) d2AnnullaGesto();
+    else if(a && !a.mosso && eUnTocco(a.x, a.y, e.clientX, e.clientY)) d2Down({ clientX:a.x, clientY:a.y, shiftKey:false, pointerType:'touch', preventDefault(){} });
+    d2Up();
+  } else if(!posato) d2Up();
+}
 /* F3 (26/11) — I VALORI DEL FORO: carica, profondità e borraggio suoi.
    Tre campi nella scheda del foro (e, con più fori scelti con Maiusc+clic,
    nella scheda della selezione): quello che si scrive vale per i fori
@@ -7528,7 +7582,7 @@ function renderInspector(){
     toast('Spalla allineata al foro '+n+': '+gfix(h.my,2)+' m (la posizione lungo la fila non è cambiata)');
   };
 }
-(function(){ const cv=$('d2-canvas'); if(cv){ cv.addEventListener('pointerdown',d2Down); cv.addEventListener('pointermove',d2Move); window.addEventListener('pointerup',d2Up); } })();
+(function(){ const cv=$('d2-canvas'); if(cv){ cv.addEventListener('pointerdown',d2PuntGiu); cv.addEventListener('pointermove',d2PuntMuove); window.addEventListener('pointerup',e=>d2PuntSu(e,false)); window.addEventListener('pointercancel',e=>d2PuntSu(e,true)); } })();
 
 /* ===== Fase 0 — scheda volata: validatore di progetto live (regole + "perché") ===== */
 /* stato "aperto" delle voci della scheda (persiste tra i ricalcoli) + clic delegato */

@@ -36,6 +36,16 @@
        si sovrappongono, e il numero del foro o si legge (almeno 7 px) o non
        c'è — mai un numero da 3 px.
 
+   E I GESTI (27/11, più tardi). Misurato coi tocchi veri, a più dita: una
+   passata verticale partita dal vuoto della pianta — chi vuole scorrere la
+   pagina — creava un foro; un pizzico sul vuoto ne creava DUE; un pizzico
+   partito su due fori ne spostava uno di 14 metri. Adesso un dito conduce,
+   il secondo annulla il gesto del primo, e col dito un foro nasce quando il
+   dito si alza senza essersi mosso. Qui si rifanno quei tre gesti (più un
+   secondo dito che arriva a metà di un trascinamento) e si pretende che
+   NESSUN foro nasca o si sposti; e, nel verso opposto, che trascinare un
+   foro con un dito lo sposti ancora.
+
    ⚠️ CHE COSA NON GUARDA: il fronte modellato a mano con molti punti, i tratti
    importati da un DXF, il piede; le maglie con più di 20 fori per fila (lì i
    pallini restano da 4 px e si toccano: è il limite di una pianta senza
@@ -79,6 +89,10 @@ const DIFETTI_DETTAGLI = [
   ["apps/genesi/genesi.html", "  const _suggRighe=cMis.measureText(_sugg).width>W-24 ? _sugg.split(' · ') : [_sugg];", "  const _suggRighe=[_sugg];"],
   /* la mappatura per chi tocca torna in px di schermo mentre chi tocca parla in punti di tela */
   ["apps/genesi/genesi.html", "  D2._m={scale:scale*kT, startX:startX*kT, faceY:faceY*kT, u:kT};", "  D2._m={scale, startX, faceY, u:kT};"],
+  /* i tocchi tornano com'erano: ogni dito è un gesto a sé, e si crea posandolo */
+  ["apps/genesi/genesi.html",
+   "cv.addEventListener('pointerdown',d2PuntGiu); cv.addEventListener('pointermove',d2PuntMuove); window.addEventListener('pointerup',e=>d2PuntSu(e,false)); window.addEventListener('pointercancel',e=>d2PuntSu(e,true));",
+   "cv.addEventListener('pointerdown',d2Down); cv.addEventListener('pointermove',d2Move); window.addEventListener('pointerup',d2Up);"],
 ];
 const TABELLA = CONTRO_DETT ? DIFETTI_DETTAGLI : DIFETTI;
 /* ⛔ UNO PER VOLTA. La prima stesura rimetteva i sei dettagli insieme, e uno solo — la
@@ -313,10 +327,59 @@ async function fitta(larghezze) {
   }
 }
 
-const ATTESE = 3 * (6 * 4 + 2 * 3 + 2 + 1) + (3 * 3) + (3 * 3);
+/* ───── 4 · I GESTI: che cosa NON deve creare né spostare niente, coi tocchi veri a più dita ───── */
+async function gesti(larghezze) {
+  console.log("\n· i gesti col dito");
+  for (const larghezza of larghezze) {
+    const pg = await apri(larghezza, DESIGN, true);
+    if (!(await pronta(pg))) { nonMisurati.push(`i gesti a ${larghezza} px (la volata non si è aperta nel 2D)`); await pg.__ctx.close(); continue; }
+    const cdp = await pg.__ctx.newCDPSession(pg);
+    const dita = (type, pts) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: pts.map((p, i) => ({ x: p[0], y: p[1], id: i + 1, radiusX: 8, radiusY: 8, force: 1 })) });
+    const foto = () => pg.evaluate(() => { const D = window.__genesi.D2; return { fori: D.holes.map((h) => [h.mx, h.my]), annulla: window.__genesi.d2UndoLen }; });
+    const uguale = (a, c) => JSON.stringify(a.fori) === JSON.stringify(c.fori) && a.annulla === c.annulla;
+    const q = await centro(pg, 2), c = q.c, L = q.L;
+    const ultimo = L.fori.reduce((a, f) => (f.y > a.y ? f : a), L.fori[0]);
+    const vuotoY = c.y + ultimo.y + 30, lontano = L.fori.every((f) => Math.hypot(f.x - c.width * 0.5, f.y - (ultimo.y + 30)) > 24);
+    if (!(vuotoY < c.y + c.height - 2) || !lontano) { nonMisurati.push(`i gesti a ${larghezza} px (sotto l'ultima fila non c'è un punto lontano da ogni foro)`); await pg.__ctx.close(); continue; }
+    /* a · la passata di chi vuole scorrere la pagina: parte dal vuoto e sale di 150 px, attraversando i fori */
+    let prima = await foto(); const x = c.x + c.width * 0.5;
+    await dita("touchStart", [[x, vuotoY]]); for (let k = 1; k <= 6; k++) { await dita("touchMove", [[x, vuotoY - k * 25]]); await pg.waitForTimeout(16); } await dita("touchEnd", []); await pg.waitForTimeout(250);
+    let dopo = await foto();
+    dice(uguale(prima, dopo), `⛔ ${larghezza} · una passata di 150 px partita dal vuoto della pianta non crea e non sposta nessun foro (prima ne creava uno)`, JSON.stringify({ fori: [prima.fori.length, dopo.fori.length], annulla: [prima.annulla, dopo.annulla] }));
+    /* b · un pizzico sul vuoto */
+    prima = await foto(); const xa = c.x + c.width * 0.40, xb = c.x + c.width * 0.60;
+    await dita("touchStart", [[xa, vuotoY]]); await pg.waitForTimeout(30); await dita("touchStart", [[xa, vuotoY], [xb, vuotoY]]);
+    for (let k = 1; k <= 6; k++) { await dita("touchMove", [[xa - k * 6, vuotoY], [xb + k * 6, vuotoY]]); await pg.waitForTimeout(16); } await dita("touchEnd", []); await pg.waitForTimeout(250);
+    dopo = await foto();
+    dice(uguale(prima, dopo), `⛔ ${larghezza} · un pizzico con due dita sul vuoto non crea nessun foro (prima ne creava due)`, JSON.stringify({ fori: [prima.fori.length, dopo.fori.length], annulla: [prima.annulla, dopo.annulla] }));
+    /* c · un pizzico che parte SU due fori */
+    prima = await foto(); const A = [c.x + L.fori[2].x, c.y + L.fori[2].y], B = [c.x + L.fori[5].x, c.y + L.fori[5].y];
+    await dita("touchStart", [A]); await pg.waitForTimeout(30); await dita("touchStart", [A, B]);
+    for (let k = 1; k <= 6; k++) { await dita("touchMove", [[A[0] - k * 6, A[1]], [B[0] + k * 6, B[1]]]); await pg.waitForTimeout(16); } await dita("touchEnd", []); await pg.waitForTimeout(250);
+    dopo = await foto();
+    dice(uguale(prima, dopo), `⛔ ${larghezza} · un pizzico partito su due fori non ne sposta nessuno (prima uno finiva a 14 metri)`, JSON.stringify(dopo.fori.map((f, i) => [i, +(f[0] - prima.fori[i][0]).toFixed(2)]).filter((z) => z[1] !== 0)));
+    /* d · il secondo dito che arriva A METÀ di un trascinamento: il foro torna dov'era */
+    prima = await foto();
+    await dita("touchStart", [A]); for (let k = 1; k <= 3; k++) { await dita("touchMove", [[A[0] + k * 8, A[1]]]); await pg.waitForTimeout(16); }
+    const aMeta = await foto();
+    await dita("touchStart", [[A[0] + 24, A[1]], B]); for (let k = 1; k <= 3; k++) { await dita("touchMove", [[A[0] + 24 + k * 6, A[1]], [B[0] + k * 6, B[1]]]); await pg.waitForTimeout(16); } await dita("touchEnd", []); await pg.waitForTimeout(250);
+    dopo = await foto();
+    dice(aMeta.fori[2][0] !== prima.fori[2][0] && uguale(prima, dopo), `⛔ ${larghezza} · un secondo dito a metà di un trascinamento lo annulla: il foro, che si stava muovendo, torna dov'era`, JSON.stringify({ prima: prima.fori[2], aMeta: aMeta.fori[2], dopo: dopo.fori[2], annulla: [prima.annulla, dopo.annulla] }));
+    /* e · il verso opposto: UN dito su un foro lo trascina ancora */
+    prima = await foto();
+    await dita("touchStart", [A]); for (let k = 1; k <= 4; k++) { await dita("touchMove", [[A[0], A[1] + k * 6]]); await pg.waitForTimeout(16); } await dita("touchEnd", []); await pg.waitForTimeout(250);
+    dopo = await foto();
+    dice(dopo.fori.length === prima.fori.length && dopo.fori[2][1] > prima.fori[2][1] && dopo.annulla === prima.annulla + 1 && dopo.fori.every((f, i) => i === 2 || (f[0] === prima.fori[i][0] && f[1] === prima.fori[i][1])),
+      `${larghezza} · e un dito solo su un foro lo trascina ancora: quel foro si sposta, gli altri no, e il gesto si può annullare — la disciplina non è un interruttore`, JSON.stringify({ prima: prima.fori[2], dopo: dopo.fori[2], annulla: [prima.annulla, dopo.annulla] }));
+    dice(pg.__errori.length === 0, `${larghezza}: nessun errore di pagina coi gesti`, pg.__errori[0]);
+    await pg.__ctx.close();
+  }
+}
+
+const ATTESE = 3 * (6 * 4 + 2 * 3 + 2 + 1) + (3 * 3) + (3 * 3) + (2 * 6);
 let riuscita;
 if (!CONTRO_DETT) {
-  await viste([320, 430, 1280]); await tocco(TOCCHI); await fitta([320, 430, 1280]);
+  await viste([320, 430, 1280]); await tocco(TOCCHI); await fitta([320, 430, 1280]); await gesti([320, 430]);
   if (CONTROPROVA) {
     console.log(`(iniezioni: ${colpiti.size}/${TABELLA.length} hanno trovato il loro pezzo)`);
     dice(colpiti.size === TABELLA.length, `l'iniezione ha trovato e sostituito il suo testo nella pagina servita (${colpiti.size}/${TABELLA.length})`, [...colpiti].map((x) => x.slice(0, 40)));
@@ -334,6 +397,7 @@ if (!CONTRO_DETT) {
     ["la legenda torna su una riga sola", () => viste([320]), /relief: nessun testo esce dalla tela/],
     ["il suggerimento in fondo torna su una riga sola", () => viste([320]), /strumento Tratto: nessun testo esce dalla tela/],
     ["la mappatura per chi tocca torna in px di schermo", () => viste([430]), /DOVE la mappatura per chi tocca dice che sono/],
+    ["i tocchi tornano com'erano: ogni dito un gesto a sé", () => gesti([320]), /un pizzico con due dita sul vuoto non crea nessun foro/],
   ];
   const esitiD = [];
   for (let k = 0; k < DIFETTI_DETTAGLI.length; k++) {
@@ -352,7 +416,7 @@ if (nonMisurati.length) {
   console.log(`\n⚠️ NON MISURATI (${nonMisurati.length}) — non è «a posto», è «non ho guardato»:`);
   for (const x of nonMisurati) console.log(`   · ${x}`);
 }
-console.log(`\nRisultato pianta sullo schermo di Genesi: ${ok} passati, ${ko} falliti  ·  ${ATTESE} asserzioni attese nel passaggio sano (33 per larghezza × 3 nelle viste, 9 sul tocco, 9 sulla maglia fitta)`);
+console.log(`\nRisultato pianta sullo schermo di Genesi: ${ok} passati, ${ko} falliti  ·  ${ATTESE} asserzioni attese nel passaggio sano (33 per larghezza × 3 nelle viste, 9 sul tocco, 9 sulla maglia fitta, 12 sui gesti)`);
 await b.close();
 srv.close();
 /* una controprova RIUSCITA esce 0: ha fallito come doveva, con tutte le iniezioni sul bersaglio

@@ -4371,6 +4371,18 @@ export function raggioPresaTela(tipoPuntatore, passoPx){
   if(!Number.isFinite(p) || !(p > 0)) return base;
   return Math.max(8, Math.min(base, 0.5 * p));
 }
+/* Un tocco è un TOCCO, o è l'inizio di una passata? Lo decide quanto si è
+   mosso il dito fra quando si posa e quando si alza: meno di `sogliaPx` (10 px
+   di schermo, se non detto) è un tocco. Serve alla pianta: col dito un foro
+   nuovo nasce quando il dito SI ALZA senza essersi mosso, non quando si posa —
+   se no una passata per scorrere la pagina ne creava uno (misurato). Coordinate
+   non leggibili non sono un tocco: nel dubbio non si crea niente. */
+export function eUnTocco(x0, y0, x1, y1, sogliaPx){
+  const s = Number.isFinite(+sogliaPx) && +sogliaPx > 0 ? +sogliaPx : 10;
+  const dx = +x1 - +x0, dy = +y1 - +y0;
+  if(!Number.isFinite(dx) || !Number.isFinite(dy)) return false;
+  return Math.hypot(dx, dy) < s;
+}
 /* Le voci di una legenda disposte su più righe: `larghezze` sono le
    larghezze a schermo delle voci (già col loro spazio), `larghezzaMax` è
    quanto è larga la riga. Va a capo quando la voce non ci sta; una voce più
