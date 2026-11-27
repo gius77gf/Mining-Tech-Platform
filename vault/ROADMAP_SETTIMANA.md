@@ -2780,6 +2780,23 @@
   bottone largo esattamente quanto lo schermo non esce. ⏱️ Dalla stessa
   misura, NON fatto qui: quei comandi sono alti 26-32 px, sotto i 44 che
   servono a un dito — è la prossima unità.
+- [x] **Genesi — i comandi del Progetto 2D alti quanto un dito** *(27/11,
+  un pezzo di E7: l'allineamento del 2D al core)*: misurando i margini è
+  uscito che **49 comandi su 71** della schermata erano sotto i 44×44 px che
+  lo stile condiviso chiama `--tap`: intestazioni delle sezioni 36 px,
+  strumenti 30, comandi in fondo 32 e 26-27, annulla e ripeti 32×32, e
+  l'occhio e il lucchetto di ogni livello **17×17**. Alzato il BERSAGLIO
+  (altezza e larghezza minime), non il carattere né i colori: da 49 a 0
+  sotto misura, a 430 e a 320 px; la pagina si allunga di circa 390 px. A
+  320 px gli strumenti prendono la riga intera, e annulla, ripeti e «Reset
+  fronte» stanno insieme su quella sotto (prima «ripeti» andava a capo da
+  solo). Le regole stanno in fondo al foglio della pagina, dove vincono la
+  cascata. Stesso banco `genesi-colonna-progetto.mjs`, una domanda in più:
+  15 → 19 controlli, 6 difetti rimessi su 6, cadono 12. Scatti a 430 e 320
+  guardati prima e dopo. ⚠️ Non guardati: i comandi che compaiono solo in
+  certi momenti (strumenti sulla selezione e sui tratti — hanno la stessa
+  classe e quindi la stessa regola, ma il banco non li fa comparire), i
+  comandi dentro le finestre, la Home e la scena 3D.
 - [ ] **Genesi → Campo — il piano di carico CSV non protegge l'id del foro**
   ⏸️ *fuori dal mandato «solo Genesi»: la riga la compone `pianoCsvGenesi`
   in `shared/dw-ponti.js`, e Campo la ricompone e la rilegge con
@@ -6436,6 +6453,13 @@ numero scritto dove non era stato misurato niente**.*
       PRIMA di misurare.
 - [ ] **E7.** Genesi — allineamento delle parti 2D/HUD al core (la scena 3D
       resta come sta: è un'altra cosa).
+      ⏱️ *27/11: fatti due pezzi sul Progetto 2D — la colonna (i comandi in
+      fondo andavano da bordo a bordo) e i bersagli di tocco (49 comandi su
+      71 sotto i 44 px) — vedi le due voci chiuse «Genesi — gli ultimi comandi
+      del Progetto 2D…» e «Genesi — i comandi del Progetto 2D alti quanto un
+      dito». Restano da misurare con le stesse due domande: la Home, le
+      finestre (confronto, riconciliazione, Sentinella…) e i comandi sopra
+      la scena 3D.*
 - [ ] **E8.** Verifica finale: le sette pagine affiancate devono sembrare la
       stessa famiglia.
       ✅ **La METÀ misurabile è chiusa l'09/08 ed è dentro il giro**:

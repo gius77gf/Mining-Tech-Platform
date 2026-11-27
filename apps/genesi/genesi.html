@@ -757,6 +757,22 @@ body.scr-sim #tl{bottom:80px}
 }
 #btnParams{display:none}
 @media (max-width:760px){#btnParams{display:inline-block}}
+/* ⛔ 27/11 — I COMANDI DEL PROGETTO 2D ALTI QUANTO UN DITO. Misurato: 49 comandi su 71 della
+   schermata erano sotto i 44×44 px che il resto della casa pretende (`--tap` nello stile
+   condiviso): le intestazioni delle sezioni 36, gli strumenti 30, i comandi in fondo 32 e
+   26-27, annulla/ripeti 32×32 — e l'occhio e il lucchetto di ogni livello **17×17**, cioè il
+   comando che in cava si tocca col guanto. Qui si alza il BERSAGLIO; carattere, colori e
+   bordi restano quelli. Sta in fondo al foglio di proposito: a parità di peso vince l'ultima
+   regola, e più su `.dl-tog` dichiara ancora i suoi 38 px. */
+#scr-design>.btn,#d2-altri .btn,#d2-cta,.dc-sec-h,.dl-tog,.dt-reset,.dc-mat{min-height:44px}
+.dt-seg button{min-height:44px;min-width:44px}
+.dt-undo{width:44px;height:44px}
+.ds-occhio,.ds-lucchetto{min-width:44px;min-height:44px;padding:0}
+.ds-chip{padding:0 2px 0 12px;gap:0}
+/* a 320 px gli strumenti non stanno più su una riga con annulla e ripeti (già prima «ripeti»
+   andava a capo da solo): gli strumenti prendono la riga intera, e annulla, ripeti e «Reset
+   fronte» stanno insieme su quella sotto. */
+@media(max-width:340px){ #d2-tools .dt-seg{flex:1 1 100%;display:flex} #d2-tools .dt-seg button{flex:1;padding-left:4px;padding-right:4px} }
 </style>
 </head>
 <body class="scr-home">

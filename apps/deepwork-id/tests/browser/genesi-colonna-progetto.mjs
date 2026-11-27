@@ -28,9 +28,18 @@
    I rettangoli orizzontali non dipendono da quanto si è scorso in verticale:
    si misurano tutti senza scorrere.
 
-   ⚠️ CHE COSA NON GUARDA: l'altezza dei comandi (molti sono sotto i 44 px che
-   servono a un dito: misurato lo stesso giorno, è un'unità a sé) e le altre
-   schermate di Genesi. */
+   E, DALLA STESSA GIORNATA, LA DOMANDA SUL DITO. Misurando i margini è uscito
+   che 49 comandi su 71 erano sotto i 44×44 px che il resto della casa pretende
+   (`--tap` nello stile condiviso): intestazioni delle sezioni 36, strumenti 30,
+   comandi in fondo 32 e 26-27, annulla e ripeti 32×32, e l'occhio e il
+   lucchetto di ogni livello 17×17. A 430 e a 320 px ogni comando visibile deve
+   offrire un bersaglio di almeno 44×44: il suo rettangolo, o quello
+   dell'etichetta che lo avvolge.
+
+   ⚠️ CHE COSA NON GUARDA: i comandi che compaiono solo in certi momenti (gli
+   strumenti sui fori selezionati e sui tratti: hanno la stessa classe di
+   «Reset fronte», quindi la stessa regola, ma qui non vengono fatti
+   comparire), i comandi dentro le finestre, e le altre schermate di Genesi. */
 import { createServer } from "node:http";
 import { readFileSync, existsSync, statSync, writeFileSync, unlinkSync } from "node:fs";
 import { join, extname } from "node:path";
@@ -51,6 +60,10 @@ const DIFETTI = [
   [`#d2-altri{width:100%;max-width:560px;margin:8px auto 0;padding:0 14px}`, `#d2-altri{display:contents}`],
   [`#scr-design>.btn{max-width:calc(100% - 28px);white-space:normal}`, ``],
   [`#d2-altri .d2-ab{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}`, `#d2-altri .d2-ab{display:flex;gap:8px}`],
+  /* il dito: i comandi tornano bassi, e l'occhio e il lucchetto tornano 17×17 */
+  [`#scr-design>.btn,#d2-altri .btn,#d2-cta,.dc-sec-h,.dl-tog,.dt-reset,.dc-mat{min-height:44px}`, ``],
+  [`.ds-occhio,.ds-lucchetto{min-width:44px;min-height:44px;padding:0}`, ``],
+  [`@media(max-width:340px){ #d2-tools .dt-seg{flex:1 1 100%;display:flex} #d2-tools .dt-seg button{flex:1;padding-left:4px;padding-right:4px} }`, ``],
 ];
 
 const colpiti = new Set();
@@ -137,6 +150,32 @@ dice(nomi.larghi.every((l) => l && l[0] === nomi.colonna[0] && l[1] === nomi.col
   `a 430 px riconciliazione, signature-hole, legge di sito e Sentinella hanno gli stessi margini della scheda volata (${nomi.colonna.join(" e ")} px): erano 0 e 0`, JSON.stringify(nomi));
 dice(nomi.scatti.every((l) => l && l[0] >= nomi.colonna[0] && l[1] >= nomi.colonna[1]),
   "e i due scatti A/B col confronto stanno dentro la stessa colonna («Salva come A» partiva da 0)", JSON.stringify(nomi.scatti));
+
+/* ── il dito: ogni comando visibile offre almeno 44×44 px ── */
+const TOCCO = 44;
+const bersagli = () => pg.evaluate((TOCCO) => {
+  const S = document.getElementById("scr-design"); let n = 0; const piccoli = [];
+  for (const e of S.querySelectorAll("button, input, select, textarea, a[href], summary")) {
+    const r = e.getBoundingClientRect(); if (r.width < 1 || r.height < 1) continue;
+    const cs = getComputedStyle(e); if (cs.visibility === "hidden" || cs.display === "none") continue;
+    n++;
+    const lab = e.closest("label"), rl = lab ? lab.getBoundingClientRect() : r;
+    const w = Math.max(r.width, rl.width), h = Math.max(r.height, rl.height);
+    if (w < TOCCO - 0.5 || h < TOCCO - 0.5) piccoli.push(`${(e.id || e.className || e.tagName).toString().slice(0, 24)} ${Math.round(w)}×${Math.round(h)}`);
+  }
+  return { n, piccoli };
+}, TOCCO);
+for (const w of [430, 320]) {
+  await pg.setViewportSize({ width: w, height: 900 }); await pg.waitForTimeout(400);
+  const q = await bersagli();
+  dice(q.n >= 60 && q.piccoli.length === 0, `⛔ a ${w} px ognuno dei ${q.n} comandi offre un bersaglio di almeno ${TOCCO}×${TOCCO} px (erano 49 sotto misura su 71)`, `${q.piccoli.length} sotto misura: ` + q.piccoli.slice(0, 10).join(" · "));
+}
+/* i due più piccoli di prima, per nome: l'occhio e il lucchetto di un livello */
+const occhio = await pg.evaluate(() => [".ds-occhio", ".ds-lucchetto"].map((sel) => { const e = document.querySelector("#d2-strati " + sel); if (!e) return null; const r = e.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; }));
+dice(occhio.every((x) => x && x[0] >= TOCCO && x[1] >= TOCCO), `l'occhio e il lucchetto di un livello sono ${JSON.stringify(occhio)} px: erano 17×17 e 20×17`, JSON.stringify(occhio));
+/* e a 320 px gli strumenti hanno la riga per sé: annulla e ripeti stanno INSIEME sulla riga sotto */
+const riga = await pg.evaluate(() => { const t = (id) => Math.round(document.getElementById(id).getBoundingClientRect().top); return { fori: t("dtFori"), tratto: t("dtTratto"), annulla: t("d2Undo"), ripeti: t("d2Redo") }; });
+dice(riga.fori === riga.tratto && riga.annulla === riga.ripeti && riga.annulla > riga.fori, "a 320 px i quattro strumenti stanno su una riga, e annulla e ripeti insieme su quella sotto (prima «ripeti» andava a capo da solo)", JSON.stringify(riga));
 
 dice(pg.__err.length === 0, "la pagina non solleva errori", pg.__err.slice(0, 2));
 if (CONTROPROVA) {
