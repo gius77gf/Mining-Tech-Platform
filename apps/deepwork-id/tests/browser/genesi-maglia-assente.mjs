@@ -64,8 +64,8 @@ const DIFETTI_DOCUMENTI = [
    "Pianta non disegnabile: manca '+_rEsc(D2.magliaAssente)+'. Nessun foro"],
   /* 27/11 — la tela: la frase torna scritta in punti della tela, cioè alta 4-6 px sul telefono */
   ["apps/genesi/genesi.html",
-   "      const k = scalaTestoTela(W, cv.getBoundingClientRect().width);\n      c0.fillStyle='#1c150b';",
-   "      const k = 1;\n      c0.fillStyle='#1c150b';"],
+   "  const kT=scalaTestoTela(cv.width, cv.getBoundingClientRect().width), W=cv.width/kT;",
+   "  const kT=1, W=cv.width/kT;"],
 ];
 
 const colpiti = new Set();

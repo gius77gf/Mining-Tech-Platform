@@ -42,7 +42,7 @@ const DIFETTI = [
        griglia: chi sta chiudendo una polilinea sul fronte importato vuole
        il punto ESATTO del rilievo, non il nodo più vicino della griglia.
        10 px di tolleranza, nelle unità della mappa alla scala corrente. */
-    const estremo=puntoSnapEstremo(estremiDisegno(D2.profilo, D2.piede, D2.tratti), mx, my, 10/D2._m.scale);
+    const estremo=puntoSnapEstremo(estremiDisegno(D2.profilo, D2.piede, D2.tratti), mx, my, 10*D2._m.u/D2._m.scale);
     if(estremo){ mx=estremo.x; my=estremo.y; } else { mx=_snapXY(D2, mx); my=_snapXY(D2, my); }`,
    `let mx=(p.x-D2._m.startX)/D2._m.scale, my=(p.y-D2._m.faceY)/D2._m.scale;
     mx=_snapXY(D2, mx); my=_snapXY(D2, my);`],

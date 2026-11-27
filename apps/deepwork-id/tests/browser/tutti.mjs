@@ -514,6 +514,14 @@ const BANCHI = [
   ['autore della volata di Genesi · controprova', 'genesi-autore-volata.mjs', ['--controprova'], true],
   ["Genesi: ogni comando del Progetto 2D sta nella colonna della pagina", 'genesi-colonna-progetto.mjs', []],
   ['colonna del Progetto 2D di Genesi · controprova', 'genesi-colonna-progetto.mjs', ['--controprova'], true],
+  /* 27/11 — la pianta di Genesi era scritta in punti di tela: su un telefono il numero di un
+     foro usciva alto 2,7 px e un tocco a 6 px dal centro di un foro ne creava uno nuovo. Il
+     banco chiede al browser che cosa è stato scritto sulla tela (testi e cerchi, con la loro
+     trasformazione) e tocca col dito. Due controprove: la radice (la pianta torna in punti)
+     e i sei dettagli, rimessi UNO PER VOLTA — insieme uno solo ne copriva quattro. */
+  ["Genesi: la pianta si legge e si tocca sullo schermo vero", 'genesi-pianta-schermo.mjs', []],
+  ['pianta sullo schermo di Genesi · controprova', 'genesi-pianta-schermo.mjs', ['--controprova'], true],
+  ['pianta sullo schermo di Genesi · controprova dei dettagli', 'genesi-pianta-schermo.mjs', ['--controprova=dettagli'], true],
   [".chg: larghezza minima nel tema del sole (Terra)", 'chg-min-larghezza.mjs', []],
   ['.chg larghezza minima · controprova', 'chg-min-larghezza.mjs', ['--controprova'], true],
   ['.dwg-tab > summary: bersaglio minimo di tocco (Sentinella)', 'dwg-tab-min-tocco.mjs', []],

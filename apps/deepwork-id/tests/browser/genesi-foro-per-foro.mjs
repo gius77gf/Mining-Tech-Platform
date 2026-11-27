@@ -481,8 +481,12 @@ if (prima && prima.colonneTrovate) {
       nota: (document.getElementById("diValNota") || {}).textContent || "", torna: !!document.getElementById("diValProg"), toast: window.__toasts.join(" | "),
       testo: (document.getElementById("d2-insp") || {}).innerText || "", totale: (document.getElementById("dKgTot") || {}).value } ; });
   /* il rombo: il pixel al suo centro, sulla tela, è bianco? */
-  const rombo = (i) => pg.evaluate((i) => { const D = window.__genesi.D2, m = D._m, c = document.getElementById("d2-canvas"), h = D.holes[i];
-    const x = Math.round(m.startX + h.mx * m.scale + 9.5), y = Math.round(m.faceY + h.my * m.scale - 9.5);
+  /* ⏱️ 27/11: la pianta si disegna in px di schermo. Il rombo sta a 9,5 px dal centro per un
+     pallino da 9 (meno, se i fori sono fitti: lo dice `raggioForoTela`), e `m.u` sono i punti
+     di tela per px — le unità in cui si legge un pixel della tela. */
+  const rombo = (i) => pg.evaluate(async (i) => { const D = window.__genesi.D2, m = D._m, c = document.getElementById("d2-canvas"), h = D.holes[i];
+    const { raggioForoTela } = await import("./genesi-data.js"); const u = m.u || 1, lato = 9.5 * raggioForoTela(Math.min(D.S, D.bf || D.B) * m.scale / u) / 9 * u;
+    const x = Math.round(m.startX + h.mx * m.scale + lato), y = Math.round(m.faceY + h.my * m.scale - lato);
     const d = c.getContext("2d").getImageData(x, y, 1, 1).data; return d[0] > 235 && d[1] > 235 && d[2] > 235; }, i);
   const num = (t) => +String(t).replace(/\./g, "").replace(",", ".");
 
@@ -1011,7 +1015,12 @@ if (prima && prima.colonneTrovate) {
   st = await pg.evaluate(() => ({ incl: window.__genesi.D2.holes[3].incl, toast: window.__toasts.join(" | "), nota: (document.getElementById("diValNota") || {}).innerText || "", fuoco: (document.activeElement || {}).id || "" }));
   dice(st.incl === 20 && /inclinazione 20° — non più quella del progetto \(10°\)/.test(st.toast), "⛔ scritto 20: il foro ha 20° suoi, e lo dice coi gradi attaccati al numero e l'inclinazione del progetto accanto", st.toast);
   dice(/inclinazione sua/.test(st.nota), "la scheda lo segna («inclinazione sua»)", st.nota);
-  const p20 = await piede(3, P.prof, 20), p10 = await piede(3, P.prof, 10);
+  /* ⏱️ 27/11: il foro 3 è quello SCELTO, e il suo alone bianco adesso è largo in px veri (27
+     px): copre il punto dove stava il piede a 10°, e alone più linea si leggono «ambra».
+     Si guarda la pianta senza la scelta, e poi la si rimette com'era. */
+  const senzaScelta = async (f) => { const era = await pg.evaluate(() => { const D = window.__genesi.D2, e = D.sel; D.sel = -1; window.dispatchEvent(new Event("resize")); return e; }); await pg.waitForTimeout(150);
+    const r = await f(); await pg.evaluate((e) => { window.__genesi.D2.sel = e; window.dispatchEvent(new Event("resize")); }, era); await pg.waitForTimeout(150); return r; };
+  const [p20, p10] = await senzaScelta(async () => [await piede(3, P.prof, 20), await piede(3, P.prof, 10)]);
   dice(p20.ambra && !p10.ambra && p20.px > p10.px + 3, `⛔ sulla pianta il piede di QUEL foro è andato avanti: ${p20.px} px invece di ${p10.px} (dove stava a 10° non c'è più niente)`, [p20, p10]);
   const altri = await piede(5, P.prof, 10);
   dice(altri.ambra, "e gli altri fori hanno il piede dov'era", altri);

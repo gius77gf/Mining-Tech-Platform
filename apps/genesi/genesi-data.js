@@ -4334,8 +4334,58 @@ export function indicePiuVicino(punti, px, py, raggioPx){
    di pagina, resta lì: sedici altri punti di chiamata) diventa qui
    `interpProf(D2.profilo, mx)` diretto, come già fatto per G41. */
 export function activeProf(D2){ return D2.tool==='piede'?D2.piede:D2.profilo; }
-export function d2HitTest(D2, px, py){ if(!D2._m) return -1; return indicePiuVicino(D2.holes.map(h=>puntoTela(D2._m, h.mx, h.my+interpProf(D2.profilo, h.mx))), px, py); }
-export function d2HitTestPt(D2, px, py){ if(!D2._m) return -1; return indicePiuVicino(activeProf(D2).map(q=>puntoTela(D2._m, q.x, q.y)), px, py); }
+export function d2HitTest(D2, px, py, raggioPx){ if(!D2._m) return -1; return indicePiuVicino(D2.holes.map(h=>puntoTela(D2._m, h.mx, h.my+interpProf(D2.profilo, h.mx))), px, py, raggioPx); }
+export function d2HitTestPt(D2, px, py, raggioPx){ if(!D2._m) return -1; return indicePiuVicino(activeProf(D2).map(q=>puntoTela(D2._m, q.x, q.y)), px, py, raggioPx); }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LA PIANTA SI MISURA IN PIXEL DI SCHERMO (27/11)
+   ═══════════════════════════════════════════════════════════════════════
+   La tela della pianta ha 960 punti di larghezza e il foglio la mostra a
+   `width:100%` (al massimo 560 px). Fino a oggi TUTTO era scritto in punti
+   di tela: su un telefono da 320 la tela è larga 292 px, quindi il numero
+   di un foro (corpo 9) usciva alto 2,7 px, le quote 3,3 px, e — misurato
+   premendo — il raggio con cui si prende un foro (18 punti) valeva 5,5 px:
+   un tocco a 6 px dal centro NON selezionava il foro, ne CREAVA uno nuovo.
+   Sul computer la tela è mostrata a 560 px: gli stessi testi erano 5-7 px.
+   Adesso il disegno usa come unità il pixel di schermo (la tela tiene i suoi
+   960 punti per la NITIDEZZA: `scalaTestoTela` è il rapporto fra le due
+   cose), e queste tre funzioni decidono le misure che dipendono da quanto
+   sono fitti i fori e da che cosa li tocca. */
+/* Il raggio del pallino di un foro, in px di schermo: 9 quando c'è posto,
+   più piccolo quando i fori sono fitti (mai meno di 4: sotto non è più un
+   pallino). `passoPx` è la distanza a schermo fra due fori vicini. Un passo
+   non leggibile non rimpicciolisce niente. */
+export function raggioForoTela(passoPx){
+  const p = +passoPx;
+  if(!Number.isFinite(p) || !(p > 0)) return 9;
+  return Math.max(4, Math.min(9, 0.4 * p));
+}
+/* Il raggio entro cui un tocco PRENDE un foro invece di crearne uno nuovo,
+   in px di schermo. Col dito 22 (un bersaglio da 44 px), col mouse o la
+   penna 14; ma mai più di metà del passo fra i fori — se no fra due fori
+   vicini non resterebbe un punto in cui metterne uno nuovo — e mai meno di
+   8. Un puntatore che non si dichiara è trattato come il mouse. */
+export function raggioPresaTela(tipoPuntatore, passoPx){
+  const base = tipoPuntatore === 'touch' ? 22 : 14;
+  const p = +passoPx;
+  if(!Number.isFinite(p) || !(p > 0)) return base;
+  return Math.max(8, Math.min(base, 0.5 * p));
+}
+/* Le voci di una legenda disposte su più righe: `larghezze` sono le
+   larghezze a schermo delle voci (già col loro spazio), `larghezzaMax` è
+   quanto è larga la riga. Va a capo quando la voce non ci sta; una voce più
+   larga della riga resta sola sulla sua. Restituisce gli INDICI, riga per
+   riga: chi disegna sa già che cosa sono. */
+export function righeDiVoci(larghezze, larghezzaMax){
+  const max = +larghezzaMax, righe = []; let riga = [], x = 0;
+  (Array.isArray(larghezze) ? larghezze : []).forEach((w, i) => {
+    const ww = +w; if(!Number.isFinite(ww) || ww < 0) return;
+    if(riga.length && Number.isFinite(max) && max > 0 && x + ww > max){ righe.push(riga); riga = []; x = 0; }
+    riga.push(i); x += ww;
+  });
+  if(riga.length) righe.push(riga);
+  return righe;
+}
 
 /* ═══════════════════════════════════════════════════════════════════════
    G30 · LO SCATTO DEI PROFILI E LE ALTEZZE DEI FORI DAL PIEDE (11/09,

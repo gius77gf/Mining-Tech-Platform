@@ -40,7 +40,7 @@ const TIPI = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/jav
    di trascinamento dei FORI: gli altri usi di `d2AlignGuide` (dichiarazione,
    disegno) restano, ma la variabile non viene mai valorizzata. */
 const DIFETTI = [
-  [`  d2AlignGuide=null; const tolAY=6/D2._m.scale;
+  [`  d2AlignGuide=null; const tolAY=6*D2._m.u/D2._m.scale;
   for(let k=0;k<D2.holes.length;k++){ if(k===d2drag) continue; const oy=D2.holes[k].my; if(Math.abs(oy-my)<=tolAY){ d2AlignGuide=oy; break; } }`,
    `  d2AlignGuide=null;`],
 ];

@@ -1391,7 +1391,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, reliefCls, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino, activeProf, d2HitTest, d2HitTestPt,
-         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfLeggi, dxfFraseNonLette, DXF_FRECCIA_ARCO_M, fraseMagliaAssente, scalaTestoTela, valoriPropriDiForo, valoreDiForo, scostamentoPiedeForo, foriPropriPerFoglio, valoreProgettoDaFile, foriFuoriDalForoTipo, avvisoForoTipo, CAMPI_DELLA_GITTATA, CAMPI_DELLA_PEZZATURA, LIMITI_PER_FORO, foriConValoreProprio, foriSenzaValoriPropri, valoreComuneDiFori, contaValoriPropri, tabellaFori, valoriPerForoDaPiano, capienzaFori, MARGINE_CAPIENZA_FORO, scartoCaricheProprie, scartoProfonditaProprie, caricaProgettoDaTotale, firmaMaglia, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, foriRiflessi, trattiRuotati, trattiScalati, coordinataRelativa, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
+         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfLeggi, dxfFraseNonLette, DXF_FRECCIA_ARCO_M, fraseMagliaAssente, scalaTestoTela, raggioForoTela, raggioPresaTela, righeDiVoci, valoriPropriDiForo, valoreDiForo, scostamentoPiedeForo, foriPropriPerFoglio, valoreProgettoDaFile, foriFuoriDalForoTipo, avvisoForoTipo, CAMPI_DELLA_GITTATA, CAMPI_DELLA_PEZZATURA, LIMITI_PER_FORO, foriConValoreProprio, foriSenzaValoriPropri, valoreComuneDiFori, contaValoriPropri, tabellaFori, valoriPerForoDaPiano, capienzaFori, MARGINE_CAPIENZA_FORO, scartoCaricheProprie, scartoProfonditaProprie, caricaProgettoDaTotale, firmaMaglia, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, foriRiflessi, trattiRuotati, trattiScalati, coordinataRelativa, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -6517,18 +6517,44 @@ function drawEnergia2D(ctx,g){
   return { pfNom:+pfNom.toFixed(3), pmin:+pmin.toFixed(3), pmax:+pmax.toFixed(3),
            fuori:H.length-conta.ok, n:H.length, conta };
 }
-function drawEnergiaLegenda(ctx,g,info){
-  if(!info) return;
-  const voci=LEGENDA_ENERGIA;   // derivata dalle soglie di pfCls (G30): un numero solo, non due copie
-  const y=g.Hc-32;
+/* 27/11 — LE LEGENDE VANNO A CAPO. Erano una riga sola pensata per 960 punti di
+   tela: adesso che la pianta si misura in px di schermo, su un telefono la riga
+   è larga 250 px e la legenda ne chiede 500. `_legendaVoci` dice che cosa c'è
+   da scrivere (titolo e voci, per la vista accesa), `_legendaRighe` le dispone
+   con `righeDiVoci` del modulo, e `drawDesign2D` chiede PRIMA quante righe sono
+   per lasciare loro il posto sotto la maglia: una legenda che va a capo sopra i
+   fori sarebbe peggio di una tagliata. */
+function _legendaVoci(pfNom){
+  if(D2.rel){
+    const lo=D2.relLo||5, hi=Math.max(lo+0.5,D2.relHi||15);
+    return { tit:'RELIEF ms/m', forma:'tondo', col:RELCOL,
+      voci:[['bad','< '+fmtMs(lo*0.6)],['warn',fmtMs(lo*0.6)+'–'+fmtMs(lo)],['ok',fmtMs(lo)+'–'+fmtMs(hi)+' in finestra'],['hi','> '+fmtMs(hi)],['none','faccia libera']] };
+  }
+  if(D2.ene && pfNom!=null) return { tit:'ENERGIA sul progetto ('+fmtKg(pfNom)+' kg/m³)', forma:'quadro', col:ENECOL, voci:LEGENDA_ENERGIA };   // derivata dalle soglie di pfCls (G30): un numero solo, non due copie
+  return null;
+}
+function _legendaRighe(ctx, leg, larghezzaMax){
+  if(!leg) return [];
+  ctx.save();
+  ctx.font="600 10px 'Barlow Condensed',sans-serif"; const wTit=ctx.measureText(leg.tit).width+12;
+  ctx.font="10px 'Barlow',sans-serif"; const passo=leg.forma==='tondo'?24:28;
+  const larg=[wTit].concat(leg.voci.map(v=>ctx.measureText(v[1]).width+passo));
+  ctx.restore();
+  return righeDiVoci(larg, larghezzaMax).map(r=>r.map(i=>({ i, w:larg[i] })));
+}
+function _legendaDisegna(ctx, g, leg, righe){
+  if(!leg || !righe.length) return;
   ctx.save(); ctx.textBaseline='middle'; ctx.textAlign='left';
-  ctx.font="600 10px 'Barlow Condensed',sans-serif"; ctx.fillStyle='#b8a574';
-  const tit='ENERGIA sul progetto ('+fmtKg(info.pfNom)+' kg/m³)';
-  let x=g.padX-18; ctx.fillText(tit, x, y); x+=ctx.measureText(tit).width+12;
-  ctx.font="10px 'Barlow',sans-serif";
-  voci.forEach(v=>{
-    ctx.beginPath(); ctx.rect(x,y-4,9,8); ctx.fillStyle=ENECOL[v[0]]; ctx.shadowColor=ENECOL[v[0]]; ctx.shadowBlur=6; ctx.fill(); ctx.shadowBlur=0;
-    ctx.fillStyle='#9b8a60'; ctx.fillText(v[1], x+14, y); x+=ctx.measureText(v[1]).width+28;
+  righe.forEach((riga, k)=>{
+    const y=g.Hc-32-(righe.length-1-k)*15; let x=g.padX-18;
+    riga.forEach(({i, w})=>{
+      if(i===0){ ctx.font="600 10px 'Barlow Condensed',sans-serif"; ctx.fillStyle='#b8a574'; ctx.fillText(leg.tit, x, y); }
+      else { const v=leg.voci[i-1], c=leg.col[v[0]]; ctx.font="10px 'Barlow',sans-serif";
+        ctx.beginPath(); if(leg.forma==='tondo') ctx.arc(x+4,y,4,0,7); else ctx.rect(x,y-4,9,8);
+        ctx.fillStyle=c; ctx.shadowColor=c; ctx.shadowBlur=6; ctx.fill(); ctx.shadowBlur=0;
+        ctx.fillStyle='#9b8a60'; ctx.fillText(v[1], x+(leg.forma==='tondo'?12:14), y); }
+      x+=w;
+    });
   });
   ctx.restore();
 }
@@ -6580,20 +6606,6 @@ function drawInnesco2D(ctx,g){
   return { nColl, nFuori, tagli:[...tagli] };
 }
 /* legenda della mappa del relief, disegnata sulla pianta (resta anche negli screenshot) */
-function drawReliefLegenda(ctx,g){
-  const lo=D2.relLo||5, hi=Math.max(lo+0.5,D2.relHi||15);
-  const voci=[['bad','< '+fmtMs(lo*0.6)],['warn',fmtMs(lo*0.6)+'–'+fmtMs(lo)],['ok',fmtMs(lo)+'–'+fmtMs(hi)+' in finestra'],['hi','> '+fmtMs(hi)],['none','faccia libera']];
-  const y=g.Hc-32;
-  ctx.save(); ctx.textBaseline='middle'; ctx.textAlign='left';
-  ctx.font="600 10px 'Barlow Condensed',sans-serif"; ctx.fillStyle='#b8a574';
-  let x=g.padX-18; ctx.fillText('RELIEF ms/m', x, y); x+=ctx.measureText('RELIEF ms/m').width+12;
-  ctx.font="10px 'Barlow',sans-serif";
-  voci.forEach(v=>{
-    ctx.beginPath(); ctx.arc(x+4,y,4,0,7); ctx.fillStyle=RELCOL[v[0]]; ctx.shadowColor=RELCOL[v[0]]; ctx.shadowBlur=6; ctx.fill(); ctx.shadowBlur=0;
-    ctx.fillStyle='#9b8a60'; ctx.fillText(v[1], x+12, y); x+=ctx.measureText(v[1]).width+24;
-  });
-  ctx.restore();
-}
 /* forma muckpile per sequenza (5 correzioni verifica: angolo isocrono corretto tanθ=(B·tHole)/(S·tRow),
    range tRow coerenti, balistica con quota h0=H/2, spread laterale V-cut separato, v0 ancorata a heave non a √PF grezzo) */
 function muckShape(){
@@ -6657,10 +6669,19 @@ function muckShape(){
    stava qui è uscito — sedici punti di chiamata, tutti aggiornati a passare
    `D2.profilo` a `interpProf` direttamente. */
 function drawDesign2D(){
-  const cv=$('d2-canvas'); if(!cv) return; const W=cv.width;
-  const H=D2.holes; const padX=54, padTop=66, padBot=56;
+  const cv=$('d2-canvas'); if(!cv) return;
+  /* 27/11 — LA PIANTA SI MISURA IN PX DI SCHERMO. La tela tiene i suoi 960
+     punti (è la nitidezza), ma da qui in giù `W`, i margini, i corpi dei
+     testi e i raggi sono px VERI: `kT` punti di tela per ogni px. Prima era
+     tutto in punti, e sul telefono il numero di un foro usciva alto 2,7 px
+     (vedi `raggioForoTela` nel modulo). Sotto i 420 px di larghezza la
+     pianta è `stretta`: margini più corti e le righe in alto una sotto
+     l'altra, perché affiancate non ci stanno. */
+  const kT=scalaTestoTela(cv.width, cv.getBoundingClientRect().width), W=cv.width/kT;
+  const stretta=W<420;
+  const H=D2.holes; const padX=stretta?34:54, padTop0=stretta?84:66;
   if(!H.length){
-    const c0=cv.getContext('2d'); c0.clearRect(0,0,W,cv.height);
+    const c0=cv.getContext('2d'); c0.setTransform(kT,0,0,kT,0,0); const Hv=cv.height/kT; c0.clearRect(0,0,W,Hv);
     /* G37 — una pianta vuota per assenza di dati non è la stessa cosa di una
        pianta vuota perché non si è ancora disegnato niente: la prima si
        dichiara, altrimenti il vuoto sembra un progetto nuovo invece di un
@@ -6668,15 +6689,14 @@ function drawDesign2D(){
     if(D2.magliaAssente){
       /* 27/11 — due righe, e nella misura VERA: la tela è larga 960 punti e sul
          telefono è mostrata a meno di un terzo, quindi un corpo scritto in punti
-         della tela usciva alto 4 px. `scalaTestoTela` riporta il corpo a quello
-         che si legge sullo schermo (15 e 14 px), a qualunque larghezza. */
-      const k = scalaTestoTela(W, cv.getBoundingClientRect().width);
-      c0.fillStyle='#1c150b'; c0.fillRect(0,0,W,cv.height);
+         della tela usciva alto 4 px. Adesso tutta la pianta si scrive in px di
+         schermo (`kT`, qui sopra): 15 e 14 px, a qualunque larghezza. */
+      c0.fillStyle='#1c150b'; c0.fillRect(0,0,W,Hv);
       c0.textAlign='center'; c0.textBaseline='middle';
-      c0.fillStyle='#ffca28'; c0.font="600 "+(15*k)+"px 'Barlow Condensed',sans-serif";
-      c0.fillText('Pianta non disegnabile', W/2, cv.height/2 - 12*k);
-      c0.fillStyle='#f0e8d8'; c0.font="500 "+(14*k)+"px 'Barlow',sans-serif";
-      c0.fillText(fraseMagliaAssente(D2.magliaAssente), W/2, cv.height/2 + 12*k);
+      c0.fillStyle='#ffca28'; c0.font="600 15px 'Barlow Condensed',sans-serif";
+      c0.fillText('Pianta non disegnabile', W/2, Hv/2 - 12);
+      c0.fillStyle='#f0e8d8'; c0.font="500 14px 'Barlow',sans-serif";
+      c0.fillText(fraseMagliaAssente(D2.magliaAssente), W/2, Hv/2 + 12);
       c0.textBaseline='alphabetic';
     }
     return;
@@ -6691,9 +6711,26 @@ function drawDesign2D(){
   const minY=Math.min(0, ...pieY, ...trattiY);            // il piede sta DAVANTI al fronte (my<0)
   const Wd=Math.max(2,maxx-minx), depthTot=Math.max(2, maxy-minY);
   const scaleW=(W-2*padX)/Wd;
-  const Hc=Math.max(300, Math.min(620, Math.round(padTop+padBot+depthTot*scaleW)));   // canvas adattivo alla maglia
-  if(cv.height!==Hc) cv.height=Hc;
-  const ctx=cv.getContext('2d');
+  /* la legenda della vista accesa (una per volta: due si sovrapporrebbero) e il suggerimento in
+     fondo si misurano PRIMA di impaginare: se vanno a capo, il posto glielo fa `padBot` */
+  const cMis=cv.getContext('2d'); cMis.setTransform(kT,0,0,kT,0,0);
+  const _leg=_legendaVoci(pfNominale(D2)), _legRighe=_legendaRighe(cMis, _leg, W-2*(padX-18));
+  const _sugg=D2.tool==='fori'?'trascina un foro · clic sul vuoto per aggiungerne'
+    :D2.tool==='tratto'?'tocca per aggiungere un punto al tratto · "Fine tratto" per chiuderlo e iniziarne un altro'
+    :('tocca per aggiungere un punto · trascina per modellare il '+(D2.tool==='piede'?'piede':'fronte'));
+  cMis.font="10px 'Barlow',sans-serif";
+  const _suggRighe=cMis.measureText(_sugg).width>W-24 ? _sugg.split(' · ') : [_sugg];
+  const padBot=56+Math.max(0,_legRighe.length-1)*15+(_suggRighe.length-1)*13;
+  /* `bassa`: fra il fronte e la prima fila non c'è il posto per scriverci dentro (meno di 44
+     px: succede sul telefono, dove 25 metri di fronte stanno in 220 px). Allora la scritta
+     del fronte sale SOPRA la linea, su una riga sua, e interasse e spalla si scrivono lì
+     accanto a parole invece che come quote disegnate — che finirebbero sopra i fori. */
+  const _Hc0=Math.max(220, Math.min(620, Math.round(padTop0+padBot+depthTot*scaleW)));
+  const bassa=D2.B*Math.min(scaleW, (_Hc0-padBot-padTop0)/depthTot) < 44;
+  const padTop=padTop0+(bassa?(stretta?20:24):0);
+  const Hc=Math.max(220, Math.min(620, Math.round(padTop+padBot+depthTot*scaleW)));   // canvas adattivo alla maglia (px di schermo)
+  const HcT=Math.round(Hc*kT); if(cv.height!==HcT) cv.height=HcT;
+  const ctx=cv.getContext('2d'); ctx.setTransform(kT,0,0,kT,0,0);
   let bg=ctx.createLinearGradient(0,0,0,Hc); bg.addColorStop(0,'#1c150b'); bg.addColorStop(1,'#0d0a06');
   ctx.fillStyle=bg; ctx.fillRect(0,0,W,Hc);
   const bottomY=Hc-padBot;
@@ -6701,7 +6738,10 @@ function drawDesign2D(){
   const faceY=padTop - minY*scale;                       // FRONTE verso l'alto (my cresce verso il basso, nella roccia)
   const startX=padX + ((W-2*padX)-Wd*scale)/2 - minx*scale;
   const mx2=mx=>startX+mx*scale, my2=my=>faceY+my*scale;
-  D2._m={scale,startX,faceY};
+  /* `D2._m` resta in PUNTI DI TELA, come le coordinate che `d2EvtToCanvas` dà a chi tocca:
+     i conti di chi trascina non cambiano. `u` dice quanti punti vale un px di schermo, per
+     le tolleranze — che sono distanze sotto un dito, non sulla tela. */
+  D2._m={scale:scale*kT, startX:startX*kT, faceY:faceY*kT, u:kT};
   ctx.fillStyle='rgba(255,140,30,.05)';
   ctx.fillRect(mx2(minx)-22, faceY, (maxx-minx)*scale+44, (my2(maxy)-faceY)+16);
   ctx.strokeStyle='rgba(255,210,140,.05)'; ctx.lineWidth=1;
@@ -6744,12 +6784,13 @@ function drawDesign2D(){
     if(t.origine==='dxf') ctx.setLineDash([5,4]);
     ctx.beginPath();
     t.pts.forEach((p,k)=>{ const X=mx2(p.x),Y=my2(p.y); if(k===0)ctx.moveTo(X,Y); else ctx.lineTo(X,Y); }); ctx.stroke(); ctx.restore(); });
-  ctx.fillStyle='#ffab00'; ctx.textAlign='left'; ctx.font="600 12px 'Barlow Condensed',sans-serif"; ctx.fillText('FRONTE — faccia libera', padX-18, faceY+20);
+  ctx.fillStyle='#ffab00'; ctx.textAlign='left'; ctx.font="600 12px 'Barlow Condensed',sans-serif"; ctx.fillText('FRONTE — faccia libera', padX-18, bassa?faceY-9:faceY+20);
   const dimC='#86b0d8'; const fr=H.filter(h=>Math.abs(h.my-D2.B)<0.4).sort((a,b)=>a.mx-b.mx);
-  if(fr.length>=2){ const a=mx2(fr[0].mx), b=mx2(fr[1].mx), yy=my2(D2.B)-15;
+  if(bassa){ ctx.fillStyle=dimC; ctx.textAlign='right'; ctx.font="11px 'Barlow',sans-serif"; ctx.fillText('S '+gfix(D2.S,1)+' m · B '+gfix(D2.B,1)+' m', W-padX+18, faceY-9); }
+  if(!bassa && fr.length>=2){ const a=mx2(fr[0].mx), b=mx2(fr[1].mx), yy=my2(D2.B)-15;
     ctx.strokeStyle=dimC; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(a,yy); ctx.lineTo(b,yy); ctx.stroke();
     ctx.fillStyle=dimC; ctx.textAlign='center'; ctx.font="11px 'Barlow',sans-serif"; ctx.fillText('S '+gfix(D2.S,1)+' m',(a+b)/2,yy-4); }
-  if(fr.length){ const fx=mx2(fr[0].mx)-20; ctx.strokeStyle=dimC; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(fx,faceY); ctx.lineTo(fx,my2(D2.B)); ctx.stroke();
+  if(!bassa && fr.length){ const fx=mx2(fr[0].mx)-20; ctx.strokeStyle=dimC; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(fx,faceY); ctx.lineTo(fx,my2(D2.B)); ctx.stroke();
     ctx.save(); ctx.translate(fx-6,(faceY+my2(D2.B))/2); ctx.rotate(-Math.PI/2); ctx.fillStyle=dimC; ctx.textAlign='center'; ctx.font="11px 'Barlow',sans-serif"; ctx.fillText('B '+gfix(D2.B,1)+' m',0,0); ctx.restore(); }
   /* livelli di lettura (G1/G2): isocrone sotto i fori, cosi i fori restano sempre in primo piano */
   const gGeo={W:W, Hc:Hc, padX:padX, padTop:padTop, bottomY:bottomY, scale:scale, startX:startX, faceY:faceY};
@@ -6758,6 +6799,9 @@ function drawDesign2D(){
   if(D2.iso) isoInfo=drawIsocrone2D(ctx,gGeo);
   if(D2.inn) innInfo=drawInnesco2D(ctx,gGeo);                // la rete sopra i campi, sotto i fori
   const tMax=Math.max(1,D2.lastDet||1), pfRif=pfNominale(D2);
+  /* il pallino è 9 px quando c'è posto e si stringe quando i fori sono fitti (`raggioForoTela`):
+     anelli e rombo lo seguono (`rr`), e sotto i 6,5 px il numero non si scrive — non si leggerebbe */
+  const rF=raggioForoTela(Math.min(D2.S, D2.bf||D2.B)*scale), rr=rF/9;
   if(D2.strati.fori.visibile) H.forEach((h,i)=>{ const cx=mx2(h.mx), cy=my2(h.my+interpProf(D2.profilo, h.mx)), u=(h.tDet||0)/tMax;
     const rcl=reliefCls(D2, h.relief, h.relFuoriFascia);
     /* il pallino del foro prende il colore del livello attivo: il relief ha la
@@ -6776,7 +6820,7 @@ function drawDesign2D(){
       ctx.save(); ctx.strokeStyle=RELCOL[rcl];
       if(rcl==='bad'){ ctx.lineWidth=1.8; ctx.globalAlpha=.95; ctx.shadowColor=RELCOL.bad; ctx.shadowBlur=8; }
       else { ctx.setLineDash([2.5,3.5]); ctx.lineWidth=1.2; ctx.globalAlpha=.6; }
-      ctx.beginPath(); ctx.arc(cx,cy,13.5,0,7); ctx.stroke(); ctx.restore(); }
+      ctx.beginPath(); ctx.arc(cx,cy,13.5*rr,0,7); ctx.stroke(); ctx.restore(); }
     /* G56d (19/09) — un foro senza nessun raccordo che lo raggiunga non
        lascia NESSUN segno su `drawInnesco2D` (che disegna solo le linee,
        mai l'assenza di una linea): sulla pianta era invisibile, uguale a
@@ -6787,29 +6831,39 @@ function drawDesign2D(){
     if(D2.inn && h.innFuoriFascia){
       ctx.save(); ctx.strokeStyle='#ef5350'; ctx.lineWidth=2.2; ctx.globalAlpha=.95;
       ctx.shadowColor='#ef5350'; ctx.shadowBlur=9;
-      ctx.beginPath(); ctx.arc(cx,cy,15.5,0,7); ctx.stroke(); ctx.restore(); }
+      ctx.beginPath(); ctx.arc(cx,cy,15.5*rr,0,7); ctx.stroke(); ctx.restore(); }
     /* F6b (26/11) — il piede sta dove lo porta QUEL foro: la sua lunghezza e la
        sua inclinazione (`scostamentoPiedeForo`). Prima valeva la profondità
        del progetto per tutti, e un foro accorciato mostrava il piede di uno
        lungo. Senza inclinazione nota, o a zero, non si disegna niente. */
     const _piede=scostamentoPiedeForo(h, D2);
-    if(_piede>0){ const off=_piede*scale; ctx.strokeStyle='rgba(255,213,121,.5)'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx,cy-off); ctx.stroke(); ctx.fillStyle='rgba(255,213,121,.85)'; ctx.beginPath(); ctx.arc(cx,cy-off,2.2,0,7); ctx.fill(); }
-    if(i===D2.sel){ ctx.save(); ctx.shadowColor='rgba(255,255,255,.55)'; ctx.shadowBlur=15; ctx.beginPath(); ctx.arc(cx,cy,12,0,7); ctx.fillStyle='rgba(255,255,255,.10)'; ctx.fill(); ctx.restore(); }
+    if(i===D2.sel){ ctx.save(); ctx.shadowColor='rgba(255,255,255,.55)'; ctx.shadowBlur=15; ctx.beginPath(); ctx.arc(cx,cy,12*rr,0,7); ctx.fillStyle='rgba(255,255,255,.10)'; ctx.fill(); ctx.restore(); }
     /* G49 — un anello tratteggiato ciano distingue la selezione multipla
        (destinata a un'azione batch) da quella singola qui sopra (destinata
        all'ispettore): due stati diversi, due segni diversi, mai lo stesso
        anello a dire due cose. */
-    if(D2.selMulti.includes(h.id)){ ctx.save(); ctx.strokeStyle='#4dd8e6'; ctx.lineWidth=2; ctx.setLineDash([3,2]); ctx.beginPath(); ctx.arc(cx,cy,14,0,7); ctx.stroke(); ctx.restore(); }
-    ctx.save(); ctx.shadowColor='rgba(255,150,30,.5)'; ctx.shadowBlur=9; ctx.beginPath(); ctx.arc(cx,cy,9,0,7); ctx.fillStyle=col; ctx.fill(); ctx.restore();
-    ctx.lineWidth=1.5; ctx.strokeStyle=(i===D2.sel)?'#fff':'rgba(20,12,4,.9)'; ctx.beginPath(); ctx.arc(cx,cy,9,0,7); ctx.stroke();
-    ctx.fillStyle='#1a140b'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font="700 9px 'Barlow',sans-serif"; ctx.fillText(((h.seq!=null?h.seq:i)+1), cx, cy); ctx.textBaseline='alphabetic';
+    if(D2.selMulti.includes(h.id)){ ctx.save(); ctx.strokeStyle='#4dd8e6'; ctx.lineWidth=2; ctx.setLineDash([3,2]); ctx.beginPath(); ctx.arc(cx,cy,14*rr,0,7); ctx.stroke(); ctx.restore(); }
+    ctx.save(); ctx.shadowColor='rgba(255,150,30,.5)'; ctx.shadowBlur=9; ctx.beginPath(); ctx.arc(cx,cy,9*rr,0,7); ctx.fillStyle=col; ctx.fill(); ctx.restore();
+    ctx.lineWidth=1.5; ctx.strokeStyle=(i===D2.sel)?'#fff':'rgba(20,12,4,.9)'; ctx.beginPath(); ctx.arc(cx,cy,9*rr,0,7); ctx.stroke();
+    if(rF>=6.5){ ctx.fillStyle='#1a140b'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font="700 "+Math.round(rF)+"px 'Barlow',sans-serif"; ctx.fillText(((h.seq!=null?h.seq:i)+1), cx, cy); ctx.textBaseline='alphabetic'; }
+    /* 27/11 — IL PIEDE SI DISEGNA SOPRA IL PALLINO, non sotto. Finché la pianta era in
+       punti di tela il pallino era piccolo rispetto ai metri (9 punti) e il piede di un foro
+       cadeva quasi sempre fuori. Adesso il pallino è 9 px VERI: su un telefono vale un metro,
+       e il piede di un foro corto (6 m a 10°: un metro) gli finiva SOTTO — il segno per cui
+       F6b esiste spariva proprio dove i fori sono corti. La linea parte dal bordo del
+       pallino (dentro coprirebbe il numero); il puntino, se tocca il pallino, prende un
+       bordo scuro per staccarsene. */
+    if(_piede>0){ const off=_piede*scale;
+      if(off>rF){ ctx.strokeStyle='rgba(255,213,121,.5)'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(cx,cy-rF); ctx.lineTo(cx,cy-off); ctx.stroke(); }
+      ctx.fillStyle='rgba(255,213,121,.95)'; ctx.beginPath(); ctx.arc(cx,cy-off,2.2,0,7); ctx.fill();
+      if(off<rF+2.2){ ctx.lineWidth=1; ctx.strokeStyle='rgba(20,12,4,.9)'; ctx.stroke(); } }
     /* G4 — un foro col ritardo messo a mano si deve riconoscere sulla pianta
        senza doverlo aprire: chi guarda il disegno deve sapere dove lo schema
        è stato scavalcato. */
     if(h.tMano!=null){
       ctx.save(); ctx.strokeStyle='#fff'; ctx.lineWidth=1.4; ctx.globalAlpha=.9;
-      ctx.beginPath(); ctx.arc(cx,cy,12.5,-0.9,0.9); ctx.stroke();
-      ctx.beginPath(); ctx.arc(cx,cy,12.5,Math.PI-0.9,Math.PI+0.9); ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx,cy,12.5*rr,-0.9,0.9); ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx,cy,12.5*rr,Math.PI-0.9,Math.PI+0.9); ctx.stroke();
       ctx.restore();
     }
     /* F3 (26/11) — un foro con un valore SUO (carica, profondità o borraggio
@@ -6818,7 +6872,7 @@ function drawDesign2D(){
        il colore del foro dice già un'altra cosa (la vista scelta), e i due
        archi qui sopra dicono «ritardo a mano»: tre stati, tre segni. */
     if(Object.keys(valoriPropriDiForo(h)).length){
-      const rx=cx+9.5, ry=cy-9.5, q=4.2;
+      const rx=cx+9.5*rr, ry=cy-9.5*rr, q=Math.max(3,4.2*rr);
       ctx.save(); ctx.beginPath(); ctx.moveTo(rx,ry-q); ctx.lineTo(rx+q,ry); ctx.lineTo(rx,ry+q); ctx.lineTo(rx-q,ry); ctx.closePath();
       ctx.fillStyle='#fff'; ctx.fill(); ctx.lineWidth=1.3; ctx.strokeStyle='rgba(20,12,4,.95)'; ctx.stroke(); ctx.restore();
     }
@@ -6854,25 +6908,38 @@ function drawDesign2D(){
     if(Number.isFinite(h.burdenLoc)){
       const y2=scy-h.burdenLoc*scale;                     // il segmento punta al fronte: my decresce
       ctx.beginPath(); ctx.moveTo(scx,scy); ctx.lineTo(scx,y2); ctx.stroke();
-      ctx.fillText('B '+gfix(h.burdenLoc,2)+' m', scx+13, scy+15);
+      if(!bassa) ctx.fillText('B '+gfix(h.burdenLoc,2)+' m', scx+13, scy+15);
     }
     if(Number.isFinite(h.spazLoc)){
       const x2=scx+h.spazLoc*scale;
       ctx.beginPath(); ctx.moveTo(scx,scy); ctx.lineTo(x2,scy); ctx.stroke();
-      ctx.fillText('S '+gfix(h.spazLoc,2)+' m', scx+13, scy+29);
+      if(!bassa) ctx.fillText('S '+gfix(h.spazLoc,2)+' m', scx+13, scy+29);
     }
     ctx.restore();
+    /* 27/11 — pianta `bassa`: sotto il foro c'è subito la fila dopo, e le due quote ci
+       finivano sopra (visto nello scatto a 320). Vanno nella riga libera in alto, quella del
+       punto scelto — che in quel momento non serve: è degli strumenti Fronte e Piede. */
+    if(bassa && !((D2.tool==='fronte'||D2.tool==='piede') && D2.selPt>=0)){
+      const _q=[Number.isFinite(h.burdenLoc)?'B '+gfix(h.burdenLoc,2)+' m':null, Number.isFinite(h.spazLoc)?'S '+gfix(h.spazLoc,2)+' m':null].filter(Boolean);
+      if(_q.length){ ctx.fillStyle='#ffd579'; ctx.textAlign='right'; ctx.font="600 12px 'Barlow Condensed',sans-serif";
+        ctx.fillText('foro '+((h.seq!=null?h.seq:D2.sel)+1)+': '+_q.join(' · '), W-padX, stretta?72:66); }
+    }
   }
-  const sign=D2.dir==='sx'?1:-1, ax0=sign>0?padX:W-padX, ax1=sign>0?padX+110:W-padX-110;
-  ctx.strokeStyle='#66bb6a'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(ax0,34); ctx.lineTo(ax1,34); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(ax1,34); ctx.lineTo(ax1-sign*8,30); ctx.lineTo(ax1-sign*8,38); ctx.fillStyle='#66bb6a'; ctx.fill();
-  ctx.fillStyle='#8fcf92'; ctx.textAlign=sign>0?'left':'right'; ctx.font="11px 'Barlow',sans-serif"; ctx.fillText('sequenza di sparo', sign>0?padX:W-padX, 52);
+  /* le righe in alto. Larga: il riepilogo a destra e la freccia a sinistra stanno sulla stessa
+     riga (30/34), le isocrone a 48, il punto scelto a 66. Stretta: affiancati non ci stanno —
+     il riepilogo ha la riga sua (18), la freccia con la sua scritta ACCANTO la seconda (38),
+     poi le isocrone (56) e il punto scelto (72). */
+  const yRiep=stretta?18:30, yFr=stretta?38:34, yIso=stretta?56:48, yPunto=stretta?72:66, lFr=stretta?46:110;
+  const sign=D2.dir==='sx'?1:-1, ax0=sign>0?padX:W-padX, ax1=sign>0?padX+lFr:W-padX-lFr;
+  ctx.strokeStyle='#66bb6a'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(ax0,yFr); ctx.lineTo(ax1,yFr); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(ax1,yFr); ctx.lineTo(ax1-sign*8,yFr-4); ctx.lineTo(ax1-sign*8,yFr+4); ctx.fillStyle='#66bb6a'; ctx.fill();
+  ctx.fillStyle='#8fcf92'; ctx.textAlign=sign>0?'left':'right'; ctx.font="11px 'Barlow',sans-serif";
+  if(stretta) ctx.fillText('sequenza di sparo', ax1+sign*8, yFr+4); else ctx.fillText('sequenza di sparo', sign>0?padX:W-padX, 52);
   ctx.fillStyle='#f0e8d8'; ctx.textAlign='right'; ctx.font="600 12px 'Barlow Condensed',sans-serif";
-  ctx.fillText(_ricPlur(H.length,'foro','fori')+' · '+D2.file+(D2.file>1?' file':' fila')+' · '+(selInnesco()?selInnesco().short:'Nonel')+' '+D2.ritardo+' ms', W-padX, 30);
+  ctx.fillText(_ricPlur(H.length,'foro','fori')+' · '+D2.file+(D2.file>1?' file':' fila')+' · '+(selInnesco()?selInnesco().short:'Nonel')+' '+D2.ritardo+' ms', W-padX, yRiep);
   if(isoInfo){ ctx.fillStyle=isoColore(.35); ctx.textAlign='right'; ctx.font="600 11px 'Barlow Condensed',sans-serif";
-    ctx.fillText('isocrone ogni '+isoInfo.passo+' ms · ultimo foro a '+Math.round(D2.lastDet||0)+' ms', W-padX, 48); }
-  if(D2.rel) drawReliefLegenda(ctx,gGeo);
-  else if(D2.ene) drawEnergiaLegenda(ctx,gGeo,eneInfo);      // una legenda per volta in fondo alla pianta: due si sovrapporrebbero
+    ctx.fillText('isocrone ogni '+isoInfo.passo+' ms · ultimo foro a '+Math.round(D2.lastDet||0)+' ms', W-padX, yIso); }
+  if(D2.rel || eneInfo) _legendaDisegna(ctx,gGeo,_leg,_legRighe);      // una legenda per volta in fondo alla pianta: due si sovrapporrebbero
   if(D2.tool==='fronte'||D2.tool==='piede'){ const arr=activeProf(D2); arr.forEach((p,k)=>{ const X=mx2(p.x), Y=my2(p.y); ctx.beginPath(); ctx.arc(X,Y,7,0,7); ctx.fillStyle=(k===D2.selPt)?'#fff':(D2.tool==='piede'?'#ffe27a':'#ffd54f'); ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle='#ff6d00'; ctx.stroke(); }); }
   if(D2.tool==='tratto'){ const ultimo=D2.tratti[D2.tratti.length-1]; if(ultimo && ultimo.aperto) ultimo.pts.forEach(p=>{ const X=mx2(p.x), Y=my2(p.y); ctx.beginPath(); ctx.arc(X,Y,5,0,7); ctx.fillStyle='#8cbedc'; ctx.fill(); ctx.lineWidth=1.5; ctx.strokeStyle='#1c150b'; ctx.stroke(); });
     /* G48 — l'anello verde dice "qui il prossimo click si aggancia a un
@@ -6899,17 +6966,24 @@ function drawDesign2D(){
   if((D2.tool==='fronte'||D2.tool==='piede') && D2.selPt>=0){
     const arr=activeProf(D2), p=arr[D2.selPt];
     if(p){ ctx.fillStyle='#ffd579'; ctx.textAlign='right'; ctx.font="600 12px 'Barlow Condensed',sans-serif";
-      ctx.fillText('punto selezionato: x '+gfix(p.x,2)+' m · y '+gfix(p.y,2)+' m', W-padX, 66); } }
+      ctx.fillText('punto selezionato: x '+gfix(p.x,2)+' m · y '+gfix(p.y,2)+' m', W-padX, yPunto); } }
   ctx.fillStyle='#7a6a44'; ctx.textAlign='center'; ctx.font="10px 'Barlow',sans-serif";
-  ctx.fillText(D2.tool==='fori'?'trascina un foro · clic sul vuoto per aggiungerne'
-    :D2.tool==='tratto'?'tocca per aggiungere un punto al tratto · "Fine tratto" per chiuderlo e iniziarne un altro'
-    :('tocca per aggiungere un punto · trascina per modellare il '+(D2.tool==='piede'?'piede':'fronte')), W/2, Hc-12);
+  _suggRighe.forEach((t,k)=> ctx.fillText(t, W/2, Hc-12-(_suggRighe.length-1-k)*13));
 }
 /* ⛔ Trasloco B3 (14/09): `activeProf`, `d2HitTest` e `d2HitTestPt` sono
    usciti insieme in `./genesi-data.js` — `d2HitTest`/`d2HitTestPt` componevano
    `puntoTela`/`indicePiuVicino` (già pure) e `activeProf`, quindi non
    potevano cambiare firma da sole. `D2` come primo argomento esplicito. */
 function d2EvtToCanvas(e){ const cv=$('d2-canvas'); const r=cv.getBoundingClientRect(); return { x:(e.clientX-r.left)*(cv.width/r.width), y:(e.clientY-r.top)*(cv.height/r.height) }; }
+/* 27/11 — il raggio entro cui un tocco PRENDE qualcosa, in punti di tela (le unità di
+   `d2EvtToCanvas`). Lo decide `raggioPresaTela` in px di schermo: col dito 22, col mouse 14, e
+   per i fori mai più di metà del loro passo. Prima era 18 punti fissi — 5,5 px su un telefono
+   da 320: un tocco a 6 px dal centro di un foro ne creava uno nuovo. */
+function _presaPx(e, fori){
+  const m=D2._m; if(!m) return undefined;
+  const passo=fori ? Math.min(D2.S, D2.bf||D2.B)*m.scale/m.u : null;
+  return raggioPresaTela(e && e.pointerType, passo)*m.u;
+}
 let d2drag=-1;
 let d2dragPt=-1;
 /* G48 — il punto (in metri) su cui il prossimo click del tratto scatterebbe,
@@ -7006,7 +7080,7 @@ function d2Down(e){ const p=d2EvtToCanvas(e);
        griglia: chi sta chiudendo una polilinea sul fronte importato vuole
        il punto ESATTO del rilievo, non il nodo più vicino della griglia.
        10 px di tolleranza, nelle unità della mappa alla scala corrente. */
-    const estremo=puntoSnapEstremo(estremiDisegno(D2.profilo, D2.piede, D2.tratti), mx, my, 10/D2._m.scale);
+    const estremo=puntoSnapEstremo(estremiDisegno(D2.profilo, D2.piede, D2.tratti), mx, my, 10*D2._m.u/D2._m.scale);
     if(estremo){ mx=estremo.x; my=estremo.y; } else { mx=_snapXY(D2, mx); my=_snapXY(D2, my); }
     d2PushUndo();
     const ultimo=D2.tratti[D2.tratti.length-1];
@@ -7014,10 +7088,10 @@ function d2Down(e){ const p=d2EvtToCanvas(e);
     else D2.tratti.push({pts:[{x:+mx.toFixed(2),y:+my.toFixed(2)}], aperto:true});
     e.preventDefault(); drawDesign2D(); renderScheda2D(); syncTrattoUI(); return;
   }
-  if(D2.tool==='fronte'||D2.tool==='piede'){ const arr=activeProf(D2); let k=d2HitTestPt(D2, p.x,p.y);
+  if(D2.tool==='fronte'||D2.tool==='piede'){ const arr=activeProf(D2); let k=d2HitTestPt(D2, p.x,p.y, _presaPx(e, false));
     if(k<0 && D2._m){ d2PushUndo(); d2dragPushed=true; const mx=_snapXY(D2, (p.x-D2._m.startX)/D2._m.scale), my=_snapXY(D2, (p.y-D2._m.faceY)/D2._m.scale); arr.push({x:+mx.toFixed(2),y:+my.toFixed(2)}); k=arr.length-1; }
     D2.selPt=k; d2dragPt=k; e.preventDefault(); drawDesign2D(); renderScheda2D(); return; }
-  let i=d2HitTest(D2, p.x,p.y);
+  let i=d2HitTest(D2, p.x,p.y, _presaPx(e, true));
   /* G49 — Maiusc+clic su un foro ESISTENTE lo aggiunge/toglie dalla
      selezione multipla, senza toccare né il click singolo (D2.sel, sotto)
      né la creazione di un foro nuovo su spazio vuoto (che resta il gesto
@@ -7032,7 +7106,7 @@ function d2Down(e){ const p=d2EvtToCanvas(e);
   }
   if(!e.shiftKey && D2.selMulti.length){ D2.selMulti=[]; syncSelMultiUI(); }
   if(i<0 && D2._m){ const mx=_snapXY(D2, (p.x-D2._m.startX)/D2._m.scale), my=_snapXY(D2, (p.y-D2._m.faceY)/D2._m.scale);
-    if(my>0.2 && p.x>20 && p.x<($('d2-canvas').width-20)){ d2PushUndo(); d2dragPushed=true; D2.holes.push({id:idForoNuovo(D2.holes), mx:+mx.toFixed(2), my:+Math.max(0.3,my).toFixed(2)}); i=D2.holes.length-1; computeSeq2D(); } }
+    if(my>0.2 && p.x>20*D2._m.u && p.x<($('d2-canvas').width-20*D2._m.u)){ d2PushUndo(); d2dragPushed=true; D2.holes.push({id:idForoNuovo(D2.holes), mx:+mx.toFixed(2), my:+Math.max(0.3,my).toFixed(2)}); i=D2.holes.length-1; computeSeq2D(); } }
   /* G34quinquies (13/09) — memoria dell'ultima selezione, per la misura fra
      due fori qualunque (non solo il più vicino): si aggiorna solo quando la
      selezione cambia DAVVERO su un foro esistente, mai su un ri-clic dello
@@ -7049,7 +7123,7 @@ function d2Move(e){
   if(D2.tool==='tratto' && D2._m){
     const p=d2EvtToCanvas(e);
     const mx=(p.x-D2._m.startX)/D2._m.scale, my=(p.y-D2._m.faceY)/D2._m.scale;
-    d2HoverSnap=puntoSnapEstremo(estremiDisegno(D2.profilo, D2.piede, D2.tratti), mx, my, 10/D2._m.scale);
+    d2HoverSnap=puntoSnapEstremo(estremiDisegno(D2.profilo, D2.piede, D2.tratti), mx, my, 10*D2._m.u/D2._m.scale);
     drawDesign2D();
   }
   if(d2dragPt>=0 && D2._m){ if(!d2dragPushed){ d2PushUndo(); d2dragPushed=true; } e.preventDefault(); const p=d2EvtToCanvas(e); const arr=activeProf(D2); let mx=(p.x-D2._m.startX)/D2._m.scale, my=(p.y-D2._m.faceY)/D2._m.scale; my=Math.max(-D2.B*1.2,Math.min(D2.B*1.6,my)); mx=_snapXY(D2, mx); my=_snapXY(D2, my); if(arr[d2dragPt]) arr[d2dragPt]={x:+mx.toFixed(2),y:+my.toFixed(2)}; drawDesign2D(); renderScheda2D(); return; }
@@ -7058,7 +7132,7 @@ function d2Move(e){
      stesso: si trascinerebbe sempre "allineato a sé"), tolleranza in px
      schermo come G48 (10/scale), qui un po' più stretta perché qui
      l'allineamento è per righe intere, non per un punto preciso. */
-  d2AlignGuide=null; const tolAY=6/D2._m.scale;
+  d2AlignGuide=null; const tolAY=6*D2._m.u/D2._m.scale;
   for(let k=0;k<D2.holes.length;k++){ if(k===d2drag) continue; const oy=D2.holes[k].my; if(Math.abs(oy-my)<=tolAY){ d2AlignGuide=oy; break; } }
   D2.holes[d2drag].mx=+mx.toFixed(2); D2.holes[d2drag].my=+my.toFixed(2); computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector(); }
 function d2Up(){ if(d2AlignGuide!=null){ d2AlignGuide=null; drawDesign2D(); } d2drag=-1; d2dragPt=-1; }
@@ -8961,10 +9035,9 @@ addEventListener('resize', ()=>{
   cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
   if(composer) composer.setSize(innerWidth, innerHeight);
-  /* 27/11 — la frase «pianta non disegnabile» è scritta nella misura dello schermo: se lo
-     schermo cambia larghezza (il telefono che ruota) va riscritta, e su una pianta senza
-     fori nessun altro gesto la ridisegnerebbe */
-  if(D2.magliaAssente) drawDesign2D();
+  /* 27/11 — la pianta è disegnata nella misura dello schermo: se lo schermo cambia larghezza
+     (il telefono che ruota) va ridisegnata, se no testi e tolleranze restano quelli di prima */
+  if(document.body.classList.contains('scr-design')) drawDesign2D();
 });
 
 /* ============ avvio ============ */

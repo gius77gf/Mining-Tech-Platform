@@ -29197,7 +29197,8 @@ console.log("\n— Campo: i file che escono —");
   test("⛔ Genesi · G30: nella pagina la legenda non è più un letterale, e lo scatto e le altezze sono legami", () => {
     const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
     eq((pag.match(/const voci=\[\['moltoBassa'/g) || []).length, 0, "il letterale della legenda non c'è più");
-    ok(/const voci=LEGENDA_ENERGIA;/.test(pag), "la legenda viene dal modulo");
+    ok(/forma:'quadro', col:ENECOL, voci:LEGENDA_ENERGIA \};/.test(pag), "la legenda viene dal modulo (⏱️ 27/11: dentro `_legendaVoci`, da quando le legende vanno a capo — la fonte è la stessa)");
+    eq((pag.match(/LEGENDA_ENERGIA/g) || []).length, 2, "e in pagina quel nome compare due volte sole: l'import e l'uso — nessuna seconda legenda scritta a parte");
     eq((pag.match(/function mdlProfSnap/g) || []).length, 0, "⏱️ 15/09 (B3): il legame è uscito, i tre chiamanti chiamano scattoProfili direttamente");
     eq((pag.match(/scattoProfili\(P\.profilo, D2\.piede\)/g) || []).length, 3, "mdlPushUndo, mdlUndo e mdlRedo passano P.profilo/D2.piede");
     ok(/P\.foriH = altezzeForiDaPiede\(P\.fori, INTERASSE, D2\.prof, D2\.piede, \{ pianoSenzaPiede: true \}\);/.test(pag), "e la sincronizzazione 2D→3D chiama la stessa regola, col piano pieno senza piede (era la seconda copia)");
@@ -43788,8 +43789,8 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
       [1, 1, 1, 1, 1, 1, 1], "⛔ tela non a schermo (larghezza zero) o misura non leggibile: 1, mai un corpo infinito o NaN");
     eq(genesi.scalaTestoTela("960", "480"), 2, "i numeri scritti come testo si leggono");
     const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
-    ok(/const k = scalaTestoTela\(W, cv\.getBoundingClientRect\(\)\.width\);/.test(pag), "⛔ la pianta non disegnabile chiede la scala alla tela vera, non a un numero scritto");
-    ok(/if\(D2\.magliaAssente\) drawDesign2D\(\);\n\}\);/.test(pag), "e se lo schermo cambia larghezza la frase viene riscritta");
+    ok(/const kT=scalaTestoTela\(cv\.width, cv\.getBoundingClientRect\(\)\.width\), W=cv\.width\/kT;/.test(pag), "⛔ la pianta chiede la scala alla tela vera, non a un numero scritto — e da lì in giù misura in px di schermo");
+    ok(/if\(document\.body\.classList\.contains\('scr-design'\)\) drawDesign2D\(\);\n\}\);/.test(pag), "e se lo schermo cambia larghezza la pianta viene ridisegnata");
   });
   test("⛔ Genesi · fraseMagliaAssente: a schermo va la parola del CAMPO («la spalla»), non quella del codice («burden»)", () => {
     eq([genesi.fraseMagliaAssente(null), genesi.fraseMagliaAssente(undefined), genesi.fraseMagliaAssente("")], ["", "", ""], "⛔ NEUTRALITÀ: con la pianta disegnabile non c'è nessuna frase");
@@ -43806,6 +43807,54 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq((pag.match(/fraseMagliaAssente\(D2\.magliaAssente\)/g) || []).length, 3, "tre punti della pagina: la tela della pianta, la scheda, la riga per Home (i nove comandi passano da `nonEsceSenzaPianta`)");
     eq(/manca '\s*\+\s*(?:_rEsc\()?D2\.magliaAssente/.test(pag), false, "⛔ e in nessun punto della pagina lo stato viene più incollato a «manca »");
     eq(/<span>Spalla <u class="uni">\(m\)<\/u><\/span><input[^>]*id="dB"/.test(pag) && /<span>Interasse <u class="uni">\(m\)<\/u><\/span><input[^>]*id="dS"/.test(pag), true, "⛔ e i due campi si chiamano davvero «Spalla» e «Interasse»: se un giorno cambiano nome, questa frase va cambiata con loro");
+  });
+  test("⛔ Genesi · raggioForoTela: il pallino del foro è 9 px quando c'è posto e si stringe quando i fori sono fitti", () => {
+    eq(genesi.raggioForoTela(40), 9, "⛔ NEUTRALITÀ: fori a 40 px l'uno dall'altro, il pallino di sempre");
+    eq(genesi.raggioForoTela(22.5), 9, "a 22,5 px è ancora 9");
+    eq(genesi.raggioForoTela(20), 8, "a 20 px si stringe a 8");
+    eq(genesi.raggioForoTela(7.7), 4, "⛔ trenta fori per fila su un telefono: mai sotto 4 px, sotto non è più un pallino");
+    eq([NaN, null, undefined, 0, -3, "abc"].map((x) => genesi.raggioForoTela(x)), [9, 9, 9, 9, 9, 9], "un passo non leggibile non rimpicciolisce niente");
+    eq([10, 12, 16, 20, 30, 60].every((p) => 2 * genesi.raggioForoTela(p) <= p), true, "⛔ da 10 px di passo in su due pallini vicini non si sovrappongono mai");
+  });
+  test("⛔ Genesi · raggioPresaTela: un foro si prende col dito (22 px), non serve centrarlo a 5 px", () => {
+    eq([genesi.raggioPresaTela("touch", 60), genesi.raggioPresaTela("mouse", 60), genesi.raggioPresaTela("pen", 60), genesi.raggioPresaTela(undefined, 60)], [22, 14, 14, 14], "col dito 22 px (un bersaglio da 44), col mouse e la penna 14; chi non si dichiara è un mouse");
+    eq(genesi.raggioPresaTela("touch", 25.6), 12.8, "⛔ il caso misurato: telefono da 320, otto fori per fila, passo 25,6 px — si prende fino a 12,8 px dal centro (prima 5,5: un tocco a 6 px creava un foro nuovo)");
+    eq(genesi.raggioPresaTela("mouse", 25.6), 12.8, "mai più di metà del passo, nemmeno col mouse: fra due fori resta un punto dove metterne uno nuovo");
+    eq(genesi.raggioPresaTela("touch", 10), 8, "mai meno di 8 px, per quanto fitti");
+    eq([genesi.raggioPresaTela("touch", NaN), genesi.raggioPresaTela("mouse", null), genesi.raggioPresaTela("touch", 0), genesi.raggioPresaTela("mouse", -4)], [22, 14, 22, 14], "un passo non leggibile lascia il raggio pieno (è il caso dei punti del fronte, che non hanno un passo)");
+    /* il raggio arriva davvero a chi decide: d2HitTest e d2HitTestPt lo passano a indicePiuVicino */
+    const D2m = { _m: { startX: 0, faceY: 0, scale: 10 }, holes: [{ mx: 0, my: 0 }, { mx: 5, my: 0 }], profilo: [], tool: "fronte" };
+    eq([genesi.d2HitTest(D2m, 12, 0), genesi.d2HitTest(D2m, 12, 0, 10), genesi.d2HitTest(D2m, 20, 0), genesi.d2HitTest(D2m, 20, 0, 22)], [0, -1, -1, 0], "⛔ senza raggio vale 18 come sempre; col raggio passato decide lui — a 12 px con raggio 10 è fuori, a 20 px con raggio 22 è dentro");
+    const D2p = { _m: { startX: 0, faceY: 0, scale: 10 }, tool: "piede", profilo: [], piede: [{ x: 0, y: 0 }] };
+    eq([genesi.d2HitTestPt(D2p, 20, 0), genesi.d2HitTestPt(D2p, 20, 0, 22)], [-1, 0], "lo stesso per i punti del fronte e del piede");
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    ok(/let i=d2HitTest\(D2, p\.x,p\.y, _presaPx\(e, true\)\);/.test(pag) && /let k=d2HitTestPt\(D2, p\.x,p\.y, _presaPx\(e, false\)\);/.test(pag), "⛔ la pagina passa il raggio a tutt'e due le prese");
+    ok(/return raggioPresaTela\(e && e\.pointerType, passo\)\*m\.u;/.test(pag), "e lo converte in punti di tela, che sono le unità di chi tocca");
+    eq((pag.match(/10\*D2\._m\.u\/D2\._m\.scale/g) || []).length, 2, "⛔ l'aggancio a un estremo vale 10 px di SCHERMO, nei due punti che lo chiedono");
+    ok(/const tolAY=6\*D2\._m\.u\/D2\._m\.scale;/.test(pag), "e la guida di allineamento 6 px di schermo");
+    eq(/[^.\w](?:10|6)\/D2\._m\.scale/.test(pag), false, "⛔ nessuna tolleranza è rimasta in punti di tela");
+  });
+  test("⛔ Genesi · la pianta si misura in px di schermo: scala, mappatura per chi tocca, pallini che seguono il passo", () => {
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    ok(/const ctx=cv\.getContext\('2d'\); ctx\.setTransform\(kT,0,0,kT,0,0\);/.test(pag), "⛔ il disegno è scalato in un posto solo: da lì in giù i numeri sono px veri");
+    ok(/const HcT=Math\.round\(Hc\*kT\); if\(cv\.height!==HcT\) cv\.height=HcT;/.test(pag), "l'altezza della tela segue la stessa scala");
+    ok(/D2\._m=\{scale:scale\*kT, startX:startX\*kT, faceY:faceY\*kT, u:kT\};/.test(pag), "⛔ la mappatura per chi tocca resta in punti di tela (le unità di d2EvtToCanvas) e porta con sé `u`");
+    ok(/const rF=raggioForoTela\(Math\.min\(D2\.S, D2\.bf\|\|D2\.B\)\*scale\), rr=rF\/9;/.test(pag), "il raggio del pallino lo decide il modulo dal passo a schermo");
+    eq((pag.match(/ctx\.arc\(cx,cy,[0-9.]+\*rr,/g) || []).length, 8, "⛔ gli otto cerchi del foro (pallino, bordo, anelli) seguono tutti lo stesso raggio: nessuno è rimasto fisso");
+    ok(/if\(rF>=6\.5\)\{ ctx\.fillStyle='#1a140b';/.test(pag), "sotto i 6,5 px di raggio il numero del foro non si scrive: non si leggerebbe");
+    eq(/function drawReliefLegenda|function drawEnergiaLegenda/.test(pag), false, "le due legende scritte su una riga sola non ci sono più");
+    ok(/const padBot=56\+Math\.max\(0,_legRighe\.length-1\)\*15\+\(_suggRighe\.length-1\)\*13;/.test(pag), "⛔ il posto per la legenda e il suggerimento che vanno a capo si fa PRIMA di impaginare la maglia");
+  });
+  test("⛔ Genesi · righeDiVoci: una legenda va a capo quando non ci sta, e non perde nessuna voce", () => {
+    eq(genesi.righeDiVoci([50, 60, 70], 1000), [[0, 1, 2]], "⛔ NEUTRALITÀ: quando ci sta è una riga sola, come prima");
+    eq(genesi.righeDiVoci([50, 60, 70], 120), [[0, 1], [2]], "a capo dove la voce non ci sta più");
+    eq(genesi.righeDiVoci([50, 200, 70], 120), [[0], [1], [2]], "una voce più larga della riga resta sola sulla sua: non sparisce");
+    eq(genesi.righeDiVoci([50, 70], 120), [[0, 1]], "esattamente larga quanto la riga ci sta");
+    eq([genesi.righeDiVoci([], 100), genesi.righeDiVoci(null, 100), genesi.righeDiVoci(undefined, 100)], [[], [], []], "niente voci, niente righe");
+    eq(genesi.righeDiVoci([50, NaN, 60], 200), [[0, 2]], "una larghezza non leggibile si salta, e gli indici restano quelli veri");
+    eq([genesi.righeDiVoci([50, 60], 0), genesi.righeDiVoci([50, 60], NaN)], [[[0, 1]], [[0, 1]]], "senza una larghezza di riga leggibile non si va a capo a caso");
+    const tutte = genesi.righeDiVoci([80, 40, 90, 30, 120, 60], 150).flat();
+    eq(tutte, [0, 1, 2, 3, 4, 5], "⛔ comunque vada a capo, le voci ci sono tutte e nell'ordine");
   });
   test("⛔ Genesi · sintesiVolata: la riga che resta nello storico dice i fori con valori loro, e non scrive mai la parola «null»", () => {
     const base = { nf: 12, qtot: 600, x50: 34, fragCalcolabile: true, foriPropri: 0, flyTipo: 0, fragTipo: 0 };
