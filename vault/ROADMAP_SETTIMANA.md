@@ -2729,6 +2729,25 @@
   campione, non l'asserzione); le prove nuove contro il lettore di prima
   cadono tutt'e due. Campioni in `campioni/ply-da-plyfile/` (86 kB) con
   `genera.py` e `verita.json`.
+- [x] **Genesi — il piano d'innesco XML letto da un altro parser** *(27/11,
+  stesso metodo del DXF, sull'altro file che Genesi scrive per le macchine)*:
+  `xmlPianoInnesco` era riletto solo dal browser, su progetti dai nomi
+  puliti. Fatto leggere al parser severo della libreria standard di Python
+  (expat) su nove casi: ben formato, UTF-8 dichiarato e vero, numeri giusti
+  foro per foro — **tranne uno**: un nome con un CARATTERE DI CONTROLLO
+  (arriva da un file importato) rendeva l'intero piano «non ben formato»: il
+  parser si fermava alla riga dell'esplosivo e del file non si leggeva
+  niente. E un mezzo carattere (un surrogato rimasto solo) faceva crollare
+  l'esportazione nel browser («URI malformed», misurato). Corretto in
+  `_xmlEsc`: ciò che l'XML 1.0 non ammette esce uno spazio, il mezzo
+  carattere il segnaposto. ⛔ Neutralità: gli altri casi escono byte per
+  byte com'erano (quattro su quattro, misurato). Suite
+  `xml-nostro-da-altri.mjs` (21 asserzioni; controprova 26 su 26: 6 difetti
+  nel modulo, 20 letture guastate) con `campioni/xml-nostro/`; pretende che
+  i file letti siano ancora quelli che Genesi scrive, e non ha bisogno di
+  Python. ⚠️ Che cosa non dice: non c'è uno schema pubblico contro cui
+  validare — il file è una bozza «in stile IREDES», dichiarata tale.
+  Giro `node`: 45 → 47 comandi.
 - [ ] **Genesi — il piede che esce dalla faccia** ⏸️ *in attesa della
   decisione 35*: con l'inclinazione per foro la pianta mostra il piede di
   ogni foro; in dimostrazione, un foro da 10 m a 20° con 3 m di spalla ha il

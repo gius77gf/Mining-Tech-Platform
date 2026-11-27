@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Genesi: bozza di interscambio in stile IREDES (non conformità certificata) -->
+<BlastPlan xmlns="urn:genesi:blastplan:draft" generator="Genesi" schema="IREDES-like/0.1">
+  <PlanData>
+    <MeshBurden unit="m">3.00</MeshBurden>
+    <MeshSpacing unit="m">3.50</MeshSpacing>
+    <HoleDiameter unit="mm">102</HoleDiameter>
+    <HoleInclination unit="deg">10</HoleInclination>
+    <Explosive>ANFO standard</Explosive>
+    <Initiation id="nonel">Nonel 25 ms</Initiation>
+    <Sequence>diagonale</Sequence>
+    <HoleDelay unit="ms">0</HoleDelay>
+    <RowDelay unit="ms">0</RowDelay>
+    <LastDetonation unit="ms">0.0</LastDetonation>
+    <MaxInstantCharge unit="kg" window_ms="8">0.0</MaxInstantCharge>
+  </PlanData>
+  <Holes count="2">
+    <Hole id="H1" seq="1">
+      <Position x="0.00" y="3.00" unit="m"/>
+      <Depth unit="m">10</Depth>
+      <Charge unit="kg">58</Charge>
+      <Stemming unit="m">2.2</Stemming>
+      <Delay unit="ms">0.0</Delay>
+    </Hole>
+    <Hole id="H2" seq="2">
+      <Position x="3.50" y="3.00" unit="m"/>
+      <Depth unit="m">10</Depth>
+      <Charge unit="kg">58</Charge>
+      <Stemming unit="m">2.2</Stemming>
+      <Delay unit="ms">0.0</Delay>
+    </Hole>
+  </Holes>
+</BlastPlan>

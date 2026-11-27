@@ -1226,7 +1226,20 @@ export function _perc(v,p){ if(!v.length) return null; const a=v.slice().sort((x
    decisione, non un riordino, e va chiesta. Finché non lo è, la ragione sta
    scritta qui invece che in nessun posto.
    ══════════════════════════════════════════════════════════════════════════ */
-function _xmlEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c])); }
+/* ⛔ 27/11 — IL NOSTRO XML LETTO DA UN ALTRO PARSER (quello severo della
+   libreria standard di Python, `tests/campioni/xml-nostro/`). Un nome con un
+   CARATTERE DI CONTROLLO dentro (arriva da un file importato, non da una
+   tastiera) rendeva l'intero piano «non ben formato»: l'XML 1.0 quei
+   caratteri non li ammette nemmeno scritti come entità, e un parser vero si
+   ferma alla prima riga che ne contiene uno — il file che programma i
+   detonatori non si apriva affatto. Escono come uno spazio. E mezzo carattere
+   (un surrogato rimasto solo) esce come il segnaposto U+FFFD: nel browser
+   faceva crollare l'esportazione prima ancora di scrivere il file.
+   ⛔ NEUTRALITÀ: ogni altro nome esce byte per byte com'era. */
+function _xmlEsc(s){ return String(s==null?'':s)
+  .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufffe\uffff]/g,' ')
+  .replace(/[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/g,'\ufffd')
+  .replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c])); }
 
 export function xmlPianoInnesco(p){
   const e=_xmlEsc, inn=(p&&p.innesco)||{};
