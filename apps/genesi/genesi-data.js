@@ -5386,6 +5386,26 @@ export function _puntiNuvola(e){
    per altre ragioni. Una guardia sola, non cinque riscritture.
    Questa funzione decide SE la maglia è disegnabile; la pagina la chiama
    prima di generare le coordinate. */
+/* ⛔ 27/11 — CON LA PIANTA NON DISEGNABILE NESSUN DOCUMENTO ESCE COME SE LO
+   FOSSE. `magliaAssenteMotivo` (qui sotto) dal 14/09 ferma il DISEGNO: senza
+   spalla o interasse non nasce nessun foro e lo schermo lo dice. Ma i comandi
+   che producono un documento non lo sapevano. Misurato premendoli tutti su
+   una volata salvata senza spalla: la scheda CSV usciva con «Maglia;null×3.5
+   m», «Fori;0» e «Carica totale (kg);0» e il messaggio «✓ esportata: 39
+   parametri»; il piano di carico usciva VUOTO e veniva scritto nella raccolta
+   che legge Campo («✓ esportato: 0 fori — Campo lo trova in…»); DXF e piano
+   d'innesco uscivano a zero fori; il report si apriva con «Maglia — × 3,5 m»;
+   «Simula» portava in una scena senza maglia; e lo scatto A/B salvava un
+   progetto a zero fori. Nessun errore, nessuna riga rossa.
+   Una frase sola, decisa qui, e una guardia sola nella pagina (`_senzaPianta`)
+   davanti a ogni comando: il documento non esce, e chi ha premuto legge che
+   cosa manca e dove scriverlo. Salvare la volata resta permesso — è il modo
+   di non perdere il lavoro — e la riga che resta in Home lo dice. */
+export function nonEsceSenzaPianta(motivo, cosa, verbo){
+  if(!motivo) return '';
+  return (cosa || 'Il documento') + ' ' + (verbo || 'non esce') + ': la pianta non è disegnabile — manca ' + motivo
+    + '. Scrivi il dato nei Parametri volata: i fori si ridisegnano da soli.';
+}
 export function magliaAssenteMotivo(B, S){
   const bOk = Number.isFinite(B) && B>0, sOk = Number.isFinite(S) && S>0;
   if(bOk && sOk) return null;

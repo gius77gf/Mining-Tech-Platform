@@ -31,7 +31,8 @@ import { readFileSync, existsSync, statSync, writeFileSync, unlinkSync } from "n
 import { join, extname } from "node:path";
 
 const R = process.env.DW_RADICE || "/home/user/Mining-Tech-Platform";
-const CONTROPROVA = process.argv.includes("--controprova");
+const CONTRO_DOC = process.argv.includes("--controprova=documenti");
+const CONTROPROVA = process.argv.includes("--controprova") || CONTRO_DOC;
 const PORTA = Number((process.argv.find((a) => a.startsWith("--porta=")) || "").split("=")[1]) || 8612;
 const TIPI = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript",
   ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png",
@@ -46,6 +47,18 @@ const DIFETTI = [
    "  D2.magliaAssente = magliaAssenteMotivo(D2.B, D2.S);\n  if(D2.magliaAssente){ D2.holes=[]; D2.sel=-1; D2.selPrev=-1; D2.lastDet=0; D2.firmaMaglia=null; return; }\n  D2.bf = D2.B;",
    "  D2.magliaAssente = null;\n  D2.bf = D2.B;"],
 ];
+/* LA SECONDA CONTROPROVA, `--controprova=documenti` (27/11): i documenti. Sta a parte perché
+   il difetto qui sopra spegne lo STATO «pianta non disegnabile» — e senza quello stato la
+   domanda sui documenti non si può nemmeno fare (la sezione si dichiara non misurata): con
+   una controprova sola le due iniezioni qui sotto non verrebbero mai messe alla prova. Qui la
+   guardia unica smette di fermare, e la riga che resta in Home torna a dire «0 fori · 0 kg». */
+const DIFETTI_DOCUMENTI = [
+  ["apps/genesi/genesi.html",
+   "function _senzaPianta(cosa, verbo){ const m=nonEsceSenzaPianta(D2.magliaAssente, cosa, verbo); if(!m) return false; toast(m); return true; }",
+   "function _senzaPianta(cosa, verbo){ return false; }"],
+  ["apps/genesi/genesi.html",
+   "  if(D2.magliaAssente) sintesi='pianta non disegnabile — manca '+D2.magliaAssente;\n", ""],
+];
 
 const colpiti = new Set();
 const srv = createServer((q, s) => {
@@ -54,7 +67,7 @@ const srv = createServer((q, s) => {
   if (!existsSync(p)) { s.writeHead(404); return s.end("no"); }
   let corpo = readFileSync(p);
   if (CONTROPROVA) {
-    const perQui = DIFETTI.filter(([f]) => p.endsWith(f));
+    const perQui = (CONTRO_DOC ? DIFETTI_DOCUMENTI : DIFETTI).filter(([f]) => p.endsWith(f));
     if (perQui.length) {
       let t = corpo.toString("utf8");
       for (const [, a, b] of perQui) if (t.includes(a)) { colpiti.add(a); t = t.split(a).join(b); }
@@ -137,7 +150,7 @@ const stato = (pg) => pg.evaluate(() => ({
   scheda: (document.getElementById("d2-scheda") || {}).textContent || "",
 }));
 
-console.log(`\n════════ Genesi · la maglia assente si dichiara, non si disegna (B0-septies)${CONTROPROVA ? " · controprova" : ""} ════════`);
+console.log(`\n════════ Genesi · la maglia assente si dichiara, non si disegna (B0-septies)${CONTRO_DOC ? " · controprova dei documenti" : CONTROPROVA ? " · controprova" : ""} ════════`);
 
 const CASI = [
   ["B", ["B"], "burden"],
@@ -177,11 +190,78 @@ console.log("\n· il verso opposto: con burden e interasse leggibili, la maglia 
   await pg.close();
 }
 
+/* ⛔ 27/11 — CON LA PIANTA NON DISEGNABILE NESSUN DOCUMENTO ESCE COME SE LO FOSSE.
+   La guardia del 14/09 fermava il DISEGNO; i comandi che producono un documento non lo
+   sapevano. Misurato premendoli tutti su una volata salvata senza spalla: la scheda CSV
+   usciva con «Maglia;null×3.5 m» e «Carica totale (kg);0», il piano di carico usciva
+   VUOTO e finiva nella raccolta che legge Campo, DXF e piano d'innesco a zero fori, il
+   report con «Maglia — × 3,5 m», «Simula» portava in una scena senza maglia, lo scatto
+   A/B salvava un progetto a zero fori. Qui si premono i bottoni VERI e si guarda che
+   cosa esce: nessun file, nessuna finestra, nessun record scritto per le altre app, e un
+   messaggio che dice che cosa manca. Salvare la volata resta permesso. */
+const COMANDI = [
+  ["btn-scheda-csv", "La scheda volata non esce"], ["btn-piano-csv", "Il piano di carico non esce"], ["btn-piano-dxf", "Il piano fori DXF non esce"],
+  ["btn-innesco-xml", "Il piano d'innesco non esce"], ["btn-report", "Il report non esce"], ["sentOpen", "La volata per Sentinella non esce"],
+  ["sentExport", "La volata per Sentinella non esce"], ["d2-cta", "La simulazione non parte"], ["cmpSaveA", "Lo scatto del confronto non si salva"],
+];
+const aggancia = (pg) => pg.evaluate(() => { window.__usc = []; const vero = HTMLAnchorElement.prototype.click;
+  HTMLAnchorElement.prototype.click = function () { if (this.download) { window.__usc.push(this.download); return; } return vero.call(this); }; });
+const dopo = (pg) => pg.evaluate(async () => { const G = window.__genesi.GDB; const conta = async (f) => { try { return (await f()).length; } catch (e) { return -1; } };
+  return { file: window.__usc.slice(), scr: document.body.className, toast: [...document.querySelectorAll(".toast, #toast, .dw-toast")].map((t) => t.innerText.replace(/\s+/g, " ")).filter(Boolean).join(" | "),
+    finestre: [...document.querySelectorAll(".gmodal")].filter((m) => getComputedStyle(m).display !== "none").map((m) => m.id),
+    piani: await conta(() => G.piani()), previste: await conta(() => G.previste()), confronti: await conta(() => G.confronti()) }; });
+console.log("\n· con la pianta non disegnabile, nessun documento esce come se lo fosse");
+{
+  const pg = await apriSenza(["B"]);
+  const st = await stato(pg);
+  if (!st.navigato || st.assente !== "burden") nonMisurati.push("i documenti senza pianta (la volata senza spalla non si è aperta nel 2D)");
+  else {
+    await aggancia(pg);
+    let finestre = 0; pg.on("popup", (p) => { finestre++; p.close().catch(() => {}); });
+    for (const [id, frase] of COMANDI) {
+      await pg.evaluate(() => { window.__usc.length = 0; });
+      await pg.evaluate((i) => document.getElementById(i).click(), id); await pg.waitForTimeout(900);
+      const q = await dopo(pg);
+      dice(q.file.length === 0 && q.finestre.length === 0 && q.scr.includes("scr-design") && q.toast.includes(frase + ": la pianta non è disegnabile — manca burden"),
+        `⛔ ${id}: niente esce, la schermata resta quella, e il messaggio dice «${frase}… manca burden»`, JSON.stringify(q));
+      if (!q.scr.includes("scr-design")) { await pg.click('#bottomnav button[data-scr="design"]').catch(() => {}); await pg.waitForTimeout(400); }
+      await pg.evaluate(() => { for (const c of ["sentClose", "cmpClose"]) { const e = document.getElementById(c); if (e) e.click(); } });
+    }
+    const fine = await dopo(pg);
+    dice(finestre === 0 && fine.piani === 0 && fine.previste === 0 && fine.confronti === 0,
+      "⛔ e NIENTE è stato scritto per le altre app: zero piani per Campo, zero volate previste per Sentinella, zero scatti — e nessuna finestra di stampa aperta", JSON.stringify([finestre, fine.piani, fine.previste, fine.confronti]));
+    /* salvare resta permesso: è il modo di non perdere il lavoro — e la riga in Home lo dice */
+    await pg.click("#btn-salva-volata"); await pg.waitForSelector("#modal-campo", { timeout: 4000 }).catch(() => {});
+    await pg.fill("#modal-campo", "Banco · senza spalla").catch(() => {}); await pg.click("#modal-foot .mbtn.primary").catch(() => {}); await pg.waitForTimeout(600);
+    const salvata = (await pg.evaluate(async () => window.__genesi.GDB.volate())).find((v) => v.nome === "Banco · senza spalla");
+    dice(!!salvata, "salvare la volata resta permesso: non si perde il lavoro per un dato che manca", String(!!salvata));
+    dice(!!salvata && salvata.sintesi === "pianta non disegnabile — manca burden", `⛔ e la riga che resta in Home lo dice («${salvata && salvata.sintesi}»), non «0 fori · 0 kg»`, salvata && salvata.sintesi);
+    dice(pg.__errori.length === 0, "nessun errore di pagina premendo i nove comandi", pg.__errori[0]);
+  }
+  await pg.close();
+}
+/* il verso opposto: sul progetto sano gli stessi comandi producono i loro documenti */
+console.log("\n· il verso opposto: con la pianta disegnata i documenti escono");
+{
+  const pg = await apriSenza([]);
+  const st = await stato(pg);
+  if (!st.navigato || st.n !== 12) nonMisurati.push("i documenti sul progetto sano (la volata non si è aperta nel 2D)");
+  else {
+    await aggancia(pg);
+    for (const id of ["btn-scheda-csv", "btn-piano-csv", "btn-piano-dxf", "btn-innesco-xml", "cmpSaveA"]) { await pg.evaluate((i) => document.getElementById(i).click(), id); await pg.waitForTimeout(800); }
+    const q = await dopo(pg);
+    dice(["genesi_scheda_volata.csv", "genesi_piano_carico.csv", "genesi_piano_fori.dxf", "genesi_piano_innesco.xml"].every((f) => q.file.includes(f)),
+      "⛔ col progetto sano scheda, piano di carico, DXF e piano d'innesco escono tutti e quattro: la guardia non è un interruttore", JSON.stringify(q.file));
+    dice(q.piani === 1 && q.confronti === 1, "e il piano arriva alla raccolta per Campo, e lo scatto A si salva", JSON.stringify([q.piani, q.confronti]));
+  }
+  await pg.close();
+}
+
 if (nonMisurati.length) {
   console.log(`\n⚠️ NON MISURATI (${nonMisurati.length}): ${nonMisurati.join(", ")}`);
   console.log("   Un soggetto non misurato non è un soggetto a posto: il banco non esce zero.");
 }
-if (CONTROPROVA) console.log(`\n(iniezioni: ${colpiti.size}/${DIFETTI.length} hanno trovato il loro pezzo)`);
-console.log(`\nRisultato maglia assente di Genesi: ${ok} passati, ${ko} falliti  ·  16 asserzioni attese (4 per caso × 3 casi, più 4 sul progetto sano)`);
+if (CONTROPROVA) console.log(`\n(iniezioni: ${colpiti.size}/${(CONTRO_DOC ? DIFETTI_DOCUMENTI : DIFETTI).length} hanno trovato il loro pezzo)`);
+console.log(`\nRisultato maglia assente di Genesi: ${ok} passati, ${ko} falliti  ·  31 asserzioni attese (4 per caso × 3 casi, 4 sul progetto sano, 13 sui documenti senza pianta e 2 su quelli col progetto sano)`);
 await b.close(); srv.close();
 if (nonMisurati.length || (!CONTROPROVA && ko > 0) || (CONTROPROVA && ko === 0)) process.exit(CONTROPROVA ? (ko === 0 ? 1 : 0) : (nonMisurati.length || ko > 0 ? 1 : 0));

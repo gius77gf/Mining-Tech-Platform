@@ -43757,6 +43757,25 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
       "lo scatto (computeKPI) porta i tre conti, presi dalle stesse funzioni della scheda");
     ok(/\(_fpA\.gittataSuTutti && _fpB\.gittataSuTutti\) \? vincitoreKpi\(A\.kpi\.fly,B\.kpi\.fly\) : null/.test(genesiHtml), "⛔ e il verde sulla gittata passa da `gittataSuTutti` di TUTT'E DUE gli scatti");
   });
+  test("⛔ Genesi · nonEsceSenzaPianta: con la pianta non disegnabile nessun documento esce come se lo fosse", () => {
+    eq(genesi.nonEsceSenzaPianta(null, "La scheda volata"), "", "⛔ NEUTRALITÀ: con la pianta disegnabile non c'è nessuna frase — il comando prosegue");
+    eq([genesi.nonEsceSenzaPianta(undefined, "x"), genesi.nonEsceSenzaPianta("", "x")], ["", ""], "e nemmeno con un motivo vuoto o assente");
+    eq(genesi.nonEsceSenzaPianta("burden", "La scheda volata"),
+      "La scheda volata non esce: la pianta non è disegnabile — manca burden. Scrivi il dato nei Parametri volata: i fori si ridisegnano da soli.",
+      "⛔ senza spalla: dice CHE COSA non esce, PERCHÉ, che cosa manca e dove scriverlo");
+    eq(genesi.nonEsceSenzaPianta("burden e interasse", "Il piano di carico").includes("manca burden e interasse"), true, "il motivo è quello di `magliaAssenteMotivo`, tale e quale");
+    eq(genesi.nonEsceSenzaPianta("interasse", "La simulazione", "non parte").startsWith("La simulazione non parte: "), true, "una simulazione «non parte», uno scatto «non si salva»: il verbo è del comando");
+    eq(genesi.nonEsceSenzaPianta("burden").startsWith("Il documento non esce: "), true, "senza un nome resta una frase intera");
+    /* il motivo viene dalla stessa funzione che ferma il disegno: i tre casi, più quello sano */
+    eq([[null, 3.5], [3, null], [null, null], [3, 3.5]].map(([B, S]) => genesi.nonEsceSenzaPianta(genesi.magliaAssenteMotivo(B, S), "X") !== ""), [true, true, true, false],
+      "⛔ la frase c'è esattamente quando la maglia non si può disegnare: senza spalla, senza interasse, senza tutt'e due — e con tutt'e due NO");
+    /* la pagina: una guardia sola davanti a ogni comando che fa uscire qualcosa */
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    const guardie = (pag.match(/if\(_senzaPianta\('[^']*(?:\\'[^']*)*'(?:, '[^']+')?\)\) return;/g) || []).length;
+    eq(guardie, 9, "nove comandi guardati: scheda CSV, piano di carico, DXF, piano d'innesco, report, apertura e invio per Sentinella, simulazione, scatto A/B");
+    ok(/function _senzaPianta\(cosa, verbo\)\{ const m=nonEsceSenzaPianta\(D2\.magliaAssente, cosa, verbo\); if\(!m\) return false; toast\(m\); return true; \}/.test(pag), "e la guardia legge lo stato dalla stessa variabile che lo schermo mostra, e parla col toast di casa");
+    ok(/if\(D2\.magliaAssente\) sintesi='pianta non disegnabile — manca '\+D2\.magliaAssente;/.test(pag), "⛔ e una volata salvata senza pianta lascia in Home «pianta non disegnabile — manca …», non «0 fori · 0 kg»");
+  });
   test("⛔ Genesi · sintesiVolata: la riga che resta nello storico dice i fori con valori loro, e non scrive mai la parola «null»", () => {
     const base = { nf: 12, qtot: 600, x50: 34, fragCalcolabile: true, foriPropri: 0, flyTipo: 0, fragTipo: 0 };
     eq(genesi.sintesiVolata(base), "12 fori · 600 kg · X50 34 cm", "⛔ NEUTRALITÀ: senza valori per foro la riga è quella di sempre, carattere per carattere");

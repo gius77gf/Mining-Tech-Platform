@@ -1387,7 +1387,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          fattoreRoccia, x50DaMisure, ondaDaCsv, ondaPercheNo, _sitoParseCsv, tempiDetonazione, sommaRitardata,
          ppvDaSd, caricaDaX50Target, rwsEffettiva, PENALITA_ACQUA, deviazioneForiDaCsv, deviazioneStatistiche, burdenVeroDaRilievo, burdenPerForo,
          quotaCresta, distanzaDaSpezzata, spaziaturaTipica, _spazTipico, tempoInPunto, passoIsocrone, isoPasso,
-         fileDeiFori, INN_TAGLI, taglioRealizzabile, innTaglioOk, _cmpNum, _cmpKg, _cmpEur, _cmpPf, _cmpCm, _cmpFly, cmpForiPropri, sintesiVolata,
+         fileDeiFori, INN_TAGLI, taglioRealizzabile, innTaglioOk, _cmpNum, _cmpKg, _cmpEur, _cmpPf, _cmpCm, _cmpFly, cmpForiPropri, sintesiVolata, nonEsceSenzaPianta,
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, reliefCls, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino, activeProf, d2HitTest, d2HitTestPt,
@@ -3729,7 +3729,12 @@ function computeKPI(){
     setup:(selEsplosivo()||{}).nome_breve||(selEsplosivo()||{}).nome||D2.esplosivo,
     maglia:B+'×'+S+' m · Ø'+D2.diam+' · '+D2.prof+' m' };
 }
+/* LA GUARDIA UNICA dei comandi che fanno uscire qualcosa (27/11): con la pianta non
+   disegnabile non esce niente, e il messaggio dice che cosa manca. La frase la decide
+   `nonEsceSenzaPianta` nel modulo; qui si mostra e si risponde «fermati». */
+function _senzaPianta(cosa, verbo){ const m=nonEsceSenzaPianta(D2.magliaAssente, cosa, verbo); if(!m) return false; toast(m); return true; }
 function cmpSave(slot){
+  if(_senzaPianta('Lo scatto del confronto', 'non si salva')) return;
   const snap={ ts:timbroLocale(), kpi:computeKPI(), design:JSON.parse(JSON.stringify({B:D2.B,S:D2.S,diam:D2.diam,prof:D2.prof,kg:D2.kg,stem:D2.stem,sub:D2.sub,esplosivo:D2.esplosivo,innesco:D2.innesco,roccia:D2.roccia,frat:D2.frat,bagnato:D2.bagnato,presplit:D2.presplit,sequenza:D2.sequenza})) };
   GDB.aggiungi('confronti', { slot, ...snap });   // sotto: la chiave genesiCmpA/B di sempre
   toast('Progetto salvato come '+slot);
@@ -3861,6 +3866,7 @@ function fraseGraviExport(){
 // esporta la scheda della volata (KPI + progetto) in CSV: il fochino la
 // archivia col rapportino. Stesse cifre della Scheda validatori.
 if($('btn-scheda-csv')) $('btn-scheda-csv').onclick=()=>{
+  if(_senzaPianta('La scheda volata')) return;
   const k=computeKPI(), F=flyrockEst();
   /* ⛔ 17/09, dal terzo giro di deep-pass: FORI/CARICA TOTALE/COSTO qui sotto
      erano gli unici tre valori di questo file presi da `k` (cioè da
@@ -4263,6 +4269,7 @@ if($('rilievoDevFile')) $('rilievoDevFile').onchange=async(e)=>{
    Emula il "blast report" dei competitor lato browser. Ogni previsione è
    etichettata come tale: è un progetto/stima, non una misura di campo. */
 if($('btn-report')) $('btn-report').onclick=()=>{
+  if(_senzaPianta('Il report')) return;
   if(!D2.holes.length) genMaglia2D();
   computeSeq2D();
   const k=computeKPI(), F=flyrockEst(), g=measureGeom2D(D2), E=selEsplosivo()||{}, I=selInnesco()||{}, R=selRoccia()||{};
@@ -5480,9 +5487,10 @@ function sentRender(){
   if($('sent-data')) $('sent-data').onchange=salva;
   if($('sent-fronte')) $('sent-fronte').onchange=salva;
 }
-if($('sentOpen')) $('sentOpen').onclick=()=>{ _sentFatto=null; sentRender(); $('sentModal').style.display='flex'; };
+if($('sentOpen')) $('sentOpen').onclick=()=>{ if(_senzaPianta('La volata per Sentinella')) return; _sentFatto=null; sentRender(); $('sentModal').style.display='flex'; };
 if($('sentClose')) $('sentClose').onclick=()=>{ $('sentModal').style.display='none'; };
 if($('sentExport')) $('sentExport').onclick=async()=>{
+  if(_senzaPianta('La volata per Sentinella')) return;
   const data=$('sent-data')?$('sent-data').value:'';
   if(!dataISOEsiste(data)){ toast('Serve la data prevista della volata'); return; }
   const fronte=$('sent-fronte')?$('sent-fronte').value.trim():'';
@@ -5602,6 +5610,9 @@ function volSnapshot(nome){
      La trappola che questo punto ha già pagato due volte resta scritta là: un numero che
      manca incollato a una stringa scrive la PAROLA, e questa riga si rilegge mesi dopo. */
   try{ const _sv=sintesiVolata(computeKPI()); if(_sv) sintesi=_sv; }catch(e){}
+  /* una volata salvata senza la pianta (27/11): la riga che resta in Home non dice «0 fori ·
+     0 kg» — dice che la pianta non è disegnabile e che cosa manca */
+  if(D2.magliaAssente) sintesi='pianta non disegnabile — manca '+D2.magliaAssente;
   return { id:'v'+Date.now(), nome:nome,
     data:timbroLocale(),
     /* ⛔ 19/09, dalla ricerca continua: GDB.utente (uid+email di chi è
@@ -5871,6 +5882,7 @@ document.querySelectorAll('#scr-home .card').forEach(card=>{
 $('d2-cta').onclick=simulaVolata2D;
 /* piano di carico per foro → CSV per il registro reale in Campo (ponte tra le app) */
 $('btn-piano-csv').onclick=async()=>{
+  if(_senzaPianta('Il piano di carico')) return;
   if(!D2.holes.length) genMaglia2D();
   /* ⛔ QUESTE TRE COLONNE SCRIVEVANO LA PAROLA «null». `';'+D2.kg` con la
      carica per foro illeggibile non fa una cella vuota: fa la stringa
@@ -5933,6 +5945,7 @@ $('btn-piano-csv').onclick=async()=>{
    nuovo, scrive in un contenitore diverso i numeri che Genesi ha già
    (mx/my dei fori, il profilo del fronte se disegnato/importato). */
 if($('btn-piano-dxf')) $('btn-piano-dxf').onclick=()=>{
+  if(_senzaPianta('Il piano fori DXF')) return;
   if(!D2.holes.length) genMaglia2D();
   /* 26/11 — col progetto (`D2`) il file disegna anche il PIEDE dei fori
      inclinati, sul livello PIEDI; a fori verticali esce com'era */
@@ -6023,6 +6036,7 @@ if($('dxfImportFile')) $('dxfImportFile').onchange=async(e)=>{
    per parola: la prova è che la funzione riproduce byte per byte l'XML che
    usciva da questo bottone prima dello spostamento. */
 if($('btn-innesco-xml')) $('btn-innesco-xml').onclick=()=>{
+  if(_senzaPianta('Il piano d\'innesco')) return;
   if(!D2.holes.length) genMaglia2D();
   computeSeq2D();
   /* ⚠️ la MIC può essere `null`: `xmlPianoInnesco` lo sa e **dichiara** invece
@@ -8544,6 +8558,7 @@ function syncDesignInputs(){
   if($('dDecks')) $('dDecks').value=D2.decks; if($('dDeckStem')) gsv('dDeckStem',D2.deckStem,2);
 }
 function simulaVolata2D(){
+  if(_senzaPianta('La simulazione', 'non parte')) return;
   SPALLA=D2.B; INTERASSE=D2.S; P.diam=D2.diam; P.prof=D2.prof; P.kg=D2.kg; P.ritardo=D2.ritardo; P.dir=D2.dir; P.fori=D2.perRow;
   if($('pFori')){ $('pFori').value=P.fori; gsv('pProf',P.prof,1); gsv('pKg',P.kg,0); $('pRit').value=P.ritardo; $('pDir').value=P.dir; }
   clearFrontMesh();                                   // usa il fronte PARAMETRICO ricostruito dal progetto 2D (non un GLB importato)

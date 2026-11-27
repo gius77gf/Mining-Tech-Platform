@@ -419,6 +419,7 @@ const BANCHI = [
      — `localStorage` → Home → «Apri» — la stessa di B0-nonies. */
   ['la maglia assente di Genesi non si disegna', 'genesi-maglia-assente.mjs', []],
   ['maglia assente di Genesi · controprova', 'genesi-maglia-assente.mjs', ['--controprova'], true],
+  ['maglia assente di Genesi · controprova dei documenti', 'genesi-maglia-assente.mjs', ['--controprova=documenti'], true],
   ['un tratto non resta attaccato alla volata aperta dopo (Genesi)', 'genesi-tratti-non-persistono-su-apri.mjs', []],
   ['tratti su "Apri" di Genesi · controprova', 'genesi-tratti-non-persistono-su-apri.mjs', ['--controprova'], true],
   ['direzione d\'innesco e costi non restano attaccati alla volata aperta dopo (Genesi)', 'genesi-dir-costi-non-persistono-su-apri.mjs', []],
