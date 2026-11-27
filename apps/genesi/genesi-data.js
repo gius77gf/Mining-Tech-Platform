@@ -82,6 +82,29 @@ import { scartoLivello } from '../../shared/dw-ponti.js';
                  di SD la pendenza non è determinabile (divisione per ~0)
     · 'pendenza' β fuori da 0,5–3: i dati non descrivono un'attenuazione
                  fisica (referti di siti diversi mescolati, carica sbagliata…) */
+/* IL CSV DELLA LEGGE DI SITO (27/11, fetta di B3: Genesi continua a uscire dalla pagina).
+   Lo componeva l'`onclick` di `sitoExport`, dove `node` non arriva: era uno dei quattro CSV di
+   Genesi che nessun controllo senza browser poteva aprire. È entrato IDENTICO, carattere per
+   carattere (provato sugli stessi referti contro la riga di prima): stessa intestazione, stessi
+   referti — quelli che anche `sitoFit` sa usare, con la stessa condizione — stessa distanza
+   scalata a due decimali, stesse celle da `csvCell`.
+   Stringa vuota quando non c'è nessun referto da scrivere: chi chiama lo DICE («Nessun referto
+   da esportare») invece di far scaricare un file con la sola intestazione. */
+export function csvLeggeDiSito(punti){
+  const P=(Array.isArray(punti)?punti:[]).filter(p=>p&&p.d>0&&p.w>0&&p.ppv>0);
+  if(!P.length) return '';
+  /* ⛔ QUI (quando stava nella pagina) C'ERA LA SECONDA COPIA PIÙ DEBOLE DI `csvCell`, identica a quella
+     tolta il 03/08 da `csvRiconciliazione`: virgolette su `; " \n` e basta.
+     Misurato aprendo la pagina con un referto chiamato `=SUM(1+1)`: usciva
+     NUDO nel file — e questo è il file che l'azienda manda fuori e che si apre
+     in Excel a casa del cliente. `csvCell` mette l'apostrofo di guardia, e
+     `_sitoParseCsv` (che rilegge questo stesso file) lo toglie perché adesso
+     passa da `leggiCsv`: il giro di andata e ritorno resta chiuso. */
+  /* la colonna «origine» esce insieme ai numeri: così un file riletto (qui o
+     altrove) non perde la provenienza dei referti */
+  return 'data;riferimento;distanza_m;carica_per_ritardo_kg;ppv_mms;distanza_scalata;origine\n'
+    +P.map(p=>[p.ts||'',p.nome||'',p.d,p.w,p.ppv,(p.d/Math.sqrt(p.w)).toFixed(2),p.fonte||''].map(csvCell).join(';')).join('\n')+'\n';
+}
 export function sitoFit(punti){
   const P=(punti||[]).filter(p=>p&&p.d>0&&p.w>0&&p.ppv>0);
   const n=P.length;

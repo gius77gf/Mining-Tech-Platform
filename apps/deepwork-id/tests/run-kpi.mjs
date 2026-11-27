@@ -24000,7 +24000,9 @@ test("⛔ Scudo · andamento indici: il verso letto su giornate ancora da contar
        tiene più una copia da controllare. */
     const RIGHE = [
       ["scheda volata", sorgente, "+rows.map(r=>csvCell(r[0])+';'+csvCell("],
-      ["legge di sito", sorgente, "].map(csvCell).join(';')"],
+      /* ⏱️ 27/11: anche «legge di sito» si legge dal modulo — il file lo compone `csvLeggeDiSito`. L'ancora porta con sé
+         l'ultima cella (`p.fonte`): `].map(csvCell).join(';')` da solo combacerebbe anche con `csvRiconciliazione`. */
+      ["legge di sito", readFileSync(join(HERE, "../../genesi/genesi-data.js"), "utf8"), "p.fonte||''].map(csvCell).join(';')"],
       ["file per Sentinella", readFileSync(join(HERE, "../../genesi/genesi-data.js"), "utf8"),
         "export function _sentCell(v) { return csvCell("],
     ];
@@ -44080,6 +44082,23 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     ok(/<button type="button" id="dlMic" class="dl-tog" title="Cerchia i fori dei gruppi che arrivano alla carica massima per ritardo \(MIC\)[^"]*"><i><\/i>MIC<\/button>/.test(pag) && /if\(\$\('dlMic'\)\) \$\('dlMic'\)\.classList\.toggle\('on', !!D2\.micCerchi\);/.test(pag), "il bottone c'è, accanto agli altri livelli di lettura, e mostra se è acceso");
     ok(/: \('MIC '\+gnum\(_mm\.mic,1\)\+' kg — niente da cerchiare\. '\+_mm\.chi\)\)\); \}\);/.test(pag) && /\('MIC non calcolabile: '\+_mm\.che\+'\. Niente da cerchiare\.'\)/.test(pag), "⛔ acceso senza niente da cerchiare lo DICE, e dice perché: un livello acceso e vuoto sembrerebbe rotto");
     eq(/micCerchi/.test((pag.match(/function volSnapshot\([^]*?\n\}/) || [""])[0]), false, "il bottone è un modo di guardare: non entra nella volata salvata");
+  });
+  test("⛔ Genesi · csvLeggeDiSito: il file della legge di sito lo compone il modulo, identico a quello che componeva la pagina", () => {
+    const punti = [{ d: 300, w: 58, ppv: 6.4, nome: "Est", ts: "2026-08-06", fonte: "mano" }, { d: 120, w: 116, ppv: 22.5, nome: "=SUM(1+1)", ts: "", fonte: "csv" },
+      { d: 0, w: 5, ppv: 1, nome: "senza distanza" }, null, { d: 80, w: 20, ppv: -3, nome: "ppv negativa" }, { d: 55.5, w: 12.25, ppv: 41, nome: "a;b \"c\"" }];
+    const csv = genesi.csvLeggeDiSito(punti);
+    eq(csv, "data;riferimento;distanza_m;carica_per_ritardo_kg;ppv_mms;distanza_scalata;origine\n2026-08-06;Est;300;58;6.4;39.39;mano\n;'=SUM(1+1);120;116;22.5;11.14;csv\n;\"a;b \"\"c\"\"\";55.5;12.25;41;15.86;\n",
+      "⛔ il testo esatto: intestazione, i soli referti usabili, distanza scalata a due decimali, l'apostrofo di guardia davanti a una formula, le virgolette attorno a un `;`");
+    /* gli stessi referti che usa il conto: quelli che il file scrive sono quelli che `sitoFit` conta */
+    eq(csv.trim().split("\n").length - 1, genesi.sitoFit(punti).n, "⛔ il file scrive tanti referti quanti ne conta `sitoFit` (3): la condizione è la stessa, e non può scostarsi");
+    /* andata e ritorno: riletto col lettore condiviso, ogni referto torna coi suoi numeri e il suo nome */
+    const righe = shell.leggiCsv(csv).righe.slice(1).filter((r) => r.length > 1);
+    eq(righe.map((r) => [r[1], +r[2], +r[3], +r[4]]), [["Est", 300, 58, 6.4], ["=SUM(1+1)", 120, 116, 22.5], ["a;b \"c\"", 55.5, 12.25, 41]], "riletto, il nome con la formula torna senza l'apostrofo e quello col `;` torna intero");
+    eq([genesi.csvLeggeDiSito([]), genesi.csvLeggeDiSito(null), genesi.csvLeggeDiSito(undefined), genesi.csvLeggeDiSito("x"), genesi.csvLeggeDiSito([null, { d: 0, w: 0, ppv: 0 }])], ["", "", "", "", ""],
+      "⛔ nessun referto usabile: stringa vuota (non un file con la sola intestazione) — è chi chiama a dire «Nessun referto da esportare»");
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    ok(/const csv=csvLeggeDiSito\(sitoStore\(\)\.punti\);\n  if\(!csv\)\{ toast\('Nessun referto da esportare'\); return; \}/.test(pag), "la pagina chiede il file al modulo, e se è vuoto lo dice");
+    eq(/distanza_scalata;origine/.test(pag), false, "⛔ e nella pagina l'intestazione di quel file non c'è più: non è rimasta una seconda copia");
   });
   test("⛔ Genesi · eUnTocco e i tocchi sulla pianta: un dito conduce, il secondo ferma tutto, col dito si crea alzandolo", () => {
     eq(genesi.eUnTocco(100, 100, 100, 100), true, "il dito si alza dov'era: è un tocco");

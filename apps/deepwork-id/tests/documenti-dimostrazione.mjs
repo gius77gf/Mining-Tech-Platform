@@ -27,9 +27,10 @@
        apre il documento: qui si contano e si elencano con --dimmi.
    ⏱️ 27/11 — C'È ANCHE GENESI, per i pezzi del suo foglio che sono già
    funzioni pure del modulo (la pianta, la tabella dei fori, le cariche nel
-   tempo, lo storico della riconciliazione). ⚠️ NON è tutto Genesi: il
-   foglio intero e quattro CSV (scheda volata, confronto A/B, legge di
-   sito, piano di carico) li compone ancora la pagina, e qui NON ci sono —
+   tempo, lo storico della riconciliazione, e dal 27/11 sera il CSV della
+   legge di sito). ⚠️ NON è tutto Genesi: il foglio intero e tre CSV (scheda
+   volata, confronto A/B, piano di carico) li compone ancora la pagina, e
+   qui NON ci sono —
    quelli li aprono i banchi del browser. Il conto dichiara quanti sono di
    Genesi, perché «142 documenti» non si legga come «tutto».
    Genesi non ha una `DEMO`: la sua dimostrazione qui è la volata che nasce
@@ -170,6 +171,7 @@ const doc = (a, nome, f) => DOC.push({ app: a, nome, f });
   /* due gruppi alla pari: l'unico caso in cui la frase dice «Un altro gruppo» — nelle cinque vesti gli altri gruppi sono zero o molti,
      e senza questo «Altri 1 gruppi» passerebbe (controprova del 27/11: rimesso il difetto, la prova restava verde) */
   doc("genesi", "fraseFinestraMic due gruppi alla pari", () => genesi.fraseFinestraMic(genesi.finestraDellaMic([0, 0, 42, 84, 84].map((t, i) => ({ tDet: t, seq: i })), 58)));
+  doc("genesi", "csvLeggeDiSito", () => genesi.csvLeggeDiSito([{ d: 300, w: 58, ppv: 6.4, nome: "Recettore Est", ts: "2026-07-12", fonte: "mano" }, { d: 180, w: 116, ppv: 14.2, nome: "Cascina", ts: "2026-07-19", fonte: "csv" }, { d: 420, w: 58, ppv: 3.1, nome: "Strada", ts: "2026-07-26", fonte: "mano" }]));
   doc("genesi", "csvRiconciliazione", () => genesi.csvRiconciliazione([
     { ts: "2026-07-12", nome: "Fronte Nord", prev: { x50: 28, ppv: 6.4, fly: 101, ppvBase: { breve: "manuale (Calcare)" } }, real: { x50: 31, ppv: 5.1, fly: 60, ovs: 4, note: "primo sparo" } },
     /* la riga di chi ha salvato la previsione e non ha ancora misurato niente: celle vuote, non zeri */
