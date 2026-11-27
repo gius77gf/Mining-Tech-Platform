@@ -1615,9 +1615,31 @@ export function scatterMs(D2){
   return scatterInnesco(D2.innesco, tmx);
 }
 
-export function micFinestra(holes, kg) {
-  const H = holes;
-  if (micSenzaConto(H, kg)) return null;
+/* ══════════════════════════════════════════════════════════════════════
+   LA MIC DICE QUALI FORI LA FORMANO, E QUANDO (27/11).
+   ══════════════════════════════════════════════════════════════════════
+   La scheda e il foglio dicevano «MIC 174 kg (finestra 8 ms)» e basta: chi
+   deve abbassarla non sapeva QUALI fori partono insieme, e doveva cercarli
+   a occhio fra i ritardi. Il conto delle finestre c'era già, dentro
+   `micFinestra`, e buttava via tutto tranne il massimo.
+   ⛔ UNA SOLA FUNZIONE CONTA LE FINESTRE (`_finestreDiCarica`): la usano
+   `micFinestra` (il numero) e `finestraDellaMic` (chi e quando). Due conti
+   separati sarebbero stati la copia debole di sempre — e qui il numero
+   decide la PPV. L'aritmetica è quella di prima PAROLA PER PAROLA (`fori ×
+   carica del progetto + scarti`, nello stesso ordine): provato su 4000
+   volate a caso contro la forma vecchia con `Object.is`, zero differenze.
+    · `finestraDellaMic` risponde `null` dove risponde `null` la MIC;
+    · a parità di chili vince la finestra che parte PRIMA, e `altre` dice
+      quanti altri gruppi distinti arrivano alla stessa carica;
+    · `daSoli` è vero solo se in OGNI finestra c'è un foro solo: «ogni foro
+      parte da solo» non si deduce dal fatto che la finestra massima ne ha
+      uno (un foro grosso può battere una coppia: misurato in scratchpad);
+    · `senzaTempo`: quanti fori della finestra non hanno un ritardo
+      leggibile. Per il conto valgono 0 ms — è la scelta prudente, li
+      ammucchia tutti all'inizio — e la frase lo DICE invece di scrivere
+      «partono insieme a 0 ms» come se fosse stato deciso. */
+export const FINESTRA_MIC_MS = 8;
+function _finestreDiCarica(H, kg){
   const ts = H.map((h) => h.tDet || 0);
   /* F2 (26/11) — LA FINESTRA SOMMA LE CARICHE VERE DEI FORI. Fino a oggi la
      MIC era «quanti fori nella finestra» × la carica unica della volata. Un
@@ -1634,14 +1656,46 @@ export function micFinestra(holes, kg) {
      più fori: un foro isolato da 200 kg batte due fori da 58. Per questo si
      confrontano i chili di ogni finestra, non i conteggi. */
   const scarti = H.map((h) => { const suo = valoreProprioDiForo(h, 'kg'); return suo === null ? 0 : suo - kg; });
-  let mic = null;
+  const finestre = [];
   for (const t0 of ts) {
-    let c = 0, s = 0;
-    for (let j = 0; j < ts.length; j++) if (ts[j] >= t0 && ts[j] < t0 + 8) { c++; s += scarti[j]; }
-    const q = c * kg + s;
-    if (mic === null || q > mic) mic = q;
+    let c = 0, s = 0; const dentro = [];
+    for (let j = 0; j < ts.length; j++) if (ts[j] >= t0 && ts[j] < t0 + FINESTRA_MIC_MS) { c++; s += scarti[j]; dentro.push(j); }
+    finestre.push({ t0, kg: c * kg + s, dentro });
   }
+  return { ts, finestre };
+}
+export function micFinestra(holes, kg) {
+  const H = holes;
+  if (micSenzaConto(H, kg)) return null;
+  let mic = null;
+  for (const f of _finestreDiCarica(H, kg).finestre) if (mic === null || f.kg > mic) mic = f.kg;
   return mic;
+}
+export function finestraDellaMic(holes, kg){
+  const H = holes;
+  if (micSenzaConto(H, kg)) return null;
+  const { ts, finestre } = _finestreDiCarica(H, kg);
+  let m = null;
+  for (const f of finestre) if (m === null || f.kg > m.kg || (f.kg === m.kg && f.t0 < m.t0)) m = f;
+  const fin = (v) => v !== null && v !== undefined && v !== '' && Number.isFinite(+v);
+  const numero = (j) => (fin(H[j] && H[j].seq) ? +H[j].seq : j) + 1;
+  const pari = new Set(finestre.filter((f) => f.kg === m.kg).map((f) => f.dentro.join(',')));
+  return { kg: m.kg, da: m.t0, a: Math.max(...m.dentro.map((j) => ts[j])), fori: m.dentro.map(numero).sort((a, b) => a - b),
+    altre: pari.size - 1, daSoli: finestre.every((f) => f.dentro.length === 1), senzaTempo: m.dentro.filter((j) => !fin(H[j] && H[j].tDet)).length };
+}
+/* la frase, una per lo schermo e per il foglio. Sta in piedi da sola (comincia
+   da «La MIC»): viene scritta in coda a testi che parlano anche d'altro. */
+export function fraseFinestraMic(f){
+  if (!f || !Array.isArray(f.fori) || !f.fori.length) return '';
+  const N = f.fori.length;
+  if (N === 1 && f.daSoli) return 'Ogni foro parte da solo: nessun altro entro ' + FINESTRA_MIC_MS + ' ms.';
+  const altre = f.altre > 0 ? ' ' + (f.altre === 1 ? 'Un altro gruppo arriva' : 'Altri ' + gnum(f.altre, 0) + ' gruppi arrivano') + ' alla stessa carica.' : '';
+  if (N === 1) return 'La MIC la forma il foro ' + f.fori[0] + ', che parte da solo.' + altre;
+  const chi = N <= 8 ? f.fori.slice(0, -1).join(', ') + ' e ' + f.fori[N - 1] : f.fori.slice(0, 6).join(', ') + ' e altri ' + (N - 6);
+  const quando = f.senzaTempo === N ? 'non hanno un ritardo assegnato: per il conto partono tutti insieme'
+    : (f.a === f.da ? 'partono insieme a ' + gnum(f.da, 1) + ' ms' : 'partono fra ' + gnum(f.da, 1) + ' e ' + gnum(f.a, 1) + ' ms')
+      + (f.senzaTempo > 0 ? ' (' + (f.senzaTempo === 1 ? 'uno non ha' : f.senzaTempo + ' non hanno') + ' un ritardo assegnato, e per il conto vale 0 ms)' : '');
+  return 'La MIC la formano i fori ' + chi + ', che ' + quando + '.' + altre;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════

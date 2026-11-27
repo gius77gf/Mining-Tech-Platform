@@ -1372,7 +1372,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
    ⚠️ `esitoMic` e `micSenzaConto` sono le DUE METÀ che rendono utile il `null`:
    la bandiera `calcolabile` (che la pagina deve leggere, se no il numero
    tranquillo si ridisegna lo stesso) e la ragione da mostrare a chi guarda. */
-         micFinestra, esitoMic, micSenzaConto, scatterInnesco, scatterMs,
+         micFinestra, finestraDellaMic, fraseFinestraMic, esitoMic, micSenzaConto, scatterInnesco, scatterMs,
 /* la carica totale della volata e il COSTO che la usa — vedi il blocco G12.
    ⛔ `costoVolata` è il punto UNICO in cui si decide quanto costa una volata:
    la formula era scritta tre volte (KPI, foglio stampabile, scheda
@@ -1681,6 +1681,9 @@ function micDaMostrare(){
        leggibilissima, e la carica TOTALE resta un numero vero. I due «non lo
        so» non sono lo stesso, e sommarli spegnerebbe un dato sano. */
     caricaLeggibile:!(perche && perche.carica),
+    /* 27/11 — QUALI fori la formano e QUANDO: la stessa frase per la scheda e
+       per il foglio. Vuota quando la MIC non si può contare: lì parla `che`. */
+    chi:es.calcolabile ? fraseFinestraMic(finestraDellaMic(D2.holes, D2.kg)) : '',
     distLeggibile:!senzaDist, distChe:senzaDist?senzaDist.che:'', distCome:senzaDist?senzaDist.come:'',
     sd:(es.calcolabile && !senzaDist)?D2.recDist/Math.sqrt(Math.max(1,mic)):null,
     db:airblastDb(D2.recDist, es.calcolabile?mic:null) };
@@ -4447,7 +4450,7 @@ if($('btn-report')) $('btn-report').onclick=()=>{
         k.fragCalcolabile ? gnum(k.x20,1)+' / '+gnum(k.x50,1)+' / '+gnum(k.x80,1)+' cm'+(_rX50Tipo?'<br><b>Sul foro tipo</b> — '+esc(_rX50Tipo):'')
                           : '<b>Non calcolabile</b> — '+esc(k.fragChe)+'. '+esc(k.fragCome)],
       ['MIC (carica massima per ritardo)',
-        _rM.calcolabile ? gnum(_rMic,1)+' kg (finestra 8 ms)'
+        _rM.calcolabile ? gnum(_rMic,1)+' kg (finestra 8 ms)'+(_rM.chi?'<br>'+esc(_rM.chi):'')
                         : '<b>Non calcolabile</b> — '+esc(_rM.che)+'. '+esc(_rM.come)],
       ['PPV al recettore ('+gnum(D2.recDist,0)+' m)',
         gfix(k.ppv,1)+' mm/s (limite '+gfix(k.lim,1)+', '+esc(normL)+')<br>'
@@ -8408,12 +8411,12 @@ function renderScheda2D(){
     rows.push({lab:'PPV al recettore',valStr:'<span>non calcolabile</span>',cls:'sv-warn',
       why:'la legge di Devine parte dalla distanza scalata, e la distanza scalata è la distanza del recettore divisa per la radice della MIC: '+_rEsc(_m2.distChe)+'. '+_rEsc(_m2.distCome)+' Finché non c\'è, questa previsione <b>non esiste</b> — e un numero al suo posto direbbe «SUPERA» (o «sotto soglia») di un recettore che nessuno ha collocato.'+_coda});
     rows.push({lab:'MIC (carica/ritardo)',valStr:gnum(_mic,1)+' <span>kg</span>',cls:'sv-info',
-      why:'massima carica entro la finestra di 8 ms (fori sullo stesso ritardo): questa si conta, ed è quella. La carica massima ammissibile <b>non è calcolabile</b> finché manca la distanza del recettore: cresce col quadrato di quella distanza.'});
+      why:'massima carica entro la finestra di 8 ms (fori sullo stesso ritardo): questa si conta, ed è quella. La carica massima ammissibile <b>non è calcolabile</b> finché manca la distanza del recettore: cresce col quadrato di quella distanza.'+(_m2.chi?' '+_rEsc(_m2.chi):'')});
   } else if(_lim===null){
     rows.push({lab:'PPV al recettore',valStr:gfix(_ppv,1)+' <span>mm/s</span>',cls:'sv-warn',
       why:'a '+gnum(D2.recDist,0)+' m (SD '+gfix(_sd2,1)+' m/kg^½, MIC '+gnum(_mic,1)+' kg), legge di Devine PPV=K·SD^−β con '+_fonte+'. <b>Non si può dire se è sotto soglia</b>: '+_rEsc(_perche.che)+(_perche.norma?' (il codice salvato è «'+_rEsc(_normaLab)+'»)':'')+'. '+_rEsc(_perche.come)+' Poi il confronto torna.'+_coda});
     rows.push({lab:'MIC (carica/ritardo)',valStr:_mic+' <span>kg</span>',cls:'sv-info',
-      why:'massima carica entro la finestra di 8 ms (fori sullo stesso ritardo). La carica massima ammissibile <b>non è calcolabile</b> finché manca la soglia: dipende da quella.'});
+      why:'massima carica entro la finestra di 8 ms (fori sullo stesso ritardo). La carica massima ammissibile <b>non è calcolabile</b> finché manca la soglia: dipende da quella.'+(_m2.chi?' '+_rEsc(_m2.chi):'')});
   } else {
   /* ⛔ IL VERDETTO LO DICE `esitoPpv`, non questa riga: era l'unico posto in
      cui veniva preso, e il foglio stampabile stampava «77,7 mm/s (limite 8,0)»
@@ -8453,7 +8456,7 @@ function renderScheda2D(){
      `else if` qui sopra): la guardia resta perché una riga che stampa un
      numero deve saperlo dire da sé, non fidarsi di chi la chiama. */
   rows.push({lab:'MIC (carica/ritardo)',valStr:gnum(_mic,1)+' <span>kg</span>',cls:'sv-info',
-    why:'massima carica entro la finestra di 8 ms (fori sullo stesso ritardo). W max ammissibile alla soglia scelta '+(_wmax===null?'<b>non è calcolabile</b>':'≈ '+gnum(Math.round(_wmax),0)+' kg')+' a '+gnum(D2.recDist,0)+' m: oltre, il PPV supera il limite.'});
+    why:'massima carica entro la finestra di 8 ms (fori sullo stesso ritardo). W max ammissibile alla soglia scelta '+(_wmax===null?'<b>non è calcolabile</b>':'≈ '+gnum(Math.round(_wmax),0)+' kg')+' a '+gnum(D2.recDist,0)+' m: oltre, il PPV supera il limite.'+(_m2.chi?' '+_rEsc(_m2.chi):'')});
   }
   /* ⚠️ `Math.max(0.1, null)` fa 0,1 e `Math.round(null)` fa **0**: senza la
      guardia questa riga scriveva «105 dB(L) · sotto il limite USBM/OSM» su una

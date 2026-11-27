@@ -43951,6 +43951,53 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     ok(/\(_rPianta \? '<h2>Pianta della volata<\/h2>'\+_rPianta : ''\)\n   \+sec\('Geometria',/.test(pag) && /    \+body\n    \+_rTabFori\n    \+_repEsito\n    \+firma/.test(pag), "la pianta apre il foglio, la tabella dei fori sta dopo le sezioni e prima della firma");
     ok(/'\.tfs\{overflow-x:auto\}@media\(max-width:560px\)\{table\.tf\{font-size:10px\}/.test(pag), "sullo schermo stretto la tabella si stringe, e dove non basta scorre nel suo riquadro invece di far scorrere la pagina");
   });
+  test("⛔ Genesi · la MIC dice quali fori la formano e quando: una sola funzione conta le finestre, e la frase non dice più di quello che sa", () => {
+    const T = (tempi, altro) => tempi.map((t, i) => ({ tDet: t, seq: i, ...((altro && altro[i]) || {}) }));
+    /* ⛔ il numero non si muove di una cifra: la finestra che dà la MIC porta gli stessi chili di `micFinestra`, con `Object.is` */
+    let seme = 7; const rnd = () => { seme = (seme * 1664525 + 1013904223) >>> 0; return seme / 4294967296; };
+    let diversi = 0, fuoriFinestra = 0, sommaSbagliata = 0;
+    for (let k = 0; k < 600; k++) { const n = 1 + Math.floor(rnd() * 30), kg = [58.3, 60, 0, 12.75, 33.333][Math.floor(rnd() * 5)];
+      const H = Array.from({ length: n }, (_, i) => { const h = { tDet: rnd() < 0.1 ? undefined : Math.round(rnd() * 6000) / 10, seq: i }; if (rnd() < 0.2) h.kg = Math.round(rnd() * 2000) / 10; return h; });
+      const f = genesi.finestraDellaMic(H, kg);
+      if (!Object.is(f.kg, genesi.micFinestra(H, kg))) diversi++;
+      /* e i fori che nomina stanno DAVVERO entro la finestra, e la loro carica fa la MIC — contata qui a mano, foro per foro */
+      const miei = f.fori.map((q) => H[q - 1]), ts = miei.map((h) => h.tDet || 0);
+      if (Math.max(...ts) - Math.min(...ts) >= genesi.FINESTRA_MIC_MS || Math.min(...ts) !== f.da || Math.max(...ts) !== f.a) fuoriFinestra++;
+      if (Math.abs(miei.reduce((a, h) => a + (h.kg === undefined ? kg : h.kg), 0) - f.kg) > 1e-6) sommaSbagliata++; }
+    eq([diversi, fuoriFinestra, sommaSbagliata], [0, 0, 0], "⛔ su 600 volate a caso: stessi chili di `micFinestra` alla cifra, i fori nominati stanno tutti entro la finestra, e le loro cariche sommate a mano fanno la MIC");
+    eq(genesi.FINESTRA_MIC_MS, 8, "la finestra è di 8 ms, e ha un nome solo");
+    /* i casi, uno per frase */
+    const tre = genesi.finestraDellaMic(T([0, 42, 84, 84, 84, 126]), 58);
+    eq([tre, genesi.fraseFinestraMic(tre)], [{ kg: 174, da: 84, a: 84, fori: [3, 4, 5], altre: 0, daSoli: false, senzaTempo: 0 }, "La MIC la formano i fori 3, 4 e 5, che partono insieme a 84 ms."], "tre fori sullo stesso ritardo: chi sono e quando");
+    eq(genesi.fraseFinestraMic(genesi.finestraDellaMic(T([0, 42, 84, 88, 91.5, 126]), 58)), "La MIC la formano i fori 3, 4 e 5, che partono fra 84 e 91,5 ms.", "tre fori su ritardi DIVERSI ma entro 8 ms: «fra … e …», non «insieme»");
+    eq(genesi.finestraDellaMic(T([0, 42, 84, 92]), 58).fori, [1], "⛔ 8 ms esatti sono già fuori dalla finestra (84 e 92 non stanno insieme), come nel conto della MIC");
+    const pari = genesi.finestraDellaMic(T([42, 42, 0, 0, 84]), 58);
+    eq([pari.fori, pari.da, pari.altre, genesi.fraseFinestraMic(pari)], [[3, 4], 0, 1, "La MIC la formano i fori 3 e 4, che partono insieme a 0 ms. Un altro gruppo arriva alla stessa carica."], "⛔ a parità di chili si nomina il gruppo che parte PRIMA (non il primo dell'elenco), e si dice che non è il solo");
+    eq(genesi.fraseFinestraMic(genesi.finestraDellaMic(T([0, 0, 42, 42, 84, 84, 126]), 58)), "La MIC la formano i fori 1 e 2, che partono insieme a 0 ms. Altri 2 gruppi arrivano alla stessa carica.", "più gruppi alla pari: il conto è al plurale");
+    const soli = genesi.finestraDellaMic(T([0, 42, 84, 126]), 58);
+    eq([soli.daSoli, soli.altre, genesi.fraseFinestraMic(soli)], [true, 3, "Ogni foro parte da solo: nessun altro entro 8 ms."], "nessuna coincidenza: lo si dice di tutti, non del primo foro");
+    const grosso = genesi.finestraDellaMic(T([0, 42, 42], [{ kg: 116 }]), 58);
+    eq([grosso.fori, grosso.daSoli, grosso.altre, genesi.fraseFinestraMic(grosso)], [[1], false, 1, "La MIC la forma il foro 1, che parte da solo. Un altro gruppo arriva alla stessa carica."],
+      "⛔ un foro grosso che da solo pareggia una coppia: la finestra massima ha UN foro, ma «ogni foro parte da solo» sarebbe falso — e non lo si scrive");
+    eq(genesi.fraseFinestraMic(genesi.finestraDellaMic(T([0, 0, 42], [null, null, { kg: 200 }]), 58)), "La MIC la forma il foro 3, che parte da solo.", "un foro isolato da 200 kg batte due fori da 58: lo si nomina");
+    eq(genesi.fraseFinestraMic(genesi.finestraDellaMic(Array.from({ length: 12 }, (_, i) => ({ tDet: 100, seq: i })), 58)), "La MIC la formano i fori 1, 2, 3, 4, 5, 6 e altri 6, che partono insieme a 100 ms.", "dodici fori insieme: sei nomi e il conto degli altri, non un elenco che esce dalla scheda");
+    /* ⛔ il numero è quello del foro sulla pianta e nella tabella (`seq + 1`), non il posto nell'elenco */
+    eq(genesi.finestraDellaMic([{ tDet: 84, seq: 5 }, { tDet: 0, seq: 0 }, { tDet: 84, seq: 2 }], 58).fori, [3, 6], "i fori si chiamano col numero d'ordine di sparo, in ordine");
+    /* un ritardo che non c'è */
+    const muti = genesi.finestraDellaMic([{}, {}, {}], 58);
+    eq([muti.kg, muti.senzaTempo, genesi.fraseFinestraMic(muti)], [174, 3, "La MIC la formano i fori 1, 2 e 3, che non hanno un ritardo assegnato: per il conto partono tutti insieme."], "⛔ senza ritardi il conto li mette tutti insieme (è la scelta prudente), e la frase lo DICE invece di scrivere «partono insieme a 0 ms»");
+    eq(genesi.fraseFinestraMic(genesi.finestraDellaMic([{ tDet: 0, seq: 0 }, { seq: 1 }, { tDet: 42, seq: 2 }], 58)), "La MIC la formano i fori 1 e 2, che partono insieme a 0 ms (uno non ha un ritardo assegnato, e per il conto vale 0 ms).", "uno solo senza ritardo: detto fra parentesi");
+    /* dove la MIC non si conta, non c'è niente da dire */
+    eq([genesi.finestraDellaMic([], 58), genesi.finestraDellaMic(T([0, 42]), null), genesi.finestraDellaMic(T([0, 42]), -1), genesi.fraseFinestraMic(null), genesi.fraseFinestraMic({}), genesi.fraseFinestraMic({ fori: [] })], [null, null, null, "", "", ""],
+      "⛔ `null` esattamente dove è `null` la MIC (nessun foro, carica non leggibile), e nessuna frase");
+    /* ── la pagina ── */
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    ok(/chi:es\.calcolabile \? fraseFinestraMic\(finestraDellaMic\(D2\.holes, D2\.kg\)\) : '',/.test(pag), "⛔ la frase la decide `micDaMostrare`, una volta per tutti i lettori — sugli stessi fori e la stessa carica della MIC");
+    eq((pag.match(/\+\(_m2\.chi\?' '\+_rEsc\(_m2\.chi\):''\)\}\);/g) || []).length, 3, "⛔ la scheda la scrive in tutti e TRE i rami in cui la MIC si conta (con la soglia, senza la soglia, senza la distanza)");
+    ok(/_rM\.calcolabile \? gnum\(_rMic,1\)\+' kg \(finestra 8 ms\)'\+\(_rM\.chi\?'<br>'\+esc\(_rM\.chi\):''\)\n/.test(pag), "e il foglio la stampa sotto il numero");
+    const mod = readFileSync(join(HERE, "../../genesi/genesi-data.js"), "utf8");
+    eq([(mod.match(/_finestreDiCarica\(H, kg\)/g) || []).length, (mod.match(/t0 \+ FINESTRA_MIC_MS\)/g) || []).length, /t0 \+ 8\b/.test(mod)], [3, 1, false], "⛔ nel modulo la finestra si conta in UN posto solo: la definizione e i suoi due chiamanti, e nessun «+ 8» scritto a mano altrove");
+  });
   test("⛔ Genesi · eUnTocco e i tocchi sulla pianta: un dito conduce, il secondo ferma tutto, col dito si crea alzandolo", () => {
     eq(genesi.eUnTocco(100, 100, 100, 100), true, "il dito si alza dov'era: è un tocco");
     eq([genesi.eUnTocco(100, 100, 106, 108), genesi.eUnTocco(100, 100, 107, 107.1)], [false, true], "⛔ 10 px esatti non sono più un tocco (6-8-10), 9,97 sì: la soglia è esclusiva");

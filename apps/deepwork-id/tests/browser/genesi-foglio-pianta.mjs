@@ -20,7 +20,11 @@
      · che su un telefono le scritte del disegno restano leggibili e la pagina non scorre
        di lato (a corpo pieno la tabella chiede 474 px);
      · che quando i fori sono troppo fitti il disegno non scrive numeri illeggibili, e lo
-       dice.
+       dice;
+     · (27/11) che la frase sulla MIC — quali fori la formano e quando — è VERA sulla
+       tabella dello stesso foglio: i fori nominati stanno entro 8 ms, le loro cariche
+       fanno il numero scritto, e quel numero è il massimo che si ricava ricontando le
+       finestre sulla tabella, qui, a mano. E che la scheda dice la stessa frase.
 
    ⛔ LA CONTROPROVA È UN DIFETTO PER VOLTA (`ATTIVE`), con il controllo che deve cadere
    scritto accanto (`BERSAGLI`, stesso ordine di `DIFETTI`): rimessi insieme si coprono.
@@ -66,6 +70,16 @@ const DIFETTI = [
   [MODULO, "const r = raggioForoTela(passo), coiNumeri = r >= RAGGIO_MIN_NUMERO,", "const r = raggioForoTela(passo), coiNumeri = true,"],
   /* 11 · la tabella dei fori non entra più nel foglio */
   [PAGINA, "    +body\n    +_rTabFori\n", "    +body\n"],
+  /* 12 · la finestra della MIC diventa di 80 ms: i fori nominati non stanno più entro 8 */
+  [MODULO, "export const FINESTRA_MIC_MS = 8;", "export const FINESTRA_MIC_MS = 80;"],
+  /* 13 · i fori della MIC si chiamano col numero sbagliato */
+  [MODULO, "const numero = (j) => (fin(H[j] && H[j].seq) ? +H[j].seq : j) + 1;", "const numero = (j) => (fin(H[j] && H[j].seq) ? +H[j].seq : j) + 2;"],
+  /* 14 · «ogni foro parte da solo» detto perché la finestra massima ha un foro solo */
+  [MODULO, "daSoli: finestre.every((f) => f.dentro.length === 1),", "daSoli: true,"],
+  /* 15 · il foglio non dice più quali fori formano la MIC */
+  [PAGINA, "' kg (finestra 8 ms)'+(_rM.chi?'<br>'+esc(_rM.chi):'')\n", "' kg (finestra 8 ms)'\n"],
+  /* 16 · la scheda non lo dice più (nel ramo di tutti i giorni: soglia e distanza ci sono) */
+  [PAGINA, "' m: oltre, il PPV supera il limite.'+(_m2.chi?' '+_rEsc(_m2.chi):'')});", "' m: oltre, il PPV supera il limite.'});"],
 ];
 let ATTIVE = DIFETTI;
 
@@ -171,6 +185,8 @@ async function foglio(pg) {
     if (tf) {
       out.testa = [...tf.querySelectorAll("thead th")].map((th) => th.textContent);
       out.righe = [...tf.querySelectorAll("tbody tr")].map((tr) => [...tr.cells].map((td) => ({ t: td.textContent, b: !!td.querySelector("b") })));
+      const rm = [...document.querySelectorAll("tr")].find((tr) => tr.cells.length === 2 && /^MIC/.test(tr.cells[0].textContent));
+      out.mic = rm ? rm.cells[1].innerText.split("\n").map((x) => x.trim()).filter(Boolean) : null;
       out.tf = { w: tf.getBoundingClientRect().width, box: box ? box.getBoundingClientRect().width : null, scorre: box ? getComputedStyle(box).overflowX : null };
     }
     return out;
@@ -331,10 +347,58 @@ async function fitta() {
   }
 }
 
-const ATTESE = (8 + 2 + 1) + (8 + 2 + 6 + 1) + (2 * (8 + 2) + 1) + (8 + 2) + (8 + 1);
+/* ───── E · la MIC dice quali fori la formano e quando ───── */
+/* la MIC ricontata QUI sulla tabella del foglio: per ogni riga, i chili delle righe che partono entro 8 ms da lei */
+function micDallaTabella(L) {
+  const r = L.righe.map((q) => ({ n: num(q[COL.n].t), t: num(q[COL.tDet].t), kg: num(q[COL.kg].t) }));
+  let mic = 0, vicini = 0;
+  for (const a of r) { let s = 0, c = 0; for (const q of r) if (q.t >= a.t && q.t < a.t + 8) { s += q.kg; c++; } if (s > mic) mic = s; if (c > 1) vicini++; }
+  return { mic, vicini, r };
+}
+const fraseScheda = (pg) => pg.evaluate(() => { const e = document.querySelector('.sv-row[data-lab="MIC (carica/ritardo)"] .sv-why'); return e ? e.textContent : null; });
+async function mic() {
+  /* E1 — fra le file 100 ms: due fori di file diverse cadono a 5 ms uno dall'altro */
+  let pg = await apri(1280, { ...DESIGN, ritardoFila: 100 });
+  if (!(await pronta(pg))) nonMisurati.push("MIC a gruppi: la pagina non è arrivata al progetto");
+  else {
+    const L = await foglio(pg), scheda = await fraseScheda(pg);
+    if (!L || !L.righe) nonMisurati.push("MIC a gruppi: il foglio non si è aperto, o non ha la tabella");
+    else {
+      const frase = (L.mic || [])[1] || "", m = frase.match(/^La MIC la formano i fori ([\d, e]+), che partono/), T = micDallaTabella(L);
+      const nomi = m ? m[1].split(/, | e /).map(Number) : [], miei = T.r.filter((q) => nomi.includes(q.n)), ts = miei.map((q) => q.t), scritta = num((L.mic || [""])[0]);
+      dice(nomi.length >= 2 && miei.length === nomi.length && Math.max(...ts) - Math.min(...ts) < 8 && Math.abs(miei.reduce((a, q) => a + q.kg, 0) - scritta) < 0.06 && Math.abs(T.mic - scritta) < 0.06,
+        `MIC a gruppi: il foglio dice quali fori formano la MIC — nella tabella quei fori stanno entro 8 ms, le loro cariche fanno i ${scritta} kg scritti, ed è il massimo che si riconta dalla tabella`,
+        JSON.stringify({ frase, nomi, ritardi: ts, somma: miei.reduce((a, q) => a + q.kg, 0), scritta, ricontata: T.mic }));
+      dice(!!frase && !!scheda && scheda.includes(frase), "MIC a gruppi: la scheda dice la stessa frase del foglio", JSON.stringify({ scheda, frase }));
+    }
+    /* E3 — sullo stesso progetto, un foro da 200 kg: la MIC diventa lui, ma NON è vero che ogni foro parte da solo */
+    await pg.evaluate(() => { const D = window.__genesi.D2; D.holes[0].kg = 200; window.__genesi.renderScheda2D(); }); await pg.waitForTimeout(300);
+    const L3 = await foglio(pg), scheda3 = await fraseScheda(pg), n0 = await pg.evaluate(() => window.__genesi.D2.holes[0].seq + 1);
+    if (!L3 || !L3.righe) nonMisurati.push("MIC con un foro grosso: il foglio non si è aperto");
+    else {
+      const frase = (L3.mic || [])[1] || "", T = micDallaTabella(L3);
+      dice(frase.startsWith(`La MIC la forma il foro ${n0}, che parte da solo.`) && T.vicini > 0 && num((L3.mic || [""])[0]) === 200,
+        `MIC con un foro grosso: il foglio nomina il foro ${n0} e non dice che ogni foro parte da solo (nella tabella ${T.vicini} fori ne hanno un altro entro 8 ms)`, JSON.stringify({ riga: L3.mic, vicini: T.vicini }));
+      dice(!!frase && !!scheda3 && scheda3.includes(frase), "MIC con un foro grosso: la scheda dice la stessa frase del foglio", JSON.stringify({ scheda3, frase }));
+    }
+  }
+  await pg.__ctx.close();
+  /* E2 — una fila sola: nessuno parte insieme a un altro */
+  pg = await apri(1280, { ...DESIGN, file: 1 });
+  if (!(await pronta(pg))) nonMisurati.push("MIC foro per foro: la pagina non è arrivata al progetto");
+  else {
+    const L = await foglio(pg);
+    if (!L || !L.righe) nonMisurati.push("MIC foro per foro: il foglio non si è aperto");
+    else { const T = micDallaTabella(L);
+      dice((L.mic || [])[1] === "Ogni foro parte da solo: nessun altro entro 8 ms." && T.vicini === 0, "MIC foro per foro: il foglio dice «Ogni foro parte da solo», e nella tabella non ci sono due ritardi a meno di 8 ms", JSON.stringify({ riga: L.mic, vicini: T.vicini })); }
+  }
+  await pg.__ctx.close();
+}
+
+const ATTESE = (8 + 2 + 1) + (8 + 2 + 6 + 1) + (2 * (8 + 2) + 1) + (8 + 2) + (8 + 1) + 5;
 let riuscita;
 if (!CONTROPROVA) {
-  await base(); await propri(); await telefono([390, 320]); await fitta();
+  await base(); await propri(); await telefono([390, 320]); await fitta(); await mic();
 } else {
   /* nello stesso ordine di DIFETTI: che cosa rimette, dove guardare, quale controllo deve cadere */
   const BERSAGLI = [
@@ -349,6 +413,11 @@ if (!CONTROPROVA) {
     ["il ritardo sotto il foro non è più quello della riga", base, /il ritardo scritto sotto ogni foro/],
     ["i numeri si scrivono comunque, anche dove non si leggono", fitta, /non scrive numeri illeggibili/],
     ["la tabella dei fori non entra più nel foglio", base, /UNA pianta e la tabella dei fori/],
+    ["la finestra della MIC diventa di 80 ms", mic, /quei fori stanno entro 8 ms/],
+    ["i fori della MIC si chiamano col numero sbagliato", mic, /quei fori stanno entro 8 ms/],
+    ["«ogni foro parte da solo» detto a torto", mic, /non dice che ogni foro parte da solo/],
+    ["il foglio non dice più quali fori formano la MIC", mic, /il foglio dice quali fori formano la MIC/],
+    ["la scheda non lo dice più", mic, /MIC a gruppi: la scheda dice la stessa frase/],
   ];
   const esiti = [];
   for (let k = 0; k < DIFETTI.length; k++) {
@@ -367,7 +436,7 @@ if (nonMisurati.length) {
   console.log(`\n⚠️ NON MISURATI (${nonMisurati.length}) — non è «a posto», è «non ho guardato»:`);
   for (const x of nonMisurati) console.log(`   · ${x}`);
 }
-console.log(`\nRisultato foglio con la pianta di Genesi: ${ok} passati, ${ko} falliti  ·  ${ATTESE} asserzioni attese nel passaggio sano (11 sulla volata di base, 17 coi valori propri, 21 sul telefono, 19 sulla maglia fitta)`);
+console.log(`\nRisultato foglio con la pianta di Genesi: ${ok} passati, ${ko} falliti  ·  ${ATTESE} asserzioni attese nel passaggio sano (11 sulla volata di base, 17 coi valori propri, 21 sul telefono, 19 sulla maglia fitta, 5 sulla MIC)`);
 await b.close();
 srv.close();
 /* una controprova RIUSCITA esce 0: ogni difetto, da solo, ha fatto cadere il controllo che lo
