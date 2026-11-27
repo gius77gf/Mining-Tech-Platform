@@ -2675,6 +2675,37 @@
   archiviato). `run-kpi` 3258 → 3259 (controprova 9 su 9); banco
   `genesi-foro-per-foro.mjs` 208 → 214, 72 iniezioni; guardato lo scatto
   di Home a 320 px (la riga va a capo, non esce).
+- [x] **Genesi — il NOSTRO disegno DXF letto da un altro programma**
+  *(27/11, il «metodo nuovo» applicato allo scrittore)*: `dxf-da-cad.mjs`
+  provava il lettore con disegni di `ezdxf`; lo scrittore (`dxfPianoFori`)
+  era riletto solo da noi, e il nostro lettore i testi non li legge. Fatto
+  leggere a `ezdxf` su sette casi: lo apre col lettore normale, come R12,
+  zero errori alla sua verifica — e **due difetti veri**: (1) un nome con un
+  accento arrivava storpiato («Foro n°1 (àèì)» → «Foro nÂ°1 (Ã Ã¨Ã¬)»),
+  perché il file esce in UTF-8 e un DXF di questa forma si legge in
+  Windows-1252; (2) un foro senza nome lasciava un TESTO VUOTO nel disegno.
+  Corretto in `_dxfTesto`: i caratteri fuori dall'ASCII escono `\U+XXXX`
+  (la forma del DXF: il file resta ASCII puro), il circonflesso come lo
+  scrive il DXF, e senza nome non si scrive nessun testo. ⛔ Neutralità:
+  coi nomi che Genesi dà ai fori il file è byte per byte quello di prima
+  (sei casi su sei identici, misurato). Nuova suite `dxf-nostro-da-cad.mjs`
+  (22 asserzioni; controprova 23 su 23: 7 difetti nel modulo, 16 letture
+  guastate) con `campioni/dxf-nostro/` (nove disegni, i loro ingressi, lo
+  script che li scrive e quello che li fa leggere a ezdxf): la suite
+  pretende che i file letti siano ANCORA quelli che Genesi scrive, e non ha
+  bisogno di Python. ⚠️ Che cosa non dice: ezdxf non è AutoCAD — nessun CAD
+  commerciale è stato aperto. ⚠️ Dichiarato e non curato: un nome con due
+  percento di fila seguiti da una lettera in CAD diventa un simbolo.
+  Giro `node`: 43 → 45 comandi, 4422 → 4470 (22 + 23, più 3 file nuovi
+  contati da `import-esistenti`).
+- [x] **Genesi — i due record che escono verso le altre app, coi valori per
+  foro accesi** *(27/11, misura senza modifiche)*: premuti i bottoni veri con
+  un foro scarico e uno col borraggio corto. La volata prevista per
+  Sentinella porta la carica totale vera (696 → 638 kg) e la carica massima
+  per ritardo vera (58 kg); il piano per Campo porta la carica di ogni foro
+  (la riga del foro scarico dice 0). Niente da correggere. Resta annotato:
+  il piano di carico non porta diametro e inclinazione per foro
+  (intestazione in `shared/dw-ponti.js`, letta da Campo: non toccata).
 - [ ] **Genesi — il piede che esce dalla faccia** ⏸️ *in attesa della
   decisione 35*: con l'inclinazione per foro la pianta mostra il piede di
   ogni foro; in dimostrazione, un foro da 10 m a 20° con 3 m di spalla ha il

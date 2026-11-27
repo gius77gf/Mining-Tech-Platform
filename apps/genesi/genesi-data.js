@@ -4449,8 +4449,33 @@ function _dxfNum(x){ const v=+x; return Number.isFinite(v) ? v.toFixed(3) : '0.0
 function _dxfCerchio(layer, x, y, raggio){
   return '0\nCIRCLE\n8\n'+layer+'\n10\n'+_dxfNum(x)+'\n20\n'+_dxfNum(y)+'\n30\n0.0\n40\n'+_dxfNum(raggio)+'\n';
 }
+/* ⛔ 27/11 — IL NOSTRO DXF LETTO DA UN ALTRO PROGRAMMA (`ezdxf`), e due cose
+   che l'andata e ritorno di casa non poteva vedere, perché il nostro lettore i
+   testi non li legge:
+   1. UN NOME CON UN ACCENTO ARRIVAVA STORPIATO. Il file esce in UTF-8, ma un
+      DXF di questa forma (R12, senza intestazione) non dichiara la codifica e
+      un CAD lo legge come Windows-1252: «Foro n°1 (àèì)» si apriva «Foro
+      nÂ°1 (Ã\xa0Ã¨Ã¬)». La forma che il DXF prevede per questo, e che ogni CAD
+      rilegge, è `\U+XXXX`: così il file resta ASCII puro e non dipende dalla
+      codifica di chi lo apre. I caratteri fuori dal piano di base (che
+      `\U+` a quattro cifre non sa dire) escono «?»; i caratteri di controllo
+      uno spazio. E l'accento circonflesso, che in un testo DXF annuncia un
+      carattere di controllo («a^b» si apriva «a» più un carattere invisibile),
+      esce come il DXF scrive un circonflesso vero: seguito da uno spazio.
+      ⚠️ Dichiarato e NON curato: un nome che contiene due percento di fila
+      seguiti da una lettera (c, d, p…) in CAD diventa un simbolo — è il modo
+      del DXF di scrivere ø, ° e ±, e un nome di foro così non si è mai visto.
+   2. UN FORO SENZA NOME LASCIAVA UN TESTO VUOTO: un oggetto che in CAD non si
+      vede e non si seleziona, e che le pulizie del disegno segnalano. Senza
+      nome non si scrive nessun testo: il cerchio c'è lo stesso.
+   ⛔ NEUTRALITÀ: con nomi ASCII e non vuoti (quelli che Genesi dà ai fori) il
+   file è byte per byte quello di prima. */
 function _dxfTesto(layer, x, y, altezza, testo){
-  const t = String(testo==null?'':testo).replace(/[\r\n]/g,' ');
+  const t = String(testo==null?'':testo).replace(/[\u0000-\u001f\u007f]/g,' ')
+    .replace(/[\ud800-\udbff][\udc00-\udfff]/g,'?')
+    .replace(/[^\x20-\x7e]/g, (c)=>'\\U+'+c.charCodeAt(0).toString(16).toUpperCase().padStart(4,'0'))
+    .replace(/\^/g,'^ ');
+  if(!t.trim()) return '';
   return '0\nTEXT\n8\n'+layer+'\n10\n'+_dxfNum(x)+'\n20\n'+_dxfNum(y)+'\n30\n0.0\n40\n'+_dxfNum(altezza)+'\n1\n'+t+'\n';
 }
 /* ⛔ 13/09: QUI STAVA `LWPOLYLINE` — e un DXF R12 senza HEADER/TABLES

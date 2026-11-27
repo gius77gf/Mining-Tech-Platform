@@ -5974,6 +5974,18 @@ bottone vero.
 
 ### Che cosa resta fuori, dichiarato (candidati, non promesse)
 
+> ⏱️ **Riletto il 27/11: due righe su tre qui sotto proponevano lavoro GIÀ
+> FATTO, e la terza per metà.** (1) I blocchi inseriti si esplodono dal 26/11
+> sera (`dxf-da-cad.mjs`, campioni `blocco_*`). (2) Archi, cerchi, ellissi,
+> spline e tratti curvi entrano come spezzate dal 26/11 sera (stessa suite,
+> 51 campioni). (3) `parseLAS` contro file di `laspy`: fatto il 26/11
+> (`campioni/las-da-laspy/`); **l'export `dxfPianoFori` riletto da `ezdxf`
+> in modo sistematico: fatto il 27/11** (`dxf-nostro-da-cad.mjs`, nove
+> disegni, e due difetti veri trovati — un nome con un accento arrivava
+> storpiato, un foro senza nome lasciava un testo vuoto). **Di questo elenco
+> resta aperto solo `parsePLY` contro un file scritto da un altro.**
+> Le tre righe restano scritte com'erano, per la storia.
+
 1. **Il contenuto dei blocchi inseriti** (INSERT): oggi si contano e si
    dichiarano, non si espandono. Costo: risolvere traslazione/scala/
    rotazione/annidamento — l'oracolo c'è già (`ezdxf` sa «esplodere» un

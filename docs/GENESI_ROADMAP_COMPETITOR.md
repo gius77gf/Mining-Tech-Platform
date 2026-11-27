@@ -100,7 +100,10 @@ perché un foro senza valori suoi continua a usare quelli del progetto.
    esterni (il contenuto sta in un altro file), attributi e testi, retini,
    quote, e le spline scritte coi soli punti di adattamento (la curva non è
    nel file: la pagina dice di convertirle in polilinea). Del disegno non
-   resta fuori nessuna LINEA.
+   resta fuori nessuna LINEA. **E dal 27/11 è provato anche lo scrittore**:
+   il disegno che Genesi esporta è letto da ezdxf senza errori (nove casi,
+   `dxf-nostro-da-cad.mjs`); la prima lettura ha trovato e fatto correggere
+   i nomi con gli accenti storpiati e i testi vuoti.
 3. **Aggancio al cantiere e scambio dei fori** (decisione 32, rimandata).
 4. **Pezzatura da foto** (P2.1 qui sotto) e **modello ML** (P2.2): restano
    dove stavano.
