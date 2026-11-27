@@ -1391,7 +1391,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, reliefCls, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino, activeProf, d2HitTest, d2HitTestPt,
-         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfLeggi, dxfFraseNonLette, DXF_FRECCIA_ARCO_M, valoriPropriDiForo, valoreDiForo, scostamentoPiedeForo, foriPropriPerFoglio, valoreProgettoDaFile, foriFuoriDalForoTipo, avvisoForoTipo, CAMPI_DELLA_GITTATA, CAMPI_DELLA_PEZZATURA, LIMITI_PER_FORO, foriConValoreProprio, foriSenzaValoriPropri, valoreComuneDiFori, contaValoriPropri, tabellaFori, valoriPerForoDaPiano, capienzaFori, MARGINE_CAPIENZA_FORO, scartoCaricheProprie, scartoProfonditaProprie, caricaProgettoDaTotale, firmaMaglia, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, foriRiflessi, trattiRuotati, trattiScalati, coordinataRelativa, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
+         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfLeggi, dxfFraseNonLette, DXF_FRECCIA_ARCO_M, fraseMagliaAssente, scalaTestoTela, valoriPropriDiForo, valoreDiForo, scostamentoPiedeForo, foriPropriPerFoglio, valoreProgettoDaFile, foriFuoriDalForoTipo, avvisoForoTipo, CAMPI_DELLA_GITTATA, CAMPI_DELLA_PEZZATURA, LIMITI_PER_FORO, foriConValoreProprio, foriSenzaValoriPropri, valoreComuneDiFori, contaValoriPropri, tabellaFori, valoriPerForoDaPiano, capienzaFori, MARGINE_CAPIENZA_FORO, scartoCaricheProprie, scartoProfonditaProprie, caricaProgettoDaTotale, firmaMaglia, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, foriRiflessi, trattiRuotati, trattiScalati, coordinataRelativa, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -4131,7 +4131,7 @@ if($('btn-confronta-burden')) $('btn-confronta-burden').onclick=async()=>{
   const scarto=(msg)=>{ box.innerHTML='<div style="margin-top:8px;padding:8px 10px;border:1px solid rgba(255,202,40,.35);border-radius:8px;background:rgba(255,202,40,.07);color:#ffca28;font-size:13px;">'+_rEsc(msg)+'</div>'; };
   if(!Number.isFinite(xt)||xt<=0){ scarto('L’obiettivo dev’essere un numero maggiore di zero.'); return; }
   const g=measureGeom2D(D2), Bnom=g.B, Snom=g.S;
-  if(!(Bnom>0) || !(Snom>0)){ scarto('Manca il burden o l’interasse di oggi: non c’è un intorno da cui partire.'); return; }
+  if(!(Bnom>0) || !(Snom>0)){ scarto('Manca la spalla o l’interasse di oggi: non c’è un intorno da cui partire.'); return; }
   const A=rockFactorA().A, RWS=rwsEffettiva((selEsplosivo()||{}).rws_pct||100, D2.bagnato, (selEsplosivo()||{}).acqua);
   /* ⛔ 17/09: stesso limite fisico dell'obiettivo di pezzatura per un burden
      solo (riga ~3808 sopra) — qui vale per OGNI riga della tabella, perché
@@ -5612,7 +5612,7 @@ function volSnapshot(nome){
   try{ const _sv=sintesiVolata(computeKPI()); if(_sv) sintesi=_sv; }catch(e){}
   /* una volata salvata senza la pianta (27/11): la riga che resta in Home non dice «0 fori ·
      0 kg» — dice che la pianta non è disegnabile e che cosa manca */
-  if(D2.magliaAssente) sintesi='pianta non disegnabile — manca '+D2.magliaAssente;
+  if(D2.magliaAssente) sintesi='pianta non disegnabile — '+fraseMagliaAssente(D2.magliaAssente);
   return { id:'v'+Date.now(), nome:nome,
     data:timbroLocale(),
     /* ⛔ 19/09, dalla ricerca continua: GDB.utente (uid+email di chi è
@@ -6666,9 +6666,18 @@ function drawDesign2D(){
        dichiara, altrimenti il vuoto sembra un progetto nuovo invece di un
        progetto rotto. */
     if(D2.magliaAssente){
+      /* 27/11 — due righe, e nella misura VERA: la tela è larga 960 punti e sul
+         telefono è mostrata a meno di un terzo, quindi un corpo scritto in punti
+         della tela usciva alto 4 px. `scalaTestoTela` riporta il corpo a quello
+         che si legge sullo schermo (15 e 14 px), a qualunque larghezza. */
+      const k = scalaTestoTela(W, cv.getBoundingClientRect().width);
       c0.fillStyle='#1c150b'; c0.fillRect(0,0,W,cv.height);
-      c0.fillStyle='#ffca28'; c0.textAlign='center'; c0.font="600 13px 'Barlow Condensed',sans-serif";
-      c0.fillText('Pianta non disegnabile: manca '+D2.magliaAssente, W/2, cv.height/2);
+      c0.textAlign='center'; c0.textBaseline='middle';
+      c0.fillStyle='#ffca28'; c0.font="600 "+(15*k)+"px 'Barlow Condensed',sans-serif";
+      c0.fillText('Pianta non disegnabile', W/2, cv.height/2 - 12*k);
+      c0.fillStyle='#f0e8d8'; c0.font="500 "+(14*k)+"px 'Barlow',sans-serif";
+      c0.fillText(fraseMagliaAssente(D2.magliaAssente), W/2, cv.height/2 + 12*k);
+      c0.textBaseline='alphabetic';
     }
     return;
   }
@@ -7434,7 +7443,7 @@ function renderScheda2D(){
      darebbero NaN o zeri di coercizione invece di "non calcolabile". Si esce
      prima, con la sola frase dichiarata — non con una scheda a metà. */
   if(D2.magliaAssente && !D2.holes.length){
-    el.innerHTML='<div class="sv-card"><div class="sv-h"><b>Scheda volata</b><span class="sv-sub" style="color:#ffca28">Pianta non disegnabile: manca '+_rEsc(D2.magliaAssente)+'. Nessun foro è stato disegnato — una maglia non si inventa quando manca il dato che la genera.</span></div></div>';
+    el.innerHTML='<div class="sv-card"><div class="sv-h"><b>Scheda volata</b><span class="sv-sub" style="color:#ffca28">Pianta non disegnabile: '+_rEsc(fraseMagliaAssente(D2.magliaAssente))+'. Nessun foro è stato disegnato — una maglia non si inventa quando manca il dato che la genera.</span></div></div>';
     return;
   }
   const g=measureGeom2D(D2);
@@ -8952,6 +8961,10 @@ addEventListener('resize', ()=>{
   cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
   if(composer) composer.setSize(innerWidth, innerHeight);
+  /* 27/11 — la frase «pianta non disegnabile» è scritta nella misura dello schermo: se lo
+     schermo cambia larghezza (il telefono che ruota) va riscritta, e su una pianta senza
+     fori nessun altro gesto la ridisegnerebbe */
+  if(D2.magliaAssente) drawDesign2D();
 });
 
 /* ============ avvio ============ */

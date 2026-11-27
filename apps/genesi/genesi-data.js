@@ -5403,8 +5403,47 @@ export function _puntiNuvola(e){
    di non perdere il lavoro — e la riga che resta in Home lo dice. */
 export function nonEsceSenzaPianta(motivo, cosa, verbo){
   if(!motivo) return '';
-  return (cosa || 'Il documento') + ' ' + (verbo || 'non esce') + ': la pianta non è disegnabile — manca ' + motivo
-    + '. Scrivi il dato nei Parametri volata: i fori si ridisegnano da soli.';
+  return (cosa || 'Il documento') + ' ' + (verbo || 'non esce') + ': la pianta non è disegnabile — ' + fraseMagliaAssente(motivo)
+    + (_MAGLIA_PAROLE[motivo] && _MAGLIA_PAROLE[motivo][1] ? '. Scrivi i due dati' : '. Scrivi il dato')
+    + ' nei Parametri volata: i fori si ridisegnano da soli.';
+}
+/* ⛔ 27/11 — LA PAROLA È QUELLA DEL CAMPO, NON QUELLA DEL CODICE. Lo stato che
+   ferma il disegno si chiama `'burden'` (è il nome della grandezza nel codice
+   e nelle formule), e fino a oggi quella stessa stringa finiva A SCHERMO:
+   «Pianta non disegnabile: manca burden». Ma il campo da riempire, sei
+   centimetri più su, si chiama «Spalla (m)»: chi legge il messaggio cerca un
+   campo «burden» che nella schermata non c'è. Con due dati mancanti in più il
+   verbo restava al singolare («manca burden e interasse»).
+   Lo STATO non cambia — lo leggono tre banchi e la guardia del disegno — e
+   questa funzione dà la FRASE da mostrare, verbo compreso, in un posto solo:
+   la pianta, la scheda, i nove comandi fermati e la riga che resta in Home
+   passano tutti di qui. Un motivo che non conosce non lo ingoia: lo scrive
+   com'è, perché un messaggio vuoto sarebbe peggio di una parola tecnica. */
+const _MAGLIA_PAROLE = {
+  'burden':             ['manca la spalla', 0],
+  'interasse':          ["manca l'interasse", 0],
+  'burden e interasse': ["mancano la spalla e l'interasse", 1],
+};
+/* ⛔ 27/11 — UN TESTO SCRITTO SULLA TELA SI MISURA IN PUNTI DELLA TELA, NON
+   DELLO SCHERMO. La pianta è una tela larga 960 punti che il foglio mostra a
+   `width:100%` (al massimo 560 px): su un telefono da 320 è larga 292 px, cioè
+   ogni punto vale meno di un terzo di pixel. La frase «Pianta non
+   disegnabile…» era scritta a 13 punti: misurata, usciva alta circa 4 px —
+   una riga gialla, non una frase (visto nello scatto, deciso con la misura).
+   Questa funzione dice per quanto moltiplicare un corpo perché sullo schermo
+   esca della misura scritta: larghezza interna / larghezza mostrata. Mai meno
+   di 1 (su uno schermo largo la tela non si ingrandisce), e 1 quando la tela
+   non è a schermo (larghezza zero): un numero non leggibile non diventa un
+   corpo infinito. */
+export function scalaTestoTela(larghezzaInterna, larghezzaMostrata){
+  const a = +larghezzaInterna, b = +larghezzaMostrata;
+  if(!Number.isFinite(a) || !Number.isFinite(b) || !(a > 0) || !(b > 0)) return 1;
+  return Math.max(1, a / b);
+}
+export function fraseMagliaAssente(motivo){
+  if(!motivo) return '';
+  const p = _MAGLIA_PAROLE[motivo];
+  return p ? p[0] : 'manca ' + motivo;
 }
 export function magliaAssenteMotivo(B, S){
   const bOk = Number.isFinite(B) && B>0, sOk = Number.isFinite(S) && S>0;

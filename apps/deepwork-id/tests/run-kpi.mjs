@@ -43761,9 +43761,12 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(genesi.nonEsceSenzaPianta(null, "La scheda volata"), "", "⛔ NEUTRALITÀ: con la pianta disegnabile non c'è nessuna frase — il comando prosegue");
     eq([genesi.nonEsceSenzaPianta(undefined, "x"), genesi.nonEsceSenzaPianta("", "x")], ["", ""], "e nemmeno con un motivo vuoto o assente");
     eq(genesi.nonEsceSenzaPianta("burden", "La scheda volata"),
-      "La scheda volata non esce: la pianta non è disegnabile — manca burden. Scrivi il dato nei Parametri volata: i fori si ridisegnano da soli.",
-      "⛔ senza spalla: dice CHE COSA non esce, PERCHÉ, che cosa manca e dove scriverlo");
-    eq(genesi.nonEsceSenzaPianta("burden e interasse", "Il piano di carico").includes("manca burden e interasse"), true, "il motivo è quello di `magliaAssenteMotivo`, tale e quale");
+      "La scheda volata non esce: la pianta non è disegnabile — manca la spalla. Scrivi il dato nei Parametri volata: i fori si ridisegnano da soli.",
+      "⛔ senza spalla: dice CHE COSA non esce, PERCHÉ, che cosa manca — col nome che il campo ha nel form — e dove scriverlo");
+    eq(genesi.nonEsceSenzaPianta("burden e interasse", "Il piano di carico"),
+      "Il piano di carico non esce: la pianta non è disegnabile — mancano la spalla e l'interasse. Scrivi i due dati nei Parametri volata: i fori si ridisegnano da soli.",
+      "⛔ con due dati mancanti il verbo va al plurale e i dati da scrivere sono due");
+    eq(/burden/.test(["burden", "interasse", "burden e interasse"].map((m) => genesi.nonEsceSenzaPianta(m, "X")).join(" ")), false, "⛔ la parola del codice («burden») non arriva mai nel messaggio");
     eq(genesi.nonEsceSenzaPianta("interasse", "La simulazione", "non parte").startsWith("La simulazione non parte: "), true, "una simulazione «non parte», uno scatto «non si salva»: il verbo è del comando");
     eq(genesi.nonEsceSenzaPianta("burden").startsWith("Il documento non esce: "), true, "senza un nome resta una frase intera");
     /* il motivo viene dalla stessa funzione che ferma il disegno: i tre casi, più quello sano */
@@ -43774,7 +43777,35 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     const guardie = (pag.match(/if\(_senzaPianta\('[^']*(?:\\'[^']*)*'(?:, '[^']+')?\)\) return;/g) || []).length;
     eq(guardie, 9, "nove comandi guardati: scheda CSV, piano di carico, DXF, piano d'innesco, report, apertura e invio per Sentinella, simulazione, scatto A/B");
     ok(/function _senzaPianta\(cosa, verbo\)\{ const m=nonEsceSenzaPianta\(D2\.magliaAssente, cosa, verbo\); if\(!m\) return false; toast\(m\); return true; \}/.test(pag), "e la guardia legge lo stato dalla stessa variabile che lo schermo mostra, e parla col toast di casa");
-    ok(/if\(D2\.magliaAssente\) sintesi='pianta non disegnabile — manca '\+D2\.magliaAssente;/.test(pag), "⛔ e una volata salvata senza pianta lascia in Home «pianta non disegnabile — manca …», non «0 fori · 0 kg»");
+    ok(/if\(D2\.magliaAssente\) sintesi='pianta non disegnabile — '\+fraseMagliaAssente\(D2\.magliaAssente\);/.test(pag), "⛔ e una volata salvata senza pianta lascia in Home «pianta non disegnabile — manca …», non «0 fori · 0 kg»");
+  });
+  test("⛔ Genesi · scalaTestoTela: un testo scritto sulla tela esce sullo schermo della misura scritta, non a un terzo", () => {
+    eq(genesi.scalaTestoTela(960, 960), 1, "⛔ NEUTRALITÀ: tela mostrata alla sua misura, nessuna scala");
+    eq(genesi.scalaTestoTela(960, 320), 3, "tela da 960 punti mostrata a 320 px: il corpo va triplicato per leggersi uguale");
+    eq(+genesi.scalaTestoTela(960, 292).toFixed(2), 3.29, "⛔ il caso misurato: telefono da 320, tela mostrata a 292 px — un corpo 13 senza scala usciva 4 px");
+    eq(genesi.scalaTestoTela(960, 1920), 1, "su uno schermo più largo della tela non si rimpicciolisce: mai meno di 1");
+    eq([genesi.scalaTestoTela(960, 0), genesi.scalaTestoTela(960, null), genesi.scalaTestoTela(960, undefined), genesi.scalaTestoTela(960, NaN), genesi.scalaTestoTela(960, -5), genesi.scalaTestoTela(0, 300), genesi.scalaTestoTela("abc", 300)],
+      [1, 1, 1, 1, 1, 1, 1], "⛔ tela non a schermo (larghezza zero) o misura non leggibile: 1, mai un corpo infinito o NaN");
+    eq(genesi.scalaTestoTela("960", "480"), 2, "i numeri scritti come testo si leggono");
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    ok(/const k = scalaTestoTela\(W, cv\.getBoundingClientRect\(\)\.width\);/.test(pag), "⛔ la pianta non disegnabile chiede la scala alla tela vera, non a un numero scritto");
+    ok(/if\(D2\.magliaAssente\) drawDesign2D\(\);\n\}\);/.test(pag), "e se lo schermo cambia larghezza la frase viene riscritta");
+  });
+  test("⛔ Genesi · fraseMagliaAssente: a schermo va la parola del CAMPO («la spalla»), non quella del codice («burden»)", () => {
+    eq([genesi.fraseMagliaAssente(null), genesi.fraseMagliaAssente(undefined), genesi.fraseMagliaAssente("")], ["", "", ""], "⛔ NEUTRALITÀ: con la pianta disegnabile non c'è nessuna frase");
+    eq(genesi.fraseMagliaAssente("burden"), "manca la spalla", "⛔ lo stato si chiama «burden», il campo si chiama «Spalla»: si mostra il campo");
+    eq(genesi.fraseMagliaAssente("interasse"), "manca l'interasse");
+    eq(genesi.fraseMagliaAssente("burden e interasse"), "mancano la spalla e l'interasse", "⛔ due dati: il verbo va al plurale");
+    /* i tre stati che `magliaAssenteMotivo` sa dire hanno tutti la loro frase: nessuno cade nel ripiego */
+    const stati = [[null, 3.5], [3, null], [null, null]].map(([B, S]) => genesi.magliaAssenteMotivo(B, S));
+    eq(stati.map((m) => /burden/.test(genesi.fraseMagliaAssente(m))), [false, false, false], "⛔ per nessuno dei tre stati la parola «burden» arriva a schermo");
+    eq(genesi.fraseMagliaAssente(genesi.magliaAssenteMotivo(3, 3.5)), "", "e con spalla e interasse leggibili la frase non c'è");
+    eq(genesi.fraseMagliaAssente("quota del banco"), "manca quota del banco", "un motivo che la tabella non conosce non viene ingoiato: si scrive com'è");
+    /* la pagina: i tre punti che mostrano la ragione passano di qui, e nessuno stampa più lo stato nudo */
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    eq((pag.match(/fraseMagliaAssente\(D2\.magliaAssente\)/g) || []).length, 3, "tre punti della pagina: la tela della pianta, la scheda, la riga per Home (i nove comandi passano da `nonEsceSenzaPianta`)");
+    eq(/manca '\s*\+\s*(?:_rEsc\()?D2\.magliaAssente/.test(pag), false, "⛔ e in nessun punto della pagina lo stato viene più incollato a «manca »");
+    eq(/<span>Spalla <u class="uni">\(m\)<\/u><\/span><input[^>]*id="dB"/.test(pag) && /<span>Interasse <u class="uni">\(m\)<\/u><\/span><input[^>]*id="dS"/.test(pag), true, "⛔ e i due campi si chiamano davvero «Spalla» e «Interasse»: se un giorno cambiano nome, questa frase va cambiata con loro");
   });
   test("⛔ Genesi · sintesiVolata: la riga che resta nello storico dice i fori con valori loro, e non scrive mai la parola «null»", () => {
     const base = { nf: 12, qtot: 600, x50: 34, fragCalcolabile: true, foriPropri: 0, flyTipo: 0, fragTipo: 0 };

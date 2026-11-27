@@ -302,15 +302,15 @@ for (const [id, chiave, inventato, extra] of SORVEGLIATI) {
      ⏱️ 14/09 (B0-septies, cantiere G37): per B e S QUESTA riga è cambiata di
      proposito, non è un regresso — `magliaAssenteMotivo` fa uscire
      `renderScheda2D` PRIMA di disegnare qualunque riga, con la sola frase
-     dichiarata («Pianta non disegnabile: manca burden/interasse»), invece di
+     dichiarata («Pianta non disegnabile: manca la spalla / l'interasse»), invece di
      una scheda a metà su una geometria degenere. Zero `.sv-row` è adesso il
      comportamento GIUSTO per questi due campi soli — non per gli altri
      quattordici, dove la vecchia aspettativa resta quella vera. */
-  const magliaAssenteAttesa = id === "dB" ? "burden" : id === "dS" ? "interasse" : null;
+  const magliaAssenteAttesa = id === "dB" ? "manca la spalla" : id === "dS" ? "manca l'interasse" : null;
   if (magliaAssenteAttesa) {
     const vive = await pg.evaluate(() => document.querySelectorAll("#d2-scheda .sv-row").length);
     const scheda = await pg.evaluate(() => (document.getElementById("d2-scheda") || {}).textContent || "");
-    dice(pg.__errori.length === 0 && vive === 0 && /non disegnabile/.test(scheda) && new RegExp(`manca ${magliaAssenteAttesa}\\b`).test(scheda),
+    dice(pg.__errori.length === 0 && vive === 0 && /non disegnabile/.test(scheda) && scheda.includes(`Pianta non disegnabile: ${magliaAssenteAttesa}.`),
       `${id}: senza ${chiave} la pianta si dichiara non disegnabile (0 righe, ragione nominata), non una scheda a metà`,
       pg.__errori[0] || `righe: ${vive}, testo: ${scheda.slice(0, 120)}`);
   } else {
@@ -411,7 +411,7 @@ console.log("\n· la seconda domanda: con la carica assente, nessuna riga della 
 /* ⏱️ 27/11 — QUESTA SEZIONE È STATA RISCRITTA SULLA VERITÀ DI OGGI. Dal 14/09
    (B0-septies, `1b904f01`) una volata salvata SENZA spalla non disegna nessuna
    maglia: `genMaglia2D` imposta `D2.magliaAssente='burden'`, i fori sono zero
-   e la scheda dice «Pianta non disegnabile: manca burden». La sezione di prima
+   e la scheda dice «Pianta non disegnabile: manca la spalla». La sezione di prima
    pretendeva una scheda con più di venti righe, non la trovava per
    costruzione, e rispondeva «NON MISURATI (2)» uscendo 1: onesto, scritto qui
    sopra — e **rosso per due mesi e mezzo**, cioè un rosso che nessuno
@@ -453,14 +453,14 @@ console.log("\n· la terza domanda: con la spalla assente, la gittata non esce d
     if (!q.nav || q.fori < 0) { nonMisurati.push(`${quale} (la volata senza spalla non si è aperta nel 2D)`); await pg.close(); return; }
     dice(pg.__errori.length === 0 && q.fori === 0 && q.assente === "burden",
       `⛔ ${quale}: senza la spalla nessun foro viene disegnato, e la pagina lo sa (zero errori, zero fori, motivo «burden»)`, JSON.stringify([pg.__errori[0], q.fori, q.assente]));
-    dice(/Pianta non disegnabile: manca burden/.test(q.scheda) && !/\d/.test(q.scheda) && !/gittata|sgombero/i.test(q.scheda),
+    dice(/Pianta non disegnabile: manca la spalla\./.test(q.scheda) && !/\d/.test(q.scheda) && !/gittata|sgombero/i.test(q.scheda),
       `⛔ ${quale}: la scheda dice che cosa manca e non mostra NESSUN numero — nessuna gittata, nessuna distanza di sgombero esce da una spalla inventata`, q.scheda.slice(0, 220));
     /* e nemmeno il file: premendo «Esporta scheda volata» non esce niente */
     const u = await pg.evaluate(async () => { const usciti = []; const vero = HTMLAnchorElement.prototype.click;
       HTMLAnchorElement.prototype.click = function () { if (this.download) { usciti.push(this.download); return; } return vero.call(this); };
       document.getElementById("btn-scheda-csv").click(); await new Promise((r) => setTimeout(r, 700)); HTMLAnchorElement.prototype.click = vero;
       return { usciti, toast: [...document.querySelectorAll(".toast, #toast, .dw-toast")].map((t) => t.innerText.replace(/\s+/g, " ")).join(" | ") }; });
-    dice(u.usciti.length === 0 && /non esce: la pianta non è disegnabile — manca burden/.test(u.toast),
+    dice(u.usciti.length === 0 && /non esce: la pianta non è disegnabile — manca la spalla\./.test(u.toast),
       `⛔ ${quale}: e la scheda CSV non esce — il messaggio dice perché`, JSON.stringify(u).slice(0, 260));
     await pg.close();
   };

@@ -57,7 +57,15 @@ const DIFETTI_DOCUMENTI = [
    "function _senzaPianta(cosa, verbo){ const m=nonEsceSenzaPianta(D2.magliaAssente, cosa, verbo); if(!m) return false; toast(m); return true; }",
    "function _senzaPianta(cosa, verbo){ return false; }"],
   ["apps/genesi/genesi.html",
-   "  if(D2.magliaAssente) sintesi='pianta non disegnabile — manca '+D2.magliaAssente;\n", ""],
+   "  if(D2.magliaAssente) sintesi='pianta non disegnabile — '+fraseMagliaAssente(D2.magliaAssente);\n", ""],
+  /* 27/11 — la parola: la scheda torna a incollare lo STATO («burden») a «manca » */
+  ["apps/genesi/genesi.html",
+   "Pianta non disegnabile: '+_rEsc(fraseMagliaAssente(D2.magliaAssente))+'. Nessun foro",
+   "Pianta non disegnabile: manca '+_rEsc(D2.magliaAssente)+'. Nessun foro"],
+  /* 27/11 — la tela: la frase torna scritta in punti della tela, cioè alta 4-6 px sul telefono */
+  ["apps/genesi/genesi.html",
+   "      const k = scalaTestoTela(W, cv.getBoundingClientRect().width);\n      c0.fillStyle='#1c150b';",
+   "      const k = 1;\n      c0.fillStyle='#1c150b';"],
 ];
 
 const colpiti = new Set();
@@ -153,12 +161,38 @@ const stato = (pg) => pg.evaluate(() => ({
 console.log(`\n════════ Genesi · la maglia assente si dichiara, non si disegna (B0-septies)${CONTRO_DOC ? " · controprova dei documenti" : CONTROPROVA ? " · controprova" : ""} ════════`);
 
 const CASI = [
-  ["B", ["B"], "burden"],
-  ["S", ["S"], "interasse"],
-  ["B e S", ["B", "S"], "burden e interasse"],
+  ["B", ["B"], "burden", "manca la spalla", ["dB"]],
+  ["S", ["S"], "interasse", "manca l'interasse", ["dS"]],
+  ["B e S", ["B", "S"], "burden e interasse", "mancano la spalla e l'interasse", ["dB", "dS"]],
 ];
+/* 27/11 — il nome che il campo ha NEL FORM, letto dalla pagina e non scritto qui: è con quel
+   nome che il messaggio deve chiamare il dato che manca. */
+/* 27/11 — LA FRASE SULLA TELA SI LEGGE? Il testo di una tela non sta nel DOM: si misurano i
+   PIXEL. Sul fondo pieno della pianta vuota le sole cose chiare sono le lettere: ogni
+   striscia di righe chiare consecutive è una riga di testo. Si riporta tutto in px dello
+   schermo (la tela è larga 960 punti, mostrata a molto meno) e si chiede: quante righe, alta
+   quanto la più bassa, larga quanto la più larga, e quanto margine resta ai lati. */
+const fraseSullaTela = (pg) => pg.evaluate(() => {
+  const cv = document.getElementById("d2-canvas"), r = cv.getBoundingClientRect();
+  if (!(r.width > 0)) return null;
+  const k = cv.width / r.width, d = cv.getContext("2d").getImageData(0, 0, cv.width, cv.height).data;
+  const righe = []; let x0 = cv.width, x1 = -1, dentro = null;
+  for (let y = 0; y < cv.height; y++) {
+    let chiara = false;
+    for (let x = 0; x < cv.width; x++) if (d[(y * cv.width + x) * 4] > 130) { chiara = true; if (x < x0) x0 = x; if (x > x1) x1 = x; }
+    if (chiara && dentro === null) dentro = y;
+    if (!chiara && dentro !== null) { righe.push(y - dentro); dentro = null; }
+  }
+  return { righe: righe.map((h) => +(h / k).toFixed(1)), larga: x1 < 0 ? 0 : +((x1 - x0 + 1) / k).toFixed(1),
+    margine: x1 < 0 ? null : +(Math.min(x0, cv.width - 1 - x1) / k).toFixed(1), tela: Math.round(r.width) };
+});
+const telaLeggibile = (t) => !!t && t.righe.length === 2 && Math.min(...t.righe) >= 8 && t.margine >= 12;
+const nomiCampi = (pg, ids) => pg.evaluate((ii) => ii.map((i) => {
+  const c = document.getElementById(i), l = c && c.closest("label"), s = l && l.querySelector("span");
+  return s ? s.textContent.replace(/\(.*\)/, "").trim().toLowerCase() : null;
+}), ids);
 
-for (const [nome, chiavi, atteso] of CASI) {
+for (const [nome, chiavi, atteso, frase, campi] of CASI) {
   const pg = await apriSenza(chiavi);
   const st = await stato(pg);
   if (!st.navigato || st.n < 0) {
@@ -168,7 +202,18 @@ for (const [nome, chiavi, atteso] of CASI) {
   dice(pg.__errori.length === 0, `${nome} assente: zero errori di pagina`, pg.__errori[0]);
   dice(st.n === 0, `⛔ ${nome} assente: zero fori disegnati (non più sovrapposti sullo stesso punto)`, st.n);
   dice(st.assente === atteso, `${nome} assente: la ragione dichiarata è "${atteso}"`, st.assente);
-  dice(new RegExp(`manca ${atteso}\\b`).test(st.scheda), `${nome} assente: la scheda nomina la ragione`, st.scheda.slice(0, 120));
+  dice(st.scheda.includes(`Pianta non disegnabile: ${frase}.`), `${nome} assente: la scheda nomina la ragione («${frase}»)`, st.scheda.slice(0, 120));
+  const nomi = await nomiCampi(pg, campi);
+  dice(nomi.every((n) => n && st.scheda.toLowerCase().includes(n)) && !/burden/i.test(st.scheda),
+    `⛔ ${nome} assente: il dato che manca è chiamato col nome che il campo ha nel form («${nomi.join("», «")}»), non con la parola del codice`, st.scheda.slice(0, 120));
+  /* la stessa frase sta anche SULLA TELA, e lì va misurata nei pixel: a 430 e, ristretto lo
+     schermo, a 320 (la tela deve riscriversi da sola: nessun gesto la ridisegnerebbe) */
+  await pg.evaluate(() => document.getElementById("d2-canvas").scrollIntoView({ block: "center" }));
+  const t430 = await fraseSullaTela(pg);
+  dice(telaLeggibile(t430), `⛔ ${nome} assente, schermo 430: sulla tela la frase si legge — due righe alte almeno 8 px, con 12 px di margine`, JSON.stringify(t430));
+  await pg.setViewportSize({ width: 320, height: 950 }); await pg.waitForTimeout(350);
+  const t320 = await fraseSullaTela(pg);
+  dice(telaLeggibile(t320), `⛔ ${nome} assente, schermo 320: ristretto lo schermo la frase si riscrive e si legge ancora (non esce dalla tela)`, JSON.stringify(t320));
   await pg.close();
 }
 
@@ -222,8 +267,8 @@ console.log("\n· con la pianta non disegnabile, nessun documento esce come se l
       await pg.evaluate(() => { window.__usc.length = 0; });
       await pg.evaluate((i) => document.getElementById(i).click(), id); await pg.waitForTimeout(900);
       const q = await dopo(pg);
-      dice(q.file.length === 0 && q.finestre.length === 0 && q.scr.includes("scr-design") && q.toast.includes(frase + ": la pianta non è disegnabile — manca burden"),
-        `⛔ ${id}: niente esce, la schermata resta quella, e il messaggio dice «${frase}… manca burden»`, JSON.stringify(q));
+      dice(q.file.length === 0 && q.finestre.length === 0 && q.scr.includes("scr-design") && q.toast.includes(frase + ": la pianta non è disegnabile — manca la spalla. Scrivi il dato nei Parametri volata"),
+        `⛔ ${id}: niente esce, la schermata resta quella, e il messaggio dice «${frase}… manca la spalla» e dove scriverla`, JSON.stringify(q));
       if (!q.scr.includes("scr-design")) { await pg.click('#bottomnav button[data-scr="design"]').catch(() => {}); await pg.waitForTimeout(400); }
       await pg.evaluate(() => { for (const c of ["sentClose", "cmpClose"]) { const e = document.getElementById(c); if (e) e.click(); } });
     }
@@ -235,7 +280,7 @@ console.log("\n· con la pianta non disegnabile, nessun documento esce come se l
     await pg.fill("#modal-campo", "Banco · senza spalla").catch(() => {}); await pg.click("#modal-foot .mbtn.primary").catch(() => {}); await pg.waitForTimeout(600);
     const salvata = (await pg.evaluate(async () => window.__genesi.GDB.volate())).find((v) => v.nome === "Banco · senza spalla");
     dice(!!salvata, "salvare la volata resta permesso: non si perde il lavoro per un dato che manca", String(!!salvata));
-    dice(!!salvata && salvata.sintesi === "pianta non disegnabile — manca burden", `⛔ e la riga che resta in Home lo dice («${salvata && salvata.sintesi}»), non «0 fori · 0 kg»`, salvata && salvata.sintesi);
+    dice(!!salvata && salvata.sintesi === "pianta non disegnabile — manca la spalla", `⛔ e la riga che resta in Home lo dice («${salvata && salvata.sintesi}»), non «0 fori · 0 kg»`, salvata && salvata.sintesi);
     dice(pg.__errori.length === 0, "nessun errore di pagina premendo i nove comandi", pg.__errori[0]);
   }
   await pg.close();
@@ -262,6 +307,6 @@ if (nonMisurati.length) {
   console.log("   Un soggetto non misurato non è un soggetto a posto: il banco non esce zero.");
 }
 if (CONTROPROVA) console.log(`\n(iniezioni: ${colpiti.size}/${(CONTRO_DOC ? DIFETTI_DOCUMENTI : DIFETTI).length} hanno trovato il loro pezzo)`);
-console.log(`\nRisultato maglia assente di Genesi: ${ok} passati, ${ko} falliti  ·  31 asserzioni attese (4 per caso × 3 casi, 4 sul progetto sano, 13 sui documenti senza pianta e 2 su quelli col progetto sano)`);
+console.log(`\nRisultato maglia assente di Genesi: ${ok} passati, ${ko} falliti  ·  40 asserzioni attese (7 per caso × 3 casi, 4 sul progetto sano, 13 sui documenti senza pianta e 2 su quelli col progetto sano)`);
 await b.close(); srv.close();
 if (nonMisurati.length || (!CONTROPROVA && ko > 0) || (CONTROPROVA && ko === 0)) process.exit(CONTROPROVA ? (ko === 0 ? 1 : 0) : (nonMisurati.length || ko > 0 ? 1 : 0));

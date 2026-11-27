@@ -2858,19 +2858,46 @@
   più raggiungibile dalla pagina e resta provata dalle due prove
   `gittataSenzaSpalla` di `run-kpi`. Inseguendo questo rosso è uscito il
   difetto dei documenti che uscivano senza pianta (voce chiusa qui sopra).
-  ⏱️ Resta, a parte: la schermata dice «manca burden» dove il campo si
-  chiama «Spalla» — voce aperta qui sotto.
-- [ ] **Genesi — «manca burden» dove il campo si chiama «Spalla»**: quando
-  la pianta non è disegnabile, schermo, messaggi e riga in Home dicono
-  «manca burden» (o «interasse», o «burden e interasse»); il campo da
-  riempire si chiama «SPALLA (m)». La parola la decide
-  `magliaAssenteMotivo` (genesi-data.js) e la stampano la pianta, la scheda,
-  `nonEsceSenzaPianta` e `volSnapshot`. ⚠️ Non è un cerca-e-sostituisci: la
-  stessa stringa è anche lo STATO (`D2.magliaAssente === 'burden'`) che
-  leggono tre banchi (`genesi-maglia-assente`, `genesi-campi-assenti`,
-  `run-kpi`). La forma giusta: lo stato resta com'è, e una funzione nel
-  modulo dà la parola da mostrare («la spalla», «l'interasse», «la spalla e
-  l'interasse»).
+  ✅ La parola («manca burden» dove il campo si chiama «Spalla») è stata
+  corretta nell'unità dopo — voce chiusa qui sotto.
+- [x] **Genesi — dove la pianta non è disegnabile, il messaggio usa la parola del campo e sulla tela si legge**
+  *(27/11)*. Due difetti nello stesso punto, il secondo trovato misurando il
+  primo.
+  **La parola.** Schermo, scheda, i nove comandi fermati e la riga in Home
+  dicevano «manca burden»: è il nome dello STATO nel codice, mentre il campo
+  da riempire si chiama «Spalla (m)» — e con due dati mancanti il verbo
+  restava al singolare. Adesso `fraseMagliaAssente` (genesi-data.js) dà la
+  frase intera: «manca la spalla», «manca l'interasse», «mancano la spalla e
+  l'interasse» (e «Scrivi i due dati…»). Lo stato NON è cambiato: lo leggono
+  tre banchi e la guardia del disegno. Il banco legge il nome del campo
+  **dalla pagina** e pretende che il messaggio usi quello.
+  **La tela.** La frase sulla pianta era scritta a 13 punti di una tela
+  larga 960, mostrata a 292 px sul telefono da 320: misurata nei pixel,
+  **alta 4 px** (5,9 a 430) — una riga gialla, non una frase. Lo scatto
+  l'ha fatto vedere, la misura l'ha deciso. Adesso `scalaTestoTela` riporta
+  il corpo alla misura dello schermo, la frase sta su due righe, e se lo
+  schermo cambia larghezza si riscrive. Il banco la misura **nei pixel della
+  tela** a 430 e a 320 (due righe alte almeno 8 px, 12 px di margine).
+  Numeri: `run-kpi` 3260 → 3262; `genesi-data.js` 211/211;
+  `genesi-maglia-assente` 34 → 40 controlli (controprova: 4 iniezioni su 4,
+  22 controlli cadono); `genesi-campi-assenti` 64/64.
+  ⚠️ Non toccato, e detto: «Confronta spalla (burden)», «Burden di progetto
+  → burden vero» e simili restano — lì «burden» è il termine tecnico messo
+  accanto a «spalla», non il nome di un campo che non c'è.
+- [ ] **Genesi — sul telefono i testi della pianta sono scritti a 3-4 px**
+  *(27/11, misurato a metà: la scala sì, i testi uno per uno no)*. La tela
+  della pianta è larga 960 punti e il foglio la mostra a `width:100%`: 292
+  px sul telefono da 320 (un punto = 0,30 px), 402 px a 430 (0,42 px). I
+  testi disegnati da `drawDesign2D` sono a corpo 9-12 punti (numero del
+  foro 9, quote «S 3,5 m» / «B 3 m» 11, «FRONTE — faccia libera» 12): per
+  il conto fanno **2,7-3,6 px a 320** e 3,8-5 px a 430. Non c'è zoom sulla
+  pianta. ⚠️ Il conto è un'aritmetica sulla scala misurata: prima di
+  toccare va misurato nei pixel quali testi si leggono davvero (lo
+  strumento c'è già: `fraseSullaTela` in `genesi-maglia-assente.mjs`) e
+  guardato lo scatto. La funzione per scalare un corpo esiste
+  (`scalaTestoTela`); il lavoro vero è che scalando i testi di 3 volte
+  **si sovrappongono** ai fori (S fra due fori a 320 sono pochi px): va
+  deciso quali restano, non solo ingranditi.
 - [ ] **Genesi → Campo — il piano di carico CSV non protegge l'id del foro**
   ⏸️ *fuori dal mandato «solo Genesi»: la riga la compone `pianoCsvGenesi`
   in `shared/dw-ponti.js`, e Campo la ricompone e la rilegge con
@@ -3577,7 +3604,7 @@ nome. Un nome si cerca con `grep`; una riga si sposta.
 grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 ```
 
-- `Genesi — «manca burden» dove il campo si chiama «Spalla»`
+- `Genesi — sul telefono i testi della pianta sono scritti a 3-4 px`
 - `Genesi → Campo — il piano di carico CSV non protegge l'id del foro`
 - `Genesi — il piede che esce dalla faccia`
 - `F1. \`vitaComponenti\` non distingue un componente sostituito da`
@@ -9360,7 +9387,7 @@ numero scritto dove non era stato misurato niente**.*
   il lettore non leggeva affatto le tre colonne, non una chiamata che le
   scartava): il registro infortuni esportato e ri-caricato perdeva la
   denuncia INAIL (3097→3109):
-  **3.762 prove girano senza rete** *(ricontato il 27/11, +1 con la guardia sui documenti senza pianta; prima +2 col lettore PLY contro file scritti da plyfile; prima +1 con la riga dello storico che dice i fori con valori loro; prima +1 col confronto A/B che dice i fori con valori loro; prima +1 col piede dei fori nel DXF; prima +1 con la gittata sul foro tipo dichiarata; prima +1 col rientro del file di scambio; prima +1 col report che elenca i fori con valori loro; prima +1 con l'inclinazione per foro; prima +1 con le spline di un DXF; prima +1 con le ellissi di un DXF; prima +1 coi blocchi inseriti di un DXF; prima +2 con le nuvole LAS/LAZ scritte da laspy; prima +1 col diametro per foro; prima +1 con la carica che non entra nel foro; prima +2 con la quinta fetta del foro per foro [il piano d'innesco XML]; prima +1 con la quarta fetta del foro per foro [la tabella dei fori]; prima +3 con la terza fetta del foro per foro [il comando dalla scheda del foro]; prima +11 con le prime due fette del foro per foro, col lettore DXF di Genesi e i lettori di sismografo e sonda; prima, il 19/09, dopo la correzione di `syncTrattoUI` (trovata da `genesi-snap-estremo.mjs`, G48 — Ruota/Scala tratti restavano visibili mentre si disegnava ancora un tratto, spingendo la tela sotto la barra di navigazione fissa: 40 px bastavano a far cadere il clic di chiusura del tratto sull'icona della barra); 3.727 dopo `deviazioneStatistiche` (G59, media e massima della deviazione RADIALE di perforazione — `Math.hypot(dx,dy)`, non dx/dy col segno: il segno dipende dalla convenzione di assi del rilievo boretrack, ancora non confermata — segnalata dalla ricerca del 19/09 come mancanza reale rispetto al QC statistico di JKSimBlast, verificata prima con un grep per nome); 3.725 dopo `trattiScalati` (G58, terza trasformazione — scala i tratti DALL'ORIGINE, non dal centroide, per correggere un rilievo DXF in un'unità diversa dai metri di Genesi); 3.718 dopo `trattiRuotati` (G57, seconda trasformazione CAD dopo il mirror di G50: ruota tutti i tratti attorno al loro centroide comune, per correggere l'orientamento di un rilievo DXF senza dover reimportare); 3.712 dopo la stessa causa di G56c ritrovata in `innescoSuMaglia` (G56d, un foro senza nessun raccordo che lo raggiunga spariva dalla rete di innesco come il primo della volata); 3.711 dopo `relief=null` che distingue il primo foro della zona da un vicino fuori dalla distanza di adiacenza (G56c, trovato con una verifica diretta sugli export CSV/DXF/XML dopo aver tolto un foro dalla maglia, non da un agente); 3.709 dopo l'annulla premuto a metà di un trascinamento (G56b, dal deep-pass QA in background sulle nove unità appena costruite); 3.708 dopo la guida di allineamento in Y sul trascinamento di un foro (G56, dal delta di una ricerca in background su snap magnetico/tracking dinamico); 3.707 dopo il misfire nel report stampato (G55, _repEsito); 3.706 dopo il limite dello stack di annulla (G54, già scritto il 14/09 e mai provato prima d'ora); 3.705 dopo il semaforo di sintesi letto prima di esportare (G53, fraseGraviExport); 3.704 dopo l'esito della detonazione di Genesi (G52, _riconRiassuntoCampo/csvRiconciliazione); 3.702 dopo l'input relativo/polare di Genesi (G51, coordinataRelativa); 3.695 dopo rifletti la selezione di Genesi (G50, foriRiflessi); 3.691 dopo la selezione multipla dei fori (G49, foriSenzaId); 3.688 dopo lo snap a oggetti di Genesi (G48, puntoSnapEstremo/estremiDisegno); 3.682 dopo il dodicesimo giro (Sentinella, allerteTaratura/badge); 3.676 dopo il sesto
+  **3.764 prove girano senza rete** *(ricontato il 27/11, +2 con la parola del campo e la frase sulla tela dove la pianta non è disegnabile; prima +1 con la guardia sui documenti senza pianta; prima +2 col lettore PLY contro file scritti da plyfile; prima +1 con la riga dello storico che dice i fori con valori loro; prima +1 col confronto A/B che dice i fori con valori loro; prima +1 col piede dei fori nel DXF; prima +1 con la gittata sul foro tipo dichiarata; prima +1 col rientro del file di scambio; prima +1 col report che elenca i fori con valori loro; prima +1 con l'inclinazione per foro; prima +1 con le spline di un DXF; prima +1 con le ellissi di un DXF; prima +1 coi blocchi inseriti di un DXF; prima +2 con le nuvole LAS/LAZ scritte da laspy; prima +1 col diametro per foro; prima +1 con la carica che non entra nel foro; prima +2 con la quinta fetta del foro per foro [il piano d'innesco XML]; prima +1 con la quarta fetta del foro per foro [la tabella dei fori]; prima +3 con la terza fetta del foro per foro [il comando dalla scheda del foro]; prima +11 con le prime due fette del foro per foro, col lettore DXF di Genesi e i lettori di sismografo e sonda; prima, il 19/09, dopo la correzione di `syncTrattoUI` (trovata da `genesi-snap-estremo.mjs`, G48 — Ruota/Scala tratti restavano visibili mentre si disegnava ancora un tratto, spingendo la tela sotto la barra di navigazione fissa: 40 px bastavano a far cadere il clic di chiusura del tratto sull'icona della barra); 3.727 dopo `deviazioneStatistiche` (G59, media e massima della deviazione RADIALE di perforazione — `Math.hypot(dx,dy)`, non dx/dy col segno: il segno dipende dalla convenzione di assi del rilievo boretrack, ancora non confermata — segnalata dalla ricerca del 19/09 come mancanza reale rispetto al QC statistico di JKSimBlast, verificata prima con un grep per nome); 3.725 dopo `trattiScalati` (G58, terza trasformazione — scala i tratti DALL'ORIGINE, non dal centroide, per correggere un rilievo DXF in un'unità diversa dai metri di Genesi); 3.718 dopo `trattiRuotati` (G57, seconda trasformazione CAD dopo il mirror di G50: ruota tutti i tratti attorno al loro centroide comune, per correggere l'orientamento di un rilievo DXF senza dover reimportare); 3.712 dopo la stessa causa di G56c ritrovata in `innescoSuMaglia` (G56d, un foro senza nessun raccordo che lo raggiunga spariva dalla rete di innesco come il primo della volata); 3.711 dopo `relief=null` che distingue il primo foro della zona da un vicino fuori dalla distanza di adiacenza (G56c, trovato con una verifica diretta sugli export CSV/DXF/XML dopo aver tolto un foro dalla maglia, non da un agente); 3.709 dopo l'annulla premuto a metà di un trascinamento (G56b, dal deep-pass QA in background sulle nove unità appena costruite); 3.708 dopo la guida di allineamento in Y sul trascinamento di un foro (G56, dal delta di una ricerca in background su snap magnetico/tracking dinamico); 3.707 dopo il misfire nel report stampato (G55, _repEsito); 3.706 dopo il limite dello stack di annulla (G54, già scritto il 14/09 e mai provato prima d'ora); 3.705 dopo il semaforo di sintesi letto prima di esportare (G53, fraseGraviExport); 3.704 dopo l'esito della detonazione di Genesi (G52, _riconRiassuntoCampo/csvRiconciliazione); 3.702 dopo l'input relativo/polare di Genesi (G51, coordinataRelativa); 3.695 dopo rifletti la selezione di Genesi (G50, foriRiflessi); 3.691 dopo la selezione multipla dei fori (G49, foriSenzaId); 3.688 dopo lo snap a oggetti di Genesi (G48, puntoSnapEstremo/estremiDisegno); 3.682 dopo il dodicesimo giro (Sentinella, allerteTaratura/badge); 3.676 dopo il sesto
   giro di deep-pass QA su Sentinella/Genesi/Conti — `run-kpi` 3172→3177 — e
   il settimo giro — 3177→3178, correzione del refuso di `terra-sequenza-lotto.mjs`
   più il test sulla sezione Personale presente di Campo — le altre otto invariate)*. La frase va
