@@ -1,10 +1,10 @@
-/* TUTTI I DOCUMENTI CHE ESCONO DALLE SEI APP, SULLA DIMOSTRAZIONE, SENZA BROWSER
+/* TUTTI I DOCUMENTI CHE ESCONO DALLE SEI APP E DA GENESI, SULLA DIMOSTRAZIONE, SENZA BROWSER
    ═══════════════════════════════════════════════════════════════════════
    Uso: node apps/deepwork-id/tests/documenti-dimostrazione.mjs [--dimmi]
         node apps/deepwork-id/tests/documenti-dimostrazione.mjs --controprova
           (sporca in memoria il primo documento di ogni app con «undefined»,
            «1 rilievi» e «€ 0,00»: le prove 3 e 4 DEVONO cadere e la misura
-           salire di 6 — un righello che non sa fallire non dimostra niente)
+           salire di 7 — un righello che non sa fallire non dimostra niente)
 
    PERCHÉ ESISTE. Il 05/09 ogni file e ogni foglio che esce dalle sei app è
    diventato una funzione pura del modulo (`csv*`, `foglia*`,
@@ -25,6 +25,20 @@
        documento — un numero tranquillo dove non è stato misurato niente è il
        difetto del fondatore, ma se lo zero sia misurato o no lo sa solo chi
        apre il documento: qui si contano e si elencano con --dimmi.
+   ⏱️ 27/11 — C'È ANCHE GENESI, per i pezzi del suo foglio che sono già
+   funzioni pure del modulo (la pianta, la tabella dei fori, le cariche nel
+   tempo, lo storico della riconciliazione). ⚠️ NON è tutto Genesi: il
+   foglio intero e quattro CSV (scheda volata, confronto A/B, legge di
+   sito, piano di carico) li compone ancora la pagina, e qui NON ci sono —
+   quelli li aprono i banchi del browser. Il conto dichiara quanti sono di
+   Genesi, perché «142 documenti» non si legga come «tutto».
+   Genesi non ha una `DEMO`: la sua dimostrazione qui è la volata che nasce
+   dai parametri di partenza della pagina (`generaMaglia` +
+   `sequenzaSuMaglia`), in cinque vesti — com'è, coi valori propri e il
+   fronte modellato, con una fila sola, la più fitta che i campi accettano,
+   e con un foro solo (per i singolari). Per leggerli, ai plurali cercati si
+   aggiungono «fori», «gruppi», «istanti»: provato prima che sulle altre
+   sei app non scattano (zero allarmi su 142 documenti).
    Il denominatore si stampa: quanti documenti, quante funzioni, quanti
    caratteri. Un documento che non si riesce a chiamare NON è «a posto»: si
    conta a parte e fa cadere la prova 1. */
@@ -135,6 +149,33 @@ const doc = (a, nome, f) => DOC.push({ app: a, nome, f });
   for (const v of D.volate) doc("sentinella", "fogliaVolata " + v.id, () => sentinella.fogliaVolata(v, { monitoraggi: D.monitoraggi, reclami: D.reclami, ricettori: D.ricettori, oggi: OGGI }));
 }
 
+{ // GENESI — i pezzi del foglio che sono funzioni pure (vedi l'intestazione: non è tutto Genesi)
+  const genesi = await import(join(HERE, "..", "..", "genesi", "genesi-data.js"));
+  const P = { B: 3, S: 3.5, bf: 3, file: 2, perRow: 8, stagger: true, dir: "sx", sequenza: "diagonale", ritardo: 42, ritardoFila: 100, kg: 58, prof: 10, stem: 2.2, diam: 102, incl: 0, sub: 0.9 };
+  const volata = (q, ritocca) => { const d = { ...P, ...q }; d.holes = genesi.generaMaglia(d.B, d.S, d.file, d.perRow, d.bf, d.stagger);
+    genesi.sequenzaSuMaglia(d.holes, d.ritardo, d.ritardoFila, d.S, d.dir, d.sequenza); if (ritocca) ritocca(d); return d; };
+  const VESTI = [["com'è", volata({})],
+    ["valori propri e fronte modellato", volata({}, (d) => { d.holes[2].kg = 0; d.holes[4].prof = 8.5; d.holes[4].stem = 1.5; d.profilo = [{ x: 3, y: 0 }, { x: 11, y: 1.6 }, { x: 21, y: -0.8 }];
+      d.piede = [{ x: 0, y: -1.2 }, { x: 12, y: -1.9 }, { x: 24, y: -1.0 }]; d.tratti = [{ pts: [{ x: 2, y: 9.5 }, { x: 12, y: 10.5 }, { x: 22, y: 9 }], aperto: false, origine: "dxf" }]; })],
+    ["una fila", volata({ file: 1 })], ["la più fitta", volata({ perRow: 30, file: 6 })],
+    /* un foro solo: è la veste che fa uscire i singolari («1 foro», «1 istante») — senza, la prova sui plurali non avrebbe niente da leggere */
+    ["un foro solo", volata({ file: 1, perRow: 1 })]];
+  for (const [veste, d] of VESTI) {
+    doc("genesi", "piantaPerFoglio " + veste, () => genesi.piantaPerFoglio(d));
+    doc("genesi", "piantaPerFoglio " + veste + " (telefono)", () => genesi.piantaPerFoglio(d, { larghezza: 358 }));
+    doc("genesi", "tabellaForiPerFoglio " + veste, () => genesi.tabellaForiPerFoglio(d.holes, d));
+    doc("genesi", "diagrammaTempiPerFoglio " + veste, () => genesi.diagrammaTempiPerFoglio(d.holes, d.kg));
+    doc("genesi", "fraseFinestraMic " + veste, () => "MIC " + genesi.micFinestra(d.holes, d.kg) + " kg. " + genesi.fraseFinestraMic(genesi.finestraDellaMic(d.holes, d.kg)));
+  }
+  /* due gruppi alla pari: l'unico caso in cui la frase dice «Un altro gruppo» — nelle cinque vesti gli altri gruppi sono zero o molti,
+     e senza questo «Altri 1 gruppi» passerebbe (controprova del 27/11: rimesso il difetto, la prova restava verde) */
+  doc("genesi", "fraseFinestraMic due gruppi alla pari", () => genesi.fraseFinestraMic(genesi.finestraDellaMic([0, 0, 42, 84, 84].map((t, i) => ({ tDet: t, seq: i })), 58)));
+  doc("genesi", "csvRiconciliazione", () => genesi.csvRiconciliazione([
+    { ts: "2026-07-12", nome: "Fronte Nord", prev: { x50: 28, ppv: 6.4, fly: 101, ppvBase: { breve: "manuale (Calcare)" } }, real: { x50: 31, ppv: 5.1, fly: 60, ovs: 4, note: "primo sparo" } },
+    /* la riga di chi ha salvato la previsione e non ha ancora misurato niente: celle vuote, non zeri */
+    { ts: "2026-07-19", nome: "Fronte Nord 2", prev: { x50: 30, ppv: 7.1, fly: 110 }, real: {} }]));
+}
+
 /* ── il testo di un documento: un CSV è già testo; un foglio è un oggetto di
       stringhe annidate, e si legge ogni stringa (le chiavi no). ── */
 const testoDi = (x, out = []) => {
@@ -147,18 +188,18 @@ const testoDi = (x, out = []) => {
 };
 /* i plurali che una frase col numero UNO non deve portare — le parole dei
    documenti di questa casa, non un dizionario */
-const PLURALI = "rilievi|fermi|giorni|righe|persone|dispositivi|addestramenti|rapportini|squadre|mesi|ore|minuti|volate|consegne|fatture|scadenze|mezzi|interventi|fronti|banchi|lotti|azioni|infortuni|letture|punti|indicativi|presenti|assenti|viaggi|turni|voci|ricambi|controlli|documenti|anomalie|riprese|cumuli|note di credito|near-miss registrati|mancati infortuni|clienti|ordini|preventivi|pesate|incassi|costi|manutenzioni|verifiche|ispezioni|lavoratori|operatori|reclami|ricettori|monitoraggi|superamenti|attività concluse|ore lavorate|euro|tonnellate|metri";
+const PLURALI = "fori|gruppi|istanti|rilievi|fermi|giorni|righe|persone|dispositivi|addestramenti|rapportini|squadre|mesi|ore|minuti|volate|consegne|fatture|scadenze|mezzi|interventi|fronti|banchi|lotti|azioni|infortuni|letture|punti|indicativi|presenti|assenti|viaggi|turni|voci|ricambi|controlli|documenti|anomalie|riprese|cumuli|note di credito|near-miss registrati|mancati infortuni|clienti|ordini|preventivi|pesate|incassi|costi|manutenzioni|verifiche|ispezioni|lavoratori|operatori|reclami|ricettori|monitoraggi|superamenti|attività concluse|ore lavorate|euro|tonnellate|metri";
 const SINGOLARE = new RegExp("(^|[^\\d.,])1 (" + PLURALI + ")\\b", "g");
 const SPORCO = /\bundefined\b|\bNaN\b|\[object Object\]|(^|[;\s"(])null([;\s")]|$)/;
 const TRANQUILLO = /€ 0,00|(^|[^\d,.])0%|(^|[^\d,.])0 m³|;0(;|$)/gm;
 
-console.log("\n════════ tutti i documenti delle sei app, sulla dimostrazione, senza browser ════════");
+console.log("\n════════ tutti i documenti delle sei app e i pezzi puri del foglio di Genesi, sulla dimostrazione, senza browser ════════");
 /* la controprova: il PRIMO documento di ogni app esce sporco — è lo scanner
    che si mette alla prova, non il prodotto (che qui non si tocca) */
 if (CONTROPROVA) {
   const visti = new Set();
   for (const d of DOC) if (!visti.has(d.app)) { visti.add(d.app); const f = d.f; d.f = () => testoDi(f()).join("\n") + "\nundefined · 1 rilievi · € 0,00\n"; }
-  console.log("  ⚠️ CONTROPROVA: sei documenti sporcati in memoria — qui sotto il rosso è quello VOLUTO");
+  console.log("  ⚠️ CONTROPROVA: sette documenti sporcati in memoria (il primo di ogni app, Genesi compresa) — qui sotto il rosso è quello VOLUTO");
 }
 const perApp = {};
 let chiamabili = 0, caratteri = 0, singolari = [], sporchi = [], vuoti = [], rotti = [], tranquilli = 0;
@@ -190,8 +231,8 @@ ok(chiamabili >= 60 && caratteri > 50000, "il controllo ha guardato abbastanza s
 console.log(`  [misura] celle «tranquille» (€ 0,00 · 0% · 0 m³ · ;0;): ${tranquilli} in ${tranqPer.length} documenti — CANDIDATI, non verdetti: se lo zero sia misurato lo sa solo chi apre il documento` + (DIMMI ? "\n      " + tranqPer.map(([n, k]) => n + " (" + k + ")").join("\n      ") : " (--dimmi per l'elenco)"));
 console.log(`\nRisultato documenti della dimostrazione: ${passati} passati, ${falliti} falliti  ·  ${denominatore}`);
 if (CONTROPROVA) {
-  const bene = falliti === 2 && sporchi.length === 6 && singolari.length === 6 && tranqPer.filter(([n]) => /csvInventari|csvSituazioneFatture|csvAppello Mattina|csvRegistroInfortuni|csvRegistroInterventi|csvRefertiGenesi/.test(n)).length === 6;
-  console.log(bene ? "✔ CONTROPROVA OK: lo scanner SA fallire (2 prove cadute, 6 sporchi, 6 singolari, 6 documenti in più fra i tranquilli)"
+  const bene = falliti === 2 && sporchi.length === 7 && singolari.length === 7 && tranqPer.filter(([n]) => /csvInventari|csvSituazioneFatture|csvAppello Mattina|csvRegistroInfortuni|csvRegistroInterventi|csvRefertiGenesi|genesi · piantaPerFoglio com'è$/.test(n)).length === 7;
+  console.log(bene ? "✔ CONTROPROVA OK: lo scanner SA fallire (2 prove cadute, 7 sporchi, 7 singolari, 7 documenti in più fra i tranquilli)"
     : `⛔ CONTROPROVA FALLITA: ${falliti} cadute, ${sporchi.length} sporchi, ${singolari.length} singolari — lo scanner non vede quello che dovrebbe`);
   process.exit(bene ? 0 : 3);
 }

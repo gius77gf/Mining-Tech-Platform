@@ -3178,6 +3178,32 @@
   ⚠️ Limiti detti: gli anelli di due fori vicini si toccano (come già gli
   altri anelli); il bottone acceso ha l'icona arancio su fondo arancio, che
   si distingue poco.
+- [x] **Genesi entra nel controllo automatico dei documenti** *(27/11, sera)*.
+  `documenti-dimostrazione.mjs` componeva in due secondi tutti i documenti
+  delle sei app e li passava al setaccio («undefined», «null», «1
+  rilievi»…): Genesi non c'era per niente (`grep -c genesi` → 0). Adesso ci
+  sono i pezzi del suo foglio che sono già funzioni pure del modulo — la
+  pianta (a 680 e a 358 px), la tabella dei fori, le cariche nel tempo, la
+  frase della MIC, lo storico della riconciliazione — in cinque vesti:
+  com'è, coi valori propri e il fronte modellato, una fila, la più fitta, un
+  foro solo. **169 documenti, 27 di Genesi.**
+  · Ai plurali cercati si aggiungono «fori», «gruppi», «istanti» (provato
+    prima: sulle altre sei app zero allarmi su 142 documenti).
+  · ⛔ Controprova sul prodotto, tre difetti rimessi uno per volta nel
+    modulo: «1 fori» e «1 istanti» visti subito; «Altri 1 gruppi» NO — in
+    nessuna veste gli altri gruppi erano esattamente uno. Aggiunto il caso
+    (due gruppi alla pari): ora lo vede. Senza quella controprova il
+    plurale «gruppi» sarebbe stato sorvegliato solo sulla carta.
+  · La controprova dello scanner passa da 6 a 7 documenti sporcati.
+  ⚠️ NON è tutto Genesi, e il conto lo dice: il foglio intero e quattro CSV
+  (scheda volata, confronto A/B, legge di sito, piano di carico) li compone
+  ancora la pagina — quelli li aprono solo i banchi del browser. Portarli
+  nel modulo è la voce B3, aperta.
+  ⚠️ La prima stesura passava a `csvRiconciliazione` righe con i campi
+  indovinati (`x50p`, `x50r`…): sollevava. Letta la funzione, la forma vera
+  è `{ ts, nome, prev:{…}, real:{…} }`. È la regola «prima si apre il
+  lettore», pagata un'altra volta — qui l'ha detto subito un'eccezione.
+  Nessun file di prodotto toccato; i numeri dichiarati non cambiano.
 - [ ] **Genesi → Campo — il piano di carico CSV non protegge l'id del foro**
   ⏸️ *fuori dal mandato «solo Genesi»: la riga la compone `pianoCsvGenesi`
   in `shared/dw-ponti.js`, e Campo la ricompone e la rilegge con
