@@ -2838,27 +2838,39 @@
   controprova** (`--controprova=documenti`: 2 difetti rimessi, cadono 11) —
   a parte, perché la prima spegne lo stato stesso e sotto di lei la domanda
   sui documenti non si può nemmeno fare. Pagina: 150 → 151 funzioni.
-- [ ] **Genesi — `genesi-campi-assenti.mjs` è rosso dal 14/09, e lo dichiara
-  da sé**: la sua terza domanda («con la spalla assente la gittata non esce
-  da un burden inventato») apre una volata salvata SENZA spalla e pretende
-  una scheda con più di venti righe; dal commit `1b904f01` (14/09, scelta
-  voluta) quella volata non disegna nessuna maglia e la scheda dice «Pianta
-  non disegnabile: manca burden». Il banco risponde «NON MISURATI (2)» ed
-  esce 1 — onesto, e scritto nel suo commento — ma è un **rosso cronico** da
-  due mesi e mezzo: trovato con una bisezione il 27/11 (35 commit), mentre
-  cercavo se l'avessi rotto io. Da fare: riscrivere la terza sezione sulla
-  verità di oggi (senza spalla NON esce nessuna gittata e la scheda dice che
-  cosa manca; con la spalla i numeri di sempre), dichiarare nel banco che
-  la forbice «fra 101 e 133 m» non è più raggiungibile dalla pagina e resta
-  provata in `run-kpi`, e — a parte — il testo: la schermata dice «manca
-  burden» dove il campo si chiama «Spalla».
-  ⏱️ *27/11, più tardi: inseguendo questo rosso è uscito un difetto vero del
-  PRODOTTO (i documenti che uscivano da una pianta non disegnabile: voce
-  chiusa qui sopra). Il banco resta rosso: la sua terza sezione è ancora da
-  riscrivere. Misurato per quella riscrittura: senza spalla la gittata NON
-  arriva più all'utente da nessuna strada della pagina (la scheda non ha
-  righe, e ora nemmeno i file escono) — quindi la forbice «fra 101 e 133 m»
-  resta provata solo dalle due prove `gittataSenzaSpalla` di `run-kpi`.*
+- [x] **Genesi — `genesi-campi-assenti.mjs` era rosso dal 14/09: chiuso**
+  *(27/11)*: la sua terza domanda («con la spalla assente la gittata non
+  esce da un burden inventato») apriva una volata salvata SENZA spalla e
+  pretendeva una scheda con più di venti righe; dal commit `1b904f01`
+  (14/09, scelta voluta) quella volata non disegna nessuna maglia. Il banco
+  rispondeva «NON MISURATI (2)» e usciva 1 — onesto, scritto nel suo
+  commento — ma era un **rosso cronico** da due mesi e mezzo, trovato con
+  una bisezione su 35 commit mentre cercavo se l'avessi rotto io.
+  Riscritta la sezione sulla verità di oggi, senza allentare niente: senza
+  spalla (anche col borraggio corto) zero fori, la scheda dice che cosa
+  manca e non mostra NESSUN numero, e la scheda CSV non esce; con la spalla
+  i numeri di sempre (101 m, 202/404 m, il verdetto del flyrock inverso;
+  174 m col borraggio 1,6). **64 controlli su 64, zero non misurati**;
+  controprova 21 iniezioni su 21, e sotto di lei cadono i sei controlli
+  nuovi (aggiunta l'iniezione che fa ridisegnare la maglia senza spalla: le
+  due vecchie sulla spalla dalla pagina non si vedono più). ⚠️ Dichiarato
+  nel banco: la FORBICE della gittata senza spalla («fra 101 e 133 m») non è
+  più raggiungibile dalla pagina e resta provata dalle due prove
+  `gittataSenzaSpalla` di `run-kpi`. Inseguendo questo rosso è uscito il
+  difetto dei documenti che uscivano senza pianta (voce chiusa qui sopra).
+  ⏱️ Resta, a parte: la schermata dice «manca burden» dove il campo si
+  chiama «Spalla» — voce aperta qui sotto.
+- [ ] **Genesi — «manca burden» dove il campo si chiama «Spalla»**: quando
+  la pianta non è disegnabile, schermo, messaggi e riga in Home dicono
+  «manca burden» (o «interasse», o «burden e interasse»); il campo da
+  riempire si chiama «SPALLA (m)». La parola la decide
+  `magliaAssenteMotivo` (genesi-data.js) e la stampano la pianta, la scheda,
+  `nonEsceSenzaPianta` e `volSnapshot`. ⚠️ Non è un cerca-e-sostituisci: la
+  stessa stringa è anche lo STATO (`D2.magliaAssente === 'burden'`) che
+  leggono tre banchi (`genesi-maglia-assente`, `genesi-campi-assenti`,
+  `run-kpi`). La forma giusta: lo stato resta com'è, e una funzione nel
+  modulo dà la parola da mostrare («la spalla», «l'interasse», «la spalla e
+  l'interasse»).
 - [ ] **Genesi → Campo — il piano di carico CSV non protegge l'id del foro**
   ⏸️ *fuori dal mandato «solo Genesi»: la riga la compone `pianoCsvGenesi`
   in `shared/dw-ponti.js`, e Campo la ricompone e la rilegge con
@@ -3565,7 +3577,7 @@ nome. Un nome si cerca con `grep`; una riga si sposta.
 grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 ```
 
-- `Genesi — \`genesi-campi-assenti.mjs\` è rosso dal 14/09, e lo dichiara`
+- `Genesi — «manca burden» dove il campo si chiama «Spalla»`
 - `Genesi → Campo — il piano di carico CSV non protegge l'id del foro`
 - `Genesi — il piede che esce dalla faccia`
 - `F1. \`vitaComponenti\` non distingue un componente sostituito da`
