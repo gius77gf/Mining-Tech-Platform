@@ -562,6 +562,7 @@ body.scr-sim #tl{bottom:80px}
 #dlRel i{width:22px;height:8px;border-radius:999px;background:linear-gradient(90deg,#ef5350,#ffb300 34%,#66bb6a 68%,#86b0d8);box-shadow:0 0 8px rgba(255,255,255,.18)}
 #dlEne i{width:22px;height:8px;border-radius:3px;background:linear-gradient(90deg,#5c8dd6,#86b0d8 25%,#66bb6a 50%,#ffb300 75%,#ef5350);box-shadow:0 0 8px rgba(255,255,255,.18)}
 #dlInn i{width:22px;height:2px;border-radius:2px;background:#ffd54f;box-shadow:0 0 8px rgba(255,213,79,.8)}
+#dlMic i{background:transparent;border:2px solid #ff8c1d;box-shadow:0 0 8px rgba(255,140,29,.7);width:11px;height:11px;box-sizing:border-box}
 .dl-f{display:none;align-items:center;gap:6px;background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:11px;padding:4px 9px;min-height:44px}   /* ⏱️ 27/11: era 38 — le opzioni dei livelli (passo delle isocrone, finestra del relief, passo della griglia) erano 38-40 px */
 .dl-f.on{display:flex}
 .dl-f>span{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);white-space:nowrap}
@@ -998,6 +999,7 @@ body.scr-sim #tl{bottom:80px}
     <button type="button" id="dlRel" class="dl-tog" title="Millisecondi disponibili a ogni foro per metro di roccia da liberare (ms/m)"><i></i>Relief</button>
     <button type="button" id="dlEne" class="dl-tog" title="Consumo specifico foro per foro: quanta energia tocca al blocco di roccia che ciascun foro serve davvero"><i></i>Energia</button>
     <button type="button" id="dlInn" class="dl-tog" title="Rete di innesco: quale foro accende quale, e con che ritardo di raccordo"><i></i>Innesco</button>
+    <button type="button" id="dlMic" class="dl-tog" title="Cerchia i fori dei gruppi che arrivano alla carica massima per ritardo (MIC): quelli che partono entro 8 ms l'uno dall'altro"><i></i>MIC</button>
     <button type="button" id="dlSnap" class="dl-tog" title="Aggancia alla griglia il posizionamento manuale di fori, fronte e piede — un aiuto opzionale, non tocca i punti già posizionati"><i></i>Griglia</button>
     <label class="dl-f" id="dlSnapPassoF"><span>passo <u class="uni">m</u></span><select id="dlSnapPasso">
       <option value="0.1">0,10</option><option value="0.25" selected>0,25</option>
@@ -1372,7 +1374,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
    ⚠️ `esitoMic` e `micSenzaConto` sono le DUE METÀ che rendono utile il `null`:
    la bandiera `calcolabile` (che la pagina deve leggere, se no il numero
    tranquillo si ridisegna lo stesso) e la ragione da mostrare a chi guarda. */
-         micFinestra, finestraDellaMic, fraseFinestraMic, esitoMic, micSenzaConto, scatterInnesco, scatterMs,
+         micFinestra, finestraDellaMic, fraseFinestraMic, foriNellaMic, esitoMic, micSenzaConto, scatterInnesco, scatterMs,
 /* la carica totale della volata e il COSTO che la usa — vedi il blocco G12.
    ⛔ `costoVolata` è il punto UNICO in cui si decide quanto costa una volata:
    la formula era scritta tre volte (KPI, foglio stampabile, scheda
@@ -6896,6 +6898,7 @@ function drawDesign2D(){
   /* il pallino è 9 px quando c'è posto e si stringe quando i fori sono fitti (`raggioForoTela`):
      anelli e rombo lo seguono (`rr`), e sotto i 6,5 px il numero non si scrive — non si leggerebbe */
   const rF=raggioForoTela(Math.min(D2.S, D2.bf||D2.B)*scale), rr=rF/9;
+  const _nellaMic=D2.micCerchi ? new Set(foriNellaMic(H, D2.kg)) : null;   // bottone «MIC»: gli indici da cerchiare, gli stessi che il foglio colora
   if(D2.strati.fori.visibile) H.forEach((h,i)=>{ const cx=mx2(h.mx), cy=my2(h.my+interpProf(D2.profilo, h.mx)), u=(h.tDet||0)/tMax;
     const rcl=reliefCls(D2, h.relief, h.relFuoriFascia);
     /* il pallino del foro prende il colore del livello attivo: il relief ha la
@@ -6926,6 +6929,10 @@ function drawDesign2D(){
       ctx.save(); ctx.strokeStyle='#ef5350'; ctx.lineWidth=2.2; ctx.globalAlpha=.95;
       ctx.shadowColor='#ef5350'; ctx.shadowBlur=9;
       ctx.beginPath(); ctx.arc(cx,cy,15.5*rr,0,7); ctx.stroke(); ctx.restore(); }
+    /* bottone «MIC»: l'anello arancio, più largo di tutti gli altri — si deve vedere anche attorno a un foro già cerchiato */
+    if(_nellaMic && _nellaMic.has(i)){
+      ctx.save(); ctx.strokeStyle='#ff8c1d'; ctx.lineWidth=2.4; ctx.shadowColor='#ff8c1d'; ctx.shadowBlur=8;
+      ctx.beginPath(); ctx.arc(cx,cy,17.5*rr,0,7); ctx.stroke(); ctx.restore(); }
     /* F6b (26/11) — il piede sta dove lo porta QUEL foro: la sua lunghezza e la
        sua inclinazione (`scostamentoPiedeForo`). Prima valeva la profondità
        del progetto per tutti, e un foro accorciato mostrava il piede di uno
@@ -8947,6 +8954,7 @@ function syncLayerUI(){
   if($('dlRelWinF')) $('dlRelWinF').classList.toggle('on', !!D2.rel);
   if($('dlEne')) $('dlEne').classList.toggle('on', !!D2.ene);
   if($('dlInn')) $('dlInn').classList.toggle('on', !!D2.inn);
+  if($('dlMic')) $('dlMic').classList.toggle('on', !!D2.micCerchi);
   if($('dlSnap')) $('dlSnap').classList.toggle('on', !!D2.snap);
   if($('dlSnapPassoF')) $('dlSnapPassoF').classList.toggle('on', !!D2.snap);
 }
@@ -8958,6 +8966,16 @@ if($('dlEne')) $('dlEne').addEventListener('click', ()=>{ D2.ene=!D2.ene; syncLa
   if(typeof toast==='function') toast(D2.ene?('Mappa dell’energia attiva — riferimento '+(pfNominale(D2)===null?'non calcolabile':fmtKg(pfNominale(D2))+' kg/m³')+' di progetto'):'Mappa dell’energia disattivata'); });
 if($('dlInn')) $('dlInn').addEventListener('click', ()=>{ D2.inn=!D2.inn; syncLayerUI(); drawDesign2D();
   if(typeof toast==='function') toast(D2.inn?'Rete di innesco attiva — sulle linee il ritardo che deve avere il raccordo':'Rete di innesco disattivata'); });
+/* 27/11 — I FORI DELLA MIC, CERCHIATI. Lo stesso insieme che il foglio colora (`foriNellaMic`: tutti i gruppi che
+   arrivano alla MIC; nessuno se ogni foro parte da solo, se la MIC non si conta, o se un foro del gruppo non ha un
+   ritardo). Quando non c'è niente da cerchiare il bottone lo DICE: un livello acceso che non disegna niente
+   sembrerebbe rotto, o — peggio — una buona notizia non verificata. */
+if($('dlMic')) $('dlMic').addEventListener('click', ()=>{ D2.micCerchi=!D2.micCerchi; syncLayerUI(); drawDesign2D();
+  if(typeof toast!=='function') return;
+  if(!D2.micCerchi){ toast('Cerchi della MIC tolti'); return; }
+  const _mm=micDaMostrare(), _quanti=foriNellaMic(D2.holes, D2.kg).length;
+  toast(!_mm.calcolabile ? ('MIC non calcolabile: '+_mm.che+'. Niente da cerchiare.')
+    : (_quanti ? ('MIC '+gnum(_mm.mic,1)+' kg — cerchiati '+_ricPlur(_quanti,'foro','fori')+'. '+_mm.chi) : ('MIC '+gnum(_mm.mic,1)+' kg — niente da cerchiare. '+_mm.chi))); });
 if($('dlIsoStep')) $('dlIsoStep').addEventListener('change', ()=>{ D2.isoStep=Math.max(0,+$('dlIsoStep').value||0); drawDesign2D(); });
 if($('dlSnap')) $('dlSnap').addEventListener('click', ()=>{ D2.snap=!D2.snap; syncLayerUI(); drawDesign2D();
   if(typeof toast==='function') toast(D2.snap?('Griglia attiva — passo '+D2.snapPasso+' m: il posizionamento a mano si aggancia, i fori già piazzati restano dove sono'):'Griglia disattivata'); });

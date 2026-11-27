@@ -1704,6 +1704,11 @@ function _indiciNellaMic(H, kg){
   for (const j of out) { const t = H[j] && H[j].tDet; if (t === null || t === undefined || t === '' || !Number.isFinite(+t)) return vuoto; }
   return out;
 }
+/* gli stessi indici, in ordine, per chi sta fuori dal modulo: la tela li cerchia (bottone «MIC»).
+   Una sola regola per il foglio e per lo schermo — che cosa NON si colora lo decide `_indiciNellaMic`. */
+export function foriNellaMic(holes, kg){
+  return [..._indiciNellaMic(holes, kg)].sort((a, b) => a - b);
+}
 /* la frase, una per lo schermo e per il foglio. Sta in piedi da sola (comincia
    da «La MIC»): viene scritta in coda a testi che parlano anche d'altro. */
 export function fraseFinestraMic(f){

@@ -43841,7 +43841,7 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     ok(/const HcT=Math\.round\(Hc\*kT\); if\(cv\.height!==HcT\) cv\.height=HcT;/.test(pag), "l'altezza della tela segue la stessa scala");
     ok(/D2\._m=\{scale:scale\*kT, startX:startX\*kT, faceY:faceY\*kT, u:kT, vista:_vista\};/.test(pag), "⛔ la mappatura per chi tocca resta in punti di tela (le unità di d2EvtToCanvas) e porta con sé `u` (⏱️ 27/11: e le misure della vista)");
     ok(/const rF=raggioForoTela\(Math\.min\(D2\.S, D2\.bf\|\|D2\.B\)\*scale\), rr=rF\/9;/.test(pag), "il raggio del pallino lo decide il modulo dal passo a schermo");
-    eq((pag.match(/ctx\.arc\(cx,cy,[0-9.]+\*rr,/g) || []).length, 8, "⛔ gli otto cerchi del foro (pallino, bordo, anelli) seguono tutti lo stesso raggio: nessuno è rimasto fisso");
+    eq((pag.match(/ctx\.arc\(cx,cy,[0-9.]+\*rr,/g) || []).length, 9, "⛔ i nove cerchi del foro (pallino, bordo, anelli — dal 27/11 anche quello della MIC) seguono tutti lo stesso raggio: nessuno è rimasto fisso");
     ok(/if\(rF>=6\.5\)\{ ctx\.fillStyle='#1a140b';/.test(pag), "sotto i 6,5 px di raggio il numero del foro non si scrive: non si leggerebbe");
     eq(/function drawReliefLegenda|function drawEnergiaLegenda/.test(pag), false, "le due legende scritte su una riga sola non ci sono più");
     ok(/const padBot=56\+Math\.max\(0,_legRighe\.length-1\)\*15\+\(_suggRighe\.length-1\)\*13;/.test(pag), "⛔ il posto per la legenda e il suggerimento che vanno a capo si fa PRIMA di impaginare la maglia");
@@ -44062,6 +44062,24 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(arancio({ ...P, holes: [{ mx: 0, my: 3, seq: 0, tDet: 0 }, { seq: 1, tDet: 0 }, { mx: 7, my: 3, seq: 2, tDet: 42 }] }), [true, false], "un foro senza posizione non si disegna, ma conta: quello che parte con lui è colorato, il terzo no");
     const mod = readFileSync(join(HERE, "../../genesi/genesi-data.js"), "utf8");
     eq((mod.match(/_finestreDiCarica\(H, kg\)/g) || []).length, 5, "⛔ e anche qui le finestre sono quelle di `micFinestra`: la definizione e quattro chiamanti");
+  });
+  test("⛔ Genesi · il bottone «MIC» sulla tela cerchia gli STESSI fori che il foglio colora (`foriNellaMic`)", () => {
+    const P = { S: 3.5, B: 3, bf: 3, dir: "sx", kg: 58 };
+    const F = (tempi, altro) => tempi.map((t, i) => ({ mx: i * 3.5, my: 3, seq: i, ...(t === null ? {} : { tDet: t }), ...((altro && altro[i]) || {}) }));
+    eq([genesi.foriNellaMic(F([0, 42, 84, 84, 126]), 58), genesi.foriNellaMic(F([84, 0, 84]), 58), genesi.foriNellaMic(F([0, 0, 42, 84, 84]), 58)], [[2, 3], [0, 2], [0, 1, 3, 4]], "gli indici dei fori nei gruppi che arrivano alla MIC, in ordine — tutti i gruppi alla pari");
+    eq([genesi.foriNellaMic(F([0, 42, 84]), 58), genesi.foriNellaMic(F([null, null, 42]), 58), genesi.foriNellaMic(F([0, 0]), 0), genesi.foriNellaMic(F([0, 0]), null), genesi.foriNellaMic([], 58), genesi.foriNellaMic(null, 58), genesi.foriNellaMic(undefined)], [[], [], [], [], [], [], []],
+      "⛔ lista vuota — mai un'eccezione — dove non c'è niente da cerchiare: ogni foro da solo, ritardi mancanti, tutti scarichi, carica assente, nessun foro, nessun elenco");
+    /* ⛔ una regola sola per il foglio e per la tela: su casi diversi, gli indici sono esattamente i cerchi col fondo arancio */
+    const casi = [F([0, 42, 84, 84, 126]), F([0, 0, 42, 84, 84]), F([0, 42, 42], [{ kg: 200 }]), F([0, 42, 42], [{ kg: 116 }]), F([0, 42, 84]), F([0, null, 42]), F([0, 42, 84, 88, 91.5, 126])];
+    const sulFoglio = (H) => [...genesi.piantaPerFoglio({ ...P, holes: H }).matchAll(/<circle class="p-foro"[^>]*fill="(#[0-9a-f]+)"/g)].map((m, i) => (m[1] === "#ffd9b8" ? i : -1)).filter((i) => i >= 0);
+    eq(casi.map((H) => genesi.foriNellaMic(H, 58)), casi.map(sulFoglio), "⛔ sette casi: la tela cerchierebbe gli stessi fori che il foglio colora, uno per uno");
+    /* ── la pagina ── */
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    ok(/const _nellaMic=D2\.micCerchi \? new Set\(foriNellaMic\(H, D2\.kg\)\) : null;/.test(pag), "⛔ la tela chiede gli indici al modulo, sugli stessi fori e la stessa carica della MIC — e solo a bottone acceso");
+    ok(/if\(_nellaMic && _nellaMic\.has\(i\)\)\{\n      ctx\.save\(\); ctx\.strokeStyle='#ff8c1d';[^\n]*\n      ctx\.beginPath\(\); ctx\.arc\(cx,cy,17\.5\*rr,0,7\); ctx\.stroke\(\); ctx\.restore\(\); \}/.test(pag), "l'anello è il più largo di tutti (17,5) e segue il raggio del pallino come gli altri");
+    ok(/<button type="button" id="dlMic" class="dl-tog" title="Cerchia i fori dei gruppi che arrivano alla carica massima per ritardo \(MIC\)[^"]*"><i><\/i>MIC<\/button>/.test(pag) && /if\(\$\('dlMic'\)\) \$\('dlMic'\)\.classList\.toggle\('on', !!D2\.micCerchi\);/.test(pag), "il bottone c'è, accanto agli altri livelli di lettura, e mostra se è acceso");
+    ok(/: \('MIC '\+gnum\(_mm\.mic,1\)\+' kg — niente da cerchiare\. '\+_mm\.chi\)\)\); \}\);/.test(pag) && /\('MIC non calcolabile: '\+_mm\.che\+'\. Niente da cerchiare\.'\)/.test(pag), "⛔ acceso senza niente da cerchiare lo DICE, e dice perché: un livello acceso e vuoto sembrerebbe rotto");
+    eq(/micCerchi/.test((pag.match(/function volSnapshot\([^]*?\n\}/) || [""])[0]), false, "il bottone è un modo di guardare: non entra nella volata salvata");
   });
   test("⛔ Genesi · eUnTocco e i tocchi sulla pianta: un dito conduce, il secondo ferma tutto, col dito si crea alzandolo", () => {
     eq(genesi.eUnTocco(100, 100, 100, 100), true, "il dito si alza dov'era: è un tocco");

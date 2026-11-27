@@ -114,6 +114,12 @@ const DIFETTI_DETTAGLI = [
   ["apps/genesi/genesi.html",
    "  if(d2FuoriVista(e)){ d2Attesa=",
    "  if(false){ d2Attesa="],
+  /* la MIC: a bottone acceso l'anello va a TUTTI i fori */
+  ["apps/genesi/genesi.html", "    if(_nellaMic && _nellaMic.has(i)){\n", "    if(_nellaMic){\n"],
+  /* la MIC: il messaggio conta tutti i fori invece di quelli cerchiati */
+  ["apps/genesi/genesi.html", "const _mm=micDaMostrare(), _quanti=foriNellaMic(D2.holes, D2.kg).length;", "const _mm=micDaMostrare(), _quanti=D2.holes.length;"],
+  /* la MIC: si cerchia anche quando ogni foro parte da solo (la regola sta nel modulo: vale per il foglio e per la tela) */
+  ["apps/genesi/genesi-data.js", "  if (finestre.every((f) => f.dentro.length === 1)) return vuoto;\n  let mic = null;", "  let mic = null;"],
 ];
 const TABELLA = CONTRO_DETT ? DIFETTI_DETTAGLI : DIFETTI;
 /* ⛔ UNO PER VOLTA. La prima stesura rimetteva i sei dettagli insieme, e uno solo — la
@@ -248,7 +254,7 @@ const leggi = (pg) => pg.evaluate(async () => {
     const px = m.startX + h.mx * m.scale, py = m.faceY + h.my * m.scale;
     const qui = archiBase.filter((a) => Math.hypot(a.x * a.a - px, a.y * a.a - py) < 0.75);
     if (!qui.length) senzaCerchio++; else { raggio = Math.min(raggio, ...qui.map((a) => a.r * a.a / k)); if (qui.some((a) => !a.rit)) fuoriRitaglio++; }
-    return { x: px / k, y: py / k };
+    return { x: px / k, y: py / k, rMax: qui.length ? Math.max(...qui.map((a) => a.r * a.a / k)) : 0 };
   });
   return { k: +k.toFixed(3), larga: +r.width.toFixed(1), alta: +r.height.toFixed(1), punti: cv.width, testi, fori, senzaCerchio, fuoriRitaglio, raggio: Number.isFinite(raggio) ? +raggio.toFixed(2) : null,
     passo: +(Math.min(D.S, D.bf || D.B) * m.scale / k).toFixed(2), sel: D.sel, n: D.holes.length };
@@ -493,10 +499,53 @@ async function vista() {
   }
 }
 
-const ATTESE = 3 * (6 * 4 + 2 * 3 + 2 + 1) + (3 * 3) + (3 * 3) + (2 * 6) + (10 + 4);
+/* ───── 6 · LA MIC SULLA TELA: il bottone «MIC» cerchia i fori dei gruppi che arrivano alla MIC ───── */
+/* la MIC ricontata QUI dai fori della pagina (ritardo e carica di ognuno), senza passare dal modulo */
+const ricontoMic = (pg) => pg.evaluate(() => { const D = window.__genesi.D2, H = D.holes, kg = (h) => (h.kg === undefined || h.kg === null || h.kg === "" ? +D.kg : +h.kg), t = (h) => h.tDet || 0;
+  const dentroDi = (a) => H.map((q, j) => (t(q) >= t(a) && t(q) < t(a) + 8 ? j : -1)).filter((j) => j >= 0);
+  const somme = H.map((a) => dentroDi(a).reduce((s, j) => s + kg(H[j]), 0)), mic = Math.max(...somme), dentro = new Set();
+  H.forEach((a, i) => { if (Math.abs(somme[i] - mic) < 1e-6) dentroDi(a).forEach((j) => dentro.add(j)); });
+  return { mic, soli: H.every((a) => dentroDi(a).length === 1), dentro: [...dentro].sort((x, y) => x - y) }; });
+const cerchiati = (L) => L.fori.map((f, i) => (f.rMax >= L.raggio * 1.85 ? i : -1)).filter((i) => i >= 0);
+const toccaMic = async (pg) => { const q = await pg.evaluate(() => { const e = document.getElementById("dlMic"); if (!e) return null; e.scrollIntoView({ block: "center" }); const r = e.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; });
+  if (!q) return null; await pg.touchscreen.tap(q.x, q.y); await pg.waitForTimeout(350);
+  return pg.evaluate(() => ({ acceso: document.getElementById("dlMic").classList.contains("on"), toast: (document.getElementById("toast") || {}).textContent || "" })); };
+async function micTela() {
+  console.log("\n· la MIC sulla tela: il bottone che cerchia i fori che partono insieme");
+  /* fra le file 100 ms: due fori di file diverse cadono a 5 ms uno dall'altro */
+  let pg = await apri(430, { ...DESIGN, ritardoFila: 100 }, true);
+  if (!(await pronta(pg))) nonMisurati.push("MIC sulla tela: la pagina non è arrivata al progetto");
+  else {
+    const prima = await leggi(pg);
+    dice(cerchiati(prima).length === 0 && prima.senzaCerchio === 0, "MIC sulla tela: a bottone spento nessun foro ha l'anello", JSON.stringify(cerchiati(prima)));
+    const st = await toccaMic(pg), dopo = await leggi(pg), R = await ricontoMic(pg);
+    if (!st) nonMisurati.push("MIC sulla tela: il bottone «MIC» non c'è");
+    else {
+      dice(st.acceso && R.dentro.length >= 2 && R.dentro.length < dopo.n && JSON.stringify(cerchiati(dopo)) === JSON.stringify(R.dentro),
+        `MIC sulla tela: toccato «MIC», hanno l'anello i fori — e solo quelli — dei gruppi che arrivano alla MIC, ricontati qui dai ritardi (${R.dentro.length} su ${dopo.n})`, JSON.stringify({ acceso: st.acceso, cerchiati: cerchiati(dopo), ricontati: R.dentro }));
+      const detti = (st.toast.match(/cerchiati (\d+) for[oi]/) || [])[1];
+      dice(+detti === R.dentro.length && /La MIC la formano i fori/.test(st.toast), `MIC sulla tela: il messaggio dice quanti ne ha cerchiati (${R.dentro.length}) e chi forma la MIC`, st.toast);
+      const st2 = await toccaMic(pg), spento = await leggi(pg);
+      dice(st2 && !st2.acceso && cerchiati(spento).length === 0, "MIC sulla tela: toccato di nuovo, gli anelli spariscono", JSON.stringify({ acceso: st2 && st2.acceso, cerchiati: cerchiati(spento) }));
+    }
+  }
+  await pg.__ctx.close();
+  /* una fila sola: ogni foro parte da solo */
+  pg = await apri(430, { ...DESIGN, file: 1 }, true);
+  if (!(await pronta(pg))) nonMisurati.push("MIC sulla tela, foro per foro: la pagina non è arrivata al progetto");
+  else {
+    const st = await toccaMic(pg), dopo = await leggi(pg), R = await ricontoMic(pg);
+    if (!st) nonMisurati.push("MIC sulla tela, foro per foro: il bottone «MIC» non c'è");
+    else dice(st.acceso && R.soli && cerchiati(dopo).length === 0 && /niente da cerchiare/.test(st.toast) && /Ogni foro parte da solo/.test(st.toast),
+      "MIC sulla tela: con ogni foro che parte da solo il bottone non cerchia niente, e lo DICE (un livello acceso e vuoto sembrerebbe rotto)", JSON.stringify({ cerchiati: cerchiati(dopo), toast: st.toast, soli: R.soli }));
+  }
+  await pg.__ctx.close();
+}
+
+const ATTESE = 3 * (6 * 4 + 2 * 3 + 2 + 1) + (3 * 3) + (3 * 3) + (2 * 6) + (10 + 4) + 5;
 let riuscita;
 if (!CONTRO_DETT) {
-  await viste([320, 430, 1280]); await tocco(TOCCHI); await fitta([320, 430, 1280]); await gesti([320, 430]); await vista();
+  await viste([320, 430, 1280]); await tocco(TOCCHI); await fitta([320, 430, 1280]); await gesti([320, 430]); await vista(); await micTela();
   if (CONTROPROVA) {
     console.log(`(iniezioni: ${colpiti.size}/${TABELLA.length} hanno trovato il loro pezzo)`);
     dice(colpiti.size === TABELLA.length, `l'iniezione ha trovato e sostituito il suo testo nella pagina servita (${colpiti.size}/${TABELLA.length})`, [...colpiti].map((x) => x.slice(0, 40)));
@@ -518,6 +567,9 @@ if (!CONTRO_DETT) {
     ["il pizzico ingrandisce attorno al centro della tela", () => vista(), /resta fra le dita/],
     ["il contenuto non è più ritagliato", () => vista(), /DENTRO il ritaglio/],
     ["un foro sotto la cornice torna a farsi prendere", () => vista(), /un tocco sulla cornice, dove sotto/],
+    ["la MIC: l'anello va a tutti i fori", () => micTela(), /hanno l'anello i fori — e solo quelli/],
+    ["la MIC: il messaggio conta tutti i fori", () => micTela(), /il messaggio dice quanti ne ha cerchiati/],
+    ["la MIC: si cerchia anche quando ogni foro parte da solo", () => micTela(), /con ogni foro che parte da solo il bottone non cerchia niente/],
   ];
   const esitiD = [];
   for (let k = 0; k < DIFETTI_DETTAGLI.length; k++) {
@@ -536,7 +588,7 @@ if (nonMisurati.length) {
   console.log(`\n⚠️ NON MISURATI (${nonMisurati.length}) — non è «a posto», è «non ho guardato»:`);
   for (const x of nonMisurati) console.log(`   · ${x}`);
 }
-console.log(`\nRisultato pianta sullo schermo di Genesi: ${ok} passati, ${ko} falliti  ·  ${ATTESE} asserzioni attese nel passaggio sano (33 per larghezza × 3 nelle viste, 9 sul tocco, 9 sulla maglia fitta, 12 sui gesti, 14 sulla vista)`);
+console.log(`\nRisultato pianta sullo schermo di Genesi: ${ok} passati, ${ko} falliti  ·  ${ATTESE} asserzioni attese nel passaggio sano (33 per larghezza × 3 nelle viste, 9 sul tocco, 9 sulla maglia fitta, 12 sui gesti, 14 sulla vista, 5 sulla MIC)`);
 await b.close();
 srv.close();
 /* una controprova RIUSCITA esce 0: ha fallito come doveva, con tutte le iniezioni sul bersaglio
