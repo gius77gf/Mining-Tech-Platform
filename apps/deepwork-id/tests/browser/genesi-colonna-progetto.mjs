@@ -42,10 +42,31 @@
    in Home e si fanno le stesse due domande; e a 320 px i tre comandi devono
    stare SOTTO la riga che descrive la volata, non accanto a stringerla.
 
-   ⚠️ CHE COSA NON GUARDA: i comandi che compaiono solo in certi momenti (gli
-   strumenti sui fori selezionati e sui tratti: hanno la stessa classe di
-   «Reset fronte», quindi la stessa regola, ma qui non vengono fatti
-   comparire), i comandi dentro le finestre, e la scena 3D. */
+   E LE FINESTRE, LA SCHEDA DEL FORO, LA TABELLA E LA SCENA 3D (27/11, E7): il
+   banco dichiarava di non guardarle, e lì dentro la misura ha contato 35
+   comandi su 74 sotto i 44 px nelle finestre e sopra la scena 3D (bottoni
+   piccoli alti 26, campi 28, play 40×40), 22 su 22 nel pannello dei parametri
+   della scena, 9 su 9 nella scheda del foro e 53 nella tabella dei fori (tutti
+   a 40). Due cose in più, trovate guardando e poi contate:
+     · cinque campi BIANCHI come quelli nudi del browser nel pannello dei
+       parametri: la regola che li vestiva chiedeva `type=number`, e i campi
+       decimali sono `type=text`;
+     · fra 381 e 414 px di schermo la tabella dei fori scorreva DI LATO (26 px
+       a 390): la soglia della tabella compatta era 380, quella a sette colonne
+       ci sta da 428 in su, e i banchi misurano a 320 e a 430.
+   Qui si aprono le sette finestre coi bottoni veri, si sceglie un foro, si
+   apre la tabella a sette larghezze, si va nella scena 3D e si apre il
+   pannello dei parametri: stesse due domande, più «nessun campo è bianco» e
+   «la tabella non scorre di lato».
+
+   E i comandi che compaiono solo in certi momenti, fatti comparire: gli
+   strumenti su due fori scelti, quelli del tratto, e le opzioni dei livelli
+   accesi (queste ultime erano 38-40 px).
+
+   ⚠️ CHE COSA NON GUARDA: la modellazione del fronte nella scena 3D (sul
+   telefono il suo bottone non c'è: misurato, nascosto a 320 e 430); e il
+   pannello dei parametri sul COMPUTER, dove è un pannello laterale fitto di proposito: la
+   regola dei 44 px lì vale sotto i 900 px o con un puntatore grosso. */
 import { createServer } from "node:http";
 import { readFileSync, existsSync, statSync, writeFileSync, unlinkSync } from "node:fs";
 import { join, extname } from "node:path";
@@ -74,6 +95,26 @@ const DIFETTI = [
   [`.hg-item button{min-height:44px;min-width:44px}`, ``],
   [`.hg-actions .btn{min-height:44px;display:inline-flex;align-items:center}`, ``],
   [`@media(max-width:560px){ .hg-item{flex-wrap:wrap} .hg-item .t{flex:1 1 100%} .hg-item .t+button{margin-left:auto} }`, ``],
+  /* E7: i bottoni piccoli tornano bassi, il play 40×40, la ✕ 30×30, i campi delle finestre 28 */
+  [`.btn.sm{min-height:44px;min-width:44px}`, ``],
+  [`#play{width:44px;height:44px}`, ``],
+  [`.ei-h button{width:44px;height:44px;flex:none}`, ``],
+  [`.gmodal-card input[type=number],.gmodal-card input[type=text],.modal-body input{min-height:44px}`, ``],
+  /* il pannello dei parametri della scena 3D: campi e spunte tornano bassi */
+  [`  #params .row input,#params .row select,#meas-in,#btnApply{min-height:44px}`, ``],
+  [`  #params label.lay{display:flex;align-items:center;gap:8px;min-height:44px}`, ``],
+  /* …e i suoi campi decimali tornano bianchi: la regola torna a vestire solo `type=number` */
+  [`.row input[type=number],.row input[type=text],.row select,#meas-in{width:86px;`, `.row input[type=number],.row select{width:86px;`],
+  /* la scheda del foro torna a 40 px */
+  [`#d2-insp .btn.sm{min-height:44px}`, `#d2-insp .btn.sm{min-height:40px}`],
+  [`outline:none;min-height:44px;font-variant-numeric:tabular-nums;transition:border-color .1`, `outline:none;min-height:40px;font-variant-numeric:tabular-nums;transition:border-color .1`],
+  /* la tabella dei fori torna a 40 px: il numero del foro e i campi */
+  [`text-align:left;min-height:44px;white-space:nowrap}`, `text-align:left;min-height:40px;white-space:nowrap}`],
+  [`min-width:0;min-height:44px;font-variant-numeric:tabular-nums`, `min-width:0;min-height:40px;font-variant-numeric:tabular-nums`],
+  /* le opzioni dei livelli tornano a 38 px */
+  [`border-radius:11px;padding:4px 9px;min-height:44px}`, `border-radius:11px;padding:4px 9px;min-height:38px}`],
+  /* la tabella dei fori: la soglia della compatta torna a 380 (e fra 381 e 428 scorre di lato) */
+  [`@media(max-width:429px){\n  .ft-h,.ft-r{grid-template-columns:44px 46px repeat(3,minmax(48px,1fr));min-width:0}`, `@media(max-width:380px){\n  .ft-h,.ft-r{grid-template-columns:44px 46px repeat(3,minmax(48px,1fr));min-width:0}`],
 ];
 
 const colpiti = new Set();
@@ -216,6 +257,123 @@ for (const w of [430, 320]) {
   dice(q.bordo.length === 0, `a ${w} px in Home nessun comando sta a meno di ${MARGINE} px dai bordi`, q.bordo.join(" · "));
   if (w === 320) dice(q.sotto === true, "⛔ a 320 px i tre comandi della volata stanno SOTTO la riga che la descrive, che ha così tutta la larghezza", String(q.sotto));
 }
+await pg.click('#bottomnav button[data-scr="design"]'); await pg.waitForTimeout(400);
+
+/* ── E7 (27/11): le finestre, la scheda del foro, la tabella dei fori, la scena 3D ── */
+/* i comandi DENTRO una radice aperta: misura (con l'etichetta che li avvolge), bordo, fondo dei campi */
+const dentro = (sel) => pg.evaluate(({ sel, MARGINE, TOCCO }) => {
+  const vw = window.innerWidth, radici = [...document.querySelectorAll(sel)].filter((e) => getComputedStyle(e).display !== "none" && e.getBoundingClientRect().width > 0);
+  let n = 0; const piccoli = [], bordo = [], chiari = [];
+  for (const R of radici) for (const e of R.querySelectorAll("button, input, select, textarea, a[href], summary")) {
+    const r = e.getBoundingClientRect(); if (r.width < 1 || r.height < 1) continue;
+    const cs = getComputedStyle(e); if (cs.visibility === "hidden" || cs.display === "none") continue;
+    n++;
+    const lab = e.closest("label"), rl = lab ? lab.getBoundingClientRect() : r;
+    const w = Math.max(r.width, rl.width), h = Math.max(r.height, rl.height);
+    const nome = (e.id || (e.textContent || "").trim().slice(0, 16) || e.className || e.tagName).toString().slice(0, 24);
+    if (w < TOCCO - 0.5 || h < TOCCO - 0.5) piccoli.push(`${nome} ${Math.round(w)}×${Math.round(h)}`);
+    if (r.left < MARGINE - 0.5 || r.right > vw - MARGINE + 0.5) bordo.push(`${nome} [${Math.round(r.left)}, ${Math.round(vw - r.right)}]`);
+    if (/^(INPUT|SELECT|TEXTAREA)$/.test(e.tagName) && !["checkbox", "radio", "file", "range"].includes(e.type)) {
+      const c = cs.backgroundColor.match(/[\d.]+/g).map(Number);
+      if ((c.length < 4 || c[3] > 0.5) && (0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]) / 255 > 0.5) chiari.push(nome);
+    }
+  }
+  return { radici: radici.length, n, piccoli, bordo, chiari };
+}, { sel, MARGINE, TOCCO });
+const aPosto = (q, minimo) => q.radici === 1 && q.n >= minimo && q.piccoli.length === 0 && q.bordo.length === 0 && q.chiari.length === 0;
+const perche = (q) => `radici ${q.radici} · comandi ${q.n} · piccoli: ${q.piccoli.slice(0, 8).join(" · ") || "—"} · al bordo: ${q.bordo.slice(0, 4).join(" · ") || "—"} · campi bianchi: ${q.chiari.join(" · ") || "—"}`;
+const premi = (id) => pg.evaluate((id) => { const e = document.getElementById(id); if (!e) return false; e.scrollIntoView({ block: "center" }); e.click(); return true; }, id);
+const FINESTRE = [
+  ["riconOpen", "#riconModal", "riconClose", "riconciliazione", 4], ["sigOpen", "#sigModal", "sigClose", "foro singolo", 3], ["sitoOpen", "#sitoModal", "sitoClose", "legge di sito", 4],
+  ["sentOpen", "#sentModal", "sentClose", "Sentinella", 2], ["cmpShow", "#cmpModal", "cmpClose", "confronto A/B", 2],
+  ["btn-salva-volata", "#modal", null, "salva la volata", 3], ["btn-confronta-burden", "#modal", null, "confronta spalle", 3],
+];
+for (const w of [430, 320]) {
+  await pg.setViewportSize({ width: w, height: 900 }); await pg.waitForTimeout(400);
+  /* le sette finestre, aperte col loro bottone */
+  for (const [apri, sel, chiudi, nome, minimo] of FINESTRE) {
+    await premi(apri); await pg.waitForTimeout(500);
+    const q = await dentro(sel);
+    dice(aPosto(q, minimo), `⛔ a ${w} px · finestra «${nome}»: i ${q.n} comandi offrono almeno ${TOCCO}×${TOCCO} px, stanno a ${MARGINE} px dai bordi, e nessun campo è bianco`, perche(q));
+    await pg.evaluate((id) => { const e = id && document.getElementById(id); if (e) e.click();
+      const an = [...document.querySelectorAll("#modal-foot .mbtn")].find((x) => /annulla|chiudi/i.test(x.textContent) && x.getBoundingClientRect().width > 0); if (an) an.click(); }, chiudi);
+    await pg.waitForTimeout(350);
+  }
+  const rimaste = await pg.evaluate(() => [...document.querySelectorAll(".gmodal, #cmpModal, .modal-ov")].filter((e) => getComputedStyle(e).display !== "none").map((e) => e.id));
+  dice(rimaste.length === 0, `a ${w} px le sette finestre si sono richiuse tutte (se una restasse aperta coprirebbe quello che si misura dopo)`, rimaste.join(" · "));
+  /* la scheda del foro: si sceglie un foro toccandolo */
+  await pg.evaluate(() => document.getElementById("d2-canvas").scrollIntoView({ block: "center" })); await pg.waitForTimeout(200);
+  const foro = await pg.evaluate(() => { const D = window.__genesi.D2, m = D._m, c = document.getElementById("d2-canvas"), r = c.getBoundingClientRect(), h = D.holes[2];
+    return { x: r.left + (m.startX + h.mx * m.scale) / c.width * r.width, y: r.top + (m.faceY + h.my * m.scale) / c.height * r.height }; });
+  await pg.mouse.click(foro.x, foro.y); await pg.waitForTimeout(400);
+  const sch = await dentro("#d2-insp");
+  dice(aPosto(sch, 8), `⛔ a ${w} px · scheda del foro: i ${sch.n} comandi offrono almeno ${TOCCO}×${TOCCO} px (erano tutti a 40)`, perche(sch));
+  /* i comandi che compaiono solo in certi momenti, fatti comparire. Due fori scelti con Maiusc: */
+  const centro = (i) => pg.evaluate((i) => { const D = window.__genesi.D2, m = D._m, c = document.getElementById("d2-canvas"), r = c.getBoundingClientRect(), h = D.holes[i];
+    return { x: r.left + (m.startX + h.mx * m.scale) / c.width * r.width, y: r.top + (m.faceY + h.my * m.scale) / c.height * r.height }; }, i);
+  for (const i of [2, 4]) { const q = await centro(i); await pg.keyboard.down("Shift"); await pg.mouse.click(q.x, q.y); await pg.keyboard.up("Shift"); await pg.waitForTimeout(250); }
+  const scelti = await pg.evaluate(() => window.__genesi.D2.selMulti.length);
+  const str = await dentro("#d2-tools");
+  dice(scelti === 2 && aPosto(str, 9), `a ${w} px · strumenti con due fori scelti: i ${str.n} comandi offrono almeno ${TOCCO}×${TOCCO} px e stanno a ${MARGINE} px dai bordi`, `fori scelti ${scelti} · ` + perche(str));
+  { const q = await centro(2); await pg.mouse.click(q.x, q.y); await pg.waitForTimeout(250); }   // un clic senza Maiusc scioglie la selezione
+  /* le opzioni dei livelli accesi: passo delle isocrone, finestra del relief, passo della griglia */
+  for (const id of ["dlIso", "dlRel", "dlSnap"]) await premi(id); await pg.waitForTimeout(350);
+  const liv = await dentro("#d2-layers");
+  dice(aPosto(liv, 9), `⛔ a ${w} px · livelli accesi: i ${liv.n} comandi, opzioni comprese, offrono almeno ${TOCCO}×${TOCCO} px (le opzioni erano 38-40)`, perche(liv));
+  for (const id of ["dlIso", "dlRel", "dlSnap"]) await premi(id); await pg.waitForTimeout(250);
+  /* lo strumento Tratto, con un tratto cominciato */
+  await premi("dtTratto"); await pg.evaluate(() => document.getElementById("d2-canvas").scrollIntoView({ block: "center" })); await pg.waitForTimeout(250);
+  { const bb = await pg.locator("#d2-canvas").boundingBox(); await pg.mouse.click(bb.x + bb.width * 0.3, bb.y + bb.height * 0.6); await pg.mouse.click(bb.x + bb.width * 0.6, bb.y + bb.height * 0.7); await pg.waitForTimeout(300); }
+  const tr = await dentro("#d2-tools");
+  dice(aPosto(tr, 8), `a ${w} px · strumenti del tratto: i ${tr.n} comandi offrono almeno ${TOCCO}×${TOCCO} px e stanno a ${MARGINE} px dai bordi`, perche(tr));
+  await premi("d2Undo"); await premi("d2Undo"); await premi("dtFori"); await pg.waitForTimeout(300);
+}
+/* la tabella dei fori, a SETTE larghezze: non solo 320 e 430 — è fra le due che scorreva di lato */
+await premi("ft-apri"); await pg.waitForTimeout(500);
+for (const w of [320, 375, 390, 412, 430, 481, 561]) {
+  await pg.setViewportSize({ width: w, height: 900 }); await pg.waitForTimeout(400);
+  /* il CORPO della tabella, non la sua intestazione: il bottone che la apre è un comando della
+     schermata, già misurato più su — contato qui, sotto controprova faceva «cadere» la tabella
+     per un difetto che non era suo. Due domande, due controlli: la misura e lo scorrimento. */
+  const q = await dentro("#ft-corpo");
+  const lato = await pg.evaluate(() => { const c = document.querySelector(".ft-h").parentElement; return { scorre: c.scrollWidth - c.clientWidth, colonne: [...document.querySelector(".ft-h").children].filter((x) => x.getBoundingClientRect().width > 0).length, pagina: document.documentElement.scrollWidth - window.innerWidth }; });
+  dice(q.radici === 1 && q.n >= 50 && q.piccoli.length === 0 && q.chiari.length === 0,
+    `⛔ a ${w} px · tabella dei fori (${lato.colonne} colonne): i ${q.n} comandi offrono almeno ${TOCCO}×${TOCCO} px (erano tutti a 40)`, perche(q));
+  dice(lato.scorre <= 0 && lato.pagina <= 0, `⛔ a ${w} px · la tabella dei fori NON scorre di lato (${lato.colonne} colonne)`, `scorre di lato ${lato.scorre} px · pagina ${lato.pagina} px`);
+}
+/* la scena 3D e il suo pannello dei parametri */
+for (const w of [430, 320]) {
+  await pg.setViewportSize({ width: w, height: 900 }); await pg.waitForTimeout(300);
+  await pg.click('#bottomnav button[data-scr="sim"]'); await pg.waitForTimeout(1200);
+  /* i comandi che si possono toccare ADESSO: il punto al centro è loro (o di un loro discendente) */
+  const scena = await pg.evaluate(({ MARGINE, TOCCO }) => { const vw = window.innerWidth, vh = window.innerHeight; let n = 0; const piccoli = [], bordo = [];
+    for (const e of document.querySelectorAll("button, input, select, textarea, a[href]")) {
+      const r = e.getBoundingClientRect(); if (r.width < 1 || r.height < 1 || r.bottom <= 0 || r.top >= vh) continue;
+      const su = document.elementFromPoint(Math.min(vw - 1, Math.max(0, r.left + r.width / 2)), Math.min(vh - 1, Math.max(0, r.top + r.height / 2)));
+      if (!su || !(e === su || e.contains(su))) continue;
+      n++; const nome = (e.id || (e.textContent || "").trim().slice(0, 14) || e.tagName).toString().slice(0, 22);
+      if (r.width < TOCCO - 0.5 || r.height < TOCCO - 0.5) piccoli.push(`${nome} ${Math.round(r.width)}×${Math.round(r.height)}`);
+      if (r.left < MARGINE - 0.5 || r.right > vw - MARGINE + 0.5) bordo.push(`${nome} [${Math.round(r.left)}, ${Math.round(vw - r.right)}]`); }
+    return { n, piccoli, bordo }; }, { MARGINE, TOCCO });
+  dice(scena.n >= 10 && scena.piccoli.length === 0 && scena.bordo.length === 0, `⛔ a ${w} px · scena 3D: i ${scena.n} comandi che si possono toccare offrono almeno ${TOCCO}×${TOCCO} px e stanno a ${MARGINE} px dai bordi (erano 9 su 12 sotto misura)`, `piccoli: ${scena.piccoli.join(" · ") || "—"} · al bordo: ${scena.bordo.join(" · ") || "—"}`);
+  await pg.click("#btnParams"); await pg.waitForTimeout(500);
+  const par = await dentro("#params");
+  dice(aPosto(par, 20), `⛔ a ${w} px · pannello dei parametri della scena: i ${par.n} comandi offrono almeno ${TOCCO}×${TOCCO} px, e nessun campo è bianco (erano 22 su 22 sotto misura, e 5 campi bianchi)`, perche(par));
+  /* l'approfondimento dell'esplosivo: si apre dalla ⓘ, e la sua ✕ si prende col dito */
+  await premi("pEsplInfo"); await pg.waitForTimeout(400);
+  const chiudi = await pg.evaluate(() => { const e = document.getElementById("ei-close"), r = e.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; });
+  dice(chiudi[0] >= TOCCO && chiudi[1] >= TOCCO, `a ${w} px · approfondimento: la ✕ che lo chiude è ${chiudi.join("×")} px (era 30×30)`, chiudi.join("×"));
+  await premi("ei-close"); await pg.waitForTimeout(250);
+  await pg.click("#btnParams"); await pg.waitForTimeout(300);
+}
+/* e in tutta la pagina, finestre chiuse comprese: nessun campo col fondo bianco del browser */
+const campi = await pg.evaluate(() => { let n = 0; const chiari = [];
+  for (const e of document.querySelectorAll("input, select, textarea")) { if (["checkbox", "radio", "file", "hidden", "range", "color", "button", "submit"].includes((e.type || "").toLowerCase())) continue;
+    n++; const c = getComputedStyle(e).backgroundColor.match(/[\d.]+/g).map(Number);
+    if ((c.length < 4 || c[3] > 0.5) && (0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]) / 255 > 0.5) chiari.push(e.id || e.name || e.className || e.tagName); }
+  return { n, chiari }; });
+dice(campi.n >= 50 && campi.chiari.length === 0, `⛔ nessuno dei ${campi.n} campi della pagina ha il fondo bianco del browser (erano 5: profondità, carica, vento, x50 obiettivo, misure reali)`, campi.chiari.join(" · "));
+await pg.setViewportSize({ width: 430, height: 900 });
 await pg.click('#bottomnav button[data-scr="design"]'); await pg.waitForTimeout(400);
 
 dice(pg.__err.length === 0, "la pagina non solleva errori", pg.__err.slice(0, 2));

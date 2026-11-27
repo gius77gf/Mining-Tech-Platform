@@ -2921,6 +2921,45 @@
   per foro», 3 controlli — cercava rombo e piede alle distanze di prima.
   ⚠️ Che cosa cambia per chi usa: sul computer la pianta è più alta (da 186
   a 226 px per due file) e i pallini più grandi rispetto ai metri.
+- [x] **Genesi — il dito nelle finestre, nella scheda del foro, nella tabella dei fori e sopra la scena 3D**
+  *(27/11, terzo pezzo delle due domande di E7 — il banco dichiarava di non
+  guardarle)*. Misurato prima di toccare, a 320 e 430 px:
+  · finestre (riconciliazione, foro singolo, legge di sito, Sentinella,
+    confronto A/B, salva, confronta spalle) e scena 3D: **35 comandi su 74**
+    sotto i 44 px — bottoni piccoli alti 26, campi 28, play 40×40, la ✕
+    dell'approfondimento 30×30;
+  · pannello dei parametri della scena 3D: **22 su 22** (campi 28, spunte
+    dei livelli 16, «Genera volata» 32);
+  · scheda del foro **9 su 9** e tabella dei fori **53** — tutti a 40;
+  · le opzioni dei livelli accesi (passo delle isocrone, finestra del
+    relief, passo della griglia): **4 su 9** a 38-40.
+  Nessun comando toccava il bordo. Ora tutti a 44 (`.btn.sm` una volta sola
+  per tutta la pagina). ⚠️ Una regola ha una condizione, e detta: il
+  pannello dei parametri sul COMPUTER resta fitto com'era (è un pannello
+  laterale da 248 px usato col mouse) — i 44 px lì valgono sotto i 900 px o
+  con un puntatore grosso.
+  **Due difetti in più, trovati guardando gli scatti e poi contati:**
+  · **cinque campi BIANCHI** come quelli nudi del browser nel pannello dei
+    parametri (profondità, carica, vento, x50 obiettivo, misure reali — uno
+    usciva dal pannello): la regola che li vestiva chiedeva `type=number`,
+    e i campi decimali sono `type=text` per la regola della casa. Ora 0 su
+    135 campi contati;
+  · **la tabella dei fori scorreva di lato fra 381 e 414 px di schermo**
+    (35 px a 381, 26 a 390, 23 a 393, 4 a 412): cioè sugli iPhone da
+    390/393 e sui Pixel da 412. La soglia della tabella compatta era 380,
+    quella a sette colonne ci sta da 428; i banchi misurano a 320 e 430 e
+    in mezzo nessuno aveva guardato. Soglia a 429: zero scorrimento a
+    quindici larghezze.
+  Prove: `genesi-colonna-progetto.mjs` da 26 a **71 controlli** — apre le
+  sette finestre coi bottoni veri, sceglie un foro, fa comparire gli
+  strumenti (due fori scelti, il tratto) e le opzioni dei livelli, apre la
+  tabella a sette larghezze (320-561), va nella scena 3D e apre il
+  pannello; controprova 22 iniezioni su 22, 53 controlli caduti — e lo
+  scorrimento di lato cade solo a 390 e 412, dove scorreva davvero. ⚠️ La prima stesura misurava anche il
+  bottone che apre la tabella: sotto controprova la tabella «cadeva» a
+  cinque larghezze su sette per un difetto non suo. Divise le due domande.
+  ⚠️ Non guardata: la modellazione del fronte nella scena 3D — sul
+  telefono il suo bottone non c'è (misurato: nascosto a 320 e 430).
 - [ ] **Genesi — la pianta non ha l'ingrandimento** *(27/11, dichiarato
   chiudendo la voce qui sopra)*. Senza zoom, oltre i 20 fori per fila su un
   telefono i pallini restano da 4 px e si toccano, e i numeri dei fori non
@@ -6591,9 +6630,13 @@ numero scritto dove non era stato misurato niente**.*
       fondo andavano da bordo a bordo) e i bersagli di tocco (49 comandi su
       71 sotto i 44 px) — vedi le due voci chiuse «Genesi — gli ultimi comandi
       del Progetto 2D…» e «Genesi — i comandi del Progetto 2D alti quanto un
-      dito». Restano da misurare con le stesse due domande: la Home, le
-      finestre (confronto, riconciliazione, Sentinella…) e i comandi sopra
-      la scena 3D.*
+      dito». ⏱️ *27/11, più tardi: misurate e chiuse con le stesse due
+      domande anche la Home, le sette finestre, la scheda del foro, la
+      tabella dei fori, la scena 3D e il suo pannello dei parametri (voci
+      chiuse «la Home alta quanto un dito» e «il dito nelle finestre…»).
+      Resta fuori la modellazione del fronte nella scena 3D, che sul
+      telefono non c'è. E7 resta aperta per ciò che NON è una
+      misura di bordo o di dito: l'aspetto delle parti 2D accanto al core.*
 - [ ] **E8.** Verifica finale: le sette pagine affiancate devono sembrare la
       stessa famiglia.
       ✅ **La METÀ misurabile è chiusa l'09/08 ed è dentro il giro**:

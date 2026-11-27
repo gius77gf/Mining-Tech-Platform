@@ -6069,3 +6069,121 @@ linea in pianta più un profilo di cresta, e il «piede» modellato nel 3D è la
 variazione di profondità lungo il fronte (`altezzeForiDaPiede`), non la
 pendenza della faccia. Quindi la spalla al piede oggi **non è calcolabile**
 senza un'ipotesi o un dato nuovo: decisione 35.
+
+## Ricerca del 2026-11-27 — ingrandire e spostare una pianta col dito (solo il mondo, quasi tutto di seconda mano)
+
+*Proposto da ricerca, non verificato. Lanciata mentre si chiudeva la voce «la
+pianta si legge e si tocca dal telefono», per la voce rimasta aperta: «la
+pianta non ha l'ingrandimento». Consegna SOLO la metà sul mondo, come vuole la
+regola del 14/08: il delta lo fa chi ha il codice, partendo dalle undici
+domande in fondo. ⚠️ Letti per intero solo tre testi (BlastPad di DataMine, la
+pagina MDN sui tocchi multipli, WCAG 2.2 «Pointer Gestures»); tutto il resto è
+dai riassunti dei risultati di ricerca ed è marcato così riga per riga. Nessun
+numero di questa sezione va scritto in una schermata senza rileggerne la
+fonte. Per O-Pitblast, Strayos e iRing la ricerca non ha trovato niente di
+pubblico sui gesti — e lo dice, invece di inventarli.*
+
+Data ricerca: 2026-11-27. Solo la metà "come si fa nel mondo". Nessun confronto con l'app del progetto.
+
+Etichette: [letto] = testo della pagina letto con WebFetch. [seconda mano] = ricavato dal riassunto dei risultati di WebSearch (non letto per intero). [dedotto] = mio ragionamento. "non trovato" = ricerche fatte senza risultati utili, elencate.
+
+---
+
+### 1. Che cosa ho potuto leggere davvero
+
+- **Letto per intero:** la guida BlastPad di DataMine (versione 2.10, pagina di pan/zoom e selezione) [letto]; la pagina MDN "Multi-touch interaction" sui Pointer Events [letto]; la pagina W3C "Pointer Gestures" di WCAG 2.2 [letto].
+- **Solo di seconda mano (dai riassunti di ricerca):** Autodesk AutoCAD Mobile (pan/zoom e selezione), Figma (help e forum), FigJam su iPad, Google Maps (zoom a un dito), Apple HIG (gesti e 44 pt), Material/Google (48 dp), SAP Fiori (gesti), WCAG Target Size, MDN touch-action e pinch, codice sorgente di tldraw, BlastIQ Mobile, Maptek BlastLogic.
+- **Non letti (403 o pagina vuota):** la pagina BlastIQ Mobile "Map view" (403); la pagina Apple "Gestures" (ritornata solo il titolo). Le loro frasi sono di seconda mano.
+- **Non trovato:** gesti di O-Pitblast (solo una scheda generica di O-PitApp, per Android, senza gesti); gesti di Strayos e iRing (nessun risultato); gesti di Excalidraw attuali (solo una lista di issue del 2020); gesti di tldraw in documentazione ufficiale (solo codice sorgente di riassunto); zoom di Nobel Fire e DynoMobile (nessuna frase su zoom).
+- Ricerche fatte per il "non trovato": "O-Pitblast mobile tablet blast design pan zoom touch gestures"; "Strayos OR iRing OR Orica BlastIQ mobile app" (riformulata senza operatori); "Excalidraw mobile touch one finger pan two finger zoom gestures"; "tldraw touch gestures ..."; "BlastLogic Maptek mobile app blast hole design touch".
+
+---
+
+### 2. Tabella: prodotto / linea guida, gesto o regola, che cosa fa, etichetta, fonte
+
+| Prodotto / linea guida | Gesto o regola | Che cosa fa | Etichetta | Fonte |
+|---|---|---|---|---|
+| DataMine BlastPad 2.10 (pianta foro, schermo multi-touch) | pizzico (pinch) | zoom | [letto] | https://docs.dataminesoftware.com/DataBlast/Pro/2.10/O-BlastPad/BlastPad.htm |
+| DataMine BlastPad 2.10 (schermo a un solo punto) | icone di zoom in/out | zoom con bottoni, non con gesto | [letto] | stessa pagina |
+| DataMine BlastPad 2.10 | "Select a hole to view the hole detail screen" | tocco su un foro apre il dettaglio; la guida non dice se tocco o trascinamento servano per spostarlo | [letto] | stessa pagina |
+| DataMine BlastPad 2.9 (versione precedente) | "pan mode" su schermo a un punto; trascinamento su schermo multi-punto | la vista si sposta con una modalità separata su schermi semplici, con trascinamento su quelli multi-touch | [seconda mano] | https://docs.dataminesoftware.com/DataBlast/Pro/2.9/O-BlastPad/BlastPad.htm (risultato di ricerca) |
+| Orica BlastIQ Mobile, "Map view" | pinch, rotazione e swipe; pulsanti a destra della mappa; icona a lente per tornare alla vista predefinita | navigazione con gesti e bottoni, più un "ritorno alla vista" | [seconda mano] (pagina 403) | https://support.blastiq.com/hc/en-us/articles/360009890573 |
+| Maptek BlastLogic (tablet) | il tablet è per la raccolta sul campo; il progetto della maglia si fa in un altro software (Vulcan); sul tablet solo piccole modifiche foro per foro | nessuna modalità di disegno sulla pianta da tablet, almeno nella versione 2022 della guida | [seconda mano] | https://help.maptek.com/blastlogic/2022/topics/getting-started/getting-started.htm e https://www.maptek.com/training/online/blastlogic_tablet.html (risultati di ricerca) |
+| Autodesk AutoCAD Mobile | trascinamento con due dita = pan | sposta la vista | [seconda mano] | https://help.autodesk.com/cloudhelp/ENU/AutoCAD-Mobile-Help/files/Creating-and-Viewing/PAN_ZOOM_html.html |
+| Autodesk AutoCAD Mobile | pizzico = zoom in; allargamento = zoom out | zoom | [seconda mano] | stessa pagina |
+| Autodesk AutoCAD Mobile | trascinamento con un dito = pan solo quando nessun comando è attivo | un dito cambia significato secondo lo stato | [seconda mano] | stessa pagina |
+| Autodesk AutoCAD Mobile | due dita durante un comando = pan e zoom anche a metà comando | la vista si sposta senza uscire dal comando | [seconda mano] | https://help.autodesk.com/cloudhelp/2021/ENU/AutoCAD-WhatsNew/files/GUID-D5F8C831-6152-485C-8AAD-970D3ADF47BE.htm |
+| Autodesk AutoCAD Mobile | tocco su un oggetto = seleziona; trascinamento di un dito = finestra o selezione incrociata solo se il comando la chiede | un dito seleziona quando un comando lo richiede | [seconda mano] | pagina Pan and Zoom (sopra) |
+| Autodesk AutoCAD Mobile | doppio tocco con un dito = termina comando o svuota selezione | il doppio tocco non fa zoom | [seconda mano] | pagina Pan and Zoom (sopra) |
+| Figma Design (mobile) | tenere e trascinare = pan; pizzico = zoom; lungo tocco sul canvas = commento | nessuna modifica dei file dall'app mobile | [seconda mano] | https://help.figma.com/hc/en-us/articles/1500007537281 |
+| FigJam su iPad | uno o due dita = pan della lavagna | la selezione funziona solo quando gli strumenti di disegno sono inattivi | [seconda mano] | https://figma-signup.helpjuice.com/tour-the-interface-1/figjam-for-ipad |
+| FigJam su iPad | lungo tocco con un dito, poi trascinamento = selezione multipla | selezione di più oggetti | [seconda mano] | stessa pagina |
+| Google Maps (iOS/Android) | doppio tocco e tenere premuto, poi trascinare su/giù = zoom a un dito | zoom con un solo dito, senza pizzico | [seconda mano] | https://gizmodo.com/double-tap-to-zoom-one-handed-in-googles-mobile-apps-1599606334 e https://www.phonearena.com/news/How-to-easily-zoom-in-and-out-with-just-one-finger-Google-apps_id73045 |
+| Apple HIG (iOS/iPadOS) | pizzico per cambiare lo zoom della vista; doppio tocco per zoom avanti e, da zoomato, indietro | due gesti di zoom convenzionali | [seconda mano] (la pagina HIG Gestures è stata letta solo come titolo) | https://developer.apple.com/design/human-interface-guidelines/gestures.md (risultato di ricerca) |
+| Apple HIG, Design Tips | bersaglio di tocco minimo 44 × 44 pt; si allarga l'area di tocco, non il disegno | dimensione minima | [seconda mano] | https://developer.apple.com/design/tips (risultato di ricerca) |
+| Material Design (Google, accessibilità) | bersaglio di tocco minimo 48 × 48 dp | dimensione minima (linea guida di piattaforma, non obbligo di legge) | [seconda mano] | https://support.google.com/accessibility/android/answer/7101858 |
+| Material Design M2, gestures | il movimento del dito controlla direttamente l'elemento; niente gesti che lanciano animazioni; doppio tocco = zoom o alterna livelli | regole di interazione | [seconda mano] | https://m2.material.io/design/interaction/gestures (risultato di ricerca) |
+| SAP Fiori, gestures | il pan muove solo vista o contenuto e non fa scattare azioni; i comandi critici non stanno sul pan; zoom anche con bottoni; pizzico con risposta immediata; zoom massimo definito | regole di design | [seconda mano] | https://www.sap.com/design-system/fiori-design-web/v1-142/foundations/interaction/gestures (risultato di ricerca) |
+| WCAG 2.2 Pointer Gestures (2.5.1, livello A) | qualunque funzione a più dita o a percorso deve funzionare anche con un solo puntatore e un tocco; zoom a pizzico = anche pulsanti + e − | obbligo di alternativa a un puntatore | [letto] | https://www.w3.org/WAI/WCAG22/Understanding/pointer-gestures |
+| WCAG 2.2 Pointer Gestures | i gesti definiti dal sistema operativo non rientrano; il trascinamento è in 2.5.7 | ambito del criterio | [letto] | stessa pagina |
+| WCAG 2.2 Target Size (Minimum) 2.5.8, livello AA | minimo 24 × 24 px CSS, o spaziatura sufficiente | minimo per legge AA | [seconda mano] | https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html (risultato di ricerca) |
+| WCAG 2.2 Target Size (Enhanced) 2.5.5 | minimo 44 × 44 px | livello AAA | [seconda mano] | stessa pagina e https://www.w3.org/WAI/WCAG22/Understanding/ (non letto) |
+| MDN, Multi-touch interaction (Pointer Events) | cache dei puntatori per pointerId; conteggio 1, 2, 3+ puntatori; `touch-action: none` sul contenitore | base tecnica per distinguere un dito da due | [letto] | https://developer.mozilla.org/en-US/docs/Web/API/Pointer_events/Multi-touch_interaction |
+| MDN, touch-action | `none` disattiva il pan e lo zoom del browser; `manipulation` lascia pan e pizzico ma toglie il doppio tocco per zoom; `pinch-zoom` si combina con i valori di pan | valori CSS | [seconda mano] | https://developer.mozilla.org/Web/CSS/touch-action (risultato di ricerca) |
+| MDN, Pointer Events | il browser emette `pointercancel` quando decide di trattare il gesto come pan o zoom; cambiare `touch-action` a gesto iniziato non ha effetto su quel gesto | pericolo: il gesto può essere sottratto a metà | [seconda mano] | https://developer.mozilla.org/en-US/docs/Web/API/Pointer_events/Pinch_zoom_gestures (risultato di ricerca) |
+| tldraw (sorgente di `useGestureEvents`) | due dita: due casi separati, pizzico = zoom e due dita che si muovono = pan; una versione riporta una soglia di distanza fra due dita (64) per passare da pan a zoom | soglia da un riassunto, numero non verificato | [seconda mano] | https://cdn.jsdelivr.net/npm/@tldraw/editor@4.5.9/src/lib/hooks/useGestureEvents.ts (risultato di ricerca) |
+| Excalidraw (mobile) | nessuna documentazione attuale trovata; un issue del 2020 elencava "due dita per pan/zoom" come cosa da fare | non verificato | [seconda mano] | https://lightrun.com/answers/excalidraw-excalidraw-mobile-support (risultato di ricerca) |
+
+---
+
+### 3. Le convenzioni che ricorrono (in almeno tre fonti indipendenti)
+
+1. **Pizzico = zoom.** Compare in BlastPad [letto], AutoCAD Mobile, Figma Design mobile, Apple HIG, SAP, MDN e WCAG (come gesto da affiancare a un bottone). Dove il gesto è a più dita, WCAG chiede un'alternativa a un solo dito o puntatore: bottoni + e −. Compare anche la stessa idea in BlastPad: su schermo a un punto si usano le icone.
+2. **Zoom con bottoni come alternativa obbligatoria o almeno consigliata.** BlastPad [letto] (su schermo a un punto), BlastIQ (pulsanti a destra), WCAG 2.5.1 [letto], SAP.
+3. **Il pan non deve far scattare azioni.** SAP, Material M2 (il dito controlla il movimento, niente animazioni che partono dal gesto), AutoCAD (un dito fa pan solo quando nessun comando è attivo, cioè quando non c'è un'azione in corso).
+4. **Il doppio tocco è uno zoom (oppure alterna livelli).** Apple HIG, Material M2, Google Maps (doppio tocco e trascinamento). In AutoCAD il doppio tocco invece chiude il comando: qui la convenzione non regge.
+5. **Un dito e due dita hanno significati distinti.** Due dita = pan in AutoCAD, FigJam (uno o due dita) e tldraw. Un dito = selezione o finestra nei comandi di AutoCAD e FigJam (lungo tocco).
+6. **Dimensione minima del bersaglio di tocco dell'ordine di 44-48 px/pt/dp.** Apple 44 pt, Material 48 dp [seconda mano]. Il minimo di legge WCAG AA è 24 px CSS [seconda mano].
+7. **Su canvas web: `touch-action` a `none` e Pointer Events con una cache per puntatore.** MDN [letto] e risultati di ricerca sul pinch.
+
+---
+
+### 4. Dove le fonti NON sono d'accordo
+
+- **Un dito: sposta la vista o disegna/seleziona?**
+  - Sposta la vista: Google Maps (un dito con trascinamento), FigJam su iPad (uno o due dita fanno pan), Figma Design mobile (tenere e trascinare = pan), AutoCAD (un dito fa pan quando nessun comando è attivo).
+  - Seleziona o disegna: AutoCAD (un dito crea finestra di selezione quando un comando la chiede), FigJam (lungo tocco, poi trascinare = selezione multipla).
+  - Quindi non c'è una regola unica: la maggior parte dei programmi cambia il significato del dito in base allo stato (comando attivo o no, strumento attivo o no).
+- **Doppio tocco.** Zoom in Apple e Material; chiusura del comando o svuotamento della selezione in AutoCAD.
+- **Due dita: pan o zoom?** In tldraw il pizzico è zoom e il movimento parallelo è pan, con una soglia di distanza (valore 64, non verificato). Su altri programmi il pizzico è zoom senza ambiguità. Non ho trovato fonti che dicano come si gestisce il passaggio quando le due dita si muovono sia in parallelo che allargandosi.
+- **Trascinamento con un dito in modalità "vista" e rischio di spostamento accidentale.** Il forum Figma ha richieste di "pan con due dita e seleziona con uno" e segnala spostamenti accidentali se le due dita non si posano insieme. Sono richieste di utenti, non comportamento ufficiale [seconda mano].
+- **Google Maps, zoom a un dito (trascinamento verso l'alto o il basso).** Le fonti si contraddicono su quale direzione faccia zoom in avanti (Yahoo Pogue's Basics dice "su per zoom in"; PhoneArena dice il contrario). Non si può usare come regola senza verificare sul dispositivo [seconda mano].
+- **Dimensione minima del bersaglio.** 24 px CSS (WCAG AA), 44 pt (Apple), 48 dp (Material), 44 px (WCAG AAA). Le differenze contano perché i numeri non sono intercambiabili: 24 px è un minimo di legge, 44-48 è la linea guida di piattaforma [seconda mano].
+- **Pagina WCAG 2.5.8.** Le pagine "Pointer Target Spacing" nei risultati sono una bozza precedente con 44 px: non usare quella cifra come obbligo. La versione finale di 2.5.8 è 24 px [seconda mano].
+- **Soglia da pan a zoom in tldraw.** Un numero (64 px di distanza) che viene da un riassunto di ricerca su una versione del sorgente: non verificato, non usarlo come dato.
+
+---
+
+### 5. Domande che chi ha il codice dovrebbe farsi
+
+Solo domande, nessuna risposta né proposta.
+
+1. Quali stati ha oggi la pianta (vista, selezione, creazione, spostamento foro), e ogni gesto dipende da uno stato oppure no?
+2. Quale gesto a un dito sta già facendo "crea foro" sul vuoto, e quale fa "seleziona" e "sposta" sul foro? Dove finisce il confine fra tocco e trascinamento (soglia in pixel e in millisecondi)?
+3. Quando due dita si posano, il primo dito ha già creato o selezionato qualcosa? Il pizzico può arrivare dopo un tocco che ha già creato un foro?
+4. Se il browser emette `pointercancel` a metà di un pizzico, che cosa succede a un foro già in trascinamento?
+5. Il pizzico è centrato sul punto fra le due dita o sul centro della tela? Il limite di zoom minimo e massimo è scritto da qualche parte?
+6. Esiste già un controllo visibile per zoom e per "adatta tutto" che non dipenda dal gesto? Chi non può fare il pizzico come lo usa?
+7. I numeri dei fori spariscono sotto una certa scala: a quale scala smettono di essere letti, e chi lo decide?
+8. Il bersaglio di un foro sullo schermo piccolo è di almeno 44 px (o 24 px CSS come minimo di legge)? Il tocco sul numero conta come tocco sul foro?
+9. Su iOS Safari, `touch-action` e il doppio tocco sono gestiti dal contenitore della tela o dalla pagina? Il "doppio tocco per zoom del browser" è stato disattivato?
+10. Chi usa la pianta si accorge di uno spostamento accidentale? C'è un modo per annullare l'ultimo spostamento o l'ultima creazione?
+11. La pianta deve restare utilizzabile con una sola mano (pollice)? Le aree dei bottoni sono nella zona raggiungibile?
+
+---
+
+### Note di metodo
+
+- Le fonti di DataMine sono per BlastPad (app per tablet Windows di raccolta dati), non per la progettazione delle volate: il loro gesto di pianta è un indizio, non uno standard.
+- Per O-Pitblast, Strayos e iRing non ho trovato nulla di pubblico sui gesti. Non ne ho inventati.
+- Nessuna frase di questo documento è tratta dal codice del progetto.

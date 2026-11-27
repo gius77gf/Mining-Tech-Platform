@@ -115,7 +115,12 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);
   color:var(--cu);text-transform:uppercase;margin-bottom:10px}
 .row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px}
 .row label{font-size:12.5px;color:var(--mut)}
-.row input[type=number],.row select{width:86px;background:var(--panel2);border:1px solid var(--line);
+/* ⏱️ 27/11 — `input[type=text]` e `#meas-in` aggiunti: quando i campi decimali sono passati da
+   `type="number"` a `type="text"` (la regola della casa: su «1,5» un campo numerico fa «15»)
+   questa regola ha smesso di vestirli, e nel pannello dei parametri della scena 3D cinque
+   campi su 54 sono rimasti BIANCHI come quelli nudi del browser — profondità, carica, vento,
+   x50 obiettivo e le misure reali. Visto in uno scatto fatto per altro, poi contato. */
+.row input[type=number],.row input[type=text],.row select,#meas-in{width:86px;background:var(--panel2);border:1px solid var(--line);
   border-radius:7px;color:var(--tx);padding:5px 7px;font-family:'Barlow';font-size:13px}
 .row input:focus,.row select:focus{outline:none;border-color:var(--cu);box-shadow:0 0 0 3px rgba(255,171,0,.14)}
 .row input,.row select{transition:border-color .16s var(--ease),box-shadow .16s var(--ease)}
@@ -550,7 +555,7 @@ body.scr-sim #tl{bottom:80px}
 #dlRel i{width:22px;height:8px;border-radius:999px;background:linear-gradient(90deg,#ef5350,#ffb300 34%,#66bb6a 68%,#86b0d8);box-shadow:0 0 8px rgba(255,255,255,.18)}
 #dlEne i{width:22px;height:8px;border-radius:3px;background:linear-gradient(90deg,#5c8dd6,#86b0d8 25%,#66bb6a 50%,#ffb300 75%,#ef5350);box-shadow:0 0 8px rgba(255,255,255,.18)}
 #dlInn i{width:22px;height:2px;border-radius:2px;background:#ffd54f;box-shadow:0 0 8px rgba(255,213,79,.8)}
-.dl-f{display:none;align-items:center;gap:6px;background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:11px;padding:4px 9px;min-height:38px}
+.dl-f{display:none;align-items:center;gap:6px;background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:11px;padding:4px 9px;min-height:44px}   /* ⏱️ 27/11: era 38 — le opzioni dei livelli (passo delle isocrone, finestra del relief, passo della griglia) erano 38-40 px */
 .dl-f.on{display:flex}
 .dl-f>span{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);white-space:nowrap}
 .dl-f select,.dl-f input{background:#241d12;border:1px solid #473a1f;color:var(--tx);font-family:'Barlow',sans-serif;font-size:13px;padding:5px 6px;border-radius:8px;outline:none;transition:border-color .15s,box-shadow .15s}
@@ -560,7 +565,7 @@ body.scr-sim #tl{bottom:80px}
 #d2-insp .di-info{flex:1;min-width:0;background:linear-gradient(150deg,rgba(255,236,200,.06),rgba(255,210,150,.02));border:1px solid rgba(255,228,180,.16);border-radius:12px;padding:9px 13px}
 #d2-insp .di-info b{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:14px;color:var(--cu);letter-spacing:.03em;margin-right:8px}
 #d2-insp .di-info span{font-size:11.5px;color:var(--mut2)}
-#d2-insp .di-del{flex:none;background:rgba(239,83,80,.12);border:1px solid rgba(239,83,80,.4);color:#ff8a80;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;letter-spacing:.04em;padding:9px 14px;border-radius:11px;cursor:pointer;min-height:40px}
+#d2-insp .di-del{flex:none;background:rgba(239,83,80,.12);border:1px solid rgba(239,83,80,.4);color:#ff8a80;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;letter-spacing:.04em;padding:9px 14px;border-radius:11px;cursor:pointer;min-height:44px}
 #d2-insp .di-del:hover{background:rgba(239,83,80,.2)}
 /* I CAMPI DELLA SCHEDA DEL FORO (26/11) — erano campi bianchi del browser,
    alti 19 px: accanto alla tabella dei fori e ai parametri della volata (campi
@@ -570,9 +575,9 @@ body.scr-sim #tl{bottom:80px}
    pagina quando si tocca un campo). Le larghezze restano quelle scritte in
    linea su ogni campo; il bordo giallo dei valori propri pure, e vince perché
    è in linea. */
-#d2-insp input[type=text]{background:#241d12;border:1px solid #473a1f;color:var(--tx);font-family:'Barlow',sans-serif;font-size:16px;padding:6px 8px;border-radius:8px;outline:none;min-height:40px;font-variant-numeric:tabular-nums;transition:border-color .15s,box-shadow .15s}
+#d2-insp input[type=text]{background:#241d12;border:1px solid #473a1f;color:var(--tx);font-family:'Barlow',sans-serif;font-size:16px;padding:6px 8px;border-radius:8px;outline:none;min-height:44px;font-variant-numeric:tabular-nums;transition:border-color .15s,box-shadow .15s}
 #d2-insp input[type=text]:focus{border-color:var(--cu);box-shadow:0 0 0 3px rgba(255,171,0,.12)}
-#d2-insp .btn.sm{min-height:40px}
+#d2-insp .btn.sm{min-height:44px}   /* ⏱️ 27/11: erano 40, come i campi qui sopra e «Elimina»: quattro px sotto la misura della casa */
 /* Su un telefono «Elimina» di fianco alla scheda le toglieva un quarto della
    larghezza (misurato a 430 px: 285 px utili su 372), e coi campi alti 40 ogni
    riga andava a capo due volte. Sotto i 480 px va SOTTO la scheda, a destra. */
@@ -599,20 +604,20 @@ body.scr-sim #tl{bottom:80px}
    borraggio non si sa più di quale foro è la riga. I fondi delle righe sono
    PIENI e la cella ferma eredita quello della sua riga: con un fondo
    trasparente lascerebbe vedere sotto le celle che le scorrono dietro. */
-.ft-h,.ft-r{display:grid;grid-template-columns:40px 40px 42px 54px repeat(5,minmax(50px,1fr));gap:4px;align-items:center;min-width:462px;background-color:#17120a}
+.ft-h,.ft-r{display:grid;grid-template-columns:44px 44px 44px 54px repeat(5,minmax(50px,1fr));gap:4px;align-items:center;min-width:468px;background-color:#17120a}
 .ft-h{background-color:#100c06;padding:2px 8px;border-bottom:1px solid rgba(255,228,180,.14)}
-.ft-h button{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:1px;background-color:transparent;border:none;padding:0;cursor:pointer;font-family:'Barlow',sans-serif;font-size:9px;line-height:1.2;letter-spacing:.07em;text-transform:uppercase;color:var(--mut);text-align:left;white-space:nowrap;min-height:40px}
+.ft-h button{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:1px;background-color:transparent;border:none;padding:0;cursor:pointer;font-family:'Barlow',sans-serif;font-size:9px;line-height:1.2;letter-spacing:.07em;text-transform:uppercase;color:var(--mut);text-align:left;white-space:nowrap;min-height:44px}
 .ft-h button small{font-size:9px;letter-spacing:0;text-transform:none;min-height:11px}
 .ft-h button:hover,.ft-h button.on{color:var(--cu)}
 .ft-r{padding:4px 8px;border-bottom:1px solid rgba(255,228,180,.08)}
 .ft-r:last-child{border-bottom:none}
 .ft-r.sel{background-color:#2b200b}
 .ft-num,.ft-h button:first-child{position:sticky;left:0;z-index:1;background-color:inherit}
-.ft-num{border:none;padding:0;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;color:var(--mut2);text-align:left;min-height:40px;white-space:nowrap}
+.ft-num{border:none;padding:0;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;color:var(--mut2);text-align:left;min-height:44px;white-space:nowrap}
 .ft-num i,.ft-v i{font-style:normal;font-size:9px;color:#ffd54f;margin-left:2px}
 .ft-r.sel .ft-num{color:var(--cu)}
 .ft-v{font-size:13px;color:var(--tx);font-variant-numeric:tabular-nums;white-space:nowrap}
-.ft-r input{background:#241d12;border:1px solid #473a1f;color:var(--tx);font-family:'Barlow',sans-serif;font-size:16px;padding:6px;border-radius:8px;outline:none;width:100%;min-width:0;min-height:40px;font-variant-numeric:tabular-nums;transition:border-color .15s,box-shadow .15s}
+.ft-r input{background:#241d12;border:1px solid #473a1f;color:var(--tx);font-family:'Barlow',sans-serif;font-size:16px;padding:6px;border-radius:8px;outline:none;width:100%;min-width:0;min-height:44px;font-variant-numeric:tabular-nums;transition:border-color .15s,box-shadow .15s}
 .ft-r input:focus{border-color:var(--cu);box-shadow:0 0 0 3px rgba(255,171,0,.12)}
 .ft-r input.suo{border-color:#ffd54f}
 .ft-r input.oltre{border-color:#ef5350;box-shadow:0 0 0 2px rgba(239,83,80,.18)}
@@ -634,15 +639,22 @@ body.scr-sim #tl{bottom:80px}
    la nona cella andava a capo sotto ogni riga — nessun errore, il banco
    diceva «la colonna c'è e non scorre»; l'ha fatto vedere lo scatto. */
 @media(max-width:560px){
-  .ft-h,.ft-r{grid-template-columns:40px 40px 42px 54px repeat(4,minmax(50px,1fr));min-width:408px}
+  .ft-h,.ft-r{grid-template-columns:44px 44px 44px 54px repeat(4,minmax(48px,1fr));min-width:406px}
   .ft-incl{display:none!important}
 }
 @media(max-width:480px){
-  .ft-h,.ft-r{grid-template-columns:40px 40px 42px 54px repeat(3,minmax(50px,1fr));min-width:350px}
+  .ft-h,.ft-r{grid-template-columns:44px 44px 44px 54px repeat(3,minmax(48px,1fr));min-width:354px}
   .ft-largo{display:none!important}
 }
-@media(max-width:380px){
-  .ft-h,.ft-r{grid-template-columns:40px 46px repeat(3,minmax(48px,1fr));min-width:0}
+/* ⛔ 27/11 — LA SOGLIA ERA 380, E FRA 381 E 414 PX LA TABELLA SCORREVA DI LATO: misurato a
+   quindici larghezze, 35 px a 381, 26 a 390, 23 a 393, 4 a 412 — cioè sui telefoni più
+   diffusi. Le sette colonne «ci stanno al pixel» a 430, come dice il commento qui sopra, ma
+   fra la soglia e 430 nessuno aveva guardato: i banchi misurano a 320 e a 430. La tabella
+   compatta vale fin dove quella a sette colonne non ci sta (370 px di contenitore: 428 di
+   schermo). Stessa giornata: le colonne strette passano da 40-42 a 44 px e le righe da 40 a
+   44 — i comandi della tabella erano tutti 4 px sotto la misura della casa. */
+@media(max-width:429px){
+  .ft-h,.ft-r{grid-template-columns:44px 46px repeat(3,minmax(48px,1fr));min-width:0}
   .ft-pos{display:none!important}
 }
 /* Fase 0 — scheda volata (validatore di progetto) */
@@ -781,6 +793,26 @@ body.scr-sim #tl{bottom:80px}
 .hg-item button{min-height:44px;min-width:44px}
 .hg-actions .btn{min-height:44px;display:inline-flex;align-items:center}
 @media(max-width:560px){ .hg-item{flex-wrap:wrap} .hg-item .t{flex:1 1 100%} .hg-item .t+button{margin-left:auto} }
+/* E LE FINESTRE E LA SCENA 3D, stessa misura (27/11, E7): 35 comandi su 74 sotto i 44 px —
+   i bottoni piccoli delle finestre (riconciliazione, foro singolo, legge di sito, Sentinella,
+   confronto A/B) alti 26, i loro campi 28, la barra sopra la scena 3D 27-28, le velocità 26,
+   il play 40×40, la ✕ dell'approfondimento 30×30. `.btn.sm` è la classe di tutti i bottoni
+   piccoli della pagina: si alza il bersaglio lì, una volta; il carattere resta quello. */
+.btn.sm{min-height:44px;min-width:44px}
+#play{width:44px;height:44px}
+.ei-h button{width:44px;height:44px;flex:none}
+.gmodal-card input[type=number],.gmodal-card input[type=text],.modal-body input{min-height:44px}
+/* E IL PANNELLO DEI PARAMETRI DELLA SCENA 3D: 22 comandi su 22 sotto i 44 px (campi 28, le
+   spunte dei livelli 16, «Genera volata» 32). Sul telefono è il foglio che sale dal basso e lo
+   si usa col dito; sul computer è un pannello laterale largo 248 px, fitto di proposito e
+   usato col mouse — lì resta com'è. Per questo, e solo qui, la regola ha una condizione. */
+@media(max-width:899px),(pointer:coarse){
+  #params .row{min-height:44px}
+  #params .row input,#params .row select,#meas-in,#btnApply{min-height:44px}
+  #params .row label{display:flex;align-items:center;gap:6px;min-height:44px}   /* la ⓘ sta DENTRO l'etichetta: toccare «Esplosivo» la preme, il bersaglio è l'etichetta intera */
+  #params label.lay{display:flex;align-items:center;gap:8px;min-height:44px}
+  #params label.lay input[type=range]{min-height:44px}
+}
 </style>
 </head>
 <body class="scr-home">

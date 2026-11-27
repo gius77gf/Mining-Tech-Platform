@@ -116,7 +116,7 @@ const DIFETTI = [
   /* i campi della scheda del foro tornano quelli bianchi del browser, alti 19 px */
   [PAGINA, `#d2-insp input[type=text]{background:#241d12;border:1px solid #473a1f;`, `#d2-insp input[type=nessuno]{background:#241d12;border:1px solid #473a1f;`],
   /* e la colonna del numero stretta com'era: rombo e avviso insieme toccano il ritardo */
-  [PAGINA, `.ft-h,.ft-r{grid-template-columns:40px 46px repeat(3,minmax(48px,1fr));min-width:0}`, `.ft-h,.ft-r{grid-template-columns:22px 50px repeat(3,minmax(50px,1fr));min-width:0}`],
+  [PAGINA, `.ft-h,.ft-r{grid-template-columns:44px 46px repeat(3,minmax(48px,1fr));min-width:0}`, `.ft-h,.ft-r{grid-template-columns:22px 50px repeat(3,minmax(50px,1fr));min-width:0}`],
   /* F6b — l'inclinazione per foro: il piede torna quello del progetto per tutti
      (profondità e inclinazione del foro ignorate), la scena 3D ruota tutti i
      fori uguali, i due file non la scrivono, il piano riletto la perde, la
@@ -133,7 +133,7 @@ const DIFETTI = [
   [PAGINA, `borraggio_m:D2.stem, inclinazione_gradi:D2.incl, file:`, `borraggio_m:D2.stem, file:`],
   [PAGINA, `D2.incl = valoreCampo(parseFloat(geom.inclinazione_gradi), D2.incl, 0, 30);`, ``],
   [PAGINA, `.ft-incl{display:none!important}`, `.ft-incl{}`],
-  [PAGINA, `grid-template-columns:40px 40px 42px 54px repeat(5,minmax(50px,1fr));gap:4px`, `grid-template-columns:40px 40px 42px 54px repeat(4,minmax(50px,1fr));gap:4px`],
+  [PAGINA, `grid-template-columns:44px 44px 44px 54px repeat(5,minmax(50px,1fr));gap:4px`, `grid-template-columns:44px 44px 44px 54px repeat(4,minmax(50px,1fr));gap:4px`],
   [PAGINA, `(Object.values(r.propri).some(Boolean)?'<i title="Ha valori suoi`, `((r.propri.kg||r.propri.prof||r.propri.stem)?'<i title="Ha valori suoi`],
   /* il rientro del file di scambio (26/11): il file non dichiara più la carica
      del progetto, il lettore torna a usare sempre la media, e il messaggio
@@ -499,8 +499,8 @@ if (prima && prima.colonneTrovate) {
   /* i campi della scheda sono campi di Genesi, non quelli bianchi del browser: alti abbastanza da toccarli, scuri come quelli della tabella */
   const campi = await pg.evaluate(() => ["diX", "diY", "diRit", "diKg", "diProf", "diStem"].map((id) => { const e = document.getElementById(id), q = e.getBoundingClientRect(), c = getComputedStyle(e);
     return { id, h: Math.round(q.height), fondo: c.backgroundColor, corpo: parseFloat(c.fontSize), taglia: e.scrollWidth > e.clientWidth }; }));
-  dice(campi.length === 6 && campi.every((c) => c.h >= 40 && c.fondo === "rgb(36, 29, 18)" && c.corpo >= 16 && !c.taglia),
-    `i sei campi della scheda del foro sono alti almeno 40 px, scuri come quelli della tabella, a 16 px, e il numero ci sta (${campi.map((c) => c.id + " " + c.h).join(" · ")})`, campi.filter((c) => !(c.h >= 40 && c.fondo === "rgb(36, 29, 18)")));
+  dice(campi.length === 6 && campi.every((c) => c.h >= 44 && c.fondo === "rgb(36, 29, 18)" && c.corpo >= 16 && !c.taglia),
+    `i sei campi della scheda del foro sono alti almeno 44 px (⏱️ 27/11: erano 40, quattro sotto la misura della casa), scuri come quelli della tabella, a 16 px, e il numero ci sta (${campi.map((c) => c.id + " " + c.h).join(" · ")})`, campi.filter((c) => !(c.h >= 44 && c.fondo === "rgb(36, 29, 18)")));
 
   await campo("diKg", "35");
   s = await stato();
