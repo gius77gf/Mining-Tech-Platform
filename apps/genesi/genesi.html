@@ -773,6 +773,14 @@ body.scr-sim #tl{bottom:80px}
    andava a capo da solo): gli strumenti prendono la riga intera, e annulla, ripeti e «Reset
    fronte» stanno insieme su quella sotto. */
 @media(max-width:340px){ #d2-tools .dt-seg{flex:1 1 100%;display:flex} #d2-tools .dt-seg button{flex:1;padding-left:4px;padding-right:4px} }
+/* E LA HOME, stessa misura (27/11): i tre comandi di ogni volata salvata erano 34×19, 49×19 e
+   24×19 px — con «✕» (elimina) a 8 px da «Duplica» — e i comandi sotto gli elenchi 30 px. Sul
+   telefono i tre comandi vanno sotto il nome, così la riga che descrive la volata («12 fori ·
+   1 con valori propri · 550 kg · X50 34 cm») ha tutta la larghezza invece di spezzarsi in
+   quattro righe accanto ai bottoni. */
+.hg-item button{min-height:44px;min-width:44px}
+.hg-actions .btn{min-height:44px;display:inline-flex;align-items:center}
+@media(max-width:560px){ .hg-item{flex-wrap:wrap} .hg-item .t{flex:1 1 100%} .hg-item .t+button{margin-left:auto} }
 </style>
 </head>
 <body class="scr-home">

@@ -36,10 +36,16 @@
    offrire un bersaglio di almeno 44×44: il suo rettangolo, o quello
    dell'etichetta che lo avvolge.
 
+   E LA HOME (27/11, stessa misura): i tre comandi di ogni volata salvata
+   erano 34×19, 49×19 e 24×19 px — «✕» (elimina) a 8 px da «Duplica» — e i
+   comandi sotto gli elenchi 30 px. Si salva una volata col bottone vero, si va
+   in Home e si fanno le stesse due domande; e a 320 px i tre comandi devono
+   stare SOTTO la riga che descrive la volata, non accanto a stringerla.
+
    ⚠️ CHE COSA NON GUARDA: i comandi che compaiono solo in certi momenti (gli
    strumenti sui fori selezionati e sui tratti: hanno la stessa classe di
    «Reset fronte», quindi la stessa regola, ma qui non vengono fatti
-   comparire), i comandi dentro le finestre, e le altre schermate di Genesi. */
+   comparire), i comandi dentro le finestre, e la scena 3D. */
 import { createServer } from "node:http";
 import { readFileSync, existsSync, statSync, writeFileSync, unlinkSync } from "node:fs";
 import { join, extname } from "node:path";
@@ -64,6 +70,10 @@ const DIFETTI = [
   [`#scr-design>.btn,#d2-altri .btn,#d2-cta,.dc-sec-h,.dl-tog,.dt-reset,.dc-mat{min-height:44px}`, ``],
   [`.ds-occhio,.ds-lucchetto{min-width:44px;min-height:44px;padding:0}`, ``],
   [`@media(max-width:340px){ #d2-tools .dt-seg{flex:1 1 100%;display:flex} #d2-tools .dt-seg button{flex:1;padding-left:4px;padding-right:4px} }`, ``],
+  /* la Home: i comandi tornano bassi, e i tre di ogni volata tornano accanto al testo */
+  [`.hg-item button{min-height:44px;min-width:44px}`, ``],
+  [`.hg-actions .btn{min-height:44px;display:inline-flex;align-items:center}`, ``],
+  [`@media(max-width:560px){ .hg-item{flex-wrap:wrap} .hg-item .t{flex:1 1 100%} .hg-item .t+button{margin-left:auto} }`, ``],
 ];
 
 const colpiti = new Set();
@@ -176,6 +186,37 @@ dice(occhio.every((x) => x && x[0] >= TOCCO && x[1] >= TOCCO), `l'occhio e il lu
 /* e a 320 px gli strumenti hanno la riga per sé: annulla e ripeti stanno INSIEME sulla riga sotto */
 const riga = await pg.evaluate(() => { const t = (id) => Math.round(document.getElementById(id).getBoundingClientRect().top); return { fori: t("dtFori"), tratto: t("dtTratto"), annulla: t("d2Undo"), ripeti: t("d2Redo") }; });
 dice(riga.fori === riga.tratto && riga.annulla === riga.ripeti && riga.annulla > riga.fori, "a 320 px i quattro strumenti stanno su una riga, e annulla e ripeti insieme su quella sotto (prima «ripeti» andava a capo da solo)", JSON.stringify(riga));
+
+/* ── la Home: stesse due domande, con una volata salvata dal bottone vero ── */
+await pg.setViewportSize({ width: 430, height: 900 }); await pg.waitForTimeout(300);
+await pg.click("#btn-salva-volata"); await pg.waitForSelector("#modal-campo", { timeout: 4000 }).catch(() => {});
+await pg.fill("#modal-campo", "Volata del banco sulla colonna").catch(() => {});
+await pg.click("#modal-foot .mbtn.primary").catch(() => {}); await pg.waitForTimeout(600);
+await pg.click('#bottomnav button[data-scr="home"]'); await pg.waitForTimeout(700);
+const casa = () => pg.evaluate(({ MARGINE, TOCCO }) => {
+  const vw = window.innerWidth, S = document.getElementById("scr-home"); let n = 0; const bordo = [], piccoli = [];
+  const aperta = !!S && getComputedStyle(S).display !== "none";
+  for (const e of (S ? S.querySelectorAll("button, input, select, textarea, a[href], summary") : [])) {
+    const r = e.getBoundingClientRect(); if (r.width < 1 || r.height < 1) continue;
+    const cs = getComputedStyle(e); if (cs.visibility === "hidden" || cs.display === "none") continue;
+    n++;
+    const nome = (e.id || e.dataset.act || e.className || e.tagName).toString().slice(0, 24);
+    if (r.left < MARGINE - 0.5 || r.right > vw - MARGINE + 0.5) bordo.push(`${nome} [${Math.round(r.left)}, ${Math.round(vw - r.right)}]`);
+    if (r.width < TOCCO - 0.5 || r.height < TOCCO - 0.5) piccoli.push(`${nome} ${Math.round(r.width)}×${Math.round(r.height)}`);
+  }
+  const riga = S ? S.querySelector("#hgVolate .hg-item") : null; let sotto = null, nRiga = 0;
+  if (riga) { const t = riga.querySelector(".t").getBoundingClientRect(); const B = [...riga.querySelectorAll("button")]; nRiga = B.length; sotto = B.every((x) => x.getBoundingClientRect().top >= t.bottom - 0.5); }
+  return { aperta, n, bordo, piccoli, nRiga, sotto };
+}, { MARGINE, TOCCO });
+for (const w of [430, 320]) {
+  await pg.setViewportSize({ width: w, height: 900 }); await pg.waitForTimeout(400);
+  const q = await casa();
+  dice(q.aperta && q.nRiga === 3 && q.n >= 8, `a ${w} px la Home è aperta, la volata salvata ha i suoi tre comandi e i comandi misurati sono ${q.n} (almeno 8)`, JSON.stringify([q.aperta, q.nRiga, q.n]));
+  dice(q.piccoli.length === 0, `⛔ a ${w} px in Home ogni comando offre almeno ${TOCCO}×${TOCCO} px («Apri», «Duplica» e «✕» erano alti 19)`, q.piccoli.join(" · "));
+  dice(q.bordo.length === 0, `a ${w} px in Home nessun comando sta a meno di ${MARGINE} px dai bordi`, q.bordo.join(" · "));
+  if (w === 320) dice(q.sotto === true, "⛔ a 320 px i tre comandi della volata stanno SOTTO la riga che la descrive, che ha così tutta la larghezza", String(q.sotto));
+}
+await pg.click('#bottomnav button[data-scr="design"]'); await pg.waitForTimeout(400);
 
 dice(pg.__err.length === 0, "la pagina non solleva errori", pg.__err.slice(0, 2));
 if (CONTROPROVA) {

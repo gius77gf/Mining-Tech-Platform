@@ -108,6 +108,16 @@ async function apriDesign() {
    è dentro il rettangolo del canvas per come lo calcola questa funzione. Il
    mouse vero non ha questo scrupolo: dispatcha dove gli si dice. */
 async function puntoVero(pg, mx, my) {
+  /* ⛔ 27/11 — LA PIANTA SI PORTA AL CENTRO DELLO SCHERMO PRIMA DI PRENDERNE LE
+     COORDINATE. Questo banco muove il mouse VERO a coordinate di schermo, e il
+     mouse vero «dispatcha dove gli si dice»: anche sulla barra di navigazione
+     in basso, che è fissa e sta SOPRA la pagina. Il giorno in cui i comandi del
+     Progetto 2D sono diventati alti 44 px la pianta è scesa di 62 px, il primo
+     clic è caduto a y = 825 — sul tasto «Home» — e la schermata è cambiata
+     sotto il banco: il secondo clic non trovava più la pianta. Il prodotto non
+     c'entrava. `scrollIntoViewIfNeeded` non basta: una pianta dentro lo
+     schermo ma SOTTO la barra per lui è «in vista». */
+  await pg.evaluate(() => document.getElementById("d2-canvas").scrollIntoView({ block: "center" }));
   const box = await pg.locator("#d2-canvas").boundingBox();
   const rel = await pg.evaluate(([mx, my]) => {
     const D2 = window.__genesi.D2, m = D2._m, c = document.getElementById("d2-canvas");

@@ -2797,6 +2797,38 @@
   certi momenti (strumenti sulla selezione e sui tratti — hanno la stessa
   classe e quindi la stessa regola, ma il banco non li fa comparire), i
   comandi dentro le finestre, la Home e la scena 3D.
+- [x] **Genesi — la Home alta quanto un dito, e un banco riparato** *(27/11,
+  secondo pezzo delle due domande di E7)*: in Home i tre comandi di ogni
+  volata salvata erano **34×19, 49×19 e 24×19 px** — con «✕» (elimina) a 8
+  px da «Duplica» — e i comandi sotto gli elenchi 30 px. Ora 44 px; e sul
+  telefono i tre comandi stanno SOTTO la riga che descrive la volata, che
+  così ha tutta la larghezza (prima si spezzava in quattro righe accanto ai
+  bottoni). `genesi-colonna-progetto.mjs`: 19 → 26 controlli, 9 difetti
+  rimessi su 9, cadono 15.
+  ⛔ **E la modifica di prima aveva rotto un banco, trovato rigirandoli
+  tutti**: dopo «i comandi alti quanto un dito» ho rilanciato i 54 banchi
+  del browser di Genesi — 52 a posto, 2 caduti. (1) `genesi-snap-estremo`
+  cadeva PER la mia modifica: muove il mouse vero a coordinate di schermo
+  senza portare la pianta in vista; con la pianta scesa di 62 px il primo
+  clic cadeva sulla barra in basso (tasto «Home») e la schermata cambiava
+  sotto il banco. Il prodotto non c'entrava: riparato il banco (la pianta
+  si centra prima), 8 su 8 e controprova che cade. Era l'unico dei dodici
+  banchi che cliccano la pianta a non farlo. (2) `genesi-campi-assenti` cade
+  anche sul commit di prima, e dal **14/09**: vedi la voce aperta qui sotto.
+- [ ] **Genesi — `genesi-campi-assenti.mjs` è rosso dal 14/09, e lo dichiara
+  da sé**: la sua terza domanda («con la spalla assente la gittata non esce
+  da un burden inventato») apre una volata salvata SENZA spalla e pretende
+  una scheda con più di venti righe; dal commit `1b904f01` (14/09, scelta
+  voluta) quella volata non disegna nessuna maglia e la scheda dice «Pianta
+  non disegnabile: manca burden». Il banco risponde «NON MISURATI (2)» ed
+  esce 1 — onesto, e scritto nel suo commento — ma è un **rosso cronico** da
+  due mesi e mezzo: trovato con una bisezione il 27/11 (35 commit), mentre
+  cercavo se l'avessi rotto io. Da fare: riscrivere la terza sezione sulla
+  verità di oggi (senza spalla NON esce nessuna gittata e la scheda dice che
+  cosa manca; con la spalla i numeri di sempre), dichiarare nel banco che
+  la forbice «fra 101 e 133 m» non è più raggiungibile dalla pagina e resta
+  provata in `run-kpi`, e — a parte — il testo: la schermata dice «manca
+  burden» dove il campo si chiama «Spalla».
 - [ ] **Genesi → Campo — il piano di carico CSV non protegge l'id del foro**
   ⏸️ *fuori dal mandato «solo Genesi»: la riga la compone `pianoCsvGenesi`
   in `shared/dw-ponti.js`, e Campo la ricompone e la rilegge con
@@ -3503,6 +3535,7 @@ nome. Un nome si cerca con `grep`; una riga si sposta.
 grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 ```
 
+- `Genesi — \`genesi-campi-assenti.mjs\` è rosso dal 14/09, e lo dichiara`
 - `Genesi → Campo — il piano di carico CSV non protegge l'id del foro`
 - `Genesi — il piede che esce dalla faccia`
 - `F1. \`vitaComponenti\` non distingue un componente sostituito da`
