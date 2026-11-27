@@ -2761,6 +2761,25 @@
   UTF-8 senza marca iniziale, e un programma che presume Windows-1252 legge
   «3Ã—3.5 m Â· Ã˜102»: è la **decisione 36**, che comincia chiedendo al
   fondatore di aprirne uno con Excel.
+- [x] **Genesi — gli ultimi comandi del Progetto 2D andavano da bordo a
+  bordo** *(27/11, dalla passata sugli scatti coi valori per foro accesi)*:
+  guardando lo scatto del fondo della schermata a 430 px, i due scatti A/B
+  col confronto e i quattro comandi sotto (riconciliazione, signature-hole,
+  legge di sito, Sentinella) toccavano i due lati dello schermo. Misurato:
+  erano figli diretti della schermata (una colonna flessibile) e si
+  allargavano quanto lei — margini 0 e 0 a ogni larghezza, e a 1280 px
+  bottoni larghi **1280 px** sotto una colonna di 560. La stessa misura ha
+  trovato un caso che lo scatto non mostrava: a 320 px «Confronta spalla
+  (burden) per lo stesso obiettivo» arrivava a 4 px dai bordi. Corretto con
+  un contenitore (`#d2-altri`) nella stessa colonna di tutto il resto, e un
+  tetto ai comandi centrati (oltre la colonna il testo va a capo). Banco
+  nuovo `genesi-colonna-progetto.mjs`: a 320, 430, 768 e 1280 px, 71 comandi
+  misurati, nessuno a meno di 12 px dai bordi né più largo di 560 (15
+  controlli; controprova: 3 difetti rimessi, cadono 8). ⚠️ Perché nessun
+  banco lo vedeva: `fuori-schermo` chiede «esce dallo schermo?», e un
+  bottone largo esattamente quanto lo schermo non esce. ⏱️ Dalla stessa
+  misura, NON fatto qui: quei comandi sono alti 26-32 px, sotto i 44 che
+  servono a un dito — è la prossima unità.
 - [ ] **Genesi → Campo — il piano di carico CSV non protegge l'id del foro**
   ⏸️ *fuori dal mandato «solo Genesi»: la riga la compone `pianoCsvGenesi`
   in `shared/dw-ponti.js`, e Campo la ricompone e la rilegge con
@@ -9256,8 +9275,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **463 esecuzioni** che
-  aprono le pagine in un browser vero, da **213** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **465 esecuzioni** che
+  aprono le pagine in un browser vero, da **214** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso). *(Ricontato il 19/09 dopo l'annulla

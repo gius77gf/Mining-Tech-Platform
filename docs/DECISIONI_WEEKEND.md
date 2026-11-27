@@ -3214,7 +3214,7 @@ lettura dell'etichetta di gravità dal vocabolario invece del campo grezzo,
 e il bottone «Scadenze» al posto di «Adempimenti» nella barra in basso di
 Sentinella (bersagli di tocco a 320px saliti da 41,4 a 45,61–46,86 px),
 lanciando le suite)*, più **141** che girano con l'emulatore Firestore (**93** sulle regole
-di sicurezza, 19 sull'SDK, 24 sulle funzioni, 8 sul primo avvio) e **463
+di sicurezza, 19 sull'SDK, 24 sulle funzioni, 8 sul primo avvio) e **465
 esecuzioni** che aprono davvero le pagine in un browser *(26/11: +2, il piano di carico foro per foro di Genesi; 21/09, aggiunti
 anche i banchi su Genesi sulla timeline dello sparo — play/pausa/scrub —
 sulla modellazione 3D del fronte — trascinamento cresta/piede — sui
