@@ -3026,6 +3026,109 @@ export function foriPropriPerFoglio(holes, progetto){
     campi: CAMPI_PER_FORO.filter((c) => quanti[c] > 0), quanti, righe };
 }
 
+/* ══════════════════════════════════════════════════════════════════════
+   IL FOGLIO HA LA PIANTA E LA TABELLA DI TUTTI I FORI (27/11).
+   ══════════════════════════════════════════════════════════════════════
+   Misurato il 27/11 aprendo il report: «img 0, canvas 0, svg 0». Il foglio
+   che si porta in cava era solo testo — la maglia come due numeri, la
+   sequenza come una parola — e la frase «il numero è quello scritto dentro
+   il foro sulla pianta» rimandava a un disegno che sul foglio non c'era.
+   Queste due funzioni lo compongono, pure: il foglio non dipende dalla tela
+   (né dal suo ingrandimento, né dagli strati nascosti sullo schermo: quelli
+   sono un modo di GUARDARE, il foglio stampa il progetto).
+    · `piantaPerFoglio`: un disegno vettoriale (SVG) in bianco e nero più
+      tre tinte, pensato per la carta. I fori stanno dove li mette la tela
+      (`my + interpProf`), il numero dentro è l'ordine di sparo — lo stesso
+      di `tabellaFori` — e il ritardo sta sotto il foro finché c'è posto;
+      quando la maglia è troppo fitta il disegno lo DICE nella legenda e
+      rimanda alla tabella (dove ogni foro ha la sua posizione), invece di
+      scrivere numeri illeggibili;
+    · la scala non supera 40 px per metro (tre fori non diventano un
+      manifesto) e il segmento di scala ha una lunghezza tonda;
+    · senza nessun foro collocabile la risposta è la stringa vuota: il
+      foglio resta com'era, non stampa una cornice vuota;
+    · `tabellaForiPerFoglio`: una riga per foro nell'ordine di sparo, coi
+      valori che VALGONO per quel foro (li decide `tabellaFori`, la stessa
+      della tabella a schermo). Un valore che non c'è si scrive «non noto»,
+      un ritardo che non c'è «non assegnato»: su un foglio un trattino si
+      legge come una cella dimenticata. La tabella sta in un riquadro suo
+      (`.tfs`): su uno schermo più stretto delle sue nove colonne scorre lei,
+      non la pagina. */
+export function piantaPerFoglio(d, opz){
+  const o = opz || {}, fin = (v) => v !== null && v !== undefined && v !== '' && Number.isFinite(+v);
+  const punti = (a) => Array.isArray(a) ? a.filter((p) => p && fin(p.x) && fin(p.y)).map((p) => ({ x: +p.x, y: +p.y })) : [];
+  const prof = punti(d && d.profilo), piede = punti(d && d.piede).sort((a, b) => a.x - b.x);
+  const tratti = (Array.isArray(d && d.tratti) ? d.tratti : []).map((t) => ({ importato: !!(t && t.origine === 'dxf'), pts: punti(t && t.pts) })).filter((t) => t.pts.length >= 2);
+  const H = (Array.isArray(d && d.holes) ? d.holes : []).map((h, i) => ({ h, i })).filter(({ h }) => h && fin(h.mx) && fin(h.my))
+    .map(({ h, i }) => ({ x: +h.mx, y: +h.my + interpProf(prof, +h.mx), n: (fin(h.seq) ? +h.seq : i) + 1, t: fin(h.tDet) ? +h.tDet : null, suo: Object.keys(valoriPropriDiForo(h)).length > 0 }));
+  if (!H.length) return '';
+  const L = (fin(o.larghezza) && +o.larghezza >= 320) ? +o.larghezza : 680, padX = 36, padTop = 52, padBot = 84, OLTRE = 1.5, SCALA_MAX = 40, ALTEZZA_MAX = 460, RAGGIO_MIN_NUMERO = 6.2;   // sotto i 6,2 px di raggio il numero sarebbe più basso di 6,5 px: non si scrive
+  const tp = tratti.flatMap((t) => t.pts);
+  /* il fronte si disegna un metro e mezzo oltre il primo e l'ultimo foro: quel tratto fa parte
+     del disegno, quindi entra nei limiti (se no, con un foro solo, usciva dal foglio) */
+  const xs = H.map((p) => p.x).concat(tp.map((p) => p.x)), minx = Math.min(...xs) - OLTRE, maxx = Math.max(...xs) + OLTRE;
+  const fx = [minx].concat(prof.map((p) => p.x).filter((x) => x > minx && x < maxx).sort((a, b) => a - b), [maxx]);
+  const ys = H.map((p) => p.y).concat(fx.map((x) => interpProf(prof, x)), piede.map((p) => p.y), tp.map((p) => p.y));
+  const miny = Math.min(0, ...ys), maxy = Math.max(...ys);
+  const Wd = Math.max(2, maxx - minx), Hd = Math.max(2, maxy - miny);
+  const scala = Math.min((L - 2 * padX) / Wd, ALTEZZA_MAX / Hd, SCALA_MAX);
+  const X = (x) => padX + ((L - 2 * padX) - Wd * scala) / 2 + (x - minx) * scala, Y = (y) => padTop + (y - miny) * scala;
+  const S = d && d.S, B = d && d.B, bf = d && d.bf;
+  const passo = (fin(S) && fin(B) && +S > 0 && +B > 0) ? Math.min(+S, (fin(bf) && +bf > 0) ? +bf : +B) * scala : null;
+  const r = raggioForoTela(passo), coiNumeri = r >= RAGGIO_MIN_NUMERO, haRitardi = H.some((p) => p.t !== null), coiRitardi = passo !== null && passo >= 26 && haRitardi;
+  const leg = [coiNumeri ? 'nel foro: numero d\'ordine di sparo' : 'numeri dei fori: in tabella, con la posizione',
+    coiRitardi ? 'sotto il foro: ritardo in ms' : (haRitardi ? 'ritardi: nella tabella dei fori' : null),
+    H.some((p) => p.suo) ? 'bordo spesso: foro con valori suoi' : null,
+    piede.length >= 2 ? 'tratteggio ocra: piede' : null,
+    tratti.length ? 'linea blu: tratto' + (tratti.some((t) => t.importato) ? ' (tratteggiata se importato)' : '') : null].filter(Boolean);
+  /* la legenda va a capo: le voci si dispongono per larghezza stimata (5 px a carattere, a corpo 9,5).
+     ⚠️ Ogni voce da sola deve stare nel disegno più stretto (320 − 72 = 248 px, cioè 46 caratteri):
+     la prima stesura della voce sui fori fitti ne aveva 91 e usciva dal foglio proprio sul telefono. */
+  const legRighe = righeDiVoci(leg.map((t) => (t.length + 3) * 5), L - 2 * padX), inPiu = Math.max(0, legRighe.length - 1) * 13;
+  const alta = Math.round(padTop + Hd * scala + padBot + inPiu);
+  const f1 = (v) => (Math.round(v * 10) / 10).toFixed(1), pl = (pts) => pts.map((p) => f1(X(p.x)) + ',' + f1(Y(p.y))).join(' ');
+  const out = [];
+  out.push('<svg xmlns="http://www.w3.org/2000/svg" class="pianta" viewBox="0 0 ' + L + ' ' + alta + '" width="100%" role="img" aria-label="Pianta della volata: ' + H.length + (H.length === 1 ? ' foro' : ' fori') + '" style="max-width:' + L + 'px;display:block;margin:0 auto;font-family:system-ui,Arial,sans-serif">');
+  out.push('<rect x="0.5" y="0.5" width="' + (L - 1) + '" height="' + (alta - 1) + '" fill="#fff" stroke="#d8d8d8"/>');
+  /* il fronte: la faccia libera, col suo profilo se è stato modellato */
+  out.push('<polyline class="p-fronte" fill="none" stroke="#c05a00" stroke-width="2.5" points="' + pl(fx.map((x) => ({ x, y: interpProf(prof, x) }))) + '"/>');
+  if (piede.length >= 2) out.push('<polyline class="p-piede" fill="none" stroke="#8a6d00" stroke-width="1.5" stroke-dasharray="6 4" points="' + pl(piede) + '"/>');
+  tratti.forEach((t) => out.push('<polyline class="p-tratto" fill="none" stroke="#3f6f8f" stroke-width="1.4"' + (t.importato ? ' stroke-dasharray="5 4"' : '') + ' points="' + pl(t.pts) + '"/>'));
+  /* la scritta del fronte DOPO le linee, con un alone bianco: resta leggibile anche se il piede le passa sotto */
+  out.push('<text x="' + f1(X(minx)) + '" y="' + f1(Y(interpProf(prof, minx)) - 8) + '" font-size="11" font-weight="700" fill="#a05a00" stroke="#fff" stroke-width="3.5" paint-order="stroke" stroke-linejoin="round">FRONTE — faccia libera</text>');
+  H.forEach((p) => { const cx = f1(X(p.x));
+    out.push('<circle class="p-foro" cx="' + cx + '" cy="' + f1(Y(p.y)) + '" r="' + f1(r) + '" fill="#fff" stroke="#1a1a1a" stroke-width="' + (p.suo ? 2.6 : 1.2) + '"/>');
+    if (coiNumeri) out.push('<text class="p-n" x="' + cx + '" y="' + f1(Y(p.y) + r * 0.36) + '" font-size="' + f1(r * 1.05) + '" font-weight="700" text-anchor="middle" fill="#1a1a1a">' + p.n + '</text>');
+    if (coiRitardi && p.t !== null) out.push('<text class="p-t" x="' + cx + '" y="' + f1(Y(p.y) + r + 10) + '" font-size="8.5" text-anchor="middle" fill="#555">' + Math.round(p.t) + '</text>');
+  });
+  /* la scala: un segmento di lunghezza tonda, mai più lungo di un terzo del disegno */
+  const m = [1, 2, 5, 10, 20, 50, 100, 200, 500].filter((v) => v * scala <= (L - 2 * padX) * 0.3).pop() || 1, by = alta - 34 - inPiu, bx = f1(padX + m * scala);
+  out.push('<path class="p-scala" d="M' + padX + ' ' + (by - 4) + 'V' + (by + 4) + 'M' + padX + ' ' + by + 'H' + bx + 'M' + bx + ' ' + (by - 4) + 'V' + (by + 4) + '" stroke="#1a1a1a" stroke-width="1.2" fill="none"/>');
+  out.push('<text x="' + f1(padX + m * scala / 2) + '" y="' + (by - 7) + '" font-size="10" text-anchor="middle" fill="#1a1a1a">' + m + ' m</text>');
+  /* il verso della sequenza: la stessa freccia della tela, dalla stessa parte */
+  const dx = (d && d.dir) === 'dx', ax0 = dx ? L - padX : padX, ax1 = dx ? L - padX - 90 : padX + 90, s = dx ? 1 : -1;
+  out.push('<path d="M' + ax0 + ' 18H' + ax1 + '" stroke="#2e7d32" stroke-width="1.8"/><path class="p-verso" d="M' + ax1 + ' 18l' + (s * 8) + ' -4v8z" fill="#2e7d32"/>');
+  out.push('<text x="' + (dx ? ax1 - 6 : ax1 + 6) + '" y="22" font-size="10.5" text-anchor="' + (dx ? 'end' : 'start') + '" fill="#2e7d32">sequenza di sparo</text>');
+  legRighe.forEach((riga, k) => out.push('<text class="p-leg" x="' + padX + '" y="' + (alta - 12 - (legRighe.length - 1 - k) * 13) + '" font-size="9.5" fill="#555">' + riga.map((i) => leg[i]).join(' · ') + '</text>'));
+  out.push('</svg>');
+  return out.join('');
+}
+const _NOMI_COLONNE_FOGLIO = { kg: 'Carica', prof: 'Profondità', stem: 'Borraggio', diam: 'Diametro', incl: 'Inclinazione' };
+export function tabellaForiPerFoglio(holes, progetto){
+  const righe = tabellaFori(holes, progetto, { campo: 'n' });
+  if (!righe.length) return '';
+  const suoi = righe.some((r) => CAMPI_PER_FORO.some((c) => r.propri[c])), aMano = righe.some((r) => r.aMano);
+  const val = (r, c) => { const tx = r[c] === null ? 'non noto' : gnum(r[c], 2) + ((c === 'kg' && r[c] === 0) ? ' (scarico)' : ''); return '<td>' + (r.propri[c] ? '<b>' + tx + '</b>' : tx) + '</td>'; };
+  const segni = [suoi ? 'in <b>grassetto</b> i valori che un foro ha di suo, diversi da quelli del progetto' : null, aMano ? '✎ ritardo messo a mano' : null].filter(Boolean);
+  return '<h2>Tabella dei fori</h2>'
+    + '<p class="fpi">' + gnum(righe.length, 0) + (righe.length === 1 ? ' foro' : ' fori') + ', nell\'ordine di sparo: il numero è quello del foro sulla pianta. «Lungo la fila» è la posizione del foro lungo la fila, «spalla» la sua distanza dal fronte.' + (segni.length ? ' Segni: ' + segni.join('; ') + '.' : '') + '</p>'
+    + '<div class="tfs"><table class="tf"><thead><tr><th>Foro</th><th>Lungo la fila (m)</th><th>Spalla (m)</th><th>Ritardo (ms)</th>'
+    + CAMPI_PER_FORO.map((c) => '<th>' + _NOMI_COLONNE_FOGLIO[c] + ' (' + LIMITI_PER_FORO[c].unita + ')</th>').join('') + '</tr></thead><tbody>'
+    + righe.map((r) => '<tr><td>' + gnum(r.n, 0) + '</td><td>' + (r.x === null ? 'non noto' : gfix(r.x, 2)) + '</td><td>' + (r.spalla === null ? 'non noto' : gfix(r.spalla, 2)) + '</td><td>'
+        + (r.tDet === null ? 'non assegnato' : gnum(r.tDet, 1)) + (r.aMano ? ' ✎' : '') + '</td>' + CAMPI_PER_FORO.map((c) => val(r, c)).join('') + '</tr>').join('')
+    + '</tbody></table></div>';
+}
+
 /* ══════════════════════════════════════════════════════════════════════════
    LA FIRMA DELLA MAGLIA (26/11) — quando i fori «non sono più quelli».
    ══════════════════════════════════════════════════════════════════════════

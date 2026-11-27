@@ -3018,6 +3018,48 @@
   ⚠️ Limiti detti: col mouse, DENTRO l'area, trascinare sul vuoto crea un
   foro come sempre — per spostare la vista si trascina sulla cornice o si
   usa Ctrl + rotella. Niente doppio tocco. Tetto a 600%.
+- [x] **Genesi — il report stampabile ha il disegno della pianta e la tabella di tutti i fori**
+  *(27/11, sera)*. Misurato aprendo il report: «img 0, canvas 0, svg 0». Il
+  foglio che si porta in cava era solo testo — la maglia come due numeri, la
+  sequenza come una parola — e i fori uno per uno non c'erano. Ora:
+  · in cima, **«Pianta della volata»**: fronte (col profilo, se modellato),
+    piede, tratti, un cerchio per foro col **numero d'ordine di sparo**
+    dentro e il **ritardo** sotto, bordo spesso ai fori con valori suoi,
+    segmento di scala di lunghezza tonda, freccia della sequenza, legenda;
+  · in fondo, prima della firma, **«Tabella dei fori»**: una riga per foro
+    nell'ordine di sparo — posizione lungo la fila, spalla, ritardo, carica,
+    profondità, borraggio, diametro, inclinazione — coi valori propri in
+    grassetto, «0 (scarico)», e quello che manca scritto «non noto» / «non
+    assegnato» invece di un trattino;
+  · il foglio stampa il **progetto, non la vista**: pianta ingrandita o
+    strati nascosti sullo schermo non cambiano il disegno (provato:
+    identico carattere per carattere);
+  · dove non c'è posto il disegno **tace e lo dice**: sotto i 26 px di passo
+    i ritardi vanno «nella tabella dei fori», sotto i 6,2 px di raggio anche
+    i numeri (misurato: 180 fori su un telefono);
+  · sul telefono il disegno è largo quanto la finestra (a 680 punti fissi le
+    scritte scendevano a 5 px) e la tabella, che a corpo pieno chiede
+    474 px, si stringe e sotto i 390 scorre nel suo riquadro — la pagina no.
+  Su carta, misurato stampando 180 fori: 5 pagine, intestazione della
+  tabella ripetuta a ogni pagina, 180 righe.
+  Le due funzioni sono del modulo (`piantaPerFoglio`,
+  `tabellaForiPerFoglio`; `genesi-data.js` 220 → 222 provate). Prove:
+  `run-kpi` 3268 → 3269 (30 asserzioni; rimessi 12 difetti uno per volta,
+  cadono tutti — il dodicesimo solo dopo aver corretto i DATI della prova,
+  che avevano l'ordine di sparo uguale a quello lungo la fila). Banco nuovo
+  `genesi-foglio-pianta.mjs`: 68 controlli sul foglio che esce davvero
+  (base, valori propri, telefono a 390 e 320, maglia più fitta ammessa) e
+  controprova a 11 difetti, ognuno da solo sul suo controllo.
+  ⚠️ Il banco ha trovato un difetto MIO prima della consegna: la voce di
+  legenda per i fori fitti era lunga 91 caratteri e usciva dal disegno
+  proprio sul telefono. Accorciata, e ora una prova pretende che ogni voce
+  stia da sola nel disegno più stretto.
+  ⚠️ Limiti detti: la tabella non ha una riga dei totali (carica totale e
+  metri perforati stanno già nelle sezioni sopra, calcolati dalle funzioni
+  che li calcolano a schermo: una seconda somma qui sarebbe una copia); il
+  disegno non porta coordinate di cantiere (decisione 32, rimandata).
+  Fonte dell'idea, di seconda mano: `docs/RICERCA_CONTINUA_GENESI.md`,
+  «blast reports with pattern layouts, charge details, timing diagrams».
 - [ ] **Genesi → Campo — il piano di carico CSV non protegge l'id del foro**
   ⏸️ *fuori dal mandato «solo Genesi»: la riga la compone `pianoCsvGenesi`
   in `shared/dw-ponti.js`, e Campo la ricompone e la rilegge con
@@ -9510,7 +9552,7 @@ numero scritto dove non era stato misurato niente**.*
   il lettore non leggeva affatto le tre colonne, non una chiamata che le
   scartava): il registro infortuni esportato e ri-caricato perdeva la
   denuncia INAIL (3097→3109):
-  **3.770 prove girano senza rete** *(ricontato il 27/11, +1 con la vista della pianta di Genesi; prima +1 con la disciplina dei tocchi sulla pianta di Genesi; prima +4 con la pianta di Genesi in px di schermo; prima +2 con la parola del campo e la frase sulla tela dove la pianta non è disegnabile; prima +1 con la guardia sui documenti senza pianta; prima +2 col lettore PLY contro file scritti da plyfile; prima +1 con la riga dello storico che dice i fori con valori loro; prima +1 col confronto A/B che dice i fori con valori loro; prima +1 col piede dei fori nel DXF; prima +1 con la gittata sul foro tipo dichiarata; prima +1 col rientro del file di scambio; prima +1 col report che elenca i fori con valori loro; prima +1 con l'inclinazione per foro; prima +1 con le spline di un DXF; prima +1 con le ellissi di un DXF; prima +1 coi blocchi inseriti di un DXF; prima +2 con le nuvole LAS/LAZ scritte da laspy; prima +1 col diametro per foro; prima +1 con la carica che non entra nel foro; prima +2 con la quinta fetta del foro per foro [il piano d'innesco XML]; prima +1 con la quarta fetta del foro per foro [la tabella dei fori]; prima +3 con la terza fetta del foro per foro [il comando dalla scheda del foro]; prima +11 con le prime due fette del foro per foro, col lettore DXF di Genesi e i lettori di sismografo e sonda; prima, il 19/09, dopo la correzione di `syncTrattoUI` (trovata da `genesi-snap-estremo.mjs`, G48 — Ruota/Scala tratti restavano visibili mentre si disegnava ancora un tratto, spingendo la tela sotto la barra di navigazione fissa: 40 px bastavano a far cadere il clic di chiusura del tratto sull'icona della barra); 3.727 dopo `deviazioneStatistiche` (G59, media e massima della deviazione RADIALE di perforazione — `Math.hypot(dx,dy)`, non dx/dy col segno: il segno dipende dalla convenzione di assi del rilievo boretrack, ancora non confermata — segnalata dalla ricerca del 19/09 come mancanza reale rispetto al QC statistico di JKSimBlast, verificata prima con un grep per nome); 3.725 dopo `trattiScalati` (G58, terza trasformazione — scala i tratti DALL'ORIGINE, non dal centroide, per correggere un rilievo DXF in un'unità diversa dai metri di Genesi); 3.718 dopo `trattiRuotati` (G57, seconda trasformazione CAD dopo il mirror di G50: ruota tutti i tratti attorno al loro centroide comune, per correggere l'orientamento di un rilievo DXF senza dover reimportare); 3.712 dopo la stessa causa di G56c ritrovata in `innescoSuMaglia` (G56d, un foro senza nessun raccordo che lo raggiunga spariva dalla rete di innesco come il primo della volata); 3.711 dopo `relief=null` che distingue il primo foro della zona da un vicino fuori dalla distanza di adiacenza (G56c, trovato con una verifica diretta sugli export CSV/DXF/XML dopo aver tolto un foro dalla maglia, non da un agente); 3.709 dopo l'annulla premuto a metà di un trascinamento (G56b, dal deep-pass QA in background sulle nove unità appena costruite); 3.708 dopo la guida di allineamento in Y sul trascinamento di un foro (G56, dal delta di una ricerca in background su snap magnetico/tracking dinamico); 3.707 dopo il misfire nel report stampato (G55, _repEsito); 3.706 dopo il limite dello stack di annulla (G54, già scritto il 14/09 e mai provato prima d'ora); 3.705 dopo il semaforo di sintesi letto prima di esportare (G53, fraseGraviExport); 3.704 dopo l'esito della detonazione di Genesi (G52, _riconRiassuntoCampo/csvRiconciliazione); 3.702 dopo l'input relativo/polare di Genesi (G51, coordinataRelativa); 3.695 dopo rifletti la selezione di Genesi (G50, foriRiflessi); 3.691 dopo la selezione multipla dei fori (G49, foriSenzaId); 3.688 dopo lo snap a oggetti di Genesi (G48, puntoSnapEstremo/estremiDisegno); 3.682 dopo il dodicesimo giro (Sentinella, allerteTaratura/badge); 3.676 dopo il sesto
+  **3.771 prove girano senza rete** *(ricontato il 27/11, +1 con il foglio di Genesi che porta la pianta e la tabella dei fori; prima +1 con la vista della pianta di Genesi; prima +1 con la disciplina dei tocchi sulla pianta di Genesi; prima +4 con la pianta di Genesi in px di schermo; prima +2 con la parola del campo e la frase sulla tela dove la pianta non è disegnabile; prima +1 con la guardia sui documenti senza pianta; prima +2 col lettore PLY contro file scritti da plyfile; prima +1 con la riga dello storico che dice i fori con valori loro; prima +1 col confronto A/B che dice i fori con valori loro; prima +1 col piede dei fori nel DXF; prima +1 con la gittata sul foro tipo dichiarata; prima +1 col rientro del file di scambio; prima +1 col report che elenca i fori con valori loro; prima +1 con l'inclinazione per foro; prima +1 con le spline di un DXF; prima +1 con le ellissi di un DXF; prima +1 coi blocchi inseriti di un DXF; prima +2 con le nuvole LAS/LAZ scritte da laspy; prima +1 col diametro per foro; prima +1 con la carica che non entra nel foro; prima +2 con la quinta fetta del foro per foro [il piano d'innesco XML]; prima +1 con la quarta fetta del foro per foro [la tabella dei fori]; prima +3 con la terza fetta del foro per foro [il comando dalla scheda del foro]; prima +11 con le prime due fette del foro per foro, col lettore DXF di Genesi e i lettori di sismografo e sonda; prima, il 19/09, dopo la correzione di `syncTrattoUI` (trovata da `genesi-snap-estremo.mjs`, G48 — Ruota/Scala tratti restavano visibili mentre si disegnava ancora un tratto, spingendo la tela sotto la barra di navigazione fissa: 40 px bastavano a far cadere il clic di chiusura del tratto sull'icona della barra); 3.727 dopo `deviazioneStatistiche` (G59, media e massima della deviazione RADIALE di perforazione — `Math.hypot(dx,dy)`, non dx/dy col segno: il segno dipende dalla convenzione di assi del rilievo boretrack, ancora non confermata — segnalata dalla ricerca del 19/09 come mancanza reale rispetto al QC statistico di JKSimBlast, verificata prima con un grep per nome); 3.725 dopo `trattiScalati` (G58, terza trasformazione — scala i tratti DALL'ORIGINE, non dal centroide, per correggere un rilievo DXF in un'unità diversa dai metri di Genesi); 3.718 dopo `trattiRuotati` (G57, seconda trasformazione CAD dopo il mirror di G50: ruota tutti i tratti attorno al loro centroide comune, per correggere l'orientamento di un rilievo DXF senza dover reimportare); 3.712 dopo la stessa causa di G56c ritrovata in `innescoSuMaglia` (G56d, un foro senza nessun raccordo che lo raggiunga spariva dalla rete di innesco come il primo della volata); 3.711 dopo `relief=null` che distingue il primo foro della zona da un vicino fuori dalla distanza di adiacenza (G56c, trovato con una verifica diretta sugli export CSV/DXF/XML dopo aver tolto un foro dalla maglia, non da un agente); 3.709 dopo l'annulla premuto a metà di un trascinamento (G56b, dal deep-pass QA in background sulle nove unità appena costruite); 3.708 dopo la guida di allineamento in Y sul trascinamento di un foro (G56, dal delta di una ricerca in background su snap magnetico/tracking dinamico); 3.707 dopo il misfire nel report stampato (G55, _repEsito); 3.706 dopo il limite dello stack di annulla (G54, già scritto il 14/09 e mai provato prima d'ora); 3.705 dopo il semaforo di sintesi letto prima di esportare (G53, fraseGraviExport); 3.704 dopo l'esito della detonazione di Genesi (G52, _riconRiassuntoCampo/csvRiconciliazione); 3.702 dopo l'input relativo/polare di Genesi (G51, coordinataRelativa); 3.695 dopo rifletti la selezione di Genesi (G50, foriRiflessi); 3.691 dopo la selezione multipla dei fori (G49, foriSenzaId); 3.688 dopo lo snap a oggetti di Genesi (G48, puntoSnapEstremo/estremiDisegno); 3.682 dopo il dodicesimo giro (Sentinella, allerteTaratura/badge); 3.676 dopo il sesto
   giro di deep-pass QA su Sentinella/Genesi/Conti — `run-kpi` 3172→3177 — e
   il settimo giro — 3177→3178, correzione del refuso di `terra-sequenza-lotto.mjs`
   più il test sulla sezione Personale presente di Campo — le altre otto invariate)*. La frase va
@@ -9524,8 +9566,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **469 esecuzioni** che
-  aprono le pagine in un browser vero, da **215** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **471 esecuzioni** che
+  aprono le pagine in un browser vero, da **216** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso). *(Ricontato il 19/09 dopo l'annulla

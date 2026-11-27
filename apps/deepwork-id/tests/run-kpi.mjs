@@ -43883,6 +43883,74 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     ok(/const due=\[\.\.\.d2Punt\.values\(\)\]; d2Due=d2Punt\.size===2 \? \{ a:\{\.\.\.due\[0\]\}, b:\{\.\.\.due\[1\]\}, v:\{\.\.\.d2Vista\} \} : null;/.test(pag), "⛔ il gesto a due dita comincia quando il secondo dito si posa, non al primo movimento");
     ok(/id="dvMeno"[^>]*aria-label="Rimpicciolisci la pianta"/.test(pag) && /id="dvPiu"[^>]*aria-label="Ingrandisci la pianta"/.test(pag) && /id="dvAdatta"/.test(pag), "i tre bottoni ci sono, coi loro nomi: il pizzico non è l'unica via");
   });
+  test("⛔ Genesi · il foglio ha la pianta e la tabella di tutti i fori: il disegno dice quello che dice la tabella, e tace dove non si leggerebbe", () => {
+    const maglia = (perRow, file) => { const h = []; let seq = 0; for (let r = 0; r < file; r++) for (let c = 0; c < perRow; c++) h.push({ mx: c * 3.5 + (r % 2 ? 1.75 : 0), my: 3 * (r + 1), seq, tDet: c * 42 + r * 84 }), seq++; return h; };
+    const P = { S: 3.5, B: 3, bf: 3, dir: "sx", kg: 58, prof: 10, stem: 2.2, diam: 102, incl: 0 };
+    const quanti = (s, re) => (s.match(re) || []).length, numeri = (s) => [...s.matchAll(/<text class="p-n"[^>]*>(\d+)<\/text>/g)].map((m) => +m[1]);
+    const cerchi = (s) => [...s.matchAll(/<circle class="p-foro" cx="([\d.]+)" cy="([\d.]+)" r="([\d.]+)"[^>]*stroke-width="([\d.]+)"/g)].map((m) => ({ x: +m[1], y: +m[2], r: +m[3], bordo: +m[4] }));
+    const scala = (s) => { const d = s.match(/class="p-scala" d="M(\d+) [\d.]+V[\d.]+M\d+ [\d.]+H([\d.]+)/), m = s.match(/>(\d+) m<\/text>/); return (+d[2] - +d[1]) / +m[1]; };
+    const voci = (s) => [...s.matchAll(/<text class="p-leg"[^>]*>([^<]*)<\/text>/g)].flatMap((m) => m[1].split(" · "));
+    /* ── la pianta ── */
+    const svg = genesi.piantaPerFoglio({ ...P, holes: maglia(12, 2) });
+    eq([quanti(svg, /<circle class="p-foro"/g), quanti(svg, /<text class="p-n"/g), quanti(svg, /<text class="p-t"/g)], [24, 24, 24], "un cerchio per foro, col suo numero dentro e il suo ritardo sotto");
+    eq(numeri(svg), Array.from({ length: 24 }, (_, i) => i + 1), "il numero nel foro è l'ordine di sparo, da 1");
+    eq(/NaN|undefined|null|Infinity/.test(svg), false, "nel disegno nessun «NaN», «undefined», «null»");
+    const c = cerchi(svg), s = scala(svg);
+    ok(Math.abs((c[11].x - c[0].x) / 38.5 - s) / s < 0.005, "⛔ la scala scritta è quella del disegno: i 38,5 m fra il primo e l'ultimo foro della fila e il segmento di scala stanno nello stesso rapporto");
+    ok(Math.abs((c[12].y - c[0].y) / 3 - s) / s < 0.02 && Math.abs((c[12].x - c[0].x) / 1.75 - s) / s < 0.02, "⛔ e vale in tutt'e due le direzioni: 3 m di spalla fra le file, 1,75 m di sfalsamento");
+    ok(s <= 40 && /viewBox="0 0 680 /.test(svg), "la scala non supera i 40 px per metro, su un disegno largo 680 se nessuno dice altro");
+    eq(scala(genesi.piantaPerFoglio({ ...P, holes: maglia(3, 1) })), 40, "⛔ tre fori non diventano un manifesto: la scala si ferma a 40 px per metro");
+    eq([/viewBox="0 0 358 /.test(genesi.piantaPerFoglio({ ...P, holes: maglia(12, 2) }, { larghezza: 358 })), /viewBox="0 0 680 /.test(genesi.piantaPerFoglio({ ...P, holes: maglia(12, 2) }, { larghezza: 100 })), /viewBox="0 0 680 /.test(genesi.piantaPerFoglio({ ...P, holes: maglia(12, 2) }, { larghezza: "x" }))], [true, true, true],
+      "la larghezza la dice chi mostra il foglio; una larghezza sotto i 320 o non leggibile vale 680");
+    /* il fronte modellato: i fori lo seguono, come sulla tela (`my + interpProf`) */
+    const dritto = cerchi(genesi.piantaPerFoglio({ ...P, holes: maglia(12, 1) })), mosso = genesi.piantaPerFoglio({ ...P, holes: maglia(12, 1), profilo: [{ x: 0, y: 0 }, { x: 38.5, y: 3.85 }] }), cm = cerchi(mosso), sm = scala(mosso);
+    ok(Math.abs(dritto[11].y - dritto[0].y) < 0.01 && Math.abs((cm[11].y - cm[0].y) / sm - 3.85) < 0.05, "⛔ col fronte che arretra di 3,85 m l'ultimo foro sta 3,85 m più in basso del primo: la spalla si misura dal fronte, non da una riga dritta");
+    /* i casi senza disegno */
+    eq([genesi.piantaPerFoglio({ holes: [] }), genesi.piantaPerFoglio(null), genesi.piantaPerFoglio(undefined), genesi.piantaPerFoglio({ holes: [{ mx: "a", my: 2 }, null, { mx: 1 }] })], ["", "", "", ""], "⛔ senza un foro collocabile non c'è disegno: stringa vuota, non una cornice vuota");
+    const uno = genesi.piantaPerFoglio({ holes: [{ mx: 0, my: 3 }] });
+    eq([quanti(uno, /class="p-foro"/g), numeri(uno), /NaN|undefined|null|Infinity/.test(uno), quanti(uno, /class="p-t"/g)], [1, [1], false, 0], "un foro solo, senza sequenza e senza maglia: si disegna, col numero 1 e senza ritardo");
+    eq(numeri(genesi.piantaPerFoglio({ ...P, holes: [{ mx: 0, my: 3, seq: 2 }, { mx: 3.5, my: 3, seq: 0 }, { mx: 7, my: 3 }] })), [3, 1, 3], "il numero è `seq + 1`; un foro senza sequenza prende il suo posto nell'elenco, come nella tabella");
+    /* troppo fitta per scriverci dentro: il disegno tace e la legenda dice dove guardare */
+    const fitta = genesi.piantaPerFoglio({ ...P, holes: maglia(30, 6) }, { larghezza: 358 });
+    eq([quanti(fitta, /class="p-foro"/g), quanti(fitta, /class="p-n"/g), quanti(fitta, /class="p-t"/g), voci(fitta)], [180, 0, 0, ["numeri dei fori: in tabella, con la posizione", "ritardi: nella tabella dei fori"]],
+      "⛔ 180 fori in 358 px: nessun numero illeggibile, nessun ritardo ammucchiato — e la legenda dice dove trovarli");
+    const cf = cerchi(fitta); let tocca = 0; for (let i = 0; i < cf.length; i++) for (let j = i + 1; j < cf.length; j++) if (Math.hypot(cf[i].x - cf[j].x, cf[i].y - cf[j].y) < cf[i].r + cf[j].r - 0.3) tocca++;
+    eq(tocca, 0, "e nemmeno lì due fori si toccano");
+    const larga = genesi.piantaPerFoglio({ ...P, holes: maglia(30, 6) });
+    eq([quanti(larga, /class="p-n"/g), quanti(larga, /class="p-t"/g), voci(larga)], [180, 0, ["nel foro: numero d'ordine di sparo", "ritardi: nella tabella dei fori"]], "sulla carta (680) gli stessi 180 fori hanno il numero; i ritardi no, e la legenda lo dice");
+    /* valori suoi, piede, tratti, verso */
+    const ricca = genesi.piantaPerFoglio({ ...P, dir: "dx", holes: maglia(12, 2).map((h, i) => (i === 3 ? { ...h, kg: 0 } : i === 7 ? { ...h, stem: 1.5 } : h)),
+      piede: [{ x: 0, y: -1.2 }, { x: 38, y: -1 }], tratti: [{ pts: [{ x: 2, y: 8 }, { x: 20, y: 9 }], origine: "dxf" }, { pts: [{ x: 5, y: 7 }] }, { pts: [{ x: 22, y: 8 }, { x: 30, y: 8 }] }] });
+    eq(cerchi(ricca).map((q, i) => (q.bordo > 2 ? i + 1 : 0)).filter(Boolean), [4, 8], "⛔ bordo spesso ai fori con valori suoi, e solo a quelli");
+    eq([quanti(ricca, /class="p-piede"/g), quanti(ricca, /class="p-tratto"/g), quanti(ricca, /class="p-tratto"[^>]*stroke-dasharray/g)], [1, 2, 1], "il piede, e i tratti con almeno due punti: quello importato è tratteggiato");
+    eq(voci(ricca), ["nel foro: numero d'ordine di sparo", "sotto il foro: ritardo in ms", "bordo spesso: foro con valori suoi", "tratteggio ocra: piede", "linea blu: tratto (tratteggiata se importato)"], "la legenda nomina tutto e solo quello che c'è sul disegno");
+    eq([/text-anchor="end" fill="#2e7d32">sequenza di sparo/.test(ricca), /text-anchor="start" fill="#2e7d32">sequenza di sparo/.test(svg)], [true, true], "la freccia della sequenza sta dalla parte da cui si spara, come sulla tela");
+    const tutte = [...new Set([svg, uno, fitta, larga, ricca].flatMap(voci))];
+    eq(tutte.filter((v) => (v.length + 3) * 5 > 320 - 72), [], "⛔ ogni voce di legenda, da sola, sta nel disegno più stretto (248 px): la prima stesura ne aveva una da 91 caratteri che usciva dal foglio sul telefono");
+    /* ── la tabella ── */
+    /* ⚠️ l'ordine di sparo qui NON è né quello dell'elenco né quello lungo la fila: coi tre ordini coincidenti la prova
+       passava anche ordinando per posizione (controprova del 27/11: «non distingue») */
+    const H = [{ mx: 7, my: 3, seq: 2, tDet: 84.5, tMano: 84.5, prof: 8.5 }, { mx: 10.5, my: 3, seq: 0, tDet: 0 }, { mx: 3.5, my: 3, seq: 1, tDet: 42, kg: 0 }, { mx: 0, my: 3, seq: 3 }];
+    const tab = genesi.tabellaForiPerFoglio(H, P), righe = [...tab.matchAll(/<tr>(<td>.*?)<\/tr>/g)].map((m) => [...m[1].matchAll(/<td>(.*?)<\/td>/g)].map((q) => q[1]));
+    eq(righe, [["1", "10,50", "3,00", "0", "58", "10", "2,2", "102", "0"], ["2", "3,50", "3,00", "42", "<b>0 (scarico)</b>", "10", "2,2", "102", "0"],
+      ["3", "7,00", "3,00", "84,5 ✎", "58", "<b>8,5</b>", "2,2", "102", "0"], ["4", "0,00", "3,00", "non assegnato", "58", "10", "2,2", "102", "0"]],
+      "⛔ una riga per foro NELL'ORDINE DI SPARO (non in quello dell'elenco, non lungo la fila): i valori che valgono, in grassetto quelli suoi, «0 (scarico)», il ritardo a mano segnato, quello che manca detto a parole");
+    eq([quanti(tab, /<thead>/g), quanti(tab, /<\/thead><tbody>/g), quanti(tab, /<th>/g), /<div class="tfs"><table class="tf">/.test(tab), /<\/table><\/div>$/.test(tab)], [1, 1, 9, true, true],
+      "⛔ l'intestazione è un `thead` vero — è quello che la fa ripetere a ogni pagina stampata (misurato: 180 fori, 5 pagine, 4 intestazioni) — e la tabella sta nel suo riquadro");
+    ok(/4 fori, nell'ordine di sparo/.test(tab) && /in <b>grassetto<\/b> i valori che un foro ha di suo/.test(tab) && /✎ ritardo messo a mano/.test(tab), "sopra la tabella: quanti fori, in che ordine, e che cosa vogliono dire i due segni");
+    const liscia = genesi.tabellaForiPerFoglio([{ mx: 0, my: 3, seq: 0, tDet: 0 }], P);
+    eq([/1 foro, nell'ordine di sparo/.test(liscia), /Segni:/.test(liscia)], [true, false], "un foro solo si scrive al singolare, e senza segni da spiegare la riga dei segni non c'è");
+    const monca = genesi.tabellaForiPerFoglio([{ my: 3, seq: 0 }], { prof: 10 });
+    eq([...monca.matchAll(/<td>(.*?)<\/td>/g)].map((q) => q[1]), ["1", "non noto", "3,00", "non assegnato", "non noto", "10", "non noto", "non noto", "non noto"], "⛔ quello che non c'è è «non noto», mai «0» e mai un trattino: su un foglio un trattino è una cella dimenticata");
+    eq(/—|NaN|undefined|null/.test(tab + liscia + monca.replace(/<p class="fpi">.*?<\/p>/, "")), false, "in nessuna cella un trattino, un «NaN», un «null»");
+    eq([genesi.tabellaForiPerFoglio([], P), genesi.tabellaForiPerFoglio(null, P), genesi.tabellaForiPerFoglio(undefined)], ["", "", ""], "senza fori non c'è tabella");
+    /* ── la pagina ── */
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    ok(/const _rPianta=piantaPerFoglio\(D2, \{ larghezza:Math\.max\(320, Math\.min\(680, \(window\.innerWidth\|\|720\)-32\)\) \}\), _rTabFori=tabellaForiPerFoglio\(D2\.holes, D2\);/.test(pag),
+      "⛔ il foglio compone pianta e tabella dal PROGETTO (`D2`), non dalla tela: né la vista né gli strati nascosti entrano; la larghezza è quella della finestra");
+    ok(/\(_rPianta \? '<h2>Pianta della volata<\/h2>'\+_rPianta : ''\)\n   \+sec\('Geometria',/.test(pag) && /    \+body\n    \+_rTabFori\n    \+_repEsito\n    \+firma/.test(pag), "la pianta apre il foglio, la tabella dei fori sta dopo le sezioni e prima della firma");
+    ok(/'\.tfs\{overflow-x:auto\}@media\(max-width:560px\)\{table\.tf\{font-size:10px\}/.test(pag), "sullo schermo stretto la tabella si stringe, e dove non basta scorre nel suo riquadro invece di far scorrere la pagina");
+  });
   test("⛔ Genesi · eUnTocco e i tocchi sulla pianta: un dito conduce, il secondo ferma tutto, col dito si crea alzandolo", () => {
     eq(genesi.eUnTocco(100, 100, 100, 100), true, "il dito si alza dov'era: è un tocco");
     eq([genesi.eUnTocco(100, 100, 106, 108), genesi.eUnTocco(100, 100, 107, 107.1)], [false, true], "⛔ 10 px esatti non sono più un tocco (6-8-10), 9,97 sì: la soglia è esclusiva");

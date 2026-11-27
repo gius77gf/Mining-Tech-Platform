@@ -3494,6 +3494,7 @@ Tutte le quattro piattaforme mettono in evidenza nella visualizzazione 3D non so
 5. **Annotazioni e label 3D** — La ricerca generale su annotazioni in 3D visualization rivela che per scene interattive e 3D, le best practice sono **fixed legend-like regions rather than attaching many moving labels directly to 3D data elements**. Per il blast design, questo si traduce in: il progetto ha label per ogni foro o gruppo di fori (ID, carica, burden, timing), collocate in legend laterali o in pannelli fissi HUD per evitare clutter.
 
 6. **Export per presentazione client** — K-MINE "generates blast reports with pattern layouts, charge details, timing diagrams, safety zone maps, with export to CSV, PDF, and other formats". È documentazione: la visualizzazione 3D diventa immagine per relazioni di progetto.
+   *(27/11 — delta fatto da chi ha il codice: il report stampabile di Genesi ora porta il disegno della maglia («pattern layout», `piantaPerFoglio`) e la tabella foro per foro con carica e ritardo (`tabellaForiPerFoglio`). NON ha un diagramma dei tempi a sé né una mappa delle zone di sicurezza; l'immagine della scena 3D resta non esportabile.)*
 
 **Denominatore comune**: nessuno dei quattro software mostra **solo** il blast nel vuoto (come Genesi oggi). Tutti lo circondano di contesto — rischi, carichi, assetto geologico — e lo presentano come sovrapposizione di strati informativi colorati e annotati.
 

@@ -1436,7 +1436,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, reliefCls, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino, activeProf, d2HitTest, d2HitTestPt,
-         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfLeggi, dxfFraseNonLette, DXF_FRECCIA_ARCO_M, fraseMagliaAssente, scalaTestoTela, raggioForoTela, raggioPresaTela, righeDiVoci, eUnTocco, vistaLimitata, vistaApplica, vistaZoomAttorno, gestoDueDita, VISTA_ZOOM_MAX, valoriPropriDiForo, valoreDiForo, scostamentoPiedeForo, foriPropriPerFoglio, valoreProgettoDaFile, foriFuoriDalForoTipo, avvisoForoTipo, CAMPI_DELLA_GITTATA, CAMPI_DELLA_PEZZATURA, LIMITI_PER_FORO, foriConValoreProprio, foriSenzaValoriPropri, valoreComuneDiFori, contaValoriPropri, tabellaFori, valoriPerForoDaPiano, capienzaFori, MARGINE_CAPIENZA_FORO, scartoCaricheProprie, scartoProfonditaProprie, caricaProgettoDaTotale, firmaMaglia, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, foriRiflessi, trattiRuotati, trattiScalati, coordinataRelativa, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
+         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfLeggi, dxfFraseNonLette, DXF_FRECCIA_ARCO_M, fraseMagliaAssente, scalaTestoTela, raggioForoTela, raggioPresaTela, righeDiVoci, eUnTocco, vistaLimitata, vistaApplica, vistaZoomAttorno, gestoDueDita, VISTA_ZOOM_MAX, valoriPropriDiForo, valoreDiForo, scostamentoPiedeForo, foriPropriPerFoglio, piantaPerFoglio, tabellaForiPerFoglio, valoreProgettoDaFile, foriFuoriDalForoTipo, avvisoForoTipo, CAMPI_DELLA_GITTATA, CAMPI_DELLA_PEZZATURA, LIMITI_PER_FORO, foriConValoreProprio, foriSenzaValoriPropri, valoreComuneDiFori, contaValoriPropri, tabellaFori, valoriPerForoDaPiano, capienzaFori, MARGINE_CAPIENZA_FORO, scartoCaricheProprie, scartoProfonditaProprie, caricaProgettoDaTotale, firmaMaglia, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, foriRiflessi, trattiRuotati, trattiScalati, coordinataRelativa, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -4422,8 +4422,20 @@ if($('btn-report')) $('btn-report').onclick=()=>{
         const tx=r[c]===null ? 'non noto' : perCampo(r[c],2)+((c==='kg' && r[c]===0)?' (scarico)':'');
         return '<td>'+(r.propri[c]?'<b>'+tx+'</b>':tx)+'</td>'; }).join('')+'</tr>').join('')
     +'</table>';
+  /* 27/11 — LA PIANTA E LA TABELLA DI TUTTI I FORI. Il foglio era solo testo
+     («img 0, canvas 0, svg 0», misurato): la maglia come due numeri, la
+     sequenza come una parola. Le compone il modulo (`piantaPerFoglio`,
+     `tabellaForiPerFoglio`) dal PROGETTO, non dalla tela: l'ingrandimento e
+     gli strati nascosti sullo schermo sono un modo di guardare, e il foglio
+     che si porta in cava non deve dipendere da dove si stava guardando.
+     ⚠️ La larghezza del disegno è quella della finestra che lo mostra: un
+     disegno da 680 punti rimpicciolito in un telefono da 390 porta le scritte
+     a 5 px. Più stretto, il disegno toglie da sé quello che non ci sta (i
+     ritardi sotto i fori) e lo dice nella legenda. */
+  const _rPianta=piantaPerFoglio(D2, { larghezza:Math.max(320, Math.min(680, (window.innerWidth||720)-32)) }), _rTabFori=tabellaForiPerFoglio(D2.holes, D2);
   const body=
-    sec('Geometria',[['Maglia (spalla × interasse)',gfix(D2.B,1)+' × '+gfix(D2.S,1)+' m'],['Diametro foro',gnum(D2.diam,0)+' mm'+_fpNota('diam',false)],['Fori × file',gnum(nf,0)+' ('+gnum(D2.perRow,0)+' × '+gnum(D2.file,0)+')'],['Profondità / sottoperf.',gnum(D2.prof,1)+' / '+gnum(D2.sub||0,1)+' m'+_fpNota('prof',true)],['Borraggio',gnum(D2.stem,1)+' m'+_fpNota('stem',false)],['Inclinazione',gnum(D2.incl||0,0)+'°'+_fpNota('incl',true)],['Fronte',gnum(g.Lm,1)+' m']])
+    (_rPianta ? '<h2>Pianta della volata</h2>'+_rPianta : '')
+   +sec('Geometria',[['Maglia (spalla × interasse)',gfix(D2.B,1)+' × '+gfix(D2.S,1)+' m'],['Diametro foro',gnum(D2.diam,0)+' mm'+_fpNota('diam',false)],['Fori × file',gnum(nf,0)+' ('+gnum(D2.perRow,0)+' × '+gnum(D2.file,0)+')'],['Profondità / sottoperf.',gnum(D2.prof,1)+' / '+gnum(D2.sub||0,1)+' m'+_fpNota('prof',true)],['Borraggio',gnum(D2.stem,1)+' m'+_fpNota('stem',false)],['Inclinazione',gnum(D2.incl||0,0)+'°'+_fpNota('incl',true)],['Fronte',gnum(g.Lm,1)+' m']])
    +sec('Carica & sequenza',[['Esplosivo',esc(E.nome||D2.esplosivo)],['Carica per foro',gnum(D2.kg,1)+' kg'+_fpNota('kg',true)],['Carica totale',nc(kgTot,gnum(kgTot,0)+' kg')],['Powder factor',nc(k.pf,gfix(k.pf,2)+' kg/m³')],['Innesco',esc(I.nome||D2.innesco)],['Sequenza',esc(seqL)],['Ritardo foro / fila',gnum(D2.ritardo,1)+' / '+gnum(D2.ritardoFila,1)+' ms']].concat((D2.decks||1)>1?[['Decking',gnum(D2.decks,0)+' cariche/foro (~'+gnum(D2.kg/D2.decks,0)+' kg/deck, borraggio tra deck '+gnum(D2.deckStem,1)+' m)']]:[]))
    +_fpSez
    +sec('Roccia',[['Litologia',esc(R.nome||D2.roccia)],['UCS',gnum(D2.ucs,0)+' MPa'],['Fratturazione',esc(D2.frat)],['Fori bagnati',D2.bagnato?'sì':'no']])
@@ -4511,9 +4523,18 @@ if($('btn-report')) $('btn-report').onclick=()=>{
     +'.fpi{margin:0 0 6px;color:#555;font-size:12px}.fpn{color:#8a5a00;font-size:11.5px}'
     +'table.fp{width:auto}table.fp th{font-size:11px;font-weight:600;color:#555;text-align:right;padding:3px 14px 3px 6px;border-bottom:1px solid #e0c090}'
     +'table.fp td{text-align:right;width:auto;padding:3px 14px 3px 6px}table.fp th:first-child,table.fp td:first-child{text-align:left;width:auto;color:#1a1a1a;font-weight:700}'
+    /* la tabella di tutti i fori: nove colonne strette. L'intestazione è un `thead` vero, quindi sulla carta si ripete da sé
+       a ogni pagina (misurato il 27/11 stampando 180 fori: 5 pagine, 4 intestazioni, 180 righe) */
+    +'table.tf{font-size:11.5px}'
+    +'table.tf th{font-size:10.5px;font-weight:600;color:#555;text-align:right;padding:3px 6px;border-bottom:1px solid #e0c090;vertical-align:bottom}'
+    +'table.tf td{text-align:right;width:auto;padding:2px 6px}table.tf th:first-child,table.tf td:first-child{text-align:left;width:auto;color:#1a1a1a;font-weight:700}'
+    /* misurato il 27/11: a corpo pieno la tabella chiede 474 px. Sotto i 560 si stringe (350: ci sta da 390 in su);
+       ancora più stretto scorre nel suo riquadro, e la pagina resta ferma. */
+    +'.tfs{overflow-x:auto}@media(max-width:560px){table.tf{font-size:10px}table.tf th{font-size:9px;padding:3px 2px}table.tf td{padding:2px 2px}}'
     +'.foot{margin-top:20px;font-size:10.5px;color:#888;border-top:1px solid #ddd;padding-top:8px}@media print{body{margin:0}}</style></head><body>'
     +'<h1>Report volata — Genesi</h1><div class="sub">Generato il '+esc(now)+' · progetto/stima, non misura di campo</div>'
     +body
+    +_rTabFori
     +_repEsito
     +firma
     +'<div class="foot">Genesi è un simulatore di progettazione. Le previsioni (frammentazione, vibrazioni, flyrock) derivano da modelli empirici (Kuz-Ram/Swebrec, scaled-distance) e sono STIME, non misure certificate: vanno verificate sul campo. Per la frammentazione la letteratura indica un errore atteso dell\'ordine del ±50% per i modelli di questa famiglia senza calibrazione di sito (Sanchidrián & Ouchterlony 2017): usa la Riconciliazione per calibrare sulla tua cava. La stima economica è un ordine di grandezza (non include manodopera, ammortamenti, oneri).</div>'

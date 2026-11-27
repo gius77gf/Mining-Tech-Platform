@@ -522,6 +522,8 @@ const BANCHI = [
   ["Genesi: la pianta si legge e si tocca sullo schermo vero", 'genesi-pianta-schermo.mjs', []],
   ['pianta sullo schermo di Genesi · controprova', 'genesi-pianta-schermo.mjs', ['--controprova'], true],
   ['pianta sullo schermo di Genesi · controprova dei dettagli', 'genesi-pianta-schermo.mjs', ['--controprova=dettagli'], true],
+  ["Genesi: il foglio ha la pianta e la tabella di tutti i fori", 'genesi-foglio-pianta.mjs', []],
+  ['foglio con la pianta di Genesi · controprova', 'genesi-foglio-pianta.mjs', ['--controprova'], true],
   [".chg: larghezza minima nel tema del sole (Terra)", 'chg-min-larghezza.mjs', []],
   ['.chg larghezza minima · controprova', 'chg-min-larghezza.mjs', ['--controprova'], true],
   ['.dwg-tab > summary: bersaglio minimo di tocco (Sentinella)', 'dwg-tab-min-tocco.mjs', []],
