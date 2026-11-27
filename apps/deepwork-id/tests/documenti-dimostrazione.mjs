@@ -28,9 +28,9 @@
    ⏱️ 27/11 — C'È ANCHE GENESI, per i pezzi del suo foglio che sono già
    funzioni pure del modulo (la pianta, la tabella dei fori, le cariche nel
    tempo, lo storico della riconciliazione, e dal 27/11 sera il CSV della
-   legge di sito). ⚠️ NON è tutto Genesi: il foglio intero e tre CSV (scheda
-   volata, confronto A/B, piano di carico) li compone ancora la pagina, e
-   qui NON ci sono —
+   legge di sito e quello del confronto A/B). ⚠️ NON è tutto Genesi: il
+   foglio intero e due CSV (scheda volata, piano di carico) li compone
+   ancora la pagina, e qui NON ci sono —
    quelli li aprono i banchi del browser. Il conto dichiara quanti sono di
    Genesi, perché «142 documenti» non si legga come «tutto».
    Genesi non ha una `DEMO`: la sua dimostrazione qui è la volata che nasce
@@ -172,6 +172,10 @@ const doc = (a, nome, f) => DOC.push({ app: a, nome, f });
      e senza questo «Altri 1 gruppi» passerebbe (controprova del 27/11: rimesso il difetto, la prova restava verde) */
   doc("genesi", "fraseFinestraMic due gruppi alla pari", () => genesi.fraseFinestraMic(genesi.finestraDellaMic([0, 0, 42, 84, 84].map((t, i) => ({ tDet: t, seq: i })), 58)));
   doc("genesi", "csvLeggeDiSito", () => genesi.csvLeggeDiSito([{ d: 300, w: 58, ppv: 6.4, nome: "Recettore Est", ts: "2026-07-12", fonte: "mano" }, { d: 180, w: 116, ppv: 14.2, nome: "Cascina", ts: "2026-07-19", fonte: "csv" }, { d: 420, w: 58, ppv: 3.1, nome: "Strada", ts: "2026-07-26", fonte: "mano" }]));
+  { const kpi = (q) => ({ maglia: "3,0 × 3,5 m", setup: "ANFO standard · Nonel", nf: 16, qtot: 928, pf: 0.55, x20: 13, x50: 28, x80: 50, ppv: 6.4, lim: 15, norma: "DIN residenziale @ 25 Hz",
+      ppvBase: { fonte: "manuale", K: 1906, beta: 1.55, referti: 0, testo: "K≈1.906/β≈1,55 stimati da Calcare", provvisoria: false }, fly: 101, presplit: false, cost: 2234, foriPropri: 0, flyTipo: 0, fragTipo: 0, ...q });
+    doc("genesi", "csvConfrontoAB", () => genesi.csvConfrontoAB({ ts: "12/07/2026, 10:00", kpi: kpi({}) }, { ts: "12/07/2026, 10:20", kpi: kpi({ maglia: "3,2 × 3,8 m", nf: 14, qtot: 812, pf: 0.48, x50: 31, ppv: 5.9, fly: 96, cost: 1980, foriPropri: 1, flyTipo: 1, fragTipo: 1 }) }));
+    doc("genesi", "csvConfrontoAB senza costo", () => genesi.csvConfrontoAB({ ts: "12/07/2026, 10:00", kpi: kpi({ cost: null, costChe: "manca il prezzo dell'esplosivo" }) }, { ts: "12/07/2026, 10:20", kpi: kpi({}) })); }
   doc("genesi", "csvRiconciliazione", () => genesi.csvRiconciliazione([
     { ts: "2026-07-12", nome: "Fronte Nord", prev: { x50: 28, ppv: 6.4, fly: 101, ppvBase: { breve: "manuale (Calcare)" } }, real: { x50: 31, ppv: 5.1, fly: 60, ovs: 4, note: "primo sparo" } },
     /* la riga di chi ha salvato la previsione e non ha ancora misurato niente: celle vuote, non zeri */

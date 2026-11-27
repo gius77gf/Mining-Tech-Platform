@@ -82,6 +82,24 @@ import { scartoLivello } from '../../shared/dw-ponti.js';
                  di SD la pendenza non è determinabile (divisione per ~0)
     · 'pendenza' β fuori da 0,5–3: i dati non descrivono un'attenuazione
                  fisica (referti di siti diversi mescolati, carica sbagliata…) */
+/* QUANTE RIGHE DI DATO HA UN FILE CHE È APPENA USCITO (27/11) — per i messaggi «esportato: N righe».
+   ⛔ È NATA DA UN DIFETTO MIO, DUE VOLTE NELLA STESSA SERA. Portando nel modulo il CSV della legge
+   di sito e quello del confronto A/B ho traslocato le righe che componevano il file e ho lasciato
+   nella pagina il messaggio di conferma, che contava l'ARRAY da cui il file nasceva (`P.length`,
+   `R.length-1`) — un nome che nella pagina non c'era più.
+    · nel confronto A/B `R` non esisteva: il gestore moriva DOPO aver fatto scaricare il file. L'hanno
+      visto `nomi-liberi` e due banchi («R is not defined»), prima del commit;
+    · nella legge di sito è andata peggio: nella pagina esiste un `P` GLOBALE (i parametri del
+      progetto), quindi nessun errore — il messaggio diceva «esportata: — referti». Un omonimo ha
+      reso muto il difetto, ed è finito in un commit pushato (`32a0b024`) perché nessun controllo
+      legge quel messaggio. Adesso un banco lo legge.
+   La cura non è rimettere il nome: è contare sul FILE. Si rilegge col lettore condiviso (una cella
+   con un a capo dentro non fa due righe) e si toglie l'intestazione. Così il messaggio non può più
+   dire un numero diverso da quello che il file contiene, e non dipende da come il file è nato. */
+export function righeDiDatoCsv(csv){
+  if(typeof csv!=='string' || !csv.trim()) return 0;
+  return Math.max(0, leggiCsv(csv).righe.length-1);
+}
 /* IL CSV DELLA LEGGE DI SITO (27/11, fetta di B3: Genesi continua a uscire dalla pagina).
    Lo componeva l'`onclick` di `sitoExport`, dove `node` non arriva: era uno dei quattro CSV di
    Genesi che nessun controllo senza browser poteva aprire. È entrato IDENTICO, carattere per
@@ -4057,6 +4075,62 @@ export function taglioRealizzabile(dt, innesco, tagli){
    Trasloco B3 (14/09): il legame con l'innesco scelto è uscito anche lui —
    `D2` come primo argomento esplicito, stesso schema delle altre fette. */
 export function innTaglioOk(D2, dt){ return taglioRealizzabile(dt, D2.innesco, INN_TAGLI); }
+/* IL CSV DEL CONFRONTO A/B (27/11, fetta di B3: Genesi continua a uscire dalla pagina).
+   Lo componeva l'`onclick` di `cmpExport`. È entrato com'era, riga per riga e commento per commento
+   (provato sugli stessi due scatti contro il corpo di prima: identico carattere per carattere): non
+   toccava niente della pagina — solo i due scatti e tre funzioni che erano già qui.
+   `A` e `B` sono gli scatti (`{ ts, kpi }`): chi chiama controlla che ci siano tutt'e due. */
+export function csvConfrontoAB(A, B){
+  /* ⛔ QUESTO ERA L'ULTIMO DEI QUATTRO FILE DI GENESI SENZA `csvCell`: la
+     passata del 03/08 aveva ripulito la scheda volata, la legge di sito e il
+     file per Sentinella, e si era fermata prima di qui. Le celle le compone
+     `csvCell` di `shared/` come tutte le altre — un `join(';')` nudo non mette
+     l'apostrofo davanti a una formula né protegge un `;` dentro un nome.
+     ⛔ E la base della PPV esce ACCANTO ai due numeri: senza, un file che
+     dice «6,4 contro 2,8» racconta un progetto migliorato dove è cambiata
+     solo la calibrazione. Stessa ragione per cui la norma esce accanto alla
+     sua soglia nel CSV della scheda volata. */
+  /* i fori con valori LORO (26/11): `null` (scatto salvato prima) esce cella VUOTA, e la
+     riga «registrati nello scatto» dice che quel vuoto è un «non lo so», non un conto */
+  const _fpA=cmpForiPropri(A.kpi), _fpB=cmpForiPropri(B.kpi);
+  const _fpNoto=(c)=> c.noto ? 'si' : 'no — scatto salvato prima che il dato esistesse';
+  const _base=(S)=> (S.kpi.ppvBase&&S.kpi.ppvBase.testo)
+    ? S.kpi.ppvBase.testo+(S.kpi.ppvBase.provvisoria?' — legge provvisoria':'')
+    : 'base non registrata';
+  const R=[['KPI','A ('+A.ts+')','B ('+B.ts+')'],
+    ['Maglia',A.kpi.maglia,B.kpi.maglia],
+    ['Esplosivo',A.kpi.setup,B.kpi.setup],
+    ['Fori',A.kpi.nf,B.kpi.nf],
+    ['Fori con valori propri',_fpA.fori,_fpB.fori],
+    ['Fori con valori propri registrati nello scatto',_fpNoto(_fpA),_fpNoto(_fpB)],
+    ['Carica totale (kg)',A.kpi.qtot,B.kpi.qtot],
+    ['Powder factor',A.kpi.pf,B.kpi.pf],
+    ['X20 (cm)',A.kpi.x20,B.kpi.x20],['X50 (cm)',A.kpi.x50,B.kpi.x50],['X80 (cm)',A.kpi.x80,B.kpi.x80],
+    ['Fori fuori dal foro tipo (pezzatura)',_fpA.fuoriPezzatura,_fpB.fuoriPezzatura],
+    ['PPV (mm/s)',A.kpi.ppv,B.kpi.ppv],['Limite PPV (mm/s)',A.kpi.lim,B.kpi.lim],
+    ['Norma PPV',A.kpi.norma,B.kpi.norma],
+    ['Base della previsione PPV',_base(A),_base(B)],
+    ['Stessa legge per le due PPV',stessaBasePpv(A.kpi.ppvBase,B.kpi.ppvBase)?'si':'no — le due PPV non sono confrontabili',''],
+    ['Gittata flyrock (m)',A.kpi.fly,B.kpi.fly],
+    ['Fori fuori dal foro tipo (gittata)',_fpA.fuoriGittata,_fpB.fuoriGittata],
+    ['Presplit',A.kpi.presplit?'si':'no',B.kpi.presplit?'si':'no'],
+    ['Costo totale stima (EUR)',A.kpi.cost,B.kpi.cost],
+    /* le due celle sopra possono essere VUOTE (carica per foro illeggibile →
+       l'addendo dell'esplosivo non si conta): questa riga dice che è una
+       non-misurabilità e non una dimenticanza, per ciascuna delle due colonne */
+    ['Esito costo', _cmpNum(A.kpi.cost)===null?'non calcolabile: '+(A.kpi.costChe||''):'contato',
+                    _cmpNum(B.kpi.cost)===null?'non calcolabile: '+(B.kpi.costChe||''):'contato'],
+    ['Carica totale non calcolabile',
+      _cmpNum(A.kpi.qtot)===null?'si':'no', _cmpNum(B.kpi.qtot)===null?'si':'no'],
+    /* stessa forma per le quattro celle della frammentazione, che con la
+       carica illeggibile uscivano «0» e «97/173» invece che vuote */
+    ['Esito frammentazione', _cmpNum(A.kpi.pf)===null?'non calcolabile: '+(A.kpi.fragChe||''):'calcolata',
+                             _cmpNum(B.kpi.pf)===null?'non calcolabile: '+(B.kpi.fragChe||''):'calcolata']];
+  /* `null` non si scrive in un file (il limite manca quando la normativa non è
+     riconosciuta): cella VUOTA, come già fa la scheda volata */
+  const csv=R.map(r=>r.map(v=>csvCell(v===null||v===undefined?'':v)).join(';')).join('\n')+'\n';
+  return csv;
+}
 export function _cmpNum(v){ return (v===null||v===undefined||v==='')?null:(isFinite(+v)?+v:null); }
 export function _cmpKg(k){ const v=_cmpNum(k&&k.qtot); return v===null?'<i style="color:#ffca28">non calcolabile</i>':gnum(v,0)+' kg'; }
 export function _cmpEur(k){ const v=_cmpNum(k&&k.cost); return v===null?'<i style="color:#ffca28">non calcolabile</i>':'€'+gnum(v,0); }

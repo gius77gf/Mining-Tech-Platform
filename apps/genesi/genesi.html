@@ -1329,7 +1329,7 @@ import { gnum, gseg, gfix, gdata, fmtMs, fmtKg, fmtT, gEsito, gIn } from './gene
    guardano — e perché `normaPpvLab`, che la pagina **importa**, è l'unico modo
    di leggere quella tabella da fuori: la pagina se n'era scritta una copia, con
    un ripiego diverso, ed è il difetto corretto il 01/08. */
-import { sitoFit, csvLeggeDiSito, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaPpvLab, normaConFrequenza,
+import { sitoFit, csvLeggeDiSito, righeDiDatoCsv, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaPpvLab, normaConFrequenza,
 /* il verdetto sulla vibrazione, in un posto solo: fino al 03/08 lo prendeva
    la scheda validatori e il foglio stampato non lo prendeva affatto — vedi
    l'intestazione del blocco in `genesi-data.js`. */
@@ -1434,7 +1434,7 @@ import { sitoFit, csvLeggeDiSito, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, ai
          fattoreRoccia, x50DaMisure, ondaDaCsv, ondaPercheNo, _sitoParseCsv, tempiDetonazione, sommaRitardata,
          ppvDaSd, caricaDaX50Target, rwsEffettiva, PENALITA_ACQUA, deviazioneForiDaCsv, deviazioneStatistiche, burdenVeroDaRilievo, burdenPerForo,
          quotaCresta, distanzaDaSpezzata, spaziaturaTipica, _spazTipico, tempoInPunto, passoIsocrone, isoPasso,
-         fileDeiFori, INN_TAGLI, taglioRealizzabile, innTaglioOk, _cmpNum, _cmpKg, _cmpEur, _cmpPf, _cmpCm, _cmpFly, cmpForiPropri, sintesiVolata, nonEsceSenzaPianta,
+         fileDeiFori, INN_TAGLI, taglioRealizzabile, innTaglioOk, _cmpNum, _cmpKg, _cmpEur, _cmpPf, _cmpCm, _cmpFly, cmpForiPropri, csvConfrontoAB, sintesiVolata, nonEsceSenzaPianta,
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, reliefCls, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino, activeProf, d2HitTest, d2HitTestPt,
@@ -4565,60 +4565,16 @@ if($('cmpClose')) $('cmpClose').onclick=()=>{ $('cmpModal').style.display='none'
 if($('cmpExport')) $('cmpExport').onclick=async ()=>{
   const {A,B}=await cmpScatti();
   if(!A||!B){ toast('Salva prima i progetti A e B'); return; }
-  /* ⛔ QUESTO ERA L'ULTIMO DEI QUATTRO FILE DI GENESI SENZA `csvCell`: la
-     passata del 03/08 aveva ripulito la scheda volata, la legge di sito e il
-     file per Sentinella, e si era fermata prima di qui. Le celle le compone
-     `csvCell` di `shared/` come tutte le altre — un `join(';')` nudo non mette
-     l'apostrofo davanti a una formula né protegge un `;` dentro un nome.
-     ⛔ E la base della PPV esce ACCANTO ai due numeri: senza, un file che
-     dice «6,4 contro 2,8» racconta un progetto migliorato dove è cambiata
-     solo la calibrazione. Stessa ragione per cui la norma esce accanto alla
-     sua soglia nel CSV della scheda volata. */
-  /* i fori con valori LORO (26/11): `null` (scatto salvato prima) esce cella VUOTA, e la
-     riga «registrati nello scatto» dice che quel vuoto è un «non lo so», non un conto */
-  const _fpA=cmpForiPropri(A.kpi), _fpB=cmpForiPropri(B.kpi);
-  const _fpNoto=(c)=> c.noto ? 'si' : 'no — scatto salvato prima che il dato esistesse';
-  const _base=(S)=> (S.kpi.ppvBase&&S.kpi.ppvBase.testo)
-    ? S.kpi.ppvBase.testo+(S.kpi.ppvBase.provvisoria?' — legge provvisoria':'')
-    : 'base non registrata';
-  const R=[['KPI','A ('+A.ts+')','B ('+B.ts+')'],
-    ['Maglia',A.kpi.maglia,B.kpi.maglia],
-    ['Esplosivo',A.kpi.setup,B.kpi.setup],
-    ['Fori',A.kpi.nf,B.kpi.nf],
-    ['Fori con valori propri',_fpA.fori,_fpB.fori],
-    ['Fori con valori propri registrati nello scatto',_fpNoto(_fpA),_fpNoto(_fpB)],
-    ['Carica totale (kg)',A.kpi.qtot,B.kpi.qtot],
-    ['Powder factor',A.kpi.pf,B.kpi.pf],
-    ['X20 (cm)',A.kpi.x20,B.kpi.x20],['X50 (cm)',A.kpi.x50,B.kpi.x50],['X80 (cm)',A.kpi.x80,B.kpi.x80],
-    ['Fori fuori dal foro tipo (pezzatura)',_fpA.fuoriPezzatura,_fpB.fuoriPezzatura],
-    ['PPV (mm/s)',A.kpi.ppv,B.kpi.ppv],['Limite PPV (mm/s)',A.kpi.lim,B.kpi.lim],
-    ['Norma PPV',A.kpi.norma,B.kpi.norma],
-    ['Base della previsione PPV',_base(A),_base(B)],
-    ['Stessa legge per le due PPV',stessaBasePpv(A.kpi.ppvBase,B.kpi.ppvBase)?'si':'no — le due PPV non sono confrontabili',''],
-    ['Gittata flyrock (m)',A.kpi.fly,B.kpi.fly],
-    ['Fori fuori dal foro tipo (gittata)',_fpA.fuoriGittata,_fpB.fuoriGittata],
-    ['Presplit',A.kpi.presplit?'si':'no',B.kpi.presplit?'si':'no'],
-    ['Costo totale stima (EUR)',A.kpi.cost,B.kpi.cost],
-    /* le due celle sopra possono essere VUOTE (carica per foro illeggibile →
-       l'addendo dell'esplosivo non si conta): questa riga dice che è una
-       non-misurabilità e non una dimenticanza, per ciascuna delle due colonne */
-    ['Esito costo', _cmpNum(A.kpi.cost)===null?'non calcolabile: '+(A.kpi.costChe||''):'contato',
-                    _cmpNum(B.kpi.cost)===null?'non calcolabile: '+(B.kpi.costChe||''):'contato'],
-    ['Carica totale non calcolabile',
-      _cmpNum(A.kpi.qtot)===null?'si':'no', _cmpNum(B.kpi.qtot)===null?'si':'no'],
-    /* stessa forma per le quattro celle della frammentazione, che con la
-       carica illeggibile uscivano «0» e «97/173» invece che vuote */
-    ['Esito frammentazione', _cmpNum(A.kpi.pf)===null?'non calcolabile: '+(A.kpi.fragChe||''):'calcolata',
-                             _cmpNum(B.kpi.pf)===null?'non calcolabile: '+(B.kpi.fragChe||''):'calcolata']];
-  /* `null` non si scrive in un file (il limite manca quando la normativa non è
-     riconosciuta): cella VUOTA, come già fa la scheda volata */
-  const csv=R.map(r=>r.map(v=>csvCell(v===null||v===undefined?'':v)).join(';')).join('\n')+'\n';
+  /* 27/11 — il file lo compone il modulo (`csvConfrontoAB`), dove anche `node` lo può aprire: le righe, e la storia
+     di ognuna, sono scritte là. Qui resta chi prende i due scatti e chi fa scaricare. */
+  const csv=csvConfrontoAB(A, B);
   const a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
   a.download='genesi_confronto_AB.csv'; a.click();
-  /* `R[0]` è l'intestazione: si annunciano le righe di DATO, che sono quelle
-     che il file contiene davvero (vedi la scheda volata) */
-  toast('✓ Confronto A/B esportato: '+_ricPlur(R.length-1,'riga di confronto','righe di confronto'));
+  /* si annunciano le righe di DATO che il file contiene davvero, contate sul file uscito (`righeDiDatoCsv`): le righe
+     le compone il modulo, e qui `R` non c'è più — il 27/11 questa riga la cercava ancora, e il gestore moriva
+     dopo aver fatto scaricare il file */
+  toast('✓ Confronto A/B esportato: '+_ricPlur(righeDiDatoCsv(csv),'riga di confronto','righe di confronto'));
 };
 
 /* ===== Riconciliazione previsto-vs-reale (P0.1): chiude il cerchio col dato
@@ -5373,7 +5329,10 @@ if($('sitoExport')) $('sitoExport').onclick=()=>{
      in cui questa famiglia di difetti si presenta: la frase conta l'array
      SORGENTE mentre il ciclo che scrive filtra. Annunciando le righe VERE del
      file, il giorno che divergessero lo dice la frase. */
-  toast('✓ Legge di sito esportata: '+_ricPlur(P.length,'referto','referti'));
+  /* ⛔ 27/11: e infatti è successo, nel modo peggiore. Il file è salito nel modulo e questa riga è rimasta a contare
+     `P.length` — che qui, senza il `P` locale, è il `P` GLOBALE dei parametri: nessun errore, e il messaggio diceva
+     «esportata: — referti». Ora si contano le righe del FILE uscito (`righeDiDatoCsv`), non l'array da cui nasce. */
+  toast('✓ Legge di sito esportata: '+_ricPlur(righeDiDatoCsv(csv),'referto','referti'));
 };
 
 /* ═══ T9 · MANDA A SENTINELLA — la volata progettata entra nel registro ══════

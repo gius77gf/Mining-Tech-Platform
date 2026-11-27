@@ -69,6 +69,8 @@ const TIPI = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/jav
    se OGNI difetto ha trovato il suo pezzo — un `replace` che non trova niente
    esce in silenzio. */
 const DIFETTI = [
+  // 0 · il messaggio di conferma della legge di sito torna a contare un array che nella pagina non c'è più (27/11)
+  ["_ricPlur(righeDiDatoCsv(csv),'referto','referti')", "_ricPlur(P.length,'referto','referti')"],
   // 1 · la guardia sul campo svuotato (e il suo gemello su «Esplosivo totale»)
   ["    if(!guardiaVuoto(el)) return;\n", "\n"],
   ["  if(String($('dKgTot').value||'').trim()===''){ syncKgTot(); return; }\n", "\n"],
@@ -359,6 +361,13 @@ console.log("\n· legge di sito su tre referti, con un referto dal nome ostile")
   await pg.evaluate(() => { const x = document.getElementById("sitoExport"); if (x) x.click(); });
   await pg.waitForTimeout(300);
   const csvSito = String(await pg.evaluate(() => window.__csv) || "");
+  /* ⛔ 27/11 — il messaggio di conferma. Il file era salito nel modulo e il messaggio contava ancora `P.length`: nella
+     pagina `P` è anche il nome dei parametri GLOBALI, quindi nessun errore — diceva «esportata: — referti». Nessun
+     controllo leggeva questa frase; adesso sì, contro le righe del file appena letto. */
+  const dettoSito = await pg.evaluate(() => (document.getElementById("toast") || {}).textContent || "");
+  const nelFile = csvSito.trim() ? csvSito.trim().split("\n").length - 1 : 0;
+  dice(nelFile > 0 && new RegExp("Legge di sito esportata: " + nelFile + " refert[oi]").test(dettoSito),
+    `⛔ il messaggio di conferma dice quanti referti ha scritto DAVVERO nel file (${nelFile})`, dettoSito);
   dice(/;'=SUM\(1\+1\);/.test(csvSito),
     "⛔ nel CSV della legge di sito il referto `=SUM(1+1)` esce con l'apostrofo di guardia, non nudo",
     csvSito.split("\n")[1]);

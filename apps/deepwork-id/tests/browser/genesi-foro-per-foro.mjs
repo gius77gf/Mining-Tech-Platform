@@ -159,8 +159,11 @@ const DIFETTI = [
   [PAGINA, `const _fpMostra=(a,b)=> !(a===0 && b===0);`, `const _fpMostra=(a,b)=> false;`],
   [PAGINA, `flyTipo:foriFuoriDalForoTipo(D2.holes, CAMPI_DELLA_GITTATA).fori,`, `flyTipo:contaValoriPropri(D2.holes).fori,`],
   [PAGINA, `'':'<div id="cmp-fly-tipo"`, `'':'<div hidden`],
-  [PAGINA, `['Fori con valori propri',_fpA.fori,_fpB.fori],`, `['Fori con valori propri',_fpA.fori||0,_fpB.fori||0],`],
-  [PAGINA, `['Fori fuori dal foro tipo (gittata)',_fpA.fuoriGittata,_fpB.fuoriGittata],`, ``],
+  /* ⏱️ riancorate il 27/11 dalla PAGINA al MODULO: il CSV del confronto A/B è salito in `csvConfrontoAB`, e queste due righe
+     con lui. `iniezioni-fresche` l'ha detto prima del commit («il file dichiarato non le contiene più»): senza, la
+     controprova avrebbe continuato a dire «✔» con due difetti in meno rimessi. Il banco applica PER FILE (riga del server). */
+  [MODULO, `['Fori con valori propri',_fpA.fori,_fpB.fori],`, `['Fori con valori propri',_fpA.fori||0,_fpB.fori||0],`],
+  [MODULO, `['Fori fuori dal foro tipo (gittata)',_fpA.fuoriGittata,_fpB.fuoriGittata],`, ``],
   /* la riga che resta nello storico (27/11): tace i fori con valori loro, e la X50 non dice «foro tipo» */
   [MODULO, `(propri > 0 ? ' · ' + gnum(propri, 0) + ' con valori propri' : '')`, `''`],
   [MODULO, `(tipo > 0 ? ' (foro tipo)' : '')`, `''`],

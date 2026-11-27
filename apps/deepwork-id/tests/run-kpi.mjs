@@ -44098,7 +44098,42 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
       "⛔ nessun referto usabile: stringa vuota (non un file con la sola intestazione) — è chi chiama a dire «Nessun referto da esportare»");
     const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
     ok(/const csv=csvLeggeDiSito\(sitoStore\(\)\.punti\);\n  if\(!csv\)\{ toast\('Nessun referto da esportare'\); return; \}/.test(pag), "la pagina chiede il file al modulo, e se è vuoto lo dice");
+    /* ⛔ il messaggio di conferma conta le righe del FILE: il 27/11 contava un array traslocato, e diceva «— referti» */
+    eq([genesi.righeDiDatoCsv(csv), genesi.righeDiDatoCsv(genesi.csvLeggeDiSito([{ d: 300, w: 58, ppv: 6.4, nome: "riga\ncon a capo" }, { d: 120, w: 116, ppv: 22.5 }])), genesi.righeDiDatoCsv(""), genesi.righeDiDatoCsv(null), genesi.righeDiDatoCsv("solo;intestazione\n")], [3, 2, 0, 0, 0],
+      "⛔ `righeDiDatoCsv` conta i referti del file uscito (3), non spezza una cella con un a capo dentro (2, non 3), e su niente dice 0");
+    ok(/toast\('✓ Legge di sito esportata: '\+_ricPlur\(righeDiDatoCsv\(csv\),'referto','referti'\)\);/.test(pag), "⛔ e la pagina annuncia quel numero — contato sul file, non su un array");
+    eq(/_ricPlur\((?:P|R)\.length/.test(pag), false, "⛔ nessun messaggio di conferma conta più `P.length` o `R.length`: sono i due nomi rimasti appesi dopo i traslochi");
     eq(/distanza_scalata;origine/.test(pag), false, "⛔ e nella pagina l'intestazione di quel file non c'è più: non è rimasta una seconda copia");
+  });
+  test("⛔ Genesi · csvConfrontoAB: il file del confronto A/B lo compone il modulo, identico a quello che componeva la pagina", () => {
+    const base = { fonte: "manuale", K: 1906, beta: 1.55, referti: 0, testo: "K≈1.906/β≈1,55 stimati da Calcare", provvisoria: false };
+    const K = (q) => ({ maglia: "3,0 × 3,5 m", setup: "ANFO standard · Nonel", nf: 16, qtot: 928, pf: 0.55, x20: 13, x50: 28, x80: 50, ppv: 6.4, lim: 15, norma: "DIN residenziale @ 25 Hz", ppvBase: base, fly: 101, presplit: false, cost: 2234, foriPropri: 0, flyTipo: 0, fragTipo: 0, ...q });
+    const righe = (csv) => Object.fromEntries(shell.leggiCsv(csv).righe.filter((r) => r.length > 1).map((r) => [r[0], r.slice(1)]));
+    /* A non ha né il costo né la carica; B è intero */
+    const csv = genesi.csvConfrontoAB({ ts: "a", kpi: K({ cost: null, costChe: "manca il prezzo dell'esplosivo", qtot: null, pf: null, fragChe: "la carica per foro non è leggibile", x20: null, x50: null, x80: null }) }, { ts: "b", kpi: K({}) });
+    eq(csv, ["KPI;A (a);B (b)", "Maglia;3,0 × 3,5 m;3,0 × 3,5 m", "Esplosivo;ANFO standard · Nonel;ANFO standard · Nonel", "Fori;16;16", "Fori con valori propri;0;0", "Fori con valori propri registrati nello scatto;si;si",
+      "Carica totale (kg);;928", "Powder factor;;0.55", "X20 (cm);;13", "X50 (cm);;28", "X80 (cm);;50", "Fori fuori dal foro tipo (pezzatura);0;0", "PPV (mm/s);6.4;6.4", "Limite PPV (mm/s);15;15",
+      "Norma PPV;DIN residenziale @ 25 Hz;DIN residenziale @ 25 Hz", "Base della previsione PPV;K≈1.906/β≈1,55 stimati da Calcare;K≈1.906/β≈1,55 stimati da Calcare", "Stessa legge per le due PPV;si;",
+      "Gittata flyrock (m);101;101", "Fori fuori dal foro tipo (gittata);0;0", "Presplit;no;no", "Costo totale stima (EUR);;2234", "Esito costo;non calcolabile: manca il prezzo dell'esplosivo;contato",
+      "Carica totale non calcolabile;si;no", "Esito frammentazione;non calcolabile: la carica per foro non è leggibile;calcolata", ""].join("\n"),
+      "⛔ il testo esatto, ventiquattro righe: quello che non si conta è una cella VUOTA (mai uno zero), e accanto c'è la riga che dice perché");
+    /* la legge cambiata fra i due scatti, e i fori con valori loro */
+    const r2 = righe(genesi.csvConfrontoAB({ ts: "a", kpi: K({}) }, { ts: "b", kpi: K({ ppv: 2.8, ppvBase: { fonte: "sito", K: 800, beta: 1.4, referti: 3, testo: "legge di sito su 3 referti", provvisoria: true }, foriPropri: 2, flyTipo: 1, fragTipo: 2, presplit: true }) }));
+    eq([r2["Stessa legge per le due PPV"], r2["Base della previsione PPV"][1], r2["Fori con valori propri"], r2["Fori fuori dal foro tipo (gittata)"], r2["Presplit"]],
+      [["no — le due PPV non sono confrontabili", ""], "legge di sito su 3 referti — legge provvisoria", ["0", "2"], ["0", "1"], ["no", "si"]],
+      "⛔ se fra i due scatti è cambiata la legge, il file lo DICE accanto ai due numeri: un «6,4 contro 2,8» da solo racconterebbe un progetto migliorato");
+    /* gli scatti salvati prima che certi dati esistessero, e le celle che una formula o un `;` romperebbero */
+    const vecchi = genesi.csvConfrontoAB({ ts: "a", kpi: K({ ppvBase: undefined, foriPropri: undefined, flyTipo: undefined, fragTipo: undefined, setup: "ANFO; \"sfuso\"", maglia: "=1+1" }) }, { ts: "b", kpi: K({ ppvBase: null }) }), r3 = righe(vecchi);
+    eq([r3["Base della previsione PPV"], r3["Stessa legge per le due PPV"][0], r3["Fori con valori propri"], r3["Fori con valori propri registrati nello scatto"]],
+      [["base non registrata", "base non registrata"], "no — le due PPV non sono confrontabili", ["", "0"], ["no — scatto salvato prima che il dato esistesse", "si"]],
+      "⛔ uno scatto di prima: cella vuota e «non registrato» detto a parole — non zero fori, non la stessa legge");
+    ok(/\nMaglia;'=1\+1;/.test(vecchi) && /\nEsplosivo;"ANFO; ""sfuso""";/.test(vecchi) && r3["Esplosivo"][0] === "ANFO; \"sfuso\"", "le celle passano da `csvCell`: apostrofo davanti a una formula, virgolette attorno a un `;` — e rilette tornano intere");
+    eq(/undefined|NaN|\bnull\b/.test(csv + vecchi), false, "in nessuna cella «undefined», «NaN», «null»");
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    ok(/if\(!A\|\|!B\)\{ toast\('Salva prima i progetti A e B'\); return; \}\n[^]{0,260}const csv=csvConfrontoAB\(A, B\);/.test(pag), "la pagina controlla che gli scatti ci siano, poi chiede il file al modulo");
+    eq(/Stessa legge per le due PPV/.test(pag), false, "⛔ e nella pagina quelle righe non ci sono più: non è rimasta una seconda copia");
+    eq(genesi.righeDiDatoCsv(csv), 23, "ventitré righe di dato, più l'intestazione");
+    ok(/toast\('✓ Confronto A\/B esportato: '\+_ricPlur\(righeDiDatoCsv\(csv\),'riga di confronto','righe di confronto'\)\);/.test(pag), "⛔ il messaggio di conferma le conta sul file uscito: `R` nella pagina non c'è più");
   });
   test("⛔ Genesi · eUnTocco e i tocchi sulla pianta: un dito conduce, il secondo ferma tutto, col dito si crea alzandolo", () => {
     eq(genesi.eUnTocco(100, 100, 100, 100), true, "il dito si alza dov'era: è un tocco");
