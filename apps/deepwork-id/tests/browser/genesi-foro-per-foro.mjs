@@ -151,6 +151,16 @@ const DIFETTI = [
   /* il piede nel DXF (26/11): la pagina non passa il progetto (niente piedi), e il piede va dalla parte sbagliata */
   [PAGINA, `const dxf=dxfPianoFori(D2.holes, D2.diam, D2.profilo, D2);`, `const dxf=dxfPianoFori(D2.holes, D2.diam, D2.profilo);`],
   [MODULO, `{x:+h.mx, y:+h.my - avanti}]);`, `{x:+h.mx, y:+h.my + avanti}]);`],
+  /* il confronto A/B e i fori con valori loro (27/11): il verde sulla gittata torna comunque, lo
+     scatto non porta i conti, le righe non compaiono, il conto per la gittata prende tutti i campi,
+     la ragione tace, e nel CSV il «non lo so» diventa zero o la riga sparisce */
+  [PAGINA, `(_fpA.gittataSuTutti && _fpB.gittataSuTutti) ? vincitoreKpi(A.kpi.fly,B.kpi.fly) : null],`, `vincitoreKpi(A.kpi.fly,B.kpi.fly)],`],
+  [PAGINA, `foriPropri:contaValoriPropri(D2.holes).fori,`, ``],
+  [PAGINA, `const _fpMostra=(a,b)=> !(a===0 && b===0);`, `const _fpMostra=(a,b)=> false;`],
+  [PAGINA, `flyTipo:foriFuoriDalForoTipo(D2.holes, CAMPI_DELLA_GITTATA).fori,`, `flyTipo:contaValoriPropri(D2.holes).fori,`],
+  [PAGINA, `'':'<div id="cmp-fly-tipo"`, `'':'<div hidden`],
+  [PAGINA, `['Fori con valori propri',_fpA.fori,_fpB.fori],`, `['Fori con valori propri',_fpA.fori||0,_fpB.fori||0],`],
+  [PAGINA, `['Fori fuori dal foro tipo (gittata)',_fpA.fuoriGittata,_fpB.fuoriGittata],`, ``],
 ];
 
 const colpiti = new Set();
@@ -1143,6 +1153,90 @@ if (prima && prima.colonneTrovate) {
     dice(/1 foro ha un valore proprio di profondità: la pezzatura è calcolata sul FORO TIPO/.test(x50), "e sullo schermo la X50 dice la stessa frase, col campo giusto (prima diceva sempre «carica, profondità o borraggio»)", x50.slice(-200));
   }
   await pg.evaluate((r) => { const D = window.__genesi.D2; for (const h of D.holes) for (const c of ["kg", "prof", "stem", "diam", "incl"]) delete h[c]; D.recDist = r; window.__genesi.renderScheda2D(); }, recPrima);
+  await pg.waitForTimeout(250);
+}
+/* 16. ⛔ IL CONFRONTO A/B NON SAPEVA I FORI CON VALORI LORO (27/11). Due scatti con la stessa
+   gittata «sul foro tipo» si leggevano uguali anche se in uno c'era un foro col borraggio corto —
+   e la colonna con la gittata più bassa andava in VERDE. Lo scatto adesso porta tre conti, il
+   confronto li dice, e il verde sulla gittata si dà solo se vale per tutti i fori di tutt'e due.
+   ⛔ Uno scatto salvato PRIMA non ha i tre conti: «non noto», mai «nessuno» né zero. */
+{
+  console.log("\n── il confronto A/B e i fori con valori loro ──");
+  await pg.setViewportSize({ width: 430, height: 900 });
+  await pg.click('#bottomnav button[data-scr="design"]'); await pg.waitForTimeout(400);
+  const pulisci = () => pg.evaluate(() => { const D = window.__genesi.D2; for (const h of D.holes) for (const c of ["kg", "prof", "stem", "diam", "incl"]) delete h[c]; window.__genesi.renderScheda2D(); });
+  const stemPrima = await pg.evaluate(() => window.__genesi.D2.stem);
+  const salva = async (slot) => { await pg.evaluate((s) => document.getElementById("cmpSave" + s).click(), slot); await pg.waitForTimeout(300); };
+  const confronto = async (scatto) => {
+    await pg.evaluate(() => document.getElementById("cmpShow").click()); await pg.waitForTimeout(600);
+    const q = await pg.evaluate(() => {
+      const g = document.querySelector("#cmpBody > div"), c = g ? [...g.children] : [], righe = {};
+      const tx = (e) => e.innerText.replace(/\s+/g, " ").trim(), verde = (e) => /66bb6a/.test(e.getAttribute("style") || "");
+      for (let i = 3; i + 2 < c.length; i += 3) righe[tx(c[i])] = { a: tx(c[i + 1]), b: tx(c[i + 2]), verde: verde(c[i + 1]) ? "A" : (verde(c[i + 2]) ? "B" : "") };
+      const n = document.getElementById("cmp-fly-tipo");
+      return { righe, nota: n ? tx(n) : "", fuori: g ? g.scrollWidth - g.clientWidth : -1, celle: c.length };
+    });
+    if (scatto) await pg.screenshot({ path: scatto, fullPage: false });
+    await pg.evaluate(() => { const c = document.getElementById("cmpClose"); if (c) c.click(); });
+    /* una riga che NON c'è si legge vuota invece di far crollare il banco: col difetto rimesso le
+       righe spariscono, e un banco che crolla dichiara meno prove invece di dire quale è caduta */
+    q.righe = new Proxy(q.righe, { get: (o, k) => (k in o ? o[k] : { a: "", b: "", verde: "", assente: true }), has: (o, k) => k in o });
+    return q;
+  };
+  const csvAB = async () => { await pg.evaluate(() => { window.__usciti.length = 0; document.getElementById("cmpExport").click(); }); await pg.waitForTimeout(500);
+    const f = (await pg.evaluate(() => window.__usciti)).find((x) => /confronto_AB\.csv$/.test(x.nome)); const t = f ? decodeURIComponent(f.href.split(",").slice(1).join(",")) : "";
+    const riga = (nome) => { const r = t.split(/\r?\n/).find((x) => x.startsWith(nome + ";")); return r === undefined ? null : r.slice(nome.length + 1); };
+    return { propri: riga("Fori con valori propri"), noto: riga("Fori con valori propri registrati nello scatto"), fly: riga("Fori fuori dal foro tipo (gittata)"), frag: riga("Fori fuori dal foro tipo (pezzatura)"), m: riga("Gittata flyrock (m)") }; };
+  const SCATTO_AB = process.env.DW_SCATTO_AB || "";
+
+  /* a) NEUTRALITÀ: due scatti dello stesso progetto senza valori per foro */
+  await pulisci(); await salva("A"); await salva("B");
+  const n0 = await confronto(), f0 = await csvAB();
+  const NUOVE = ["↳ fori con valori propri", "↳ pezzatura non calcolata per", "↳ gittata non calcolata per"];
+  dice(n0.celle > 30 && !!n0.righe["Gittata flyrock"], "premessa: il confronto si disegna, e la riga della gittata si legge", n0.celle);
+  dice(NUOVE.every((r) => !(r in n0.righe)) && n0.nota === "", "⛔ NEUTRALITÀ: senza valori per foro il confronto è quello di sempre — nessuna delle tre righe nuove, nessuna nota", Object.keys(n0.righe));
+  dice(f0.propri === "0;0" && f0.noto === "si;si" && f0.fly === "0;0" && f0.frag === "0;0", "e nel CSV i tre conti sono ZERI registrati (un conto, non un vuoto)", f0);
+
+  /* b) B con più borraggio: gittata più bassa, e B va in verde — la premessa che il verde esista */
+  await pg.evaluate(() => { const D = window.__genesi.D2; D.stem = +D.stem + 0.8; window.__genesi.renderScheda2D(); }); await pg.waitForTimeout(250);
+  await salva("B");
+  const v1 = await confronto(), f1 = await csvAB();
+  const mA = Number((f1.m || "").split(";")[0]), mB = Number((f1.m || "").split(";")[1]);
+  dice(mB < mA && v1.righe["Gittata flyrock"].verde === "B", `premessa: con più borraggio in tutto il progetto la gittata di B è più bassa (${mA} → ${mB} m) e B è in VERDE`, [f1.m, v1.righe["Gittata flyrock"]]);
+
+  /* c) lo stesso B, ma con UN foro col borraggio corto */
+  await pg.evaluate(() => { window.__genesi.D2.holes[6].stem = 1.5; window.__genesi.renderScheda2D(); }); await pg.waitForTimeout(250);
+  await salva("B");
+  const v2 = await confronto(SCATTO_AB), f2 = await csvAB();
+  dice(f2.m === f1.m, `il numero NON è cambiato (${f2.m}): quale foro usi la previsione è la decisione 33, non questa prova`, [f1.m, f2.m]);
+  dice(v2.righe["Gittata flyrock"].verde === "", "⛔ ma B NON è più in verde: per quel foro la gittata scritta non è calcolata, e premiarla vorrebbe dire dipingere di verde una distanza di sgombero che nessuno ha fatto", v2.righe["Gittata flyrock"]);
+  dice(v2.righe["↳ gittata non calcolata per"] && v2.righe["↳ gittata non calcolata per"].a === "nessuno" && v2.righe["↳ gittata non calcolata per"].b === "1 foro", "⛔ sotto la gittata: «non calcolata per — nessuno · 1 foro»", v2.righe["↳ gittata non calcolata per"]);
+  dice(v2.righe["↳ fori con valori propri"] && v2.righe["↳ fori con valori propri"].b === "1 foro" && v2.righe["↳ pezzatura non calcolata per"] && v2.righe["↳ pezzatura non calcolata per"].b === "1 foro", "e sotto i fori e sotto la pezzatura lo stesso conto, colonna per colonna", [v2.righe["↳ fori con valori propri"], v2.righe["↳ pezzatura non calcolata per"]]);
+  dice(/foro tipo/.test(v2.nota) && /Nessuno dei due è dichiarato migliore su questa riga/.test(v2.nota) && !/scatto salvato prima/.test(v2.nota), "⛔ e la ragione del verde che manca è scritta sotto, come per la PPV", v2.nota);
+  dice(v2.fuori <= 0, `le righe nuove non sfondano la griglia a 430 px (${v2.fuori} px fuori)`, v2.fuori);
+  dice(f2.propri === "0;1" && f2.fly === "0;1" && f2.frag === "0;1" && f2.noto === "si;si", "⛔ e il CSV porta i tre conti accanto ai numeri: 0 e 1", f2);
+  await pg.setViewportSize({ width: 320, height: 800 }); await pg.waitForTimeout(200);
+  const v2s = await confronto(SCATTO_AB ? SCATTO_AB.replace(/\.png$/, "-320.png") : "");
+  dice(v2s.fuori <= 0 && v2s.righe["↳ gittata non calcolata per"].b === "1 foro", `e a 320 px nemmeno (${v2s.fuori} px fuori)`, v2s.fuori);
+  await pg.setViewportSize({ width: 430, height: 900 }); await pg.waitForTimeout(200);
+
+  /* d) un foro che di suo ha solo la PROFONDITÀ: la gittata non la legge, e il verde torna */
+  await pg.evaluate(() => { const H = window.__genesi.D2.holes; delete H[6].stem; H[4].prof = 8.5; window.__genesi.renderScheda2D(); }); await pg.waitForTimeout(250);
+  await salva("B");
+  const v3 = await confronto(), f3 = await csvAB();
+  dice(f3.propri === "0;1" && f3.fly === "0;0" && f3.frag === "0;1", "⛔ nel CSV, per quel foro: un valore proprio, fuori per la pezzatura, NON fuori per la gittata — tre conti, non uno ripetuto", f3);
+  dice(v3.righe["Gittata flyrock"].verde === "B" && !("↳ gittata non calcolata per" in v3.righe) && v3.nota === "", "⛔ un foro con la sola profondità sua NON spegne il verde sulla gittata (che la profondità non la legge): la guardia non è un interruttore", [v3.righe["Gittata flyrock"], v3.nota]);
+  dice(v3.righe["↳ pezzatura non calcolata per"] && v3.righe["↳ pezzatura non calcolata per"].b === "1 foro" && v3.righe["↳ fori con valori propri"].b === "1 foro", "ma per la pezzatura quel foro è fuori, e lo dice", v3.righe["↳ pezzatura non calcolata per"]);
+
+  /* e) ⛔ lo scatto salvato PRIMA: A perde i tre conti, B è pulito e ha la gittata più bassa */
+  await pulisci(); await salva("B");
+  await pg.evaluate(() => { const A = JSON.parse(localStorage.getItem("genesiCmpA")); delete A.kpi.foriPropri; delete A.kpi.flyTipo; delete A.kpi.fragTipo; localStorage.setItem("genesiCmpA", JSON.stringify(A)); });
+  const v4 = await confronto(), f4 = await csvAB();
+  dice(v4.righe["↳ fori con valori propri"] && v4.righe["↳ fori con valori propri"].a === "non noto" && v4.righe["↳ fori con valori propri"].b === "nessuno", "⛔ uno scatto salvato PRIMA: «non noto» accanto a «nessuno» — non sapere quanti fori avesse non è sapere che non ne aveva", v4.righe["↳ fori con valori propri"]);
+  dice(v4.righe["Gittata flyrock"].verde === "" && /scatto salvato prima non dice quanti ne avesse/.test(v4.nota), "⛔ e la gittata NON va in verde, con la ragione scritta: lo scatto non dice quanti fori avesse", [v4.righe["Gittata flyrock"], v4.nota]);
+  dice(f4.propri === ";0" && f4.fly === ";0" && f4.frag === ";0" && /^no — scatto salvato prima che il dato esistesse;si$/.test(f4.noto || ""), "⛔ e nel CSV la cella di A è VUOTA (non zero), con la riga che dice che quel vuoto è un «non lo so»", f4);
+
+  await pg.evaluate((s) => { window.__genesi.D2.stem = s; }, stemPrima); await pulisci();
   await pg.waitForTimeout(250);
 }
 dice(pg.__err.length === 0, "la pagina non solleva errori", pg.__err.slice(0, 2));

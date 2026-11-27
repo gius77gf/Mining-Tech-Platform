@@ -43727,6 +43727,36 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     ok(!/maggiore|minore|sicur/.test(genesi.avvisoForoTipo(tre, genesi.CAMPI_DELLA_GITTATA, "la gittata")), "⛔ la frase dice «non è calcolata»: non promette da che parte sbagli");
     eq([genesi.CAMPI_DELLA_GITTATA, genesi.CAMPI_DELLA_PEZZATURA], [["kg", "stem", "diam", "incl"], ["kg", "prof", "stem", "diam"]], "i campi dichiarati: quelli che le due previsioni leggono dal progetto");
   });
+  test("⛔ Genesi · cmpForiPropri: nel confronto A/B uno scatto che non sa i suoi fori dice «non noto», mai «nessuno»", () => {
+    /* uno scatto di oggi, senza valori per foro: tre zeri REGISTRATI */
+    eq(genesi.cmpForiPropri({ foriPropri: 0, flyTipo: 0, fragTipo: 0 }),
+      { noto: true, fori: 0, fuoriGittata: 0, fuoriPezzatura: 0, cella: "nessuno", cellaGittata: "nessuno", cellaPezzatura: "nessuno", gittataSuTutti: true },
+      "tre zeri registrati: «nessuno», e la gittata vale per tutti i fori");
+    /* il caso misurato: un foro col borraggio suo */
+    const uno = genesi.cmpForiPropri({ foriPropri: 1, flyTipo: 1, fragTipo: 1 });
+    eq([uno.cella, uno.cellaGittata, uno.gittataSuTutti], ["1 foro", "1 foro", false], "⛔ un foro col borraggio suo: al singolare, e la gittata NON vale per tutti — niente verde");
+    /* tre fori con valori loro, ma di sola profondità per due: la gittata non la legge */
+    const tre = genesi.cmpForiPropri({ foriPropri: 3, flyTipo: 1, fragTipo: 3 });
+    eq([tre.cella, tre.cellaGittata, tre.cellaPezzatura], ["3 fori", "1 foro", "3 fori"], "i tre conti sono tre conti: non si deducono l'uno dall'altro");
+    const prof = genesi.cmpForiPropri({ foriPropri: 2, flyTipo: 0, fragTipo: 2 });
+    eq([prof.cellaGittata, prof.gittataSuTutti], ["nessuno", true], "due fori con la sola profondità loro: per la gittata nessuno è fuori, e il confronto resta lecito");
+    /* ⛔ lo scatto salvato PRIMA: i tre campi non ci sono */
+    const vecchio = genesi.cmpForiPropri({ nf: 24, fly: 101 });
+    eq(vecchio, { noto: false, fori: null, fuoriGittata: null, fuoriPezzatura: null, cella: "non noto", cellaGittata: "non noto", cellaPezzatura: "non noto", gittataSuTutti: false },
+      "⛔ uno scatto senza i tre campi: «non noto» — e `gittataSuTutti` è FALSO, perché non sapere quanti fori avesse non è sapere che non ne aveva");
+    eq([genesi.cmpForiPropri(null).noto, genesi.cmpForiPropri(undefined).cella, genesi.cmpForiPropri({ foriPropri: "", flyTipo: "abc", fragTipo: null }).gittataSuTutti], [false, "non noto", false],
+      "senza scatto, o con valori vuoti e illeggibili: «non noto», non un crollo né uno zero");
+    eq(genesi.cmpForiPropri({ foriPropri: "2", flyTipo: "0", fragTipo: "2" }).gittataSuTutti, true, "un numero riletto come testo (da un JSON passato per un CSV) vale come numero");
+    /* e i tre numeri sono quelli che lo scatto prende dal modulo: stessa fonte della scheda */
+    const fori = [{ id: "a" }, { id: "b", stem: 1.5 }, { id: "c", prof: 8 }, { id: "d" }];
+    const scatto = { foriPropri: genesi.contaValoriPropri(fori).fori, flyTipo: genesi.foriFuoriDalForoTipo(fori, genesi.CAMPI_DELLA_GITTATA).fori, fragTipo: genesi.foriFuoriDalForoTipo(fori, genesi.CAMPI_DELLA_PEZZATURA).fori };
+    eq([scatto, genesi.cmpForiPropri(scatto).cella, genesi.cmpForiPropri(scatto).cellaGittata], [{ foriPropri: 2, flyTipo: 1, fragTipo: 2 }, "2 fori", "1 foro"], "dai fori veri: due con valori loro, uno solo fuori per la gittata");
+    /* la pagina scatta e legge proprio così */
+    const genesiHtml = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    ok(/foriPropri:contaValoriPropri\(D2\.holes\)\.fori,\s*flyTipo:foriFuoriDalForoTipo\(D2\.holes, CAMPI_DELLA_GITTATA\)\.fori,\s*fragTipo:foriFuoriDalForoTipo\(D2\.holes, CAMPI_DELLA_PEZZATURA\)\.fori,/.test(genesiHtml),
+      "lo scatto (computeKPI) porta i tre conti, presi dalle stesse funzioni della scheda");
+    ok(/\(_fpA\.gittataSuTutti && _fpB\.gittataSuTutti\) \? vincitoreKpi\(A\.kpi\.fly,B\.kpi\.fly\) : null/.test(genesiHtml), "⛔ e il verde sulla gittata passa da `gittataSuTutti` di TUTT'E DUE gli scatti");
+  });
   test("⛔ Genesi · valoreProgettoDaFile: riaprendo un file di scambio il progetto NON è la media dei fori", () => {
     const undici = Array.from({ length: 11 }, () => 58);
     /* il caso misurato il 26/11: undici fori a 58 kg e uno lasciato scarico */

@@ -2911,6 +2911,30 @@ export function avvisoForoTipo(holes, campi, soggetto){
 }
 
 /* ══════════════════════════════════════════════════════════════════════
+   IL CONFRONTO A/B E I FORI CON VALORI LORO (26/11).
+   ══════════════════════════════════════════════════════════════════════
+   Il confronto mette accanto due SCATTI, e fino al 26/11 uno scatto non
+   sapeva quanti fori avessero valori loro: due progetti con la stessa gittata
+   «sul foro tipo» si leggevano uguali anche se in uno c'era un foro col
+   borraggio corto, per il quale quella gittata NON è calcolata — e la colonna
+   con la gittata minore si dipingeva di verde.
+   Lo scatto adesso porta tre NUMERI (`foriPropri`, `flyTipo`, `fragTipo`: lo
+   scatto è un dato, le frasi le compone chi lo legge). Questa funzione li
+   legge come li legge il resto del confronto:
+   ⛔ uno scatto salvato PRIMA non li ha, e «non c'è» non è «zero»: `noto` è
+   falso, le celle dicono «non noto», e `gittataSuTutti` — la sola cosa che
+   permette il verde sulla gittata — è vera SOLO quando lo zero è registrato.
+   Quali valori usi la previsione resta la decisione 33: qui non si calcola
+   niente, si dichiara per quanti fori il numero non vale. */
+export function cmpForiPropri(kpi){
+  const n = _cmpNum(kpi && kpi.foriPropri), fly = _cmpNum(kpi && kpi.flyTipo), frag = _cmpNum(kpi && kpi.fragTipo);
+  const quanti = (v) => v === null ? 'non noto' : (v === 0 ? 'nessuno' : v + (v === 1 ? ' foro' : ' fori'));
+  return { noto: n !== null, fori: n, fuoriGittata: fly, fuoriPezzatura: frag,
+    cella: quanti(n), cellaGittata: quanti(fly), cellaPezzatura: quanti(frag),
+    gittataSuTutti: fly === 0 };
+}
+
+/* ══════════════════════════════════════════════════════════════════════
    IL VALORE DEL PROGETTO, RILEGGENDO UN FILE DI SCAMBIO (26/11).
    ══════════════════════════════════════════════════════════════════════
    Chi riapre un `.volata.json` deve ricavare la carica e la profondità DEL

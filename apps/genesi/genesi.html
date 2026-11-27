@@ -1350,7 +1350,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          fattoreRoccia, x50DaMisure, ondaDaCsv, ondaPercheNo, _sitoParseCsv, tempiDetonazione, sommaRitardata,
          ppvDaSd, caricaDaX50Target, rwsEffettiva, PENALITA_ACQUA, deviazioneForiDaCsv, deviazioneStatistiche, burdenVeroDaRilievo, burdenPerForo,
          quotaCresta, distanzaDaSpezzata, spaziaturaTipica, _spazTipico, tempoInPunto, passoIsocrone, isoPasso,
-         fileDeiFori, INN_TAGLI, taglioRealizzabile, innTaglioOk, _cmpNum, _cmpKg, _cmpEur, _cmpPf, _cmpCm, _cmpFly,
+         fileDeiFori, INN_TAGLI, taglioRealizzabile, innTaglioOk, _cmpNum, _cmpKg, _cmpEur, _cmpPf, _cmpCm, _cmpFly, cmpForiPropri,
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, reliefCls, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino, activeProf, d2HitTest, d2HitTestPt,
@@ -3683,6 +3683,12 @@ function computeKPI(){
     flyMezzi:fly.calcolabile?Math.round(fly.Dmez):null, flyPersone:fly.calcolabile?Math.round(fly.Dper):null,
     ppvBase, norma:normaPpvLab(D2.recNorma), recFreq:D2.recFreq, recDist:D2.recDist,
     presplit:!!D2.presplit,
+    /* i fori con valori LORO (26/11): tre conti, non frasi — li leggono il confronto A/B
+       (`cmpForiPropri`) e chiunque riapra uno scatto. Sul foro tipo la gittata e la
+       pezzatura non valgono per quei fori: vedi `foriFuoriDalForoTipo`. */
+    foriPropri:contaValoriPropri(D2.holes).fori,
+    flyTipo:foriFuoriDalForoTipo(D2.holes, CAMPI_DELLA_GITTATA).fori,
+    fragTipo:foriFuoriDalForoTipo(D2.holes, CAMPI_DELLA_PEZZATURA).fori,
     setup:(selEsplosivo()||{}).nome_breve||(selEsplosivo()||{}).nome||D2.esplosivo,
     maglia:B+'×'+S+' m · Ø'+D2.diam+' · '+D2.prof+' m' };
 }
@@ -3721,6 +3727,13 @@ async function cmpRender(){
      migliore». E `(cost||0)` faceva vincere un costo ASSENTE, che diventava
      zero. Le due regole stanno in `vincitoreKpi`, dove si provano. */
   const _stessaBase = stessaBasePpv(A.kpi.ppvBase, B.kpi.ppvBase);
+  /* i fori con valori LORO nei due scatti (26/11). ⛔ Uno scatto salvato prima non lo sa:
+     «non noto», mai «nessuno». Le tre righe compaiono solo se in almeno uno dei due c'è
+     qualcosa da dire (un foro, o un «non lo so»): due progetti senza valori per foro
+     danno il confronto di sempre. */
+  const _fpA=cmpForiPropri(A.kpi), _fpB=cmpForiPropri(B.kpi);
+  const _fpTx=(t)=> t==='non noto' ? '<i style="color:var(--mut)">non noto</i>' : _rEsc(t);
+  const _fpMostra=(a,b)=> !(a===0 && b===0);
   /* la forma CORTA: qui le colonne stanno in 85 px a 320, e la frase lunga
      andava a capo in mezzo alle parole (misurato sullo scatto) */
   const _baseTx = (S)=> (S.kpi.ppvBase && S.kpi.ppvBase.breve)
@@ -3737,19 +3750,27 @@ async function cmpRender(){
        PPV con `esitoPpv`. Il confronto non si dipinge: `vincitoreKpi` su un
        `null` risponde già `null`, cioè nessuna colonna in verde. */
     ['Fori · kg totali', gnum(A.kpi.nf,0)+' · '+_cmpKg(A.kpi), gnum(B.kpi.nf,0)+' · '+_cmpKg(B.kpi), null],
+    ...(_fpMostra(_fpA.fori,_fpB.fori) ? [['↳ fori con valori propri', _fpTx(_fpA.cella), _fpTx(_fpB.cella), null]] : []),
     /* ⛔ stessa regola per il consumo specifico e la pezzatura: «0,00 kg/m³»
        e «97 cm» erano tutt'e due il segno della carica per foro illeggibile,
        nei due versi opposti — uno tranquillo, l'altro allarmante. */
     ['Powder factor', _cmpPf(A.kpi), _cmpPf(B.kpi), null],
     ['X50 previsto', _cmpCm(A.kpi,'x50'), _cmpCm(B.kpi,'x50'), vincitoreKpi(A.kpi.x50,B.kpi.x50)],
     ['X80 (oversize)', _cmpCm(A.kpi,'x80'), _cmpCm(B.kpi,'x80'), vincitoreKpi(A.kpi.x80,B.kpi.x80)],
+    ...(_fpMostra(_fpA.fuoriPezzatura,_fpB.fuoriPezzatura) ? [['↳ pezzatura non calcolata per', _fpTx(_fpA.cellaPezzatura), _fpTx(_fpB.cellaPezzatura), null]] : []),
     /* ⛔ e la PPV si confronta solo se le due previsioni vengono dalla stessa
        legge: se no un cambio di CALIBRAZIONE si legge come un miglioramento
        del PROGETTO — misurato, 6,4 → 2,8 senza toccare un parametro. */
     ['PPV al recettore', gfix(A.kpi.ppv,1)+' / lim '+gfix(A.kpi.lim,1)+' mm/s', gfix(B.kpi.ppv,1)+' / lim '+gfix(B.kpi.lim,1)+' mm/s',
       _stessaBase ? vincitoreKpi(A.kpi.ppv,B.kpi.ppv) : null],
     ['↳ base della previsione', _baseTx(A), _baseTx(B), null],
-    ['Gittata flyrock', _cmpFly(A.kpi), _cmpFly(B.kpi), vincitoreKpi(A.kpi.fly,B.kpi.fly)],
+    /* ⛔ IL VERDE SULLA GITTATA SOLO SE VALE PER TUTTI I FORI DI TUTT'E DUE. Se in uno dei
+       due progetti c'è un foro col borraggio suo, la sua gittata NON è quella scritta qui
+       (è la decisione 33): premiare la colonna col numero più basso vorrebbe dire dipingere
+       di verde una distanza di sgombero che per quel foro nessuno ha calcolato. E uno scatto
+       che non sa quanti fori avesse non è uno scatto che non ne aveva. */
+    ['Gittata flyrock', _cmpFly(A.kpi), _cmpFly(B.kpi), (_fpA.gittataSuTutti && _fpB.gittataSuTutti) ? vincitoreKpi(A.kpi.fly,B.kpi.fly) : null],
+    ...(_fpMostra(_fpA.fuoriGittata,_fpB.fuoriGittata) ? [['↳ gittata non calcolata per', _fpTx(_fpA.cellaGittata), _fpTx(_fpB.cellaGittata), null]] : []),
     ['Costo totale (stima)', _cmpEur(A.kpi), _cmpEur(B.kpi), vincitoreKpi(A.kpi.cost,B.kpi.cost)],
     ['Presplit', A.kpi.presplit?'sì':'no', B.kpi.presplit?'sì':'no', null],
   ];
@@ -3773,6 +3794,8 @@ async function cmpRender(){
        dire perché manda a cercare il campo sbagliato. */
     +[['A',A.kpi],['B',B.kpi]].filter(x=> _cmpNum(x[1].cost)===null && x[1].costChe)
       .map(x=>'<div style="margin-top:10px;padding:7px 9px;border:1px solid rgba(255,202,40,.3);border-radius:8px;background:rgba(255,202,40,.06);color:#ffca28;font-size:12px;">Il costo di <b>'+x[0]+'</b> non è calcolabile: '+_rEsc(x[1].costChe)+'. '+_rEsc(x[1].costCome)+'</div>').join('')
+    /* e la ragione del verde che manca sulla gittata esce sotto, come per la PPV */
+    +(((_fpA.gittataSuTutti && _fpB.gittataSuTutti) || vincitoreKpi(A.kpi.fly,B.kpi.fly)===null)?'':'<div id="cmp-fly-tipo" style="margin-top:10px;padding:7px 9px;border:1px solid rgba(255,202,40,.3);border-radius:8px;background:rgba(255,202,40,.06);color:#ffca28;font-size:12px;">La gittata è calcolata sul <b>foro tipo</b> del progetto: per i fori che hanno carica, borraggio, diametro o inclinazione propri non è calcolata'+((_fpA.fuoriGittata===null||_fpB.fuoriGittata===null)?', e uno scatto salvato prima non dice quanti ne avesse':'')+'. Nessuno dei due è dichiarato migliore su questa riga.</div>')
     +(_stessaBase?'':'<div style="margin-top:10px;padding:7px 9px;border:1px solid rgba(255,202,40,.3);border-radius:8px;background:rgba(255,202,40,.06);color:#ffca28;font-size:12px;">Le due PPV <b>non vengono dalla stessa legge</b>: il confronto direbbe che è cambiato il progetto, e invece è cambiata la calibrazione. Nessuno dei due è dichiarato migliore su questa riga.</div>')
     +'<div style="margin-top:10px;color:var(--mut);font-size:12px;">In verde il progetto migliore per ciascun KPI (più basso = meglio per X50/X80/PPV/flyrock). A parità di valore non c’è un migliore, e nessuna delle due colonne va in verde. Stime indicative: valgono i limiti dichiarati nella scheda validatori.</div>';
 }
@@ -4424,6 +4447,10 @@ if($('cmpExport')) $('cmpExport').onclick=async ()=>{
      dice «6,4 contro 2,8» racconta un progetto migliorato dove è cambiata
      solo la calibrazione. Stessa ragione per cui la norma esce accanto alla
      sua soglia nel CSV della scheda volata. */
+  /* i fori con valori LORO (26/11): `null` (scatto salvato prima) esce cella VUOTA, e la
+     riga «registrati nello scatto» dice che quel vuoto è un «non lo so», non un conto */
+  const _fpA=cmpForiPropri(A.kpi), _fpB=cmpForiPropri(B.kpi);
+  const _fpNoto=(c)=> c.noto ? 'si' : 'no — scatto salvato prima che il dato esistesse';
   const _base=(S)=> (S.kpi.ppvBase&&S.kpi.ppvBase.testo)
     ? S.kpi.ppvBase.testo+(S.kpi.ppvBase.provvisoria?' — legge provvisoria':'')
     : 'base non registrata';
@@ -4431,14 +4458,18 @@ if($('cmpExport')) $('cmpExport').onclick=async ()=>{
     ['Maglia',A.kpi.maglia,B.kpi.maglia],
     ['Esplosivo',A.kpi.setup,B.kpi.setup],
     ['Fori',A.kpi.nf,B.kpi.nf],
+    ['Fori con valori propri',_fpA.fori,_fpB.fori],
+    ['Fori con valori propri registrati nello scatto',_fpNoto(_fpA),_fpNoto(_fpB)],
     ['Carica totale (kg)',A.kpi.qtot,B.kpi.qtot],
     ['Powder factor',A.kpi.pf,B.kpi.pf],
     ['X20 (cm)',A.kpi.x20,B.kpi.x20],['X50 (cm)',A.kpi.x50,B.kpi.x50],['X80 (cm)',A.kpi.x80,B.kpi.x80],
+    ['Fori fuori dal foro tipo (pezzatura)',_fpA.fuoriPezzatura,_fpB.fuoriPezzatura],
     ['PPV (mm/s)',A.kpi.ppv,B.kpi.ppv],['Limite PPV (mm/s)',A.kpi.lim,B.kpi.lim],
     ['Norma PPV',A.kpi.norma,B.kpi.norma],
     ['Base della previsione PPV',_base(A),_base(B)],
     ['Stessa legge per le due PPV',stessaBasePpv(A.kpi.ppvBase,B.kpi.ppvBase)?'si':'no — le due PPV non sono confrontabili',''],
     ['Gittata flyrock (m)',A.kpi.fly,B.kpi.fly],
+    ['Fori fuori dal foro tipo (gittata)',_fpA.fuoriGittata,_fpB.fuoriGittata],
     ['Presplit',A.kpi.presplit?'si':'no',B.kpi.presplit?'si':'no'],
     ['Costo totale stima (EUR)',A.kpi.cost,B.kpi.cost],
     /* le due celle sopra possono essere VUOTE (carica per foro illeggibile →
