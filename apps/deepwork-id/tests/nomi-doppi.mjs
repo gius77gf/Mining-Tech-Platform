@@ -46,9 +46,15 @@ const DIVERSE_PER_MESTIERE = {
     + "da cento in su; Campo scrive vuoto e non arrotonda. "
     + "Vedi docs/LA_STESSA_REGOLA_SCRITTA_DUE_VOLTE.md",
   CAUSALI_FERMO:
-    "in Campo è il motivo per cui si è fermata un'ATTIVITÀ di turno (testo semplice), "
-    + "in Flotta il motivo per cui una MACCHINA è fuori servizio (voci con chiave, "
-    + "perché ci si calcola sopra la disponibilità)",
+    "in Campo è il motivo per cui si è fermata un'ATTIVITÀ di turno, in Flotta il "
+    + "motivo per cui una MACCHINA è fuori servizio: due tassonomie di soggetti diversi. "
+    + "Dal 03/09 hanno la stessa FORMA ({chiave, etichetta}) — Campo l'ha presa da "
+    + "Flotta perché l'etichetta come chiave orfanava lo storico a ogni rinomina — "
+    + "ma le voci restano diverse per mestiere",
+  etichettaCausale:
+    "la stessa domanda (la parola per una chiave) su due elenchi diversi per mestiere: "
+    + "quello delle attività di Campo e quello delle macchine di Flotta. Diventerebbe "
+    + "una funzione di shared/ il giorno in cui gli elenchi fossero uno",
 };
 
 /* Frasi fisse che devono essere dichiarate in UN posto solo. Qui si conta

@@ -14,7 +14,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const H = await import(
   join(HERE, "../../../shared/deepwork-id-client/dw-shell.js")
 );
-const { esc, csvCell, parseCsvLine, numIt, isIntestazione, dataISOEsiste, leggiCsv, giorniTra, avvolgiUnita, motivoDatiNonSalvati } = H;
+const { esc, csvCell, parseCsvLine, numIt, isIntestazione, righeCsvNumerate, dataISOEsiste, leggiCsv, giorniTra, avvolgiUnita, motivoDatiNonSalvati } = H;
 
 let passed = 0, failed = 0;
 const test = (name, fn) => {
@@ -131,6 +131,62 @@ test("keyword PREFISSO di un nome più lungo → NON è intestazione (serve il d
   eq(isIntestazione("dataInizio;x", "data"), false, "dataInizio non è header 'data'");
   eq(isIntestazione("nominativo;x", "nome"), false, "nominativo non è header 'nome'");
   eq(isIntestazione("data;x", "data"), true, "data esatto sì");
+});
+
+/* ── righeCsvNumerate(): il numero di riga è quello FISICO, non quello
+   dell'elenco già scartato ────────────────────────────────────────────
+   Nata il 15/09 dalla riverifica su docs/RICERCA_CONTINUA_PAROLE.md
+   (documento invecchiato, proposta 4 del Blocco 2): tutti e 21 i lettori
+   `scarti*Csv` numeravano `nRiga` scorrendo l'elenco GIÀ ripulito da righe
+   vuote e intestazione — un utente che apre lo stesso file in un foglio
+   elettronico cerca "riga N" contando anche quelle, e non la trova mai al
+   posto giusto. Qui si prova la funzione condivisa da sola, prima di
+   collegarla ai lettori. */
+test("righeCsvNumerate: senza vuote né intestazione, il numero è quello che ci si aspetterebbe", () => {
+  const r = righeCsvNumerate("nome;valore\nAlfa;10\nBeta;20", "nome");
+  eq(r.map((x) => x.nRiga).join(","), "2,3", "la 1 è l'intestazione, tolta: restano la 2 e la 3");
+  eq(r.map((x) => x.riga).join("|"), "Alfa;10|Beta;20");
+});
+test("righeCsvNumerate: il numero conta anche le righe vuote e l'intestazione, che però non entrano nel risultato", () => {
+  const r = righeCsvNumerate("nome;valore\n\nAlfa;10\n\n\nBeta;20", "nome");
+  eq(r.map((x) => x.nRiga).join(","), "3,6", "riga 2, 4 e 5 sono vuote: la seconda riga coi dati è la 6, non la 3");
+});
+test("righeCsvNumerate: senza intestazione (l'utente ha incollato solo i dati) nessuna riga si perde", () => {
+  const r = righeCsvNumerate("Alfa;10\nBeta;20", "nome");
+  eq(r.map((x) => x.nRiga).join(","), "1,2", "senza un'intestazione da riconoscere, ogni riga resta con la sua posizione fisica");
+});
+test("righeCsvNumerate: testo vuoto, null e undefined → nessuna riga, non un errore", () => {
+  eq(righeCsvNumerate("", "nome").length, 0);
+  eq(righeCsvNumerate(null, "nome").length, 0);
+  eq(righeCsvNumerate(undefined, "nome").length, 0);
+});
+test("righeCsvNumerate: una riga fatta solo di spazi è vuota quanto una riga vera vuota", () => {
+  const r = righeCsvNumerate("nome;valore\n   \nAlfa;10", "nome");
+  eq(r.map((x) => x.nRiga).join(","), "3", "la riga 2 (solo spazi) non entra, la 3 sì");
+});
+test("righeCsvNumerate: il testo che torna è già .trim()-ato, come lo era prima nei lettori", () => {
+  eq(righeCsvNumerate("nome;valore\n  Alfa;10  \nBeta;20", "nome")[0].riga, "Alfa;10");
+});
+test("righeCsvNumerate: la controprova — se tornasse a numerare l'elenco filtrato invece del testo grezzo, il primo caso qui sopra cadrebbe", () => {
+  // la stessa identica domanda del secondo test, ma con la vecchia regola (posizione nell'elenco filtrato)
+  const testo = "nome;valore\n\nAlfa;10\n\n\nBeta;20";
+  const vecchio = testo.split(/\r?\n/).map((r) => r.trim()).filter(Boolean).filter((r) => !isIntestazione(r, "nome"));
+  const numeriVecchi = vecchio.map((_, i) => i + 1).join(",");
+  const numeriNuovi = righeCsvNumerate(testo, "nome").map((x) => x.nRiga).join(",");
+  if (numeriVecchi === numeriNuovi)
+    throw new Error(`la vecchia regola (posizione nell'elenco) avrebbe detto "${numeriVecchi}", uguale alla nuova "${numeriNuovi}": la controprova non distingue`);
+  eq(numeriVecchi, "1,2", "la vecchia regola diceva 1 e 2 — il difetto vero, riprodotto");
+});
+test("righeCsvNumerate: un PREDICATO al posto della parola chiave (15/09, per scartiLavoratoriCsv) — stesso comportamento fisico", () => {
+  // scudo.scartiLavoratoriCsv riconosce l'intestazione guardando la prima
+  // CELLA già scomposta ("nome" o "azienda"), non isIntestazione: il
+  // contratto a stringa resta quello di sempre, e un predicato fa lo stesso
+  // lavoro sulla riga di testo grezza.
+  const soloCella = (riga) => /^(nome|azienda)$/i.test((riga.split(";")[0] || "").trim());
+  const r = righeCsvNumerate("nome;azienda\n\nMario Rossi;Cave Alfa\n\n\nLuigi Verdi;Beta Srl\n", soloCella);
+  eq(r.map((x) => x.nRiga).join(","), "3,6", "la 1 (intestazione: prima cella 'nome') e le vuote (2,4,5) non entrano; le due righe di dati restano alla loro riga fisica");
+  eq(righeCsvNumerate("qualcosa;altro", () => true).length, 0, "un predicato che dice sempre sì scarta tutto");
+  eq(righeCsvNumerate("qualcosa;altro", () => false).length, 1, "un predicato che dice sempre no non scarta niente");
 });
 
 /* ── UNA DATA ESISTE DAVVERO? ─────────────────────────────────────────

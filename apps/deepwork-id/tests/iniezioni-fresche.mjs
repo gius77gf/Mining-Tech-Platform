@@ -39,16 +39,23 @@ const R = join(QUI, "..", "..", "..");
 
 /* I file che un banco può servire trasformati. Elenco DERIVATO dal disco per le
    app (una app nuova entra da sola), più il core e i moduli condivisi. */
+/* ⛔ 19/09, dalla verifica prima di committare un banco su shared/dw-app-ui.css:
+   il `.css` non c'era in nessuna delle tre raccolte, quindi un'iniezione che
+   morde un foglio di stile veniva dichiarata «scaduta» per sempre — non
+   perché il codice si fosse mosso, ma perché il righello non guardava quel
+   tipo di file. Lo stesso difetto di famiglia già preso su `.js`/`.html`:
+   un'estensione mancante nel filtro è indistinguibile, da fuori, da un
+   codice davvero sparito. */
 const SORGENTI = [];
 for (const p of ["index.html", "sw.js"]) SORGENTI.push(p);
-for (const f of readdirSync(join(R, "shared"))) if (f.endsWith(".js")) SORGENTI.push("shared/" + f);
+for (const f of readdirSync(join(R, "shared"))) if (f.endsWith(".js") || f.endsWith(".css")) SORGENTI.push("shared/" + f);
 for (const f of readdirSync(join(R, "shared", "deepwork-id-client"))) {
   if (f.endsWith(".js")) SORGENTI.push("shared/deepwork-id-client/" + f);
 }
 for (const app of readdirSync(join(R, "apps"), { withFileTypes: true })) {
   if (!app.isDirectory()) continue;
   for (const f of readdirSync(join(R, "apps", app.name))) {
-    if (f.endsWith(".html") || f.endsWith(".js")) SORGENTI.push(`apps/${app.name}/${f}`);
+    if (f.endsWith(".html") || f.endsWith(".js") || f.endsWith(".css")) SORGENTI.push(`apps/${app.name}/${f}`);
   }
 }
 const testi = SORGENTI.map((p) => {
@@ -129,7 +136,7 @@ const costantiDi = (src, finoA) => {
    dichiara**: le tabelle di coppie che il vocabolario NON prende si contano e
    si stampano, così una quarta convenzione di nome compare come un numero
    invece che come silenzio. È la lezione delle righe «non ho guardato». */
-const VOCABOLARIO = /^(DIFETT|INIEZION|COME_LIVE)/;
+const VOCABOLARIO = /^(DIFETT|INIEZION|COME_LIVE|GUARDIE)/;   // GUARDIE dal 02/09: core-date-illeggibili aveva un pezzo scaduto che nessuno guardava
 
 /* ⛔ QUATTRO FORME DI TABELLA, non due, e la quarta è la più onesta delle
    altre. Oltre a `[cerca, sostituisci]` e alle due col percorso in testa o in
@@ -165,6 +172,7 @@ const coppieDi = (v, chiave) => {
 };
 
 let totali = 0, conFile = 0, senzaFile = 0;
+const banchiConTerzo = new Set();
 const scadute = [], illeggibili = [], tabelle = [], fuoriVocabolario = [], fuoriPosto = [];
 const testiPer = Object.fromEntries(SORGENTI.map((p, i) => [p, testi[i]]));
 const banchiVisti = new Set();
@@ -231,10 +239,34 @@ for (const f of readdirSync(BANCHI).filter((x) => x.endsWith(".mjs")).sort()) {
       if (!file) { senzaFile++; continue; }
       conFile++;
       if (!testiPer[file].includes(cerca)) fuoriPosto.push([f, nome, file, cerca]);
+      /* ⛔ E IL FILE DICHIARATO VA ANCHE LETTO DA CHI APPLICA (05/09). Quattro
+         banchi su quattro — i documenti di Flotta e di Conti, il libretto, le
+         frasi di Flotta — avevano tuple con il terzo elemento (MODULO) e un
+         ciclo `for (const [da, a] of DIFETTI)` che applicava tutto alla sola
+         PAGINA: l'iniezione era «sul bersaglio» per questo controllo (il
+         pezzo esiste nel modulo) e non mordeva mai, e la controprova stampava
+         «✔ distingue» grazie alle altre, con la riga «N difetti rimessi
+         davvero» rossa in mezzo. Uno è restato rosso per una unità intera.
+         Qui si annota il banco che dichiara un file DENTRO una tupla, e più
+         sotto si pretende che il suo sorgente legga tre elementi dove applica. */
+      if (d.parti.length >= 3 && d.parti.map(norm).some((x) => SORGENTI.includes(x))) banchiConTerzo.add(f);
     }
   }
 }
 const banchi = banchiVisti.size;
+/* chi legge il terzo elemento: un ciclo che destruttura TRE posti —
+   `[da, a, f]`, `[cerca, sostituisci, file]`, o `[, cerca, sost]` quando il
+   file sta per primo ed è già stato usato per scegliere la tabella.
+   ⚠️ La prima stesura accettava anche `applica(t, MODULO)`: era un falso
+   verde, perché la chiamata col file c'è anche quando il ciclo dentro legge
+   due posti soli — misurato rimettendo `[a, b]` in `flotta-frasi-da-uno`, che
+   restava «legge». Si guarda il CICLO, non chi lo chiama. */
+const TRE = String.raw`\[\s*(?:\w+\s*)?,\s*\w+\s*,\s*\w+\s*\]`;
+const leggeIlTerzo = (src) =>
+  new RegExp(String.raw`for \(const ${TRE} of\b`).test(src)                       // [da, a, f] / [, cerca, sost]
+  || new RegExp(String.raw`for \(const \[\s*\w+\s*,\s*${TRE}\s*\] of\b`).test(src)   // [i, [da, a, f]] su .entries()
+  || /\[2\]/.test(src);                                                           // d[2]: il terzo posto per indice
+const nonLeggono = [...banchiConTerzo].filter((f) => !leggeIlTerzo(readFileSync(join(BANCHI, f), "utf8"))).sort();
 
 let male = 0;
 const dice = (ok, testo, extra) => {
@@ -247,6 +279,9 @@ dice(scadute.length === 0,
   "ogni iniezione trova ancora il suo pezzo nel codice",
   scadute.length ? scadute.map(([f, n, c]) => `\n      ${f} · ${n} cerca ${JSON.stringify(c.slice(0, 90))}`).join("") : "");
 
+dice(nonLeggono.length === 0,
+  `e ogni banco che dichiara un file DENTRO una tupla lo legge dove applica (${banchiConTerzo.size - nonLeggono.length} su ${banchiConTerzo.size})`,
+  nonLeggono.length ? "dichiarano un file che non leggono: " + nonLeggono.join(", ") : "");
 dice(fuoriPosto.length === 0,
   `e quelle che dichiarano il file lo trovano PROPRIO LÌ (${conFile} su ${totali}; ${senzaFile} non dichiarano un file)`,
   fuoriPosto.length ? fuoriPosto.map(([f, n, file, c]) => `\n      ${f} · ${n} → ${file} non contiene ${JSON.stringify(c.slice(0, 80))}`).join("") : "");

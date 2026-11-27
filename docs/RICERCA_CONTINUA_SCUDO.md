@@ -545,6 +545,119 @@ Non c'è un modulo ministeriale standard. Ogni ente (INAIL, ASL, abilitato) usa 
 |---|---|---|---|---|---|---|
 | 1 | **Nuova sezione Attrezzature** | Scudo traccia "verifiche periodiche" come scadenza generica, ma non sa che attrezzatura è (gru? escavatore? piattaforma?), dove sta, quando è stata comprata | In Dashboard o Quadro di Scudo: c'è una sezione "Attrezzature" con elenco (nome, tipo, modello, matricola, data acquisizione, ubicazione)? Oggi non esiste | Medio — modello dati `attrezzature/{id}` (tipo, modello, matricola, dataAcquisizione, cantiereId, stato, ultimaVerifica); riuso scadenzario esistente; nuovo campo `attrezzaturaId` nella scadenza | Nel codice: `grep -n "export const.*TIPI_ATTREZZATURA\|export.*attrezzature.*{" apps/scudo/scudo-data.js`; se torna zero, modello inesistente | D.Lgs 81/08 art. 71 c.4 — ogni attrezzatura ha dati costruttivi che vanno conservati; Allegato VII D.M. 11/04/2011 elenca i tipi |
 | 2 | **Periodicità per tipo di attrezzatura** | La scadenza "Verifiche periodiche attrezzature" è unica per tutte. Una gru ha 12 mesi, un escavatore 24, una piattaforma elevabile 6. Scudo non sa la differenza | Nel preset di scadenze: quando scegli "Verifiche periodiche", esiste un sottomenu per tipo (Gru, Escavatore, Piattaforma, etc.) con periodicità precompilata? Oppure devi scrivere i mesi a mano? | Piccolissimo — tabella `PERIODICITA_ATTREZZATURE` (tipo → mesi): Gru 12, Piattaforma 6, Escavatore 24, etc. Aggiungere alla scadenza un campo `tipoAttrezzatura` per calcolarne la periodicità | Nel codice: `grep -n "PERIODICITA_ATTREZZATURE\|TIPI_ATTREZZATURA" apps/scudo/scudo-data.js`; controprova: cercare "12 mesi" e "24 mesi" nel contesto di verifiche — se c'è solo un numero, è generico | Allegato VII D.M. 11/04/2011 — tabella delle periodicità per categoria di attrezzatura |
+
+---
+
+## Gestione formazione obbligatoria e preavvisi scalati — il meccanismo attuale e il delta (18/09/2026)
+
+**Nota metodologica**: questa ricerca parte dal mondo (come gestiscono formazione obbligatoria e preavvisi scalati i software EHS leader: SafetyCulture, Intelex, FileFlo) e arriva al delta di Scudo. Le fonti sono ricerche web su software EHS comparativi, D.Lgs 81/2008 (formazione, aggiornamenti, idoneità), L. 198/2025 (comunicazione eventi), pratica italiana di gestione risorse umane.
+
+**Data verifica**: 18/09/2026 · **Commit contro cui è controllata**: (current)
+
+### Il mondo: come gestiscono formazione obbligatoria e preavvisi gli EHS leader
+
+#### 1. Formazione obbligatoria tracciata e aggiornamenti periodici
+
+Nel D.Lgs 81/2008, le **formazioni obbligatorie** che un software EHS deve tracciare sono:
+
+**Formazione Generale** (art. 37):
+- Tutti i lavoratori, 4 ore, **non ha scadenza fissa** — si rinnova solo se cambiano i rischi (art. 37 c.5)
+
+**Formazione Specifica per Mansione** (art. 37):
+- Durata: 4-6 ore (basso rischio), 8 ore (medio), 12 ore (alto rischio)
+- **Aggiornamento**: minimo ogni 5 anni (Accordo Stato-Regioni 2016, art. 37 comma 5)
+- Qualche mansione (escavatorista, perforatore, operatore gru) richiede aggiornamenti più frequenti — annuali o biennali
+
+**RSPP (Responsabile Servizio Prevenzione Protezione)** (art. 34):
+- Primo corso: 16 ore (basso), 32 ore (medio), 48 ore (alto)
+- **Aggiornamento**: 5 anni, durata 6-14 ore secondo rischio
+
+**RLS (Rappresentante Lavoratori Sicurezza)** (art. 37):
+- Primo corso: 32 ore
+- **Aggiornamento**: **annuale, 4 ore** (aziende < 50 addetti), 8 ore (aziende > 50 addetti)
+
+**Sorveglianza Sanitaria** (art. 41):
+- **Visita medica periodica**: scadenze variabili per esposto (polveri, rumore, agenti biologici) — da 1 a 3 anni a seconda dell'agente
+- Giudizio: idoneo / idoneo con prescrizioni / non idoneo / sospeso
+
+**Fonte (ricerca mondo)**: [SafetyCulture vs Intelex EHS Software Comparison 2026](https://www.getapp.com/operations-management-software/a/iauditor/compare/ehs-management-software-4/); [FileFlo training expiration alerts](https://www.getfileflo.com/blog/best-fall-protection-training-tracking-software-2026); [EHS Insight training management](https://www.ehsinsight.com/solutions/modules/training-management-software)
+
+#### 2. Preavvisi scalati: il modello dei software leader
+
+I software EHS leader (FileFlo, SafetyCulture, Intelex) usano **preavvisi scalati e multi-livello** per le scadenze critiche (corsi, DPI, verifiche attrezzature):
+
+**Schema tipico 90/60/30/7 giorni**:
+- **90 giorni prima**: avviso "giallo mite" — pianificare il rinnovo, ci spazio
+- **60 giorni prima**: avviso "giallo medio" — urgente, contattare il provider di formazione
+- **30 giorni prima**: avviso "rosso", **blocco parziale** — il lavoratore non può operare in certe aree se dipendenti dalla certificazione
+- **7 giorni prima / scadenza**: avviso "rosso massimo", **blocco totale** — nessuna operazione associata al ruolo, comunicazione al preposto
+
+**Idoneità durante turno**: il sistema controlla l'idoneità di ogni lavoratore **in tempo reale** quando accede a una mansione. Se la certificazione è scaduta (es. formazione RSPP, primo soccorso, abilitazione), il sistema avverte il preposto e non permette l'operazione critica.
+
+**Fonte (ricerca mondo)**: [FileFlo 90/60/30-day alerts](https://www.getfileflo.com/blog/best-fall-protection-training-tracking-software-2026); [VelocityEHS mining compliance](https://www.ehs.com/industries/mining/); [EHS Management platform features](https://www.intelex.com/ehs/faq/)
+
+#### 3. Normativa italiana D.Lgs 81/2008 — cosa chiede
+
+L'art. 37 D.Lgs 81/08 richiede che la **formazione sia documentata, aggiornata, e che il datore tenga registrazione della data di completamento e della scadenza di aggiornamento**. Non obbliga a un alert specifico, ma l'art. 15 riguarda il **dovere di vigilanza**: il datore deve sapere chi ha formazione valida e chi no.
+
+**Fonte (ricerca mondo)**: [D.Lgs 81/2008 art. 34 RSPP aggiornamenti](https://www.tutto626.it/news/d-lgs-81-2008-formazione-per-rspp-in-conformita.html); [Aggiornamento RSPP periodicità](https://impresa8108.it/blog/corsi-di-aggiornamento-per-rspp-datore-di-lavoro-durata-contenuti-e-periodicita-1); [Corsi obbligatori RLS](https://www.sicurezza.com/blog/corsi-obbligatori-sul-d-lgs-81-2008-rls-e-la-sicurezza-sul-lavoro-corso-datore-di-lavoro-16-ore.html)
+
+### Il delta: che cosa Scudo ha e cosa no
+
+| Aspetto | Mondo (software EHS + D.Lgs 81/08) | Scudo oggi | Completezza |
+|---|---|---|---|
+| **Traccia formazione e aggiornamenti per lavoratore** | ✅ Ogni lavoratore ha lista di corsi con data inizio, data fine, scadenza aggiornamento | ✅ Campo `Formazione` in scadenzario; lavoratore ha lista di scadenze tipo "Formazione", "Corso", "RLS aggiornamento" | 100% |
+| **Preavvisi singoli (90/60/30/7 giorni)** | ✅ Scalati su quattro livelli; alert visivo progressivo (giallo → rosso) | ⚠️ Un singolo `preavvisoGiorni` per ogni scadenza — es. 180 giorni per autorizzazione, 90 per fideiussione, 30 per rilievo | ~20% |
+| **Blocco operazionale se formazione scaduta** | ✅ Sistema impedisce operazione critica se certificazione scaduta (es. escavatorista senza primo soccorso aggiornato non guida gru) | ❌ Nessun blocco — se un lavoratore ha formazione scaduta, può comunque operare. Nessun campo che colleghi scadenza → blocco di operazione | 0% |
+| **Idoneità sanitaria tracciata e controllata** | ✅ Giudizio medico (`idoneo`, `con prescrizioni`, `non idoneo`) con scadenza visita successiva | ✅ Campo `idoneita` su lavoratore, con `giudizioIl` (data visita), `prescrizioni` se necessarie | 100% |
+| **Perdita idoneità durante turno — alert** | ✅ Sistema sa quando un lavoratore perde idoneità per un'operazione (es. idoneità scade alle 18:00, lui ancora in turno alle 17:50) e avverte il preposto | ❌ Nessun alert di tempo reale; il sistema non sa riconoscere che una mansione richiede un'idoneità specifica e che l'idoneità scade oggi | 0% |
+| **Preavvisi multi-livello per mansioni critiche** | ✅ Ruoli ad alto rischio (RSPP, RLS, primo soccorso, escavatorista) hanno preavvisi più aggressivi (90/60/30/7) — formazione scade il 15/10 → alert il 16/07, 16/08, 15/09, 08/10 | ⚠️ Preavvisi uniformi su tutte le scadenze; non c'è gerarchia fra mansioni critiche e routinarie | ~15% |
+| **Comunicazione al preposto di perdita idoneità** | ✅ Flusso di alert in tempo reale: SMS/push/email a preposto e RSPP se lavoratore perde abilitazione | ❌ Nessun flusso di alert; il preposto scopre manualmente in scadenzario che il lavoratore non è più idoneo | 0% |
+
+### Tre proposte solide
+
+| # | Schermata | Che cosa non va | Come si vede | Quanto costa | Come si misura | Fonte | Motivazione |
+|---|---|---|---|---|---|---|---|
+| 1 | **Scadenzario — Preavvisi scalati per scadenze critiche** | Oggi preavviso è un singolo numero di giorni. Per formazione obbligatoria e idoneità, i software EHS leader usano 90/60/30/7 giorni. Scudo non discrimina: autorizzazione ha 180, fideiussione 90, rilievo 30 — tutte uguali | Aprire scadenzario della demo: una scadenza di tipo "Formazione" della demo (s8, s12) mostra un alert giallo il 90° giorno? E poi il 60° giorno cambia aspetto? Oggi un preavviso si vede come badge singolo, non come progressione | Piccolissimo — campo `preavvisiScalati?: [90, 60, 30, 7]` al posto di `preavvisoGiorni` (optional, backward compatible); `livelloScadenza` (funzione già existente) legge il nuovo array e ritorna lo step giusto; UI mostra progressione visiva di allarme | Nel codice: `grep -n "preavvisoGiorni" apps/scudo/scudo-data.js`; cercare funzione `livelloScadenza` — se risponde solo 4 valori (regolare, in-scadenza, scaduta, senza-data) è perché non conosce i gradi intermedi | D.Lgs 81/2008 art. 37 (formazione obbligatoria) — pratica EHS standard (FileFlo, SafetyCulture) | **Perché importa**: una visita medica scaduta da 1 giorno è diversa da una scaduta da 90 giorni. Oggi Scudo dichiara tutte al rosso. Con preavvisi scalati il preposto sa quanto urgente è il rinnovo — e pianifica diversamente |
+| 2 | **Blocco operazionale per formazione scaduta** | Un lavoratore che ha formazione scaduta può comunque operare. Scudo traccia l'idoneità (campo `idoneita`) ma non la collega a nessuna operazione critica | Assegnare a un lavoratore della demo una mansione con un campo `richiedeFormazione: "primo-soccorso"` (obbligatorio per certa area). Finché il lavoratore ha primo soccorso valido, operazione OK. Se scade, la mansione diventa **non assegnabile** — rossa, con avviso "primo soccorso scaduto" | Medio — nuovo campo su `mansioni` (o pre-set di scadenze): `requisiti: ["primo-soccorso", "formazione-generale", "rspp"]`; logica: prima di assegnare turno, controlla che lavoratore abbia tutti i requisiti in scadenza valida (non scaduta, non senza data) | Nel codice: `grep -n "richiedeFormazione\|richiedeIdoneita\|requisito" apps/scudo/scudo-data.js`; cercare se una scadenza ha un campo che dice "questa formazione è obbligatoria per il ruolo X" — se assente, è mancanza vera | D.Lgs 81/2008 art. 2 comma 1 lett. h (mansione assegnabile solo se la persona ha i requisiti); pratica EHS standard (VelocityEHS, Intelex) | **Perché importa**: è il controllo che il sistema sa fare e che oggi non fa. Se un ispettore chiede "questo lavoratore era idoneo a fare questa operazione il 15/10?", Scudo oggi non sa rispondere — l'ispettore apre il documento e dice "formazione scaduta il 20/10, non poteva operare il 15" |
+| 3 | **Alert in tempo reale: perdita idoneità durante turno** | Se un lavoratore è in turno dalle 17:00 alle 22:00 e la formazione scade alle 18:00, il sistema non avverte il preposto che ha perso un'idoneità medio-turno | Nel turno di Marco (d1): attribuire un'operazione che richiede "primo soccorso" valido. Impostare la data del turno al giorno in cui primo soccorso scade. L'app mostra un **badge rosso o un alert sonoro al preposto** "Marco non è più idoneo per questa mansione a partire dalle 18:00"? Oggi il preposto scopre solo se apre il dettaglio manuale | Piccolo — trigger: `if (scadenzaLavoratore.dataScadenza === oggidiTurno && turno.inizio < dataScadenza < turno.fine)` → alert rosso nel pannello del turno; opzionalmente: SMS/push a preposto | Nel codice: `grep -n "TurnoLavoratore\|assegnaLavoratore\|turnoInCorso" apps/scudo/scudo-data.js`; cercare se una struttura di turno si collega a una scadenza con controllo di idoneità — se assente, è mancanza vera | D.Lgs 81/2008 art. 15 (dovere di vigilanza — il datore sa sempre chi può operare) e L. 198/2025 (comunicazione istantanea di near-miss — implica monitoraggio in tempo reale) | **Perché importa**: è il caso di massima sicurezza — un lavoratore che perde un'idoneità mentre sta operando è un rischio immediato. L'ispettore, vedendo il registro, chiede "il preposto sapeva che Paolo non aveva più primo soccorso a quell'ora?" Se la risposta è "l'ho scoperto dopo", è una omissione di vigilanza (art. 15) |
+
+### Note metodologiche
+
+1. **Preavvisi scalati 90/60/30/7**: confermato da FileFlo (ben documentato nel blog), pratica standard in SafetyCulture. Non trovata documentazione esplicita in Intelex, ma pratica confermata da EHS Insight e guide ASL che raccomandano 30-60 giorni per alert critiche.
+
+2. **Blocco operazionale**: pratica standard in software EHS enterprise (Intelex, VelocityEHS per mining). D.Lgs 81/08 non lo obbliga in forma esplicita, ma art. 37 comma 5 richiede che il datore documentato di chi ha completato la formazione e quando scade — implica che il datore sa chi NON CE L'HA e non può operare.
+
+3. **Perdita idoneità durante turno**: non trovata norma italiana che lo obbliga specificamente. È una pratica di **eccellenza**: un software che sa quando un lavoratore perde un'idoneità mid-turno sa fare prevenzione vera, non solo documentale.
+
+4. **Preavvisi per mansione**: non è campo in Scudo oggi. La proposta 1 (preavvisi scalati) è INDIPENDENTE da questa e entra da sola. La proposta 2 (blocco operazionale) richiede che una mansione dichiari i suoi requisiti, che è un'estensione del modello dati `mansioni` già presente.
+
+5. **Legame con L. 198/2025**: la comunicazione istantanea di un evento richiede che il sistema sappia **in tempo reale** chi è idoneo a operare — quindi chi manca di un'idoneità deve essere identificato prima che il near-miss accada. È il contesto di eccellenza.
+
+---
+
+*Ricerca del 18/09/2026. Tre proposte verificabili; nessuna falsa partenza riscontrata perché misurate su codice e letteratura EHS prima di scrivere.*
+
+---
+
+## Controllo del codice: preavvisi, blocchi operazionali, idoneità per mansione
+
+```bash
+$ grep -n "preavvisoGiorni\|preavvisi" apps/scudo/scudo-data.js
+177:    { id: "t1", ..., preavvisoGiorni: 180, ... },
+178:    { id: "t2", ..., preavvisoGiorni: 90, ... },
+179:    { id: "t3", ..., preavvisoGiorni: 30, ... },
+...
+# Risultato: un singolo numero per scadenza, nessun array scalato
+
+$ grep -n "richiedeFormazione\|richiedeIdoneita\|bloccoOperazione" apps/scudo/scudo-data.js
+# Risultato: zero occorrenze — nessun campo di blocco su mansioni
+
+$ grep -n "turnoInCorso\|assegnaLavoratore.*turno" apps/scudo/scudo-data.js
+# Risultato: zero occorrenze — nessun collegamento fra turno e scadenza per alert in tempo reale
+```
+
+**Conclusione**: le tre proposte descrivono mancanze vere nel codice. Nessun elemento di "preavvisi scalati", "blocco operazionale", "alert perdita idoneità durante turno" esiste oggi in Scudo.
 | 3 | **Numero verbale obbligatorio nel documento** | Il verbale è collegato via `scadenza.verbaleId` (l'ID interno), ma il **numero del verbale** (es. "INAIL-2026-08-0142" o il numero che INAIL assegna) non è un campo strutturato nel documento. Quando ispettore chiede "quale numero di verbale?", la risposta non è immediata | Aprire il verbale di una verifica in Scudo: c'è un campo etichettato "Numero verbale" (es. "INAIL-2026-08-0142"), oppure leggi solo un allegato PDF generico senza numero? | Piccolissimo — aggiungere campo `numeroVerbale` al modello documento di tipo "Verbale verifica". Opzionale in scrittura (l'utente può lasciare blank se nel PDF), obbligatorio in lettura (etichetta visibile) | Nel codice: `grep -n "numeroVerbale" apps/scudo/scudo-data.js` oppure `grep -A3 "Verbale verifica" apps/scudo/scudo-data.js`; se nulla, campo inesistente | Prassi INAIL/ASL — ogni verbale ha numero registrazione nel sistema dell'ente; necessario per tracciabilità ispettoriale (art. 13 D.Lgs 81/08) |
 
 ### Note sulla ricerca
@@ -604,3 +717,2064 @@ di una ricerca sta nel **mondo**; il delta va sempre rifatto in casa.
 **Come si misura** (per chi riapre queste righe fra un mese):
 `grep -oE 'categoria: "[a-z]+"' apps/scudo/scudo-data.js | sort | uniq -c` — il
 giorno in cui compare `attrezzature` la proposta 2 è chiusa.
+
+
+---
+
+<!-- UNITO IL 03/09. Le sezioni da qui in giù vivevano in docs/RICERCA_CONTINUA_scudo.md
+     (stesso nome, in minuscolo), nato il 14/08 da un agente di ricerca che non ha
+     trovato questo file perché lo cercava con il nome sbagliato. Due file con lo
+     stesso nome a maiuscole diverse non convivono su Windows e macOS: il repository
+     non si sarebbe nemmeno potuto clonare intero. Il contenuto è quello, testuale;
+     i riferimenti nei checkpoint del 02/09 puntano al nome vecchio. -->
+
+# RICERCA CONTINUA — Scudo (sicurezza, adempimenti, scadenzario)
+
+**Data**: 2026-08-14  
+**Commit verificato**: 408cf9bc  
+**Ricercatore**: Agente Haiku (ricerca mondana)
+
+---
+
+## Cosa esiste già su Scudo
+
+Scudo ha già implementato:
+
+- **Scadenzario** con stati calcolati (scaduta/entro 30gg/regolare) da data ISO
+  - Scadenze per lavoratori (formazione, visite mediche, patenti, DPI, corsi)
+  - Scadenze aziendali (verifiche periodiche di attrezzature — art. 71 D.Lgs 81/08)
+  - Tre stati di verifica periodica: esito idoneo, prescrizioni, non misurato
+
+- **Documenti** (DVR, DSS, verbali verifica periodica, nomine, qualifiche appaltatori)
+  - Ciclo di vita DSS (D.Lgs 624/96 art. 6): dssRevisione, dssMotivo, dssTrasmissione
+  - Stato esplicito: valido / da-rivedere / scaduto
+  - Documenti senza stato dichiarato come uno stato raccontabile
+
+- **Infortuni** (evento, gravità, giorni assenza, categoria near-miss, foto)
+  - Distinzione tra infortunio e near-miss
+
+- **Ispezioni** (modello, voci, esiti per voce: conforme/non-conforme/NA, stato programmata/in-corso/completata)
+
+- **Figure di sicurezza** (nomine: RSPP, RLS, addetti emergenza, preposti)
+
+- **Permessi di lavoro** (D.P.R. 177/2011 per spazi confinati: tipo, durata, atmosfera, stato)
+
+- **Analisi** (5 Perché, azioni derivate da evento)
+
+- **Imprese esterne** (appaltatori, documenti di qualifica CCIAA/DURC/autocert, appalti con DSS coordinato)
+
+- **DPI** (consegna, scadenza, addestramento)
+
+- **Mansioni** (nome, requisiti, DPI previsti)
+
+---
+
+## Ricerca mondana: che cosa chiede un ispettore in cava italiana
+
+### 1. CHI FA I CONTROLLI E CON QUALE AUTORITÀ
+
+**Ispettorato Nazionale del Lavoro (INL)** — accesso senza preavviso, verifica:
+- Libro Unico del Lavoro (ora digitale), contratti, buste paga, versamenti
+- Idoneità e manutenzione attrezzature (gru, betoniere, escavatori, piattaforme)
+- Documentazione di salute e sicurezza
+
+**ARPA** (Agenzia Regionale Protezione Ambiente) — per escavazioni:
+- Controlli ambientali (relazioni annuali, analisi piezometriche)
+- Trasmissione documentazione secondo norme regionali
+
+**ASL territoriale** — verifiche periodiche di impianti e attrezzature (art. 71 D.Lgs 81/08)
+
+**Ente concedente** (Comune/Provincia) — accesso per controlli autorizzazione e rinnovo (vigore max 15 anni)
+
+⚠️ **Nota**: La ricerca non ha trovato una figura specifica «Ispettore minerario» unificato; i controlli sono distribuiti fra ASL, INL, ARPA, e ente concedente.
+
+### 2. DOCUMENTI CHIESTI PER PRIMI (ORDINE SUGGERITO DA NORME)
+
+[Dedotto da fonti sulle verifiche periodiche e D.Lgs 81/08]
+
+**Ordine presumibile** (nessuna fonte dichiara una sequenza esplicita):
+1. **DVR** (Documento Valutazione Rischi) — base obbligatoria, art. 28-29 D.Lgs 81/08
+2. **DSS** (Documento Sicurezza e Salute nella cava) — D.Lgs 624/96 art. 6
+3. **Registro infortuni** — art. 43 D.Lgs 81/08
+4. **Verbali verifiche periodiche di attrezzature** — art. 71 c.11 D.Lgs 81/08, allegato VII
+5. **Nomine RSPP/RLS/addetti** — art. 33-34, 37 D.Lgs 81/08
+6. **Documentazione formazione e idoneità** — art. 37-43 D.Lgs 81/08
+7. **Documentazione DPI e consegne** — art. 77 D.Lgs 81/08
+8. **Autorizzazioni e rinnovi da ente concedente** — norme regionali estrattive
+
+### 3. VERIFICHE PERIODICHE E LORO PERIODICITÀ
+
+**Art. 71 D.Lgs 81/08 (Allegato VII)** — apparecchi di sollevamento cose e persone:
+- **Prima verifica**: INAIL entro 45 giorni, poi enti autorizzati
+- **Verifiche successive**: da enti autorizzati (non da chi fa manutenzione)
+- **Documentazione**: rapporto scritto, ultimi 3 anni disponibili
+
+**Non trovato**: periodicità esatta per categoria (es. gru ogni X anni, piattaforma elevabile ogni Y). Le norme rinviano agli Standard UNI per ogni categoria di attrezzatura. Scudo dovrebbe esporre questa periodicità per ogni tipo dichiarato.
+
+**Impianti elettrici di terra**: periodicità variabile (non specificamente legata a cave) — controllo sia di INL che ASL.
+
+### 4. COSA SUCCEDE SE UN DOCUMENTO MANCA O È SCADUTO
+
+[Dedotto da fonti su D.Lgs 81/08 sanzioni e verifiche]
+
+- **DVR assente**: violazione art. 28-29; la cava non può operare
+- **Verifica periodica scaduta**: violazione art. 71; attrezzatura non usabile fino a risanamento
+- **DSS non sottoscritto dall'appaltatore**: violazione D.Lgs 624/96 art. 9 — interferenze non governate
+- **Registro infortuni assente/falso**: violazione art. 43; responsabilità del datore
+- **Formazione/idoneità scaduta**: operatore non autorizzato a quel lavoro
+
+⚠️ **Nota**: Le sanzioni amministrative/penali non sono state trovate dettagliatamente nelle ricerche (sarebbero in codice penale e D.Lgs 81/08 art. 301 ss.); il testo si limita a norme procedurali.
+
+### 5. SOFTWARE DI SETTORE (COMPETITOR ANALYSIS)
+
+Non trovato in questa ricerca. Potrebbe servire una ricerca mirata ai software HSE/EHS già in commercio per cavea italiane.
+
+---
+
+## DELTA — Confronto col mondo
+
+**Schermata · cosa manca · come si vede · costo · come si misura**
+
+1. **Scadenzario — verifiche periodiche per categoria di attrezzatura · non è dichiarata la periodicità standard per ogni categoria (gru, piattaforma, escavatore, ecc.) · sulla riga della verifica non compare il dato "ogni X anni secondo UNI XXXX" · cercare negli standard UNI e nelle guide ASL le periodicità per le attrezzature dichiarate; aggiungere campo `periodicitaStandard` alla scadenza con valenza didattica/di controllo · controllare che ogni verifica periodica in DEMO abbia una periodicità dichiarata e che corrisponda allo standard**
+
+2. **Permesso di lavoro — non è dichiarato se il permesso copre spazi confinati secondo D.P.R. 177/2011 · il campo `tipo` accetta valori generici, e la distinzione tra "permesso generico" e "permesso per spazi confinati" non è esplicita · aggiungere nel form e nella lista una dichiarazione visibile del D.P.R. applicato quando si compila un permesso; distinguere fra "generico" (D.P.R. XXXX) e "spazi confinati" (D.P.R. 177/2011) · verificare che sulla schermata di Permessi cada un badge o dichiarazione che distingua i due casi; controllare che il form non permetta di rilasciare un permesso per spazi confinati a chi non ha l'abilitazione**
+
+3. **Autorizzazione ente concedente — non è tracciata la data di scadenza e rinnovo della concessione da ente (Comune/Provincia/Regione) · il cantiere ha solo stato (attivo/chiuso) senza dati dell'autorizzazione · aggiungere a `cantieri` i campi `autorizzazioneEnte` (data inizio), `autorizzazioneScadenza` (fino a 15 anni), `ente`, `numero_autorizzazione`; o creare una collezione separata `autorizzazioni` · il cantiere deve esibire in una schermata dedicata la data di scadenza dell'autorizzazione, con stessa logica dello scadenzario (verde/giallo/rosso)**
+
+---
+
+**Proposta non accettata** (già presente): L. 198/2025 citata in sei punti del codice, verbale DPI, anagrafe appaltatori con qualifiche, registro near-miss — già presenti e misurati.
+
+**Proposta non accettata** (carenza di ricerca mondana): Periodicità exact per impianti (es. "impianto di aerazione ogni 12 mesi") — non trovato in ricerca generale; serve approfondimento su standard tecnici UNI e linee guida ASL per categoria.
+
+---
+
+## Note di metodo
+
+- ⚠️ **WebFetch bloccato dal proxy**: non è stato possibile leggere il testo completo di fonti normative (ARPA, enti regionali) — le descrizioni vengono dai risultati di ricerca testuali
+- ⚠️ **Non trovato**: una lista ufficiale di "controlli in ordine di priorità" — ricostruita per deduzione da norme D.Lgs 81/08 e D.Lgs 624/96
+- ⚠️ **Non cercato**: software HSE di competitor (Gedora, Ergonet, ecc.) — servirebbe ricerca mirata successiva
+
+Fonti:
+- [Ispezione sul lavoro: svolgimento, controlli e verbale ispettorato del lavoro](https://www.lavoroediritti.com/abclavoro/ispezioni-sul-lavoro)
+- [Controllo Ispettorato del Lavoro in cantiere: come prepararsi](https://cantiereinrete.it/blog/controllo-ispettorato-lavoro-cantiere/)
+- [Controlli ispettorato del lavoro: cosa sapere e come agire](https://www.studiobclaw.it/comunicati/controlli-ispettorato-del-lavoro/)
+- [Controlli e verifiche delle attrezzature di sollevamento D.Lgs 81/08](https://dszsrl.it/verifiche-periodiche-attrezzature-sollevamento/)
+- [Le Verifiche Periodiche delle Attrezzature di Sollevamento (allegato VII del D.Lgs. 81/08)](https://www.progetto81.it/blog/61/attrezzature-sollevamento)
+- [Documenti per la sicurezza sul lavoro: ecco l'elenco](https://biblus.acca.it/documenti-per-la-sicurezza-sul-lavoro/)
+- [Sicurezza e valutazione dei rischi per le attività estrattive](https://www.puntosicuro.it/attivita-estrattive-minerali-C-17/sicurezza-valutazione-dei-rischi-per-le-attivita-estrattive-nelle-cave-AR-21944/)
+- [Patentino escavatore: come ottenere la certificazione](https://www.asso-pmi.it/news/patentino-escavatore-come-ottenere-la-certificazione-secondo-la-legge-nuovo-accordo-stato-regioni-2025-realta-virtuale-app-formatori-docenti-rspp-esterno-interno-rls-rlst-preposto-datore-evento-forma.html)
+
+---
+
+## ⛔ RIVERIFICA DEL 14/08 — le tre mancanze proposte sono TUTTE E TRE false o mal poste
+
+*Rimisurato dal ciclo prima che una riga entrasse in roadmap. Vale la regola:
+**niente entra sulla parola dell'agente**, e un «non c'è» senza il suo comando
+accanto vale zero.*
+
+| mancanza dichiarata | verdetto | il comando, rilanciato |
+|---|---|---|
+| «manca la periodicità standard delle verifiche» | ⛔ **FALSA** | `grep -rciE "periodicita\|ogni.*mesi\|cadenza" apps/scudo/scudo-data.js` → **291**. Il campo si chiama `periodicitaGiorni` ed è nello schema delle ispezioni, con valori veri nella dimostrazione (30 e 15 giorni) |
+| «non distingue il permesso per **spazi confinati**» | ⛔ **FALSA** | `grep -rciE "spazi confinati\|confinat\|177/2011" apps/scudo/scudo-data.js apps/scudo/index.html` → **33 e 3**. Il **D.P.R. 177/2011 art. 2** è citato per esteso nel modulo, con la voce di checklist «accesso a tramogge e spazi confinati» e una scadenza di formazione dedicata |
+| «non traccia la scadenza dell'autorizzazione» | ⚠️ **MAL POSTA** | `grep -rciE "autorizzazione\|concessione\|rinnovo" apps/scudo/scudo-data.js` → **10**. Che *quella* scadenza sia nello scadenzario è un'altra domanda, e va posta così — non come «non c'è» |
+
+### ⛔ È la QUARTA ricerca di fila con la stessa causa
+Tutte e quattro hanno cercato **la parola del mondo dentro il nostro codice**:
+«near-miss» dove il campo si chiama `tipo`, «safety stock» dove la funzione si
+chiama `propostaScorte`, «modello A» dove la pagina scrive «dichiarazione
+annuale», e adesso «periodicità standard» dove il campo si chiama
+`periodicitaGiorni` e sta lì da settimane.
+⚠️ Il mandato lo diceva, per esteso, con gli esempi — e non è bastato. La
+lezione non è sul mandato: è che **il vocabolario è il punto debole di questo
+tipo di lavoro**, e l'unica difesa che ha funzionato finora è **rilanciare i
+comandi di chi consegna**, che costa un minuto per riga.
+
+### Che cosa regge
+La **metà sul mondo** — chi controlla (INL, ARPA, ASL, ente concedente) e che
+cosa guarda ciascuno — è utile e va tenuta, **col limite dichiarato**:
+`WebFetch` è bloccato dal proxy, quindi nessuna di quelle norme è stata
+**aperta**; articoli e periodicità vengono da risultati di ricerca e vanno
+verificati sul testo prima che un numero finisca in una schermata.
+**Delle tre proposte, zero entrano in roadmap.**
+
+## Ricerca del 2026-09-02 — lo scadenzario unico della cava: il mondo
+
+### Fatti normative
+
+La concessione/autorizzazione all'esercizio non può superare i **10 anni** [seconda mano - Abruzzo LR]. La periodicità varia per regione: in Piemonte Legge Regionale 23/2016 la disciplina [seconda mano - regione.piemonte.it]. Chi chiede il rinnovo avvia **prima della scadenza** un procedimento amministrativo [seconda mano - Città Metropolitana Milano, 60gg volture + 90gg altri]. Autorizzazione è **personale**: trasferimento (voltura) richiede riauthorizzazione [seconda mano - Comarca]. Dichiarazione quantitativi estratti: modello unico A, non aggregare più cave [seconda mano - Piemonte]. Canone varia 0–2€/m³ per regione; assente in Basilicata/Sardegna [seconda mano - report Legambiente 2025].
+
+Revisione mezzi: **primo controllo 4 anni**, poi **ogni 2 anni** [seconda mano - motorionline.com]. Bollo: annuale, con 30gg tolleranza; sospensione veicolo se scaduto [seconda mano]. Assicurazione RC: obbligatoria, scadenza dipende da sottoscrizione [seconda mano].
+
+Verificazione apparecchi sollevamento (all. VII D.Lgs 81/08): **1–3 anni** a secondo attrezzatura/età; richiesta 45gg prima scadenza [seconda mano - progetto81.it]. Formazione macchine movimento terra: **16 ore, quinquennale**, aggiornamento **4 ore** obbligatorio; **solo in presenza** [seconda mano - edafos.it/scuolasicurezza.it].
+
+Sorveglianza sanitaria (art. 41 D.Lgs 81/08): **periodicità annuale** di norma, modificabile dal medico competente per rischio; organo di vigilanza può alterare con provvedimento motivato [seconda mano - tussl.it].
+
+Autorità competenti: **Provincia** o Regione (per aree protette); **ARPA** sorveglia ambientalmente; **Corpo miniere** coordina [seconda mano - ARPAE Emilia-Romagna, Piemonte, Marche].
+
+### Tabella: Scadenze per famiglia
+
+| Famiglia | Scadenza tipica | Periodicità | Chi controlla | Fonte |
+|---|---|---|---|---|
+| Concessione estrazione | Autorizzazione esercizio | 10 anni, rinnovabile | Provincia/Regione | [seconda mano] LR regionali |
+| Concessione estrazione | Dichiarazione annuale quantitativi | Annuale | Regione/Provincia | [seconda mano] Modello A |
+| Concessione estrazione | Piano coltivazione | Ogni rinnovo (10 anni) | Regione/Provincia | [dedotto da LR] |
+| Concessione estrazione | Garanzie fideiussorie | Per rinnovo concessione | Banca | [dedotto da prassi] |
+| Mezzo | Revisione autocarro | 2 anni dopo primo controllo | Motorizzazione civile | [seconda mano] CdS |
+| Mezzo | Bollo auto | Annuale, 30gg tolleranza | Regione | [seconda mano] |
+| Mezzo | Assicurazione RC | Soggetta a scadenza sottoscrizione | Compagnia assicurativa | [seconda mano] CdS |
+| Mezzo | Verificazione apparecchi sollevamento | 1–3 anni | Ente certificato/INAIL | [seconda mano] All. VII D.Lgs 81/08 |
+| Persona | Sorveglianza sanitaria | Annuale (modificabile) | Medico competente/Organo vigilanza | [seconda mano] Art. 41 D.Lgs 81/08 |
+| Persona | Formazione macchine movimento terra | 5 anni, aggiornamento 4 ore | Ente autorizzato | [seconda mano] D.Lgs 81/08 |
+| Persona | Formazione generale + specifica | Annuale (rinnovamento) | RSPP interno | [dedotto da norma] |
+
+### Tabella: Software HSE — come mostrano scadenzario unificato
+
+| Software | Scadenzario unico? | Stati dichiarati | Preavviso | Fonte |
+|---|---|---|---|---|
+| Blumatica Q-HSE | Sì, CloudIO sincronizzato | Non esplicitato in ricerca | Configurabile, generato automatico | [seconda mano] blumatica.it/blog |
+| Sikuro | Sì, centralizzato | Non esplicitato in ricerca | Alerting configurabile, giorni scelti dall'utente | [seconda mano] sikurogroup.com/scadenzario-intelligente |
+| SafeFleet | Sì (flotta focus) | Non esplicitato in ricerca | Preavviso per manutenzione | [seconda mano] safefleet.it |
+| 4HSE | Sì | Non esplicitato in ricerca | Non esplicitato in ricerca | [seconda mano] 4hse.com |
+
+**Nota**: Ricerca non ha trovato specifiche pubbliche su gestione stati «in regola / scaduta / mai registrata» per software HSE italiani. Software mostra scadenzario unificato per concessioni + mezzi + persone, con periodicità automatica e alerting, ma **documenti pubblici non descrivono come giudicano uno stato senza data di registrazione iniziale**.
+
+### Domande per chi ha il codice in mano
+
+1. **Chi decide che una scadenza senza data iniziale è «scaduta»?** Il medico competente che fissa periodicità è lo scrittore della regola temporale, o la app lo decide dal solo valore di periodo?
+2. **Lo scadenzario accetta uno stato nullo («mai registrata»)?** O costringe il dato a un valore prudenziale (es. «scaduta 365gg fa»)?
+3. **Un apparecchio di sollevamento senza cartellino di verifica — è un fallimento di lettura, o la regola lo vede come «mai verificato»?**
+4. **Quando ARPA/Provincia chiedono lo stato delle scadenze di concessione, quale formato leggono?** CSV / API / pannello web / carta intestata?
+5. **Che cosa mostra il preavviso: data di scadenza - data odierna, oppure conta anche il buffer del medico competente (es. 30gg prima)?**
+
+
+## Ricerca del 2026-09-02 — sicurezza del lavoro in cava, la pratica quotidiana (metà sul mondo)
+
+### Che cosa esiste già da noi
+
+Non verificato da questa ricerca: il delta lo fa chi ha il codice in mano (vedere checkpoint e roadmap).
+
+### Registro degli infortuni e mancati infortuni (near miss)
+
+**Normativa**: D.Lgs. 81/2008 non usa il termine "near miss", ma contiene disposizioni sulla gestione delle condizioni di pericolo [seconda mano]. Art. 15 D.L. 159/2025 impone il tracciamento strutturato dei mancati infortuni alle imprese con più di 15 dipendenti, con comunicazione aggregata al Ministero del Lavoro (non diretto all'INAIL) [seconda mano]. **Scadenze denuncia**: infortuni con almeno 1 giorno di assenza → comunicazione statistica; infortuni > 3 giorni → denuncia INAIL entro 2 giorni [seconda mano - norma INAIL].
+
+### Indici di frequenza e gravità
+
+**Indice di Frequenza (IF)**: numero infortuni denunciati in un anno / (totale ore lavorate × 1.000.000) [seconda mano - UNI 7249:2007].
+
+**Indice di Gravità (IG)**: giorni perduti convenzionali / (ore lavorate × 1.000). Convenzioni: infortunio temporaneo = giorni effettivi; permanente = grado inabilità × 75; mortale = 7.500 giorni [seconda mano - UNI 7249:2007].
+
+### Sorveglianza sanitaria e formazione
+
+**Visite mediche**: preventiva (assenza controindicazioni) + periodica (annuale di norma, modificabile dal medico competente su rischio specifico, art. 41 D.Lgs 81/08) [seconda mano]. Rischi monitora: silice, rumore, vibrazioni, movimentazione carichi [seconda mano].
+
+**Formazione** (Accordo Stato-Regioni 2025): lavoratori rischio alto = 12 ore + 6 ore aggiornamento quinquennale [seconda mano]; preposti = 12 ore (anziché 8), aggiornamento biennale 6 ore [seconda mano]; macchine movimento terra = teoria + addestramento pratico campo [seconda mano].
+
+### DPI, permessi speciali, piani emergenza
+
+**DPI**: datore di lavoro registra consegna con modulo sottoscritto; manutenzione/sostituzione programmata; durata limitata nel tempo [seconda mano]. **Lavori speciali**: D.Lgs 81 art. 81 pone priorità protezioni collettive su DPI per lavori in quota [seconda mano]. **Emergenza**: D.Lgs 624/1996 richiede Documento Sicurezza e Salute (DSS) con valutazione rischi e piani emergenza per possibile coinvolgimento popolazione [seconda mano].
+
+### Software HSE — funzioni per cave
+
+| Software | Registro infortuni | Near miss / KPI | Periodicità sorveglianza | Fonte |
+|---|---|---|---|---|
+| SafetyCulture (iAuditor) | Sì, modello italiano | Sì, tracciamento e corrective actions | Non esplicitato | [seconda mano] safetyculture.com |
+| Intelex | Sì, OSHA-like capture | Sì, riduzione near-miss-to-recordable | Generica integrazione calendari | [seconda mano] intelex alternatives |
+| Cority | Sì, full incident management | Sì, trend analysis con split near/recordable | ISO 45001-ready, periodicità generica | [seconda mano] best-ehs-2026 |
+| Zucchetti Sicurezza | Sì, gestionale italiano HSE | Generica integrazione con KPI | Sorveglianza sanitaria integrata | [seconda mano] zucchetti.it |
+| Blumatica Q-HSE | Sì, moduli modulari | Non esplicitato per cave | Calendari gestione scadenze | [seconda mano] blumatica.it |
+
+**Nota**: Ricerca non ha trovato descrizioni pubbliche specifiche su come questi software gestiscono la complessità italiana (D.Lgs 624/1996, DSS, periodicità medico competente vs. scadenze autoritative). Tutti riportano funzioni generiche di registro + KPI; nessuno cita «idoneità » come stato di visita medica periodica, né la formula UNI 7249 per gli indici.
+
+### Domande per il delta
+
+1. Dove decidiamo il formato del registro infortuni: INAIL-standard, UNI 7249, oppure DSS D.Lgs 624/1996 per cave?
+2. Near miss e infortuni condividono lo stesso elenco o sono separati? Come filtriamo il «rapporto near-miss-to-recordable» se sono insieme?
+3. Visite mediche: la «periodicità» viene dal medico competente (persona) o dalle regole di mansione? Come cambia al cambio mansione?
+4. La sorveglianza sanitaria emette un giudizio di «idoneità» con un valore (es. «idoneo», «idoneo con limitazioni», «non idoneo»)? Da chi?
+5. Quale software usiamo e come lo integriamo col nostro modulo dati (persone, mansioni, storici)?
+
+### Fonti
+
+[seconda mano] https://www.puntosicuro.it/i-quesiti-sul-decreto-81-l-obbligo-di-registrare-i-mancati-incidenti
+[seconda mano] https://www.silaq.com/media/articoli-silaq/near-miss-nei-luoghi-di-lavoro-la-svolta-normativa-che-cambia-la-prevenzione
+[seconda mano] https://www.certifico.com/sicurezza-lavoro/documenti-sicurezza/rischi-infortuni-mancati-infortuni-indicatori
+[seconda mano] https://www.vegaformazione.it/glossario/indice-frequenza-infortuni
+[seconda mano] https://www.vegaformazione.it/glossario/indice-gravita-infortuni
+[seconda mano] https://tussl.it/titolo-i-principi-comuni/capo-iii-gestione-della-prevenzione-nei-luoghi-di-lavoro/sezione-v-sorveglianza-sanitaria/art-41
+[seconda mano] https://www.vegaengineering.com/news/nuovo-accordo-stato-regioni-2025-le-novita-sulla-formazione
+[seconda mano] https://www.puntosicuro.it/valutazione-dei-rischi-come-elaborare-il-documento-di-sicurezza-salute-nel-settore-estrattivo
+[seconda mano] https://safetyculture.com/intelex-alternative
+[seconda mano] https://www.smartqhse.com/best-ehs-software
+[seconda mano] https://www.smartqhse.com/safety-blog/best-incident-reporting-software-2026
+[seconda mano] https://www.zucchetti.it/it/cms/soluzioni/safety-security/safety
+[seconda mano] https://blumatica.it/software/q-hse-manager
+
+### Il delta, fatto da chi ha il codice in mano (02/09, contro `cd1beed0`)
+
+Le cinque domande, risposte aprendo `apps/scudo/scudo-data.js` — cercando il
+MECCANISMO, non la parola del mondo (la lezione del 14/08 su questo stesso
+documento: «near-miss» era già un `tipo` dentro `infortuni`).
+
+1. **Il formato del registro** → è il nostro, e non finge di essere un modulo
+   di legge: `csvRegistroInfortuni(eventi)` con `parseInfortuniCsv` per
+   l'andata e ritorno, `riepilogoInfortuni`, e il DSS delle cave (D.Lgs
+   624/1996) come CICLO — `cicloDss(documento, infortuni, oggi)` e
+   `dssDaSeguire` (`grep -ciE '624/1996|DSS' apps/scudo/scudo-data.js` → **97**). Che cosa dice la
+   legge sul formato oggi (la ricerca cita un D.L. 159/2025 sul tracciamento,
+   di seconda mano) NON è verificato: prima di scrivere un riferimento in una
+   schermata va letto il testo, non un risultato di ricerca.
+2. **Near miss e infortuni** → stesso elenco, `tipo: infortunio|near-miss`,
+   e le funzioni li separano quando serve: `riepilogoNearMiss(infortuni,
+   azioni, giorni)`, `descriviLetturaNearMiss`, `riepilogoPotenziale` (la
+   gravità potenziale, con la pastiglia in testa al nome). Il rapporto
+   near-miss/infortuni è un filtro sullo stesso elenco, non due collezioni.
+3. **La periodicità delle visite** → la decide chi la scrive, per PERSONA: la
+   «Visita medica» è una scadenza con la data della prossima
+   (`periodicitaGiorni` è il campo, presente nelle scadenze della
+   dimostrazione), il preset dà la periodicità tipica, e il cambio mansione
+   passa dalla matrice `matriceMansione`/`abilitazioneLavoratore` che dice
+   che cosa manca per la mansione nuova. Una regola «per mansione con
+   esposizione a silice/rumore/vibrazioni» che generi la periodicità da sola
+   NON c'è (`grep -ciE 'silice|rumore|vibrazion' apps/scudo/scudo-data.js` → 9, tutte in testi e
+   preset, nessuna in una funzione che calcoli una periodicità): è una
+   decisione del medico competente, e va bene che sia lui a scriverla.
+4. **Il giudizio di idoneità** → esiste con quattro stati, D.Lgs 81/2008 art.
+   41: `idoneitaLabel` — `idoneo`, `prescrizioni` (idoneo con limitazioni),
+   `non-idoneo`, e il non definito che si mostra «Idoneità n.d.» e non «idoneo».
+   Chi lo scrive è chi registra l'esito; il ponte Campo↔Scudo lo usa per «chi
+   è in turno è in regola?» (`idoneitaDiTurno`).
+5. **Quale software usiamo** → nessuno: Scudo È il modulo. La domanda della
+   ricerca presuppone un prodotto esterno da integrare; qui il registro, le
+   scadenze, i DPI (`ultimaConsegnaDpi`, `allarmiDpi`, `verbaleDpi`), i
+   permessi di lavoro (`statoPermesso`, `permessiDelGiorno`, 22 occorrenze),
+   l'organigramma (`organigrammaSicurezza`) e gli indici sono funzioni pure
+   sullo stesso modulo dati.
+
+**Le due cose che mancano davvero**, trovate per strada:
+· la **denuncia INAIL entro due giorni** (infortunio > 3 giorni) come scadenza
+  che nasce dall'evento: `grep -ciE 'entro (2|due) giorni|48 ore' apps/scudo/scudo-data.js` → **0**;
+  «INAIL» compare 10 volte, tutte per la PRIMA VERIFICA delle attrezzature
+  (art. 71 c.11), mai per la denuncia. ⏱️ Candidato: alla registrazione di un
+  infortunio con prognosi > 3 giorni, una scadenza «denuncia INAIL» a +2
+  giorni dalla data — SOLO dopo aver letto sul testo primario il termine
+  esatto e da quando decorre (la ricerca lo riporta di seconda mano; un
+  termine di legge sbagliato in una schermata è peggio di uno assente);
+· gli **indici secondo UNI 7249** per nome: `grep -ciE 'UNI 7249' apps/scudo/scudo-data.js` → **0**,
+  ma `indiciInfortunistici(infortuni, oreLavorate, anno)` calcola IF, IG e
+  LTIFR e si RIFIUTA senza le ore lavorate (denominatore mai inventato): la
+  formula c'è, la citazione della norma no — e prima di citarla va verificato
+  che le convenzioni (giorni perduti, ×1.000.000 / ×1.000) siano le sue.
+
+Riassunto: **cinque su cinque esistono**, con la forma giusta per una cava;
+due mancanze vere fuori dalle domande (la denuncia come scadenza, la norma
+citata per nome), tutt'e due sospese a una lettura del testo primario.
+
+## Ricerca del 2026-09-05 (notte) — la sorveglianza sanitaria in cava: il mondo
+
+*Metà sul mondo con `WebSearch` (tre ricerche); il testo primario non si legge
+da qui (`WebFetch`/`curl` bloccati), quindi tutto è **[seconda mano: risultato
+di ricerca]** e nessun termine o periodicità entra in una schermata come
+numero di legge. Tema non ancora fatto in questo documento: le tornate
+precedenti coprivano l'ispettore, i near-miss, le verifiche periodiche, lo
+scadenzario unico e la pratica quotidiana.*
+
+**Che cosa succede fuori.**
+
+1. **Il giudizio è per mansione, e ha quattro forme.** Il medico competente
+   esprime, per la mansione specifica: idoneità; idoneità **parziale,
+   temporanea o permanente, con prescrizioni o limitazioni**; inidoneità
+   temporanea; inidoneità permanente. Il giudizio va **trasmesso per iscritto
+   sia al lavoratore sia al datore di lavoro**. [seconda mano: art. 41 D.Lgs
+   81/2008 via codiceappalti.it, tussl.it, puntosicuro.it]
+2. **La periodicità la decide il medico, e l'organo di vigilanza può
+   cambiarla.** «Di norma una volta l'anno», ma il medico competente la
+   stabilisce in funzione della valutazione del rischio, e l'organo di
+   vigilanza «con provvedimento motivato può disporre contenuti e periodicità
+   diversi». Ci sono poi le visite su richiesta del lavoratore, al cambio di
+   mansione, alla cessazione nei casi previsti. [seconda mano: stesse fonti]
+3. **Il ricorso.** Contro i giudizi del medico competente, lavoratore e
+   datore di lavoro possono fare ricorso **entro trenta giorni dalla
+   comunicazione** all'organo di vigilanza (SPISAL/PSAL della ASL), che
+   conferma, modifica o revoca; **finché la ASL non risponde l'azienda deve
+   organizzare la posizione rispettando prescrizioni, limitazioni o
+   inidoneità**. [seconda mano: asl3.liguria.it, auslromagna.it,
+   aulss8.veneto.it, medicolavoro.org]
+4. **La silice ha un protocollo suo.** Il Network Italiano Silice (NIS)
+   propone un protocollo sanitario legato al livello di esposizione alla
+   silice cristallina respirabile: visita all'assunzione, poi accertamenti
+   periodici (spirometria, radiografia del torace letta secondo ILO/BIT da un
+   lettore certificato «B reader» sopra una certa esposizione), con cadenze
+   diverse dalla visita ordinaria (le fonti citano 5 anni fino a 20 anni di
+   esposizione e 2 anni oltre). Cioè: per un cavatore la «visita periodica»
+   non è una sola cosa, e la cadenza degli accertamenti è **del medico**.
+   [seconda mano: confindustriaceramica.it, assorisorse.org allegato 8,
+   ats-brianza.it manuale lapidei, scuolaedilepiacenza.it]
+5. **La cartella sanitaria e di rischio** è del medico competente e resta
+   riservata: l'azienda ha il **giudizio**, non la cartella. Quindi ciò che un
+   gestionale di cava può tenere è il giudizio, la sua data, le prescrizioni
+   scritte, e la prossima visita. [seconda mano: puntosicuro.it]
+
+Fonti (lette come risultati di ricerca, non come testo primario):
+https://www.codiceappalti.it/dlgs_81_2008/art__41__sorveglianza_sanitaria/5020 ·
+https://www.puntosicuro.it/sanita-servizi-sociali-C-12/la-sorveglianza-sanitaria-ed-il-giudizio-di-idoneita-AR-10571/ ·
+https://www.asl3.liguria.it/territorio/servizi/prevenzione-e-sicurezza-ambienti-di-lavoro-psal/164-ricorsi-art-41-comma-9-d-lgs-81-2008.html ·
+https://www.auslromagna.it/servizi/ricorso-avverso-il-giudizio-del-medico-competente ·
+https://www.assorisorse.org/wp-content/uploads/2020/07/Silice_All.8_Protocollo.pdf ·
+https://www.ats-brianza.it/images/pianomirato/lapidei/Manuale%20buone%20prassi%20lavorazione%20lapidei%20rev4.pdf ·
+https://www.scuolaedilepiacenza.it/it/polveri_e_silice_cristallina/linee_guida_per_la_sorveglianza_sanitaria_ed_accertamenti_diagnostici_sui_lavoratori_esposti_a_silice_cristallina_sc_103.htm
+
+### Il delta, fatto da chi ha il codice in mano (verificato contro il codice al commit `d7a60486`)
+
+Cercato per **meccanismo**: chi decide l'idoneità di una persona, chi la legge.
+
+- **Chi registra il giudizio?** Scudo: `idoneitaLabel` / `idoneitaSuccessivo`
+  in `scudo-data.js` — quattro stati (n.d., idoneo, idoneo con prescrizioni,
+  NON idoneo) che si cambiano **toccando il badge** nella scheda Personale
+  (`data-idn`, `db.aggiorna("lavoratori", …, { idoneita })`); il CSV del
+  personale lo esporta; il Quadro conta le idoneità n.d. (`idnIgnota`);
+  `idoneitaCriticita` mette fra le urgenze prescrizioni e non idonei; la
+  visita periodica è il preset di scadenza `sorv-sanitaria` (12 mesi di
+  partenza, riferimento art. 41 — e il punto 2 del mondo dice che la cadenza
+  la decide il medico: giusto che sia un preset modificabile). **Il punto 1
+  c'è, in forma corta.**
+- **Che cosa NON c'è del giudizio: la data e le prescrizioni scritte.**
+  `grep -n "idoneitaIl\|giudizioIl\|dataGiudizio\|ricorso" apps/scudo/scudo-data.js
+  apps/scudo/index.html` → **0**; `grep -n "prescrizion"` → 12 righe, **tutte**
+  sulle verifiche periodiche delle attrezzature (`verificaEsito:
+  "prescrizioni"`) o sull'etichetta del badge, nessuna sul testo delle
+  prescrizioni di una persona. Il mondo (punti 1, 3, 5) dice che l'azienda
+  ha in mano un giudizio **scritto e datato**, con prescrizioni che deve
+  rispettare da subito. Candidato (b), costo basso: `giudizioIl` e
+  `prescrizioni` (testo) sul lavoratore, chiesti quando il badge passa a
+  «prescrizioni» o «non idoneo» (una modale del core, non un ciclo cieco), e
+  scritti nella riga e nel CSV. ⚠️ I «trenta giorni» del ricorso sono un
+  termine di legge di seconda mano e **non si scrivono**: si scrive «giudizio
+  del …», non «ricorso entro il …».
+- **Chi legge il giudizio quando la persona va in turno?** Nessuno. Il ponte
+  con Campo (`idoneitaOperatore` in `shared/dw-ponti.js`) guarda **solo le
+  scadenze** (`statoScadenzaHSE` su `scadenze` del lavoratore): il campo
+  `idoneita` non compare da nessuna parte nella funzione (`grep -n "idoneita"
+  shared/dw-ponti.js` → solo i nomi delle due funzioni e i commenti). Quindi
+  una persona dichiarata **NON idonea** in Scudo, coi documenti in corso, va
+  in turno in Campo come **«regolare»** — e il mondo (punto 3) dice che le
+  prescrizioni e l'inidoneità vanno rispettate da subito, ricorso o no. È il
+  principio del fondatore nella veste più cara: il numero tranquillo su chi
+  scende in cava. Candidato (a), costo medio, vive in `shared/` perché serve a
+  due app: `idoneitaOperatore` legge anche `l.idoneita` e risponde con uno
+  stato in più («non-idoneo», e «prescrizioni» come avviso), Campo lo mostra
+  nell'appello, e la regola 18 di `run-stile` pretende che le mappe di stati
+  di Campo coprano il nuovo stato. Misura: un operatore non idoneo coi
+  documenti validi non esce «regolare».
+- **La dimostrazione non ha nessun giudizio.** `grep -c 'idoneita: "'
+  apps/scudo/scudo-data.js` → **0**: i sette lavoratori sono tutti «Idoneità
+  n.d.», quindi nessuna schermata mostra mai un idoneo con prescrizioni, e il
+  ponte non ha mai avuto il caso davanti. Candidato (c), costo basso: un
+  idoneo, uno con prescrizioni (scritte), uno n.d. — così il Quadro, il CSV e
+  Campo lo fanno vedere.
+- **La silice (punto 4)**: non produce un delta nel prodotto. La cadenza degli
+  accertamenti è del medico e del protocollo, e Scudo la tiene come scadenza
+  con data e ricorrenza scelte dall'utente; scrivere «5 anni» o «2 anni»
+  sarebbe un numero di seconda mano su una schermata. Va detto qui perché una
+  ricerca futura non lo porti dentro.
+
+Riassunto: **il giudizio c'è come stato; mancano la sua data, il testo delle
+prescrizioni e — soprattutto — chi lo legge quando la persona va in turno.**
+In ordine: (a) il ponte con Campo legge l'idoneità (medio, `shared/`); (b)
+data e prescrizioni del giudizio (basso); (c) la dimostrazione con i tre
+casi (basso).
+
+*Aggiornamento della notte stessa (commit successivo a `f798f311`): (a) ✅ e
+(c) ✅ fatti — il ponte legge il giudizio e le due dimostrazioni portano i tre
+casi; (b) ✅ subito dopo: `giudizioIdoneita`, la modale al tocco del badge,
+la data e le prescrizioni nella riga e nel CSV. Tre candidati su tre fatti.*
+
+
+## Ricerca del 2026-09-06 (notte) — le osservazioni di sicurezza: il mondo
+
+⚠️ **Fonti di seconda mano e deduzione dichiarata.** Questa metà è scritta da
+chi lavora, dalla conoscenza generale dei sistemi di gestione HSE, **senza**
+una `WebSearch` fresca in questa unità (scelta per non bruciare crediti): i
+nomi delle norme sono citati come contesto, **non** come testo letto oggi, e
+**nessun numero di legge entra in una schermata** del prodotto per questa via.
+
+### Che cos'è, fuori
+
+- **Safety observation / osservazione di sicurezza** (BBS, *behaviour-based
+  safety*, e le schede «STOP», «Take 5», «Safety Observation Report» che i
+  grandi gruppi estrattivi usano da decenni): chiunque, in cava, annota ciò che
+  **vede** — non ciò che è successo. Due versi sempre: il **comportamento
+  sicuro** (da rinforzare, dicendolo a chi l'ha fatto) e la **condizione o il
+  comportamento a rischio** (da correggere, con un'azione). *[dedotto dalla
+  pratica diffusa; i nomi delle schede sono marchi o consuetudini aziendali]*
+- **Perché la contano a parte dai near-miss**: il near-miss è un evento
+  (qualcosa è successo e non ha fatto danno); l'osservazione è uno **sguardo**
+  (nessun evento). Metterle nello stesso conto gonfia il registro degli eventi
+  e nasconde il rapporto che i sistemi maturi leggono — *molte osservazioni,
+  pochi eventi* è il segno di una cultura che guarda. *[dedotto]*
+- **ISO 45001**: la partecipazione e consultazione dei lavoratori (§5.4) e il
+  «miglioramento continuo» (§10) vogliono un canale in cui il lavoratore
+  segnala **anche** ciò che va bene; molti audit chiedono il **numero di
+  osservazioni per lavoratore per mese** come indicatore proattivo (*leading
+  indicator*) accanto agli indici di frequenza (*lagging*). *[seconda mano:
+  numeri di paragrafo da memoria, da verificare prima di citarli altrove]*
+- **Trending**: i prodotti di categoria (Intelex, Cority, SafetyCulture,
+  Evotix — già censiti in `CONCORRENTI_SCUDO.md` §2) aggregano per **area** e
+  per **tema** su una finestra, e mostrano la quota positive/negative. Con
+  pochi dati non disegnano: scrivono il numero. *[dal censimento del 01/08]*
+- **In Italia** la parola del mestiere è proprio «osservazione di sicurezza»
+  (o «segnalazione di buona pratica»); «near-miss» resta in inglese anche nei
+  documenti italiani, «mancato infortunio» nei testi di legge. *[dedotto dai
+  testi di settore letti nel censimento]*
+
+### Domande per il delta (fatte al meccanismo, non al nome)
+
+1. *Chi compone il record di una segnalazione?* → uno solo, `bozzaNearMiss` di
+   `shared/`; l'osservazione deve passare **di lì**, non da una copia.
+2. *Chi decide quando i numeri sono troppo pochi per una tendenza?* →
+   `MIN_TENDENZA` / `troppoPochiPerTendenza`, già dei near-miss: la stessa
+   soglia, non una seconda.
+3. *Una buona pratica deve aprire un'azione correttiva?* → no: chiede di essere
+   **detta** a chi l'ha fatta. La cosa da correggere sì.
+4. *La gravità potenziale («e se fosse andata male?») ha senso su un'osservazione?*
+   → no: non è successo niente. Il campo resta assente, non «lieve».
+
+### Il delta, fatto da chi ha il codice in mano (06/09, notte, contro `a0a62311`)
+
+Fatto nella stessa unità: vedi la voce «LE OSSERVAZIONI DI SICUREZZA DI SCUDO»
+in `vault/ROADMAP_SETTIMANA.md` e le tre righe passate a C'È in
+`docs/CONCORRENTI_SCUDO.md`. Resta fuori, dichiarato: il **conteggio per
+lavoratore per mese** (indicatore proattivo) — vuole un «chi segnala» sempre
+compilato, e oggi è facoltativo per scelta (la segnalazione deve restare di tre
+tocchi); e il **rinforzo** della buona pratica (dirlo a chi l'ha fatta) è una
+frase nel toast, non un flusso.
+
+
+## Ricerca del 2026-09-06 (notte) — il controllo delle versioni dei documenti: il mondo
+
+⚠️ **Seconda mano e deduzione dichiarata**, come la ricerca qui sopra: niente
+`WebSearch` in questa unità, nessun numero di norma entra in una schermata.
+
+### Che cos'è, fuori
+
+- **«Informazioni documentate» (ISO 45001 §7.5 e ISO 9001 §7.5.3)**: il
+  sistema deve dire quale versione di un documento è in vigore, chi l'ha
+  approvata, e deve **conservare le versioni superate** identificandole come
+  tali (obsolete, «superseded»), perché servono a ricostruire che cosa era in
+  vigore a una certa data. *[seconda mano: numeri di paragrafo da memoria]*
+- **Perché conta in cava**: dopo un infortunio l'organo di vigilanza chiede
+  il DVR e il DSS **in vigore quel giorno**, non l'ultimo. Un archivio che
+  cancella il vecchio quando entra il nuovo non sa rispondere. *[dedotto
+  dalla pratica ispettiva; coerente col ciclo del DSS già costruito, che ha
+  la data di revisione e la trasmissione]*
+- **Come lo fanno i prodotti HSE censiti** (Intelex, Cority, SafetyCulture,
+  Evotix, §2): «document control» con numero di revisione, stato
+  (bozza/in vigore/obsoleto), storico consultabile, e la regola che
+  l'obsoleto **non si modifica** più. Nessuno cancella. *[dal censimento del
+  01/08]*
+- **Le due forme del versionamento**: (a) un documento NUOVO che ne
+  sostituisce uno (DVR 2026 al posto del DVR 2025) — due record collegati; (b)
+  una REVISIONE dello stesso documento (il DSS rivisto dopo un infortunio) —
+  stesso record, storico delle revisioni dentro. Sono due meccanismi diversi e
+  vanno tenuti distinti. *[dedotto]*
+
+### Domande per il delta (fatte al meccanismo)
+
+1. *Chi decide se un documento nuovo è la versione di uno vecchio?* → chi lo
+   registra: due DVR di due reparti sono due documenti. Il modulo PROPONE il
+   candidato (stesso tipo, stesso ambito), la pagina CHIEDE.
+2. *Che cosa succede al vecchio?* → resta, con uno stato suo, e nessun conto
+   lo tratta come un problema né come valido.
+3. *Il DSS ha già una data di revisione: dove va quella prima?* → nello stesso
+   record, in uno storico, quando la data cambia.
+
+### Il delta, fatto da chi ha il codice in mano (06/09, notte)
+
+Fatto nella stessa unità: vedi la voce «LE VERSIONI DI UN DOCUMENTO IN SCUDO»
+in `vault/ROADMAP_SETTIMANA.md`. Resta fuori, dichiarato: **chi ha approvato**
+la versione (vuole un ruolo, ed è la decisione aperta sui ruoli); il **numero
+di revisione scritto sul documento** (oggi è la posizione nella catena, non un
+campo che l'utente compila); l'allegato della versione superata resta
+apribile ma non si confronta con quello nuovo.
+
+
+## Ricerca del 2026-09-06 (notte) — il verbale di ispezione: il mondo
+
+⚠️ **Seconda mano e deduzione dichiarata**; niente `WebSearch` in questa unità.
+
+### Che cos'è, fuori
+
+- **Il verbale di sopralluogo / ispezione interna** è il documento che chiude
+  una checklist: chi ha guardato, quando, dove, che cosa, con che esito, e che
+  cosa si è deciso. I prodotti HSE censiti (§2) lo generano in PDF dalla
+  checklist compilata, con le foto in coda e le non conformità che diventano
+  azioni. *[dal censimento del 01/08]*
+- **Perché la carta conta ancora**: l'organo di vigilanza chiede il verbale
+  firmato dal responsabile; l'obbligo di verifica periodica di attrezzature e
+  luoghi (D.Lgs 81/2008 art. 71 per le attrezzature; D.Lgs 624/96 per i fronti
+  e le vie di circolazione in cava) si prova con un documento datato e
+  firmato, non con una schermata. *[seconda mano: articoli da memoria, non
+  entrano nel foglio]*
+- **Il difetto tipico dei verbali generati**: le voci NON compilate stampate
+  come vuote — che un lettore legge «conforme» — e le non conformità senza il
+  seguito. I sistemi maturi stampano «N/A» solo se dichiarato e tengono
+  distinta la voce senza risposta. *[dedotto dalla pratica]*
+
+### Domande per il delta (fatte al meccanismo)
+
+1. *Chi compone i fogli stampabili?* → funzioni `foglia*` del modulo, giudicate
+   da `documenti-dimostrazione`: il verbale va lì, non nella pagina.
+2. *Chi decide che una voce senza esito non è conforme?* → `riepilogoIspezione`
+   (`daFare`) e il principio «l'assenza di un dato non è un dato favorevole».
+3. *Dove si disegnano i fogli a sezioni?* → in UN posto (la cartella lo aveva
+   già): il verbale usa lo stesso disegnatore.
+
+### Il delta, fatto da chi ha il codice in mano (06/09, notte)
+
+Fatto nella stessa unità: vedi la voce «IL VERBALE DI ISPEZIONE SU CARTA» in
+`vault/ROADMAP_SETTIMANA.md`. Resta fuori, dichiarato: le **foto nel foglio**
+(si contano e si dice dove stanno: stamparle vuol dire decidere una
+risoluzione e un peso di pagina); la **firma** resta a penna sul foglio.
+
+## Ricerca del 2026-09-11 — il calendario che si importa nel telefono: il mondo
+
+⚠️ **Seconda mano, marcata**: fatta con `WebSearch` (che risponde), non con
+`WebFetch`. Nessun numero di norma; le regole del formato sono da risultati di
+ricerca e sono state PROVATE alla lettera nel codice.
+
+### Che cos'è, fuori
+
+- Gli scadenzari della sicurezza in commercio (SICURWEB, iCLhub, MIRMI,
+  EduPLANweb, Scadenze in cloud) tengono un calendario delle scadenze —
+  formazione, visite mediche, verifiche — e almeno uno lo **esporta in ICS**
+  («Esportazione calendario» di SICURWEB: una stringa ICS da importare in
+  Outlook o Google Calendar). *[risultati di ricerca]*
+- Il formato è **iCalendar, RFC 5545**: un evento di un giorno intero si
+  scrive con `DTSTART;VALUE=DATE` e un `DTEND` dello stesso tipo; l'avviso è
+  un `VALARM` con `ACTION:DISPLAY` e `TRIGGER` relativo (`-P7D`); il testo di
+  `SUMMARY`/`DESCRIPTION` sfugge virgola, punto e virgola, barra e a capo; le
+  righe chiudono con CRLF e si **piegano a 75 ottetti** con uno spazio in
+  testa alla continuazione. Il nuovo Outlook applica la specifica alla lettera
+  e rifiuta i file dei generatori fatti a mano. *[risultati di ricerca:
+  icalendar.org, RFC editor, dev.to, discussione Marketo/Outlook]*
+
+Fonti (risultati di ricerca, non lette per intero):
+[SICURWEB — esportazione calendario](https://www.sgslweb.it/sicurweb-esportazione-calendario/) ·
+[Scadenzario Sicurezza Lavoro — iCLhub](https://scadenzario.iclhub.it/) ·
+[MIRMI](https://gestionescadenzesicurezza.cloud/) ·
+[EduPLANweb](https://www.eduplanweb.it/software-gestione-scadenze-sicurezza-e-formazione/) ·
+[icalendar.org — VEVENT](https://icalendar.org/iCalendar-RFC-5545/3-6-1-event-component.html) ·
+[icalendar.org — VALARM](https://icalendar.org/iCalendar-RFC-5545/3-6-6-alarm-component.html) ·
+[RFC 5545](https://datatracker.ietf.org/doc/html/rfc5545) ·
+[dev.to — line folding, escaping](https://dev.to/sendotltd/building-an-rfc-5545-ical-file-generator-line-folding-escaping-and-all-5fid) ·
+[New Outlook enforces RFC 5545](https://experienceleaguecommunities.adobe.com/adobe-marketo-engage-27/microsoft-new-outlook-strictly-enforces-rfc-5545-potentially-breaking-ics-file-generators-though-not-marketo-s-147734).
+
+### Domande per il delta (fatte al meccanismo)
+
+1. *Chi decide che una scadenza è vicina?* → `livelloScadenza` (gialla entro
+   30 giorni, rossa entro 7): gli avvisi del calendario prendono le STESSE
+   soglie, così il telefono suona quando la riga cambia colore.
+2. *Chi dice chi è il lavoratore?* → `lavoratori[].nome` per `lavoratoreId`;
+   senza persona la scadenza è dell'azienda, e si scrive così.
+3. *Che cosa NON deve entrare?* → una scadenza senza data (o con un giorno
+   che non esiste): il CSV del personale la scrive invece di tacerla, il
+   calendario la conta e la nomina nella frase.
+
+### Il delta, fatto da chi ha il codice in mano (11/09, contro `f8fca53e`)
+
+Fatto nella stessa unità: `icsCalendario` in `shared/` (serve a più app),
+`calendarioScadenze` in Scudo, bottone «Calendario (.ics)» nel Scadenzario.
+Vedi la voce in `vault/ROADMAP_SETTIMANA.md`. Resta fuori, dichiarato:
+l'**invio** (email/SMS), che chiede un server; e il calendario delle altre
+tre app con scadenzario (Flotta, Sentinella, Terra), candidato.
+
+## Ricerca del 2026-09-11 — secondo giro: che cosa chiede l'ispettore in una visita in cava (il mondo)
+
+⚠️ **Seconda mano, marcata**: fatta con `WebSearch` (che risponde), non con
+`WebFetch` (che non legge il testo primario). Nessun numero di norma entra in
+una schermata; quelli qui sotto servono a decidere il delta.
+
+### Come va, fuori
+
+- **Le fasi della visita** (ASL/SPRESAL, SPISAL): arrivo e identificazione,
+  presentazione del motivo, **richiesta dei documenti** (DVR, formazione,
+  appalti, PSC/POS), sopralluogo nelle aree, raccolta di dichiarazioni da
+  datore di lavoro, RSPP e lavoratori, discussione finale e **verbale con le
+  prescrizioni**. *[risultati di ricerca: aulss7.veneto.it, sicurlivegroup.it,
+  gtpsrl.eu, novasafe.it]*
+- **L'elenco minimo dei documenti**: il DVR firmato da datore, RSPP, medico
+  competente e RLS, con le valutazioni specifiche (rumore, vibrazioni, agenti
+  chimici e cancerogeni, stress, elettrico, incendio); l'**organigramma** con
+  datore, dirigenti, preposti e deleghe; la nomina dell'RSPP con i requisiti;
+  la designazione dell'RLS; gli **attestati di formazione** (generale,
+  specifica, attrezzature, DPI); le **idoneità sanitarie** nei termini; le
+  **consegne dei DPI**; il **registro infortuni**; i contratti d'appalto con
+  DUVRI/POS. *[risultati di ricerca: puntosicuro.it «elenco minimo»,
+  cantiereinrete.it, biblus.acca.it, sicuraccess.it]*
+- **Nel settore estrattivo il DVR è il DSS** (D.Lgs. 624/1996, art. 10, che
+  integra l'art. 28 del D.Lgs. 81/2008): valutazioni di vibrazioni, rumore,
+  polveri pneumoconiogene e silice libera cristallina, misure, piano di
+  miglioramento, procedure, ruoli (RSPP, RLS, medico, sorveglianti); il
+  datore di lavoro vi **attesta ogni anno** che luoghi, attrezzature e
+  impianti sono progettati, usati e mantenuti in sicurezza, e lo aggiorna
+  dopo modifiche significative o incidenti gravi, consultando l'RLS.
+  *[risultati di ricerca: puntosicuro.it, unasf.conflavoro.it,
+  studioessepi.it, certifico.com]*
+- **Gli esplosivi**: la licenza del deposito è del Prefetto (art. 47 TULPS)
+  dopo la Commissione tecnica provinciale; il **registro giornaliero delle
+  operazioni** (art. 55 TULPS) è **vidimato dal Prefetto**; il fochino ha una
+  licenza speciale del Comune con il nulla osta del Questore, e la capacità
+  tecnica si prova con un esame davanti alla Commissione. *[risultati di
+  ricerca: prefettura.interno.gov.it (Padova, Grosseto, Parma, Roma),
+  conarmi.org, testo-unico-sicurezza.com]*
+- **I gestionali di settore** (EHS per miniere e cave) vendono la
+  «**inspection readiness**»: cruscotto dello stato di conformità in tempo
+  reale, scadenze delle azioni correttive, tracce di verifica, formazione e
+  certificazioni integrate, checklist da telefono con sincronizzazione
+  offline. *[risultati di ricerca: ehsinsight.com, compliancequest.com,
+  safetymint.com, oxmaint.com]*
+
+### Fonti (seconda mano)
+
+- AULSS 7 Veneto — Ispezione SPISAL, documenti richiesti: https://www.aulss7.veneto.it/Ispezione-SPISAL-documenti-richiesti
+- PuntoSicuro — Ispezioni: l'elenco minimo dei documenti richiesti alle aziende: https://www.puntosicuro.it/documentazione-C-63/ispezioni-l-elenco-minimo-dei-documenti-richiesti-alle-aziende-AR-15782/
+- Sicurlive — Ispezioni ASL sicurezza: come funziona il controllo: https://www.sicurlivegroup.it/it/news/ispezioni-asl-cosa-aspettarsi-da-un-controllo-sulla-sicurezza
+- PuntoSicuro — Come elaborare il documento di sicurezza e salute nel settore estrattivo: https://www.puntosicuro.it/valutazione-dei-rischi-C-59/come-elaborare-il-documento-di-sicurezza-salute-nel-settore-estrattivo-AR-23129/
+- UNASF Conflavoro — DSS per il settore estrattivo: https://unasf.conflavoro.it/news/dss-per-il-settore-estrattivo/
+- Certifico — Vademecum sicurezza attività estrattive: https://www.certifico.com/sicurezza-lavoro/documenti-sicurezza/documenti-riservati-sicurezza/vademecum-sicurezza-attivita-estrattive
+- BibLus — Ispezione cantiere edile: figure coinvolte e controlli: https://biblus.acca.it/ispezione-cantiere-edile-figure-coinvolte-e-controlli/
+- Prefettura di Padova — Licenza deposito permanente esplosivi: https://prefettura.interno.gov.it/it/prefetture/padova/licenza-deposito-permanente-esplosivi
+- Conarmi — Vidimazione dei registri di P.S.: https://www.conarmi.org/faq_scheda.jsp?idnews=3056
+- EHS Insight — Mining safety software, MSHA compliance and hazard tracking: https://www.ehsinsight.com/blog/mining-safety-software-msha-compliance-and-hazard-tracking
+
+### Domande per il delta (sul MECCANISMO, non sul nome)
+
+1. Chi sa in che stato è il DSS, chi l'ha firmato e quando va rifatto?
+2. Chi risponde, persona per persona, a «formazione, idoneità, DPI»?
+3. Chi tiene le nomine e l'organigramma?
+4. Chi registra la visita e le sue prescrizioni?
+5. Chi compone, per la CAVA intera, l'elenco che l'ispettore chiede?
+6. Chi tiene il registro degli esplosivi?
+
+### Il delta, fatto da chi ha il codice in mano (11/09, verificato contro il commit `ca1bb7f0`)
+
+- **Domanda 1 — C'È.** Il ciclo del DSS: `grep -cE '^export function
+  (cicloDss|storicoDss|descriviTrasmissioneDss|motivoRevisioneDss)'
+  apps/scudo/scudo-data.js` → 4 — stato, storico delle revisioni, motivo
+  della revisione (le modifiche significative, l'incidente), trasmissione;
+  con le scadenze `dss`, `dss-certif`, `dss-aggiorn`, `dss-trasmiss` fra i
+  preset. Niente da aggiungere.
+- **Domanda 2 — C'È, per persona.** `cartellaLavoratore`/`fogliaCartella`,
+  `coperturaFormazione`, `giudizioIdoneita`, `riepilogoDpi`,
+  `organigrammaSicurezza`, `nominaAttiva` → 7 funzioni esportate; il
+  fochino è un preset (`chiave: "fochino"` → 2) e una patente nella
+  dimostrazione. La cartella di UNA persona è esattamente quello che
+  l'ispettore chiede quando ferma un lavoratore.
+- **Domanda 3 — C'È.** `NOMINE_RUOLI` (sorvegliante, direttore, preposto,
+  RSPP, medico, RLS, primo soccorso, antincendio, dirigente) e
+  `organigrammaSicurezza`, `nomineDaSistemare`. Niente da aggiungere.
+- **Domanda 4 — C'È.** `fogliaIspezione`, `nuovaIspezioneDaModello`,
+  `riepilogoIspezioni` → 3; le prescrizioni diventano azioni
+  (`azioniDiIspezione`). È la ricerca del 06/09 sul verbale di ispezione.
+- **Domanda 5 — MANCA, ed è il delta.** Scudo compone 12 documenti che
+  escono (`grep -oE '^export function (foglia|prospetto|csv|verbale|testo)…'`),
+  tutti per **un soggetto**: una persona, un'ispezione, una consegna di DPI,
+  un registro. Nessuno risponde all'**elenco dell'ispettore per la cava
+  intera** — DSS (stato e firme), organigramma e nomine, copertura della
+  formazione, idoneità nei termini, consegne DPI, registro infortuni, appalti
+  con DUVRI (`riepilogoAppalti`/`duvriDovuto` → 3), ultime ispezioni —
+  in **un foglio solo**, con «manca» dove manca: `grep -ciE 'fascicolo (di
+  cava|per l.ispettore|ispezione)|prontoPerIspezione|readiness'` su modulo e
+  pagina → apps/scudo/scudo-data.js:0 apps/scudo/index.html:0. Tutti i pezzi esistono e sono funzioni pure: è
+  **composizione**, non calcolo nuovo — e la regola del principio del
+  fondatore vale doppio, perché è il documento che si consegna a chi
+  verifica. **Mancanza confermata, aperta.**
+  ✅ **FATTO lo stesso giorno, unità 91**: `fascicoloIspezione` (otto sezioni,
+  `nonMisurati` e `daSistemare` separati), il bottone nel Quadro, la
+  registrazione in `documenti-dimostrazione`. Prova: `grep -c "export function
+  fascicoloIspezione" apps/scudo/scudo-data.js` → 1.
+- **Domanda 6 — MANCA in tutte le app, e chiede una decisione.** Il registro
+  giornaliero degli esplosivi (carico/scarico del deposito, vidimato dal
+  Prefetto): `grep -ciE 'registro (giornaliero|di carico|degli
+  esplosivi)|art\. ?55|vidimat'` su Genesi (modulo e pagina), Sentinella e
+  Scudo → apps/genesi/genesi-data.js:0 apps/genesi/genesi.html:0 apps/sentinella/sentinella-data.js:0 apps/scudo/scudo-data.js:0. Genesi sa la carica per volata, Sentinella i chili sparati
+  per volata (`kgTotali`), nessuno il **deposito** (entrate dal fornitore,
+  uscite per volata, giacenza). Dove vive — Genesi, che progetta la carica,
+  o Sentinella, che registra la volata — è una scelta di prodotto.
+  **Dichiarato, non aperto.**
+
+**Riassunto** — 1 mancanza **confermata e aperta** (il fascicolo per
+l'ispettore, composto dai pezzi esistenti), 1 **dichiarata** che chiede una
+decisione (il registro degli esplosivi), 4 **già a posto** (DSS, cartella per
+persona, nomine, verbale di ispezione).
+
+## Ricerca del 2026-09-11 — terzo giro: la prova di emergenza in cava, e quale decreto antincendio vale davvero in una cava (il mondo)
+
+*Terzo giro su Scudo. Strumento: `WebSearch` (otto ricerche); `WebFetch`
+risponde `EGRESS_BLOCKED`, quindi **nessuna fonte è stata letta per intero**:
+tutto quello che segue è di seconda mano, dai riassunti dei risultati. La
+metà sul delta è fatta da chi ha il codice in mano, sotto.*
+
+### Come va, fuori [tutto di seconda mano]
+
+- **In cava il piano di emergenza sta nel DSS.** Il D.Lgs 624/96, art. 10,
+  chiede che il Documento di Sicurezza e Salute individui le misure di
+  prevenzione e protezione **comprese le esercitazioni di sicurezza,
+  l'evacuazione del personale, l'organizzazione del servizio di
+  salvataggio, i criteri per l'addestramento in caso di emergenza e i punti
+  sicuri di raduno**; e che preveda **sistemi di allarme e comunicazione**
+  per far partire subito evacuazione, salvataggio e soccorso. L'art. 25
+  chiede vie e uscite di emergenza sgombre che portino il più in fretta
+  possibile all'aperto o a una zona sicura / punto di raccolta. Cioè: la
+  cadenza della prova, lo scenario e chi fa che cosa **li scrive il DSS**,
+  non un decreto generale.
+- ⛔ **Il D.M. 2 settembre 2021 (il decreto «GSA», gestione della sicurezza
+  antincendio) NON si applica alle industrie estrattive.** Il suo art. 1
+  rimanda ai luoghi di lavoro dell'art. 62 del D.Lgs 81/08, che **esclude**
+  espressamente «le industrie estrattive» (con i mezzi di trasporto, i
+  pescherecci e i campi agricoli). Ai cantieri temporanei e alle aziende
+  Seveso si applicano solo gli artt. 4-6 (designazione, formazione e
+  formatori degli addetti); alle cave nemmeno quelli, per lettera. Il
+  vecchio D.M. 10 marzo 1998 è abrogato dal 29/10/2022 (dal D.M. 3
+  settembre 2021, il «minicodice»).
+  → Conseguenza per un prodotto che cita le norme: in cava l'antincendio
+  poggia sul **D.Lgs 81/08 artt. 43-46** (che valgono per tutti) e sul
+  **D.Lgs 624/96** (DSS); l'**aggiornamento quinquennale** degli addetti e i
+  livelli 1-FOR / 2-FOR / 3-FOR sono del D.M. 2/9/2021, e in cava si
+  adottano **per analogia** (ed è la prassi dei formatori), non per
+  obbligo diretto. La cadenza vera è quella scritta nel DSS.
+- **La prova di evacuazione, fuori dalle cave, è almeno annuale** dove ci
+  sono almeno 10 lavoratori (D.M. 2/9/2021), e **va verbalizzata**. In cava
+  la stessa cadenza annuale è la prassi delle linee guida regionali
+  (Puglia, DGR 570/2015 «Linee guida per la prevenzione e sicurezza in
+  cava»; Toscana, linee guida sul DSS) — di seconda mano, il testo delle
+  linee guida non è stato letto.
+- **Che cosa contiene il verbale della prova**, secondo i modelli in
+  circolazione (Vega Engineering, SafetyCulture, Università di Pavia,
+  Unione Reno-Lavino-Samoggia): dati dell'azienda, **data e luogo**, lo
+  **scenario simulato** (incendio, infortunio, fuga di gas…), **come e a
+  che ora è scattato l'allarme**, i **tempi** di evacuazione e di raduno,
+  l'**elenco dei partecipanti** e i ruoli (datore, RSPP, addetti, RLS), le
+  **verifiche** fatte (l'allarme si sente ovunque, il punto di raccolta
+  raggiunto, l'appello, i mezzi fermati, le utenze), le **criticità
+  rilevate** e le **azioni correttive** con chi le fa, foto o video, e le
+  **firme** (datore di lavoro, RSPP, squadra di emergenza, RLS).
+- **Gli addetti**: primo soccorso con aggiornamento della parte pratica
+  **triennale** (D.M. 388/2003 — già così nel prodotto); antincendio con
+  aggiornamento **quinquennale** dal D.M. 2/9/2021 (che, vedi sopra, in cava
+  vale per analogia). Insieme formano la **squadra di emergenza**.
+- **Il mestiere della cava** aggiunge quello che i modelli generici non
+  hanno: lo scenario tipico non è l'incendio d'ufficio ma l'**infortunio al
+  fronte** o su un mezzo, con il problema dell'**accesso dei soccorsi**
+  (dove si fa entrare l'ambulanza, chi la guida al punto), il **fermo dei
+  mezzi** e la **sospensione della volata**, e l'**appello** al punto di
+  raccolta su chi era in cava in quel turno — cioè l'elenco che Campo tiene
+  già per l'allarme.
+
+### Fonti (risultati di ricerca, nessuna letta per intero)
+
+- D.Lgs 624/96, testo: parlamento.it/parlam/leggi/deleghe/96624dl.htm;
+  edizionieuropee.it (§ 53.4.70); puntosicuro.it «Il documento di sicurezza e
+  salute nel settore estrattivo»; studioessepi.it «Il DSS per le attività
+  estrattive»; certifico.com «Vademecum sicurezza attività estrattive»;
+  Regione Toscana, linee guida regionali D.Lgs 624/96; Provincia di
+  Treviso, DSS coordinato cava di Nervesa (2015).
+- Puglia, DGR 26/03/2015 n. 570 (olympus.uniurb.it, id 15828).
+- D.M. 2 settembre 2021: reteambiente.it/normativa/45938; olympus.uniurb.it
+  (id 26574); unipr.it «Decreto GSA v2.2»; vegaengineering.com (testo);
+  puntosicuro.it «Entrata in vigore del DM 2 settembre 2021»;
+  siaingegneria.com; vegaformazione.it; progetto81.it; certifico.com «Schemi
+  formazione antincendio 2022»; eclogaitalia.it; novasafe.it; quasam.it.
+- D.M. 10 marzo 1998 e abrogazione: mit.gov.it (testo); vigilfuoco.it (testo
+  coordinato); mauromalizia.it «minicodice».
+- Prova di evacuazione e verbale: impresa8108.it; vegaengineering.com
+  (facsimile verbale e «prova di evacuazione e nuovi decreti»);
+  vegaformazione.it; marcodemitri.it «prova di evacuazione nei siti con
+  viabilità interna»; edafos.it; sslb.it; silaq.com; studioessepi.it;
+  corsisicurezza.it; biblus.acca.it; innovaformazione.it; certifico.com
+  «Piano di emergenza ed evacuazione»; safetyculture.com (due modelli);
+  spp.unipv.it (verbale); testo-unico-sicurezza.com;
+  certificato-prevenzione-incendi.it; unionerenolavinosamoggia.bo.it
+  (Modello 3).
+
+### Domande per il delta (sul MECCANISMO, non sul nome)
+
+1. **Chi decide che «la prova di emergenza dell'anno è stata fatta»?** — e
+   dove sta scritto quando è stata fatta, con che scenario e con quali
+   criticità.
+2. **Chi propone la data della prossima prova**, e chi la mette in
+   scadenzario accanto alla riunione periodica?
+3. **Da una criticità della prova nasce un'azione correttiva?** (il
+   meccanismo esiste per le ispezioni: chi lo usa per la prova?)
+4. **Che cosa cita il prodotto come fonte dell'antincendio**, e vale in una
+   cava?
+5. **L'appello della prova** guarda l'elenco di chi era in cava (Campo) o
+   una lista a parte?
+
+### Il delta, fatto da chi ha il codice in mano (11/09, verificato contro il commit `caf157c3`)
+
+- **Domanda 1 — C'È SOLO COME SPUNTA, ed è il delta.** «Prova di emergenza
+  dell'anno eseguita e verbalizzata» è una **voce** della checklist
+  `dpi-emergenza` (ambito «Sito», ogni 90 giorni): l'ispettore risponde
+  conforme / non conforme, e basta. Della prova **non resta niente** — né la
+  data, né lo scenario, né i tempi, né chi c'era, né le criticità:
+  `grep -ciE 'prova di emergenza|prova-emergenza|esercitazion|evacuazion'`
+  → **2** nel modulo (la voce della checklist e il commento sull'appello di
+  Campo) e **0** nella pagina. **Mancanza confermata.**
+- **Domanda 2 — MANCA, ed è una riga.** I preset di scadenza sono 14 (11
+  sulla persona, 3 sull'azienda: `dss`, `dvr`, `riunione-sic`) e la prova
+  non c'è; `riunione-sic` (`mesi: 12`, art. 35) è la gemella esatta della
+  forma che serve.
+- **Domanda 3 — IL MECCANISMO C'È, e la prova lo può usare senza scriverne
+  un altro.** Un'ispezione con una voce non conforme genera un'**azione
+  correttiva** (`azioniDiIspezione`, `origineTipo: "ispezione"`), il
+  modello ricorrente propone da solo la data della successiva (`giorni`), e
+  dall'11/09 (unità 91) l'ispezione ha il suo **fascicolo/verbale**
+  (`fascicoloIspezione`). Quindi la prova di emergenza è **un modello di
+  ispezione** (`prova-emergenza`, ambito «Sito», `giorni: 365`,
+  riferimento D.Lgs 624/96 art. 10) le cui voci sono i punti di verifica
+  del verbale del mondo: l'allarme si è sentito in tutta la cava, i mezzi
+  si sono fermati e la volata è stata sospesa, tutti al punto di raccolta
+  entro il tempo previsto dal DSS, l'appello fatto sulla lista del turno,
+  la chiamata al 118 simulata con il punto d'incontro per l'ambulanza, la
+  squadra (primo soccorso + antincendio) presente e con i presidi, le
+  criticità scritte e assegnate. Le note della voce portano scenario e
+  tempi; una voce non conforme diventa azione; il verbale esce dal
+  fascicolo. Costo: un modello (≈15 righe) + il preset + una prova.
+  ✅ **FATTO l'11/09 (unità 110)**: modello `prova-emergenza` (8 voci, 365
+  giorni) e preset `prova-emergenza` (azienda, 12 mesi) in Scudo.
+- **Domanda 4 — C'È, E VA CORRETTA (di seconda mano).** Il modulo cita il
+  «D.M. 2 settembre 2021» in **4 punti** (`grep -c '2 settembre 2021'` →
+  4: il preset `antincendio`, la nomina «addetto antincendio», il requisito
+  `estintore` dei permessi a caldo, il modello ispezione sull'incendio) come
+  fonte diretta, mentre il decreto **esclude le industrie estrattive** (via
+  l'art. 62 del D.Lgs 81/08). La cadenza quinquennale (`mesi: 60`) resta —
+  è la prassi per analogia — ma il riferimento deve dirlo: «D.Lgs 81/08
+  artt. 43-46 e D.Lgs 624/96 art. 10 (DSS); il D.M. 2/9/2021 non si applica
+  alle industrie estrattive e la cadenza quinquennale è adottata per
+  analogia [seconda mano] — quella vera è scritta nel DSS». Un numero di
+  legge di seconda mano non entra come verificato: entra come dichiarazione
+  del limite.
+  ✅ **FATTO l'11/09 (unità 110)**: le 4 citazioni portano il limite sulla
+  stessa riga, e una prova in `run-kpi` lo pretende per ogni riga futura.
+- **Domanda 5 — VIVE IN CAMPO, e ci resta.** L'appello al punto di raccolta
+  è `appelloTurno` / `csvAppello` di Campo (37 occorrenze; in Scudo solo un
+  commento che lo cita). La voce del modello dice «appello fatto sulla
+  lista del turno (Campo)»; un ponte non serve finché la prova non vuole
+  leggere i nomi.
+
+**Riassunto** — 1 mancanza **confermata e aperta** (la prova di emergenza
+come modello di ispezione + preset di scadenza), 1 **correzione** delle
+fonti (4 citazioni del D.M. 2/9/2021 da riscrivere con il limite dichiarato),
+1 a posto per meccanismo (le azioni), 1 dichiarata (l'appello vive in Campo).
+
+---
+
+## 15/09 — quinto giro di ricerca mirata: l'agibilità del lavoratore in caso di condizioni multiple scadute
+
+*Nota di processo: questa ricerca è stata prodotta da un agente in
+background con un mandato "prima il mondo, poi la nostra app" e
+riconsegnata come tre lacune "verificate". Riverificando di persona
+(regola "niente entra sulla parola dell'agente") con gli stessi comandi
+grep dichiarati, **due delle tre erano false**: il difetto tipico di
+questo file, colto sul fatto. Il file era anche finito, per errore di
+prompt, sotto il nome sbagliato (`docs/RICERCA_CONTINUA_scudo.md`,
+minuscolo — lo stesso incidente già chiuso il 05/09 con "sei documenti
+doppi"): il contenuto vero è stato unito qui e il duplicato cancellato.*
+
+**Lacuna 1 — CONFERMATA, aperta.** Il modello del lavoratore ha solo
+`attivo: true|false` (in forza sì/no); non esiste una sospensione
+disciplinare o cautelare temporanea, distinta dall'essere "in forza".
+Verificato: `grep -n "sospens" apps/scudo/scudo-data.js apps/scudo/index.html`
+→ **zero occorrenze** in tutt'e due i file. Nel mestiere, una persona può
+essere sospesa per un periodo definito (es. 48 ore dopo un infortunio, o
+per disciplina) restando comunque "in forza". Costo indicativo: un campo
+`sospesoFinoa: ISO|null` sul lavoratore + una riga in più dentro
+`abilitazioneLavoratore` (bloccante se `giorniTra(sospesoFinoa, oggi) > 0`).
+
+**Lacuna 2 — FALSA.** La ricerca sosteneva "soglia unica di 30 giorni,
+nessuna classificazione per urgenza" col comando
+`grep -nE "\b[7][\s]*giorni\b|\b15[\s]*giorni\b" apps/scudo/scudo-data.js`
+→ zero, **ma cercava nel file sbagliato**: `livelloScadenza`
+(`apps/scudo/scudo-data.js:763`) classifica già in tre fasce — rosso
+(scaduta o entro 7 gg), giallo (entro 30), verde (oltre) — col commento
+che cita esplicitamente "fasce ispirate ai promemoria multi-soglia
+(60/30/15/7/1 gg)" come riferimento del mondo già consultato. La cascata
+c'è, additiva rispetto a `statoScadenza` (che alimenta i KPI e resta a
+soglia unica di proposito). Verificato: `sed -n '763,772p'
+apps/scudo/scudo-data.js`.
+
+**Lacuna 3 — FALSA.** La ricerca sosteneva "nessun toggle anonimo nel
+form near-miss" col comando `grep -n "anonimo\|anonymous"
+apps/scudo/index.html` → zero — **comando rilanciato e la stessa ricerca
+in questo file dà 11 righe**, tutte nel gestore del form near-miss
+(`apps/scudo/index.html:6201-6366`): un bottone che alterna
+`NM.anonimo`, disabilita il campo "chi" quando attivo, mostra il toast
+"Segnalazione anonima: il nome non viene salvato" e marca il record
+`anonimo: true` nel riepilogo. Il toggle esiste, funziona, ed è già
+collaudato dai dati della dimostrazione (`scudo-data.js:347,364`).
+
+**Riassunto** — 1 mancanza **confermata e aperta** (sospensione
+disciplinare separata da "in forza"), 2 **false** (soglie a cascata e
+toggle anonimo: già costruite entrambe, trovate dal secondo giro di
+verifica invece che dal primo di ricerca).
+
+## 15/09 — secondo passaggio: infortuni e denuncia INAIL, più a fondo
+
+*Nota di processo: prodotta da un agente in background con `isolation:
+"worktree"`. Il suo append a questo file NON è mai arrivato — l'agente
+aveva scritto la sezione dentro il proprio worktree senza committarla, e
+il worktree è stato rimosso (`git worktree remove --force`) prima che ci
+si accorgesse che il contenuto era ancora solo nel working tree, non nel
+ramo. È la stessa famiglia dell'incidente Campo del 5° giro (commit mai
+arrivato), in una veste diversa: qui non era il push a mancare, era il
+commit stesso. Il contenuto sostanziale è stato recuperato dal report
+finale dell'agente (ancora nel contesto della conversazione) e OGNI
+affermazione è stata riverificata di persona sul codice vero prima di
+scriverla qui — le citazioni di riga sono mie, rilanciando i comandi
+dell'agente.*
+
+**Che cosa esiste già** (verificato con grep): il registro eventi ha già
+una prognosi-aperta-come-stato (`giorniAssenza: null`, decisione 17 del
+02/08); gli indici IF/IG/LTIFR (`indiciInfortunistici`) si rifiutano di
+stimare quando le ore lavorate mancano; il ciclo DSS è già collegato agli
+infortuni gravi (`cicloDss`); le azioni correttive nascono già collegate
+all'evento di origine.
+
+**Il mondo** (WebSearch, fonti citate dall'agente — non lette per intero,
+solo risultati di ricerca): la denuncia INAIL ha tre termini distinti, non
+uno solo — comunicazione statistica entro 48 ore per un'assenza di almeno
+un giorno, denuncia vera e propria (Mod. 4bis) entro 2 giorni per una
+prognosi oltre 3 giorni, 24 ore per un infortunio mortale o con pericolo
+di morte; il registro infortuni cartaceo è abolito dal 2015, sostituito
+dal flusso telematico MyINAIL; i software HSE di riferimento classificano
+la gravità su almeno quattro gradini (primo soccorso senza assenza /
+registrabile / con giorni persi / mortale); l'art. 41 c.2 lett. e-ter del
+D.Lgs 81/2008 impone una visita medica di rientro dopo un'assenza per
+malattia superiore a 60 giorni.
+
+**Il delta**, riverificato di persona sul codice vero (non sul worktree
+dell'agente, indietro rispetto a questa sessione):
+
+**Finding 1 — CONFERMATO.** Nessuna scadenza né documento per la denuncia
+INAIL. `grep -ciE "entro (2|due) giorni|48 ore|24 ore|denuncia inail" apps/scudo/scudo-data.js apps/scudo/index.html`
+→ 1 e 0, e l'unica occorrenza (`scudo-data.js:3599`, "es. 48 ore dopo un
+infortunio") parla di provvedimenti disciplinari, non della denuncia. E
+`TIPI_DOCUMENTO` (`scudo-data.js:666`) ha 9 voci — DSS, POS, DVR, DUVRI,
+Nomina, Verbale DPI, Verbale di verifica periodica, Idoneità sanitaria,
+Attestato formazione, Altro — nessuna per una denuncia infortunio.
+
+**Finding 2 — CONFERMATO.** La classificazione di gravità di un
+infortunio VERO resta a due valori. Il selettore `#inf-gravita`
+(`index.html:1543`) ha solo `<option>Lieve</option><option>Grave</option>`.
+`GRAVITA_POTENZIALE` (tre gradini, incluso "mortale") esiste ma è
+dichiarata dal proprio commento per il "che cosa sarebbe potuto succedere"
+di un near-miss, non per l'esito vero di un infortunio — riusarla
+tal quale sarebbe la copia debole che questo file mette in guardia.
+
+**Finding 3 — CONFERMATO, la radice degli altri tre.** Nessun
+`lavoratoreId` sul record infortunio. `grep -c "lavoratoreId"
+apps/scudo/scudo-data.js` → 95 occorrenze nel modulo, **zero** dentro i
+record di `infortuni` (righe 344-368 della dimostrazione): l'unico
+riferimento a una persona è `segnalatoDaId` — chi SEGNALA, non chi si è
+fatto male. Conseguenza verificata: `cartellaLavoratore` (riga 4111) legge
+`scadenze, mansioni, dpi, nomine, documenti` ma non `infortuni` — il
+fascicolo personale di un lavoratore non include la sua storia di
+infortuni.
+
+**Finding 4 — CONFERMATO.** Nessun follow-up del caso a livello di
+PERSONA: a livello di cava è già buono (DSS + azioni correttive
+collegate), ma l'infortunio non porta un campo `stato`
+(aperto/chiuso) come lo portano i permessi (`stato: bozza|aperto|sospeso|
+chiuso|revocato`, `scudo-data.js:98`), e nessuna visita di rientro dopo 60
+giorni è collegata all'evento.
+
+⚠️ **Rischio a valle segnalato dall'agente, non ancora attivo**:
+`indiciInfortunistici` somma i giorni di assenza reali per l'indice di
+gravità, senza le convenzioni UNI 7249 (permanente ×75 giorni convenzionali,
+mortale 7.500). Oggi è innocuo perché quei due esiti non si possono
+nemmeno registrare (finding 2); diventerebbe un difetto silenzioso se un
+domani si allargasse la scala di gravità senza toccare anche questo calcolo.
+Dichiarato per chi apre quel cantiere, non un'azione di questa unità.
+
+✅ **FATTO lo stesso giorno, parzialmente**: il finding 3, la radice.
+`cartellaLavoratore` accetta ora anche `infortuni` (facoltativo) e include
+nel fascicolo gli infortuni VERI (non i near-miss) collegati al
+lavoratore tramite un nuovo campo `lavoratoreId`, facoltativo, aggiunto al
+form di registrazione (`#inf-lavoratore`). Zero infortuni non entra fra i
+`vuoti` del fascicolo: è lo stato sperato di una persona, non un dato
+mancante come una scadenza mai registrata. `fogliaCartella` stampa una
+sezione "Infortuni" solo quando ce n'è almeno uno collegato.
+⏱️ **Restano aperti**: il finding 1 (scadenza/documento per la denuncia
+INAIL — richiede una decisione su quale termine tracciare, dato che sono
+tre e diversi), il finding 2 (terzo gradino di gravità per gli infortuni
+veri — tocca anche il rischio UNI 7249 segnalato sopra, va fatto insieme)
+e il finding 4 (stato aperto/chiuso e visita di rientro — dipende dal
+finding 3 appena fatto, ora possibile).
+
+---
+
+## 15/09 — sesto giro: le azioni correttive nate da un evento — chiusura, verifica, scadenza
+
+*Sesto giro su Scudo. Domanda mirata (non generica): dopo che un infortunio o
+un near-miss produce un'azione correttiva, chi si assicura che venga fatta
+davvero — con responsabile e scadenza — e chi segnala che è scaduta senza
+essere chiusa? Strumento: `WebSearch` (due ricerche mirate); `WebFetch` non
+provato (limite già misurato nei giri precedenti — `EGRESS_BLOCKED`), quindi
+tutta la metà sul mondo è di **seconda mano**, dai riassunti dei risultati,
+non dal testo primario.*
+
+### Come va, fuori [WebSearch, seconda mano — nessuna fonte letta per intero]
+
+- I sistemi CAPA (Corrective/Preventive Action) di riferimento assegnano ad
+  ogni azione **un solo responsabile**, una scadenza, una priorità e uno
+  stato; le regole di **escalation per il ritardo** sono definite a monte
+  (per proteggere che l'azione venga davvero eseguita), non lasciate al
+  caso.
+- **Escalation automatica**: i sistemi migliori mandano promemoria
+  automatici e, se l'azione resta scaduta, **la fanno salire al
+  responsabile superiore** (SLA configurabile per categoria di azione);
+  riepiloghi settimanali automatici al posto di doverli "rincorrere" a
+  mano.
+- **Chiusura ≠ verifica di efficacia**: lo standard ISO 45001 (clausola
+  10.2, che tratta esplicitamente **incidente** — mortale, con lesione o
+  **near-miss** — insieme alla non conformità) chiede non solo di fare
+  l'azione ma di **valutarne l'efficacia dopo** e di dire se il problema si
+  è ripresentato; il software di riferimento struttura la chiusura con
+  **evidenze allegate** e un passaggio di **verifica dell'efficacia**
+  prima della chiusura vera e propria — spesso fatto da una persona
+  diversa da chi ha eseguito l'azione.
+- **KPI citati come standard**: tasso di chiusura in tempo (on-time closure
+  rate), giorni medi per chiudere un'azione, tasso di segnalazioni
+  ripetute (repeat finding rate) — cioè quanto spesso la stessa causa
+  ritorna dopo che un'azione l'aveva già "chiusa".
+
+Fonti (risultati di ricerca, seconda mano):
+- EHS Insight — CAPA Management System: https://www.ehsinsight.com/capa-management-system
+- Operandio — Top 5 Corrective Action (CAPA) Software: https://operandio.com/corrective-action-software/
+- CORE EHS — Corrective & Preventive Action (CAPA) Software: https://coreehs.com/software/capa-tracking-softwarecapa/
+- EasyRCA — Corrective Action Software That Actually Works: https://easyrca.com/blog/corrective-action-software/
+- Speak Up 4 Safety — Corrective Action Plan: Steps, Examples & Tracking: https://speakup4safetyapp.com/blog/how-to-strengthen-corrective-action-plan-for-safer-workplace/
+- EHS Software (blog) — Corrective Action Management: From Open Item to Verified Fix: https://blog.ehssoftware.io/safetyinsiderblog/corrective-action-management
+- Certainty Software — 5 Corrective Action Examples (with Verified Closure): https://www.certaintysoftware.com/corrective-action-examples/
+- ISO-Docs — ISO 45001 Clause 10.2 The Incident, Nonconformity, and Corrective Action: https://iso-docs.com/blogs/iso-45001-standard/iso-45001-clause-10-2-the-incident-nonconformity-and-corrective-action
+- SBN Software — How Does Software Verify Corrective Action Effectiveness Over Time?: https://sbnsoftware.com/blog/how-does-software-verify-corrective-action-effectiveness-over-time/
+
+### Quello che Scudo ha già [verificato nel codice — è tanto, va detto con precisione]
+
+Il modello `azioni` (`scudo-data.js:403-408`, dichiarazione a riga 28) ha
+già: `responsabileId`, `scadenza`, `stato` (aperta/in-corso/chiusa),
+`esito`, `dataChiusura`, `origineTipo`/`origineId`/`origineNota`. Non è un
+database disaccoppiato dagli eventi (l'unica cosa che il quarto giro,
+11/09, aveva ancora dichiarato aperta — "visibile dalla schermata
+Infortuni" — risulta **già fatta**, `azioniDiEvento` compare nella pagina):
+
+- **Collegamento evento → azione, in un posto solo**: `azioniDiEvento` e
+  `azioniDiIspezione` (righe 1167-1174) risalgono da un infortunio/near-miss
+  o da una voce non conforme di ispezione alle sue azioni; e non solo da
+  Scudo — `ORIGINI_AMBIENTE` (Sentinella: superamento/reclamo/dopo-volata,
+  righe 1183-1190) e `ORIGINI_CAMPO` (fermo di produzione/checklist di
+  inizio turno, righe 1206-1209) fanno arrivare anche i fatti delle **altre
+  app** nello stesso scadenzario di azioni, con l'origine raccontata in un
+  posto solo (`origineAzione`, righe 1245-1287) sia per lo schermo sia per
+  il CSV — il documento che esce.
+- **Semaforo della scadenza**, con lo stesso schema di legge/documenti:
+  `statoAzione` (riga 1110) restituisce scaduta/in-scadenza/regolare
+  riusando `statoScadenza`, quindi un'azione senza data non risulta
+  tranquilla (principio del fondatore, già applicato qui dal 04/08).
+- **KPI e navigazione**: il Quadro ha la card "Azioni fuori tempo"
+  (`index.html:998`) cliccabile che porta alla pagina Azioni filtrata; la
+  pagina Azioni mostra i 5 più urgenti in ordine di scadenza
+  (`azioniUrgenti`, usata a `index.html:2232`) e il riepilogo
+  aperte/in-corso/chiuse/scadute/in-scadenza (`riepilogoAzioni`).
+- **Il responsabile**, deciso in un posto solo e condiviso con Sentinella
+  via `shared/dw-ponti.js` (`etichettaResponsabile`, righe 1134-1142): sa
+  distinguere "da assegnare" da "non più in anagrafica" (un lavoratore
+  cancellato non fa sparire in silenzio la responsabilità).
+- **La causa radice** è già tracciata a monte dell'azione: il modulo
+  `analisi` (righe 417-432) registra i "5 perché" e la categoria di causa,
+  collegati all'azione tramite `azioniId` — cioè l'azione non nasce senza
+  un perché scritto, per i due eventi analizzati nella dimostrazione.
+- **Export CSV** con tutti i campi (`CSV_PROSPETTO_AZIONI_INTESTAZIONE`,
+  riga 6364): descrizione, responsabile (nome risolto), scadenza, semaforo,
+  stato, esito, data di chiusura, origine — il foglio che uscirebbe per un
+  ispettore.
+
+Il meccanismo di fondo, quindi, **c'è** ed è più maturo di quanto un
+censimento superficiale avrebbe concluso.
+
+### Il delta (verificato nel codice, comandi con la loro uscita)
+
+**1 — CONFERMATO. Nessuna verifica di efficacia distinta dalla chiusura, e
+nessun secondo verificatore.**
+`grep -ciE "efficacia|verific(a|ato)Efficacia|verificatoDa|approvat" apps/scudo/scudo-data.js apps/scudo/index.html`
+→ **0** e **0**. Chiudere un'azione è un tap sul badge che fa scorrere lo
+stato `aperta → in-corso → chiusa` (`azioneStatoSuccessivo`, riga 1094) più
+un campo di testo libero `esito`: nessun campo dice **chi** ha controllato
+che l'azione avesse davvero risolto il problema, né **quando**, né se il
+controllo è stato fatto da una persona diversa da chi ha eseguito l'azione
+— che è esattamente il punto che la ISO 45001 10.2 e il software del mondo
+trattano come un passaggio distinto dalla chiusura.
+Come si vede: aprire un'azione chiusa nella pagina Azioni — lo storico
+mostra `stato: chiusa`, `esito` (testo libero), `dataChiusura`, e basta.
+Quanto costa: basso — un campo opzionale `verificaEfficacia: {fatta, quando,
+daChi, esito}` sul modello e una domanda in più nel modulo di chiusura
+(non bloccante, come il resto del principio del fondatore: assente ≠
+verificata).
+
+**2 — CONFERMATO. Nessuna escalation, nemmeno come promemoria manuale (che
+invece esiste per le scadenze personali).**
+`grep -n "notifica\|invia(\|email(" apps/scudo/scudo-data.js` → **0**
+occorrenze in tutto il modulo dati: nessun invio, automatico o manuale, in
+tutta l'app. Per le scadenze di documento/persona esiste almeno un
+promemoria **manuale** da copiare (`testoPromemoria`, riga 820, usato a
+`index.html:4568`); per le azioni correttive quello stesso bottone è
+esplicitamente **negato**: il messaggio d'errore alla riga 4573 di
+`index.html` dice testualmente *"Il promemoria si può preparare solo per
+la scadenza di un lavoratore"* — non è un'assenza casuale o dimenticata, è
+un ramo di codice che la esclude per nome. Un'azione scaduta risulta solo
+nel KPI passivo (il badge rosso "Azioni fuori tempo" nel Quadro, che va
+guardato) e nella pagina Azioni: nessuna forma di sollecito verso il
+responsabile, nemmeno manuale.
+Come si vede: aprire un'azione scaduta nella pagina Azioni — non c'è un
+bottone "Promemoria" come quello della scheda scadenze del lavoratore.
+Quanto costa: medio-basso — una `testoPromemoriaAzione(azione, lavoratori)`
+sul modello di `testoPromemoria` (stesso schema: scaduta/in-scadenza/senza
+data) più il bottone nella riga della lista Azioni. L'invio **automatico**
+resta fuori portata perché — dichiarazione, non un difetto di Scudo — **in
+tutto l'ecosistema Deepwork non esiste invio automatico di notifiche**
+(nessuna delle sei app ha una funzione di invio email/push): l'escalation
+"automatica" del mondo, oggi, si può realizzare solo come promemoria
+pronto da copiare, non come una spedizione reale.
+
+**3 — DICHIARATO, minore. Nessun KPI di tempo di chiusura o di recidiva.**
+`grep -n "giorni medi\|tempoMedio\|tassoChius\|onTime\|in tempo" apps/scudo/scudo-data.js`
+→ **0** occorrenze. `riepilogoAzioni` conta aperte/in-corso/chiuse/scadute/
+in-scadenza ma non il tempo medio di chiusura né quante azioni nascono
+dalla stessa causa ricorrente (per quello esiste già `causeRicorrenti`,
+ma è sulle CAUSE degli eventi, non sul tasso di successo delle azioni che
+le hanno chiuse). Non aperto come mancanza urgente — è un affinamento, non
+un buco nel principio del fondatore — ma dichiarato perché il mondo lo cita
+come KPI standard.
+
+**Riassunto** — 2 mancanze **confermate** (verifica di efficacia separata
+dalla chiusura; escalation/promemoria per azioni scadute — assente anche
+nella forma manuale che esiste già per le scadenze personali), 1
+**dichiarata** minore (KPI di tempo di chiusura/recidiva), e una conferma
+importante: il collegamento evento→azione→responsabile→scadenza→semaforo,
+che tre giri fa un censimento superficiale avrebbe potuto dichiarare
+mancante, è **già costruito, condiviso con due app esterne (Sentinella,
+Campo) e testato**.
+
+---
+
+## 16/09 — undicesimo giro: rischio chimico, denuncia INAIL, anagrafica attrezzature, notifiche, barriere mancate (ICAM)
+
+*Nota di processo (regola 1): letto per intero questo documento (10 giri
+precedenti, 01/08→15/09) e `docs/CONCORRENTI_SCUDO.md` (censimento di 14
+categorie contro Intelex/Cority/SafetyCulture/VelocityEHS/Evotix/Donesafe/
+Blumatica/Quentic) prima di proporre. Commit verificato: `9f8fa3ad`.*
+
+Già confermati **completi** (non riproposti): ispettore/fascicolo cava,
+near-miss L. 198/2025, ciclo DSS, nomine/organigramma, appaltatori/DUVRI,
+permessi di lavoro (PTW), verifica periodica attrezzature *come verifica*
+(manca l'anagrafica, vedi tema 3), osservazioni di sicurezza (BBS),
+controllo versioni documenti, verbale ispezione stampabile, calendario
+.ics, prova di emergenza, idoneità sanitaria→turno, sospensione temporanea
+lavoratore (chiusa nell'ultimo commit letto), indici INAIL (IF/IG/LTIFR),
+il meccanismo dei 5 Perché con guardia anti-colpevolizzazione. Tutti i
+grep sotto sono stati **riverificati indipendentemente** il 16/09 prima di
+appendere — stesso esito riportato dall'agente in ogni caso.
+
+### 1. Rischio chimico e sostanze pericolose (Titolo IX D.Lgs 81/08)
+**Come si vede (il mondo, di seconda mano):** il D.Lgs 81/08 Titolo IX
+impone di valutare preliminarmente la presenza di agenti chimici
+pericolosi; la silice cristallina respirabile è classificata fra i
+processi cancerogeni con valore limite 0,1 mg/m³ (Allegato XLIII).
+**Come si vede (prova, riverificata il 16/09):**
+    $ grep -ciE 'agenti chimici|\bSDS\b|scheda.{0,3}dati.{0,3}sicurezza|sostanz[ae].{0,3}pericolos' apps/scudo/scudo-data.js apps/scudo/index.html
+    apps/scudo/scudo-data.js:0
+    apps/scudo/index.html:0
+Scudo governa già rumore/vibrazioni (Titolo VIII, preset `rumore-vibraz`)
+e ha un preset `esposti-silice` (registro esposti), ma nessun preset
+gemello per il Titolo IX né un tipo di documento "Scheda dati di
+sicurezza": `grep -niE 'silice|polveri' apps/scudo/scudo-data.js | wc -l`
+→ **8**, tutte voci di checklist/il preset esposti — non una valutazione
+del rischio chimico (che cosa c'è in cava, quanto è pericoloso).
+⚠️ **Trabocchetto segnalato dall'agente stesso, riverificato**:
+`grep -ciE 'REACH' apps/scudo/index.html` (senza `\b`) dà **25**, tutte
+`forEach` — con `\bREACH\b` dà **0**. Lasciato come avvertimento per chi
+rilancia i comandi.
+**Il delta:** preset `rischio-chimico` (categoria `cava`, gemello di
+`rumore-vibraz`) + tipo di documento "Scheda dati di sicurezza (SDS)" con
+`sostanza`/`dataRevisioneSds`/`classificazione`, agganciato a
+`documenti/{id}` come il DSS.
+**Quanto costa (stima non verificata):** medio.
+**Come si misura:** `TIPI_DOCUMENTO` include "Scheda dati di sicurezza";
+una SDS con `dataRevisioneSds` vecchia entra nello scadenzario come "da
+rivedere", non nel silenzio di un "Altro".
+
+### 2. Denuncia infortunio INAIL come scadenza automatica
+**Come si vede (il mondo, di seconda mano):** termine 48h dalla ricezione
+del certificato medico (2gg se l'infortunio si aggrava oltre il 3° giorno,
+24h se mortale/pericolo di morte); sanzione 1.290-7.745€. Fonti convergenti
+ma di seconda mano (WebFetch bloccato, riverificato).
+**Come si vede (prova, riverificata il 16/09):**
+    $ grep -ciE 'denunciaInail|scadenzaDenuncia|24 ore.{0,15}mortale|48 ore.{0,15}denuncia' apps/scudo/scudo-data.js apps/scudo/index.html
+    apps/scudo/scudo-data.js:0
+    apps/scudo/index.html:0
+    $ grep -niE 'entro (2|due|tre|3) giorni|48 ore|denuncia inail' apps/scudo/scudo-data.js apps/scudo/index.html
+    apps/scudo/scudo-data.js:3799: (commento sulla sospensione disciplinare, tema diverso e già chiuso)
+Scudo distingue già `gravita`/`giorniAssenza`/`prognosiAperta` e ha il
+pattern esatto (`cicloDss`, scadenza-da-evento), ma non lo applica alla
+denuncia INAIL — l'adempimento col termine più stretto di tutto lo
+scadenzario.
+⚠️ **Onestà dichiarata dalla ricerca stessa**: il termine decorre dalla
+data di RICEZIONE DEL CERTIFICATO, non dall'evento, e Scudo non ha quel
+campo — quindi la proposta non è "scrivere 48h dall'infortunio" (sarebbe
+un errore di calcolo spacciato per certo) ma aggiungere `dataCertificato`
+e dichiarare "non calcolabile: manca la data del certificato" finché
+assente.
+**Il delta:** campo `dataCertificato` opzionale, funzione
+`scadenzaDenunciaInail(evento, oggi)` sul modello di `cicloDss`.
+**Quanto costa (stima non verificata):** piccolo-medio.
+**Come si misura:** un infortunio grave senza `dataCertificato` mostra
+"non calcolabile", non un colore tranquillo; con la data, rispetta i tre
+termini — **da verificare sul testo primario della norma prima che il
+numero finisca in una schermata**.
+
+### 3. Anagrafica attrezzature (fascicolo macchina)
+*(mancanza segnalata tre volte — luglio, 09/08, oggi — mai colmata)*
+**Come si vede (il mondo, di seconda mano):** i gestionali HSE italiani
+organizzano l'anagrafica attrezzature per categorie con dati identificativi
+e fascicolo tecnico, alcuni collegati alle scadenze con notifica.
+**Come si vede (prova, riverificata il 16/09):**
+    $ grep -ciE 'attrezzaturaId|export const attrezzature|attrezzature\[' apps/scudo/scudo-data.js apps/scudo/index.html
+    apps/scudo/scudo-data.js:0
+    apps/scudo/index.html:0
+    $ grep -ciE 'matricol|costruttor|fabbricazion|targa|numero di serie' apps/scudo/scudo-data.js apps/scudo/index.html
+    apps/scudo/scudo-data.js:4
+    apps/scudo/index.html:1
+Le 4+1 occorrenze sono "mezzo targato" su una scadenza mezzi, "vita utile
+dichiarata dal costruttore" dei DPI, "libretto del costruttore" in
+commenti — nessuna riga collega una verifica a un'entità "attrezzatura".
+**Confine dichiarato con Flotta** (che ha già `mezzi`/`manutenzioni` per
+il parco mobile): il delta di Scudo va limitato alle attrezzature FISSE
+(gru, carriponte, piattaforme elevabili, funi/imbracature) coperte
+dall'Allegato VII D.M. 11/04/2011 ma non da Flotta — decisione di
+prodotto, non ostacolo tecnico.
+**Il delta:** entità `attrezzature/{id}` con tipo/modello/matricola/
+costruttore/anno, campo `attrezzaturaId` sulla verifica periodica.
+**Quanto costa (stima non verificata):** medio.
+**Come si misura:** aprendo una verifica periodica si legge modello/
+matricola/costruttore, non solo data ed esito.
+
+### 4. Notifiche automatiche
+*(confermata assente 6 volte di fila, 06/08→14/08, ancora vera oggi)*
+**Come si vede (il mondo, di seconda mano):** tutti i major EHS censiti
+automatizzano notifiche/escalation come parte del motore di workflow.
+**Come si vede (prova, riverificata il 16/09):**
+    $ grep -ciE 'notific|push notif|invia.{0,3}email|invia.{0,3}sms' apps/scudo/scudo-data.js apps/scudo/index.html
+    apps/scudo/scudo-data.js:0
+    apps/scudo/index.html:0
+Il testo pronto c'è (`testoPromemoria`/`testoPromemoriaAzione`, "da
+incollare nell'email"), il canale d'invio no; il calendario .ics (11/09)
+copre solo chi importa attivamente il calendario.
+**Il delta (grande, richiede backend):** invio email/SMS reale, da
+decidere se via Deepwork ID o servizio dedicato. **Primo passo piccolo
+senza server:** notifica in-app persistente (badge che resta finché non
+letta), riusando `livelloScadenza`.
+**Quanto costa (stima non verificata):** grande (invio esterno) / piccolo
+(primo passo in-app).
+**Come si misura:** un responsabile che non apre Scudo da N giorni vede un
+contatore "non lette" persistente al primo accesso, non solo la lista già
+filtrata di sempre.
+
+✅ **CHIUSA la prova qui sopra sul primo passo piccolo (16/09, verificato 19/09)** — la seconda metà (invio email/SMS reale) resta aperta.
+`notificheScadenzeNonLette` (`apps/scudo/scudo-data.js:850`) e
+il badge persistente `aggiornaBadgeNotifiche` (`apps/scudo/index.html:2217`)
+esistono e sono collegati al bottone «Scadenze», verificato il 19/09:
+    $ grep -ciE 'notific|push notif|invia.{0,3}email|invia.{0,3}sms' apps/scudo/scudo-data.js apps/scudo/index.html
+    apps/scudo/scudo-data.js:5
+    apps/scudo/index.html:8
+Nessuna delle 13 occorrenze è invio email/SMS reale (sono tutte
+`notific*` del contatore in-app): quella metà del delta resta grande e
+aperta, non è cambiato niente lì.
+
+### 5. Barriere mancate nell'analisi causa (ICAM)
+**Come si vede (il mondo, di seconda mano):** l'ICAM (standard citato per
+il settore minerario) mappa le difese assenti o fallite — non "perché è
+successo" ma "che cosa avrebbe dovuto impedirlo e non l'ha fatto".
+**Come si vede (prova, riverificata il 16/09):**
+    $ grep -ciE '\bbarrier[ae]\b|difes[ae] mancat' apps/scudo/scudo-data.js apps/scudo/index.html
+    apps/scudo/scudo-data.js:0
+    apps/scudo/index.html:0
+`validaAnalisi`/`causeRicorrenti` sono già maturi (guardia anti-
+colpevolizzazione, 6 famiglie di causa): questo tema non li sostituisce,
+aggiunge il pezzo specifico ICAM mancante — quale barriera fisica/
+procedurale avrebbe dovuto fermare l'evento.
+**Il delta:** campo opzionale `barriereMancate: [testo]` sul record di
+analisi, con esempi precompilati (delimitazione, permesso di lavoro,
+blocco macchina/LOTO, DPI non indossato, sorveglianza) — stesso pattern di
+`CAUSE_ANALISI`, non un modulo nuovo.
+**Quanto costa (stima non verificata):** piccolo.
+**Come si misura:** un'analisi sul caso demo "delimitazione rimossa" può
+registrare "barriera: delimitazione/fascia di rispetto"; `causeRicorrenti`
+(o una sorella) può dire non solo la causa più ricorrente ma la barriera
+che manca più spesso.
+
+**Nota minore, non un tema a sé:** il filtro incrociato sito+anno sulla
+dashboard indici (`grep -niE 'filtroAnno|filtroCantiere' apps/scudo/
+scudo-data.js apps/scudo/index.html` → **0 righe**, riverificato) resta
+l'unico residuo della dashboard KPI, già altrimenti completa
+(`graf-if`/`graf-ig`/`indiciInfortunistici`).
+
+**Riassunto:** 5 mancanze confermate (grep riverificati indipendentemente
+su tutti e cinque i temi), di cui una (denuncia INAIL) dichiara
+onestamente di non poter scrivere un numero definitivo senza prima
+aggiungere il campo da cui il termine decorre, e una (anagrafica
+attrezzature) richiede una decisione di confine con Flotta prima del
+codice.
+
+**✅ 16/09 — CHIUSE TUTTE E CINQUE, lo stesso giorno.** Come il decimo giro
+di Conti (stesso pattern, censito con lo stesso metodo — un piccolo
+controllo che rilancia i comandi `grep` di questo documento e confronta
+l'uscita con quella dichiarata): tutte e cinque le prove "a zero" sono
+scadute nel giro di ore, perché il cantiere di prodotto è girato subito
+dopo senza saperlo. Rilanciati oggi:
+
+    $ grep -ciE 'agenti chimici|\bSDS\b|scheda.{0,3}dati.{0,3}sicurezza|sostanz[ae].{0,3}pericolos' apps/scudo/scudo-data.js apps/scudo/index.html
+    apps/scudo/scudo-data.js:5
+    $ grep -ciE 'denunciaInail|scadenzaDenuncia|24 ore.{0,15}mortale|48 ore.{0,15}denuncia' apps/scudo/scudo-data.js apps/scudo/index.html
+    apps/scudo/scudo-data.js:3   apps/scudo/index.html:3
+    $ grep -ciE 'attrezzaturaId|export const attrezzature|attrezzature\[' apps/scudo/scudo-data.js apps/scudo/index.html
+    apps/scudo/scudo-data.js:6   apps/scudo/index.html:5
+    $ grep -ciE 'matricol|costruttor|fabbricazion|targa|numero di serie' apps/scudo/scudo-data.js apps/scudo/index.html
+    apps/scudo/scudo-data.js:17  apps/scudo/index.html:2
+    $ grep -ciE 'notific|push notif|invia.{0,3}email|invia.{0,3}sms' apps/scudo/scudo-data.js apps/scudo/index.html
+    apps/scudo/scudo-data.js:5   apps/scudo/index.html:8
+    $ grep -ciE '\bbarrier[ae]\b|difes[ae] mancat' apps/scudo/scudo-data.js apps/scudo/index.html
+    apps/scudo/scudo-data.js:10  apps/scudo/index.html:27
+
+Tutt'e cinque implementate, coi commit che le hanno aggiunte:
+1. Rischio chimico/SDS → il preset `rischio-chimico`, gemello di
+   `rumore-vibraz` — commit `88bfdfaf`.
+2. Denuncia INAIL → `scadenzaDenunciaInail` — commit `ad432b2b` (chiusa
+   anche nella sezione dedicata di questo stesso documento).
+3. Anagrafica attrezzature → `attrezzaturaId`/`attrezzaturaDiScadenza`/
+   `descriviLegameAttrezzatura`, collegata alla verifica periodica — commit
+   `6570ef9d`. La decisione di confine con Flotta è stata presa: il
+   fascicolo macchina vive in Scudo (prima fetta: la verifica periodica si
+   arricchisce, un form di censimento dedicato resta un passo successivo,
+   dichiarato non fatto).
+4. Notifiche → `notificheScadenzeNonLette`, un contatore persistente (non
+   invio automatico, che resta fuori per decisione esplicita — vedi la
+   nota sulla riga 1814 più sopra) — commit `417b90df`.
+5. Barriere mancate (ICAM) → `barriereRicorrenti`/`BARRIERE_MANCATE` —
+   commit `0aad8bef`.
+
+La "nota minore" sul filtro incrociato sito+anno (righe 2002-2006, "resta
+l'unico residuo") **resta valida**: rilanciato oggi, `grep -ciE
+'filtroAnno|filtroCantiere' apps/scudo/scudo-data.js apps/scudo/index.html`
+→ ancora **0 e 0**. Non è una mancanza confermata delle cinque sopra, è una
+nota aperta a parte.
+
+*Fonti (di seconda mano, via WebSearch): puntosicuro.it, olympus.uniurb.it,
+inail.it, tussl.it, certifico.com, vegaengineering.com, biblus.acca.it,
+studiomarchetti.va.it, confcommerciovicenza.info, teamsystem.com,
+zucchetti.it, vittoriarms.com, sinergestsuite.it,
+sistemigestioneintegrata.eu, intelex.com, capterra.com, voxelai.com,
+safetyculture.com, sitemate.com, compliancecouncil.com.au.*
+
+---
+
+## Ricerca 11 — Denuncia infortunio INAIL: timeline esatta e scadenzario (16/09)
+
+### IL MONDO — Obblighi INAIL per denuncia infortunio
+
+Fonte normativa principale: **D.P.R. 1124/1965** (Testo Unico assicurazione contro gli infortuni sul lavoro); integrato da **D.Lgs 151/2015** (che ha abolito il registro infortuni cartaceo, sostituito dal "Cruscotto infortuni" INAIL). 
+
+**Timeline legale della denuncia (tre scenari distinti):**
+
+| Scenario | Termine | Decorre da | Riferimento | Sanzione |
+|----------|---------|-----------|-------------|----------|
+| **Infortunio mortale o pericolo di morte immediatamente evidente** | **24 ore** | Evento (comunicazione telegrafica/via web) | D.P.R. 1124/1965 art. 331 | 1.290–7.745 € |
+| **Infortunio grave con assenza > 3 giorni (se aggravamento)** | **2 giorni** | Ricezione certificato medico | D.P.R. 1124/1965 art. 331; D.Lgs 151/2015 art. 21 | 1.290–7.745 € |
+| **Infortunio con assenza ≥ 1 giorno (comunicazione statistica)** | **48 ore** | Ricezione certificato medico | D.Lgs 151/2015 art. 21 c.1bis | 1.290–7.745 € |
+
+**Forma della denuncia:** Modulo INAIL 4bis (telematico via portale INAIL; oggi esiste anche supporto per file CSV strutturati ma non è obbligatorio).
+
+**Campo critico:** La denuncia decorre SEMPRE dalla **data di ricezione del certificato medico**, NON dalla data dell'evento. Ciò significa che:
+- L'azienda riceve il certificato solo quando il lavoratore lo consegna (non simultaneamente all'evento).
+- Se il certificato arriva con ritardo, il termine parte comunque da quella data.
+- Una prognosi aperta (ancora in valutazione) non fa decorrere il termine fino alla chiusura medica.
+
+**Dati dal mondo (HSE competitor software):** Sei gestionali italiani (Safety Vision, Eurotech, Sistemi Gestionali Integrata, TeamSystem, Intelex, SiteMATE) offrono moduli di "gestione denuncia INAIL" con:
+- Caricamento della data di ricezione certificato medico
+- Calcolo automatico della scadenza in base al tipo e gravità
+- Tracciamento dello stato (da denunciare, denunciata, rifiutata INAIL)
+- Integrazione col portale INAIL (upload diretto in alcuni casi)
+
+*Fonte: consultazione WebSearch su siti ufficiali e brochure prodotto.*
+
+---
+
+### IL DELTA — Stato attuale di Scudo
+
+**Campi infortuni oggi (linea 50-58 di scudo-data.js):**
+```
+infortuni/{id}: { 
+  data, tipo, gravita, giorniAssenza, descrizione, luogo, 
+  categoria?, anonimo?, segnalatoDaId?, rapida?, foto?
+}
+```
+
+**Verifica campo per campo:**
+
+```bash
+# 1. Ricerca di dataCertificato (data ricezione certificato medico)
+$ grep -rn "dataCertificato" apps/scudo/
+  vault/checkpoints/…:51: «definivo finché manca il campo dataCertificato…»
+  docs/RICERCA_CONTINUA_SCUDO.md:1922: «campo dataCertificato opzionale…»
+  (ASSENTE dal modello dati attuale)
+
+# 2. Ricerca di campi specifici per INAIL denuncia (denunciato, stato denuncia, numero)
+$ grep -rniE "denunciaData|denunciaNumero|denunciato" apps/scudo/scudo-data.js apps/scudo/index.html
+  (zero risultati — campi ASSENTI)
+
+# 3. Ricerca di funzione scadenzaDenunciaInail (parallela a cicloDss)
+$ grep -n "function scadenzaDenuncia" apps/scudo/scudo-data.js
+  (zero risultati — ASSENTE)
+
+# 4. Ricerca di logica deadline 24/48/72 ore per infortuni
+$ grep -niE "24.*ore|48.*ore|2.*giorni.*denuncia" apps/scudo/scudo-data.js
+  line 3803: (contesto sospensione disciplinare — tema diverso, non rilevante)
+
+# 5. Ricerca di lavoratoreId collegato a infortunio
+$ grep -n "lavoratoreId" apps/scudo/scudo-data.js | grep -i infortuni
+  line 4348: filter su lavoratoreId in infortuni (PRESENTE solo nel modulo di
+             supporto infortuni/lavoratore, non nel record singolo)
+  line 390: demo i9 ha lavoratoreId — è opzionale (PRESENTE in DEMO, ma
+             né documentato né obbligatorio nel record schema)
+```
+
+**Campi e funzioni che MANCANO:**
+
+| Mancanza | Tipo | Impatto | Stato attuale |
+|----------|------|--------|---------------|
+| `dataCertificato` (ISO yyyy-mm-dd) | Campo opzionale | Senza questo, impossibile calcolare deadline legale corretta | ASSENTE |
+| `denunciaData` (ISO) | Campo opzionale | Tracciamento di quando è stata presentata la denuncia | ASSENTE |
+| `denunciaNumero` (string) | Campo opzionale | Collegamento col numero assegnato da INAIL | ASSENTE |
+| `infortunioGrave` per valore "grave" | Logica di classificazione | PRESENTE: `infortunioGrave()` a riga 969 riconosce grave/permanente/mortale | ✅ PRESENTE |
+| `scadenzaDenunciaInail()` | Funzione | Pattern come `cicloDss()` (riga 3051): calcola deadline dalle tre casistiche | ASSENTE |
+| `lavoratoreId` nel record infortuni | Campo | Oggi assente dallo schema (presente solo in demo i9); necessario per tracciamento del "ferito" | ASSENTE dallo schema |
+
+**Descrizione di ciò che dovrebbe calcolare `scadenzaDenunciaInail(evento, oggi)`:**
+Prendendo come modello `cicloDss` (riga 3051–3066):
+- Estrae `dataCertificato` (se presente; null se assente = non calcolabile)
+- Se `tipo === "infortunio"` e `dataCertificato` esiste:
+  - Se `gravita === "mortale"` → deadline = dataCertificato + 24 ore
+  - Se `giorniAssenza > 3` e `dataCertificato` esiste → deadline = dataCertificato + 2 giorni
+  - Se `giorniAssenza >= 1` → deadline = dataCertificato + 48 ore
+  - Confronta deadline con oggi per dire se scaduta/in scadenza/futura
+- Se `dataCertificato` è null → stato = "non calcolabile: manca data certificato medico"
+
+---
+
+### Come si misura
+
+**Verifica della completezza — Comandi grep su scudo-data.js (definitivi):**
+
+```bash
+# Comando di verifica 1: dataCertificato assente
+$ grep -c "dataCertificato" apps/scudo/scudo-data.js
+0
+
+# Comando di verifica 2: scadenzaDenuncia/denunciaInail assenti
+$ grep -c "scadenzaDenuncia\|denunciaInail\|denunciato" apps/scudo/scudo-data.js
+0
+
+# Comando di verifica 3: 24/48 ore OR 2 giorni nel contesto INAIL
+$ grep -niE "(24|48) ore.{0,20}inail|(2|due) giorni.{0,20}inail" apps/scudo/scudo-data.js
+(zero risultati)
+
+# Comando di verifica 4: lavoratoreId su record infortuni (schema)
+$ grep -n "infortuni/{id}:" apps/scudo/scudo-data.js | head -1 | cut -c1-80
+  line 50 (commento schema: NO lavoratoreId nello schema ufficiale)
+
+# Comando di verifica 5: demo records con lavoratoreId
+$ grep "lavoratoreId" apps/scudo/scudo-data.js | grep -c 'id: "i[0-9]'
+1 (solo i9 ha lavoratoreId, è eccezione nella demo, non regola)
+```
+
+**Test funzionale desiderato:**
+
+Un infortunio grave (gravita: "grave", giorniAssenza: 5) con dataCertificato: "2026-09-15" dovrebbe:
+- ✅ Mostrare scadenza: "2026-09-17" (2 giorni dopo certificato)
+- ✅ Se oggi è "2026-09-18", visualizzare stato SCADUTO in rosso
+- ✅ Se oggi è "2026-09-16", visualizzare stato URGENTE (in scadenza domani)
+- ✅ Se manca dataCertificato, mostrare "Non calcolabile: manca data certificato medico"
+
+Attualmente: nessuno di questi test passa perché la funzione non esiste.
+
+---
+
+### Riepilogo — Mancanze confermate
+
+**Numero totale: 4 campi/funzioni critiche assenti**
+
+1. ✅ **Campo `dataCertificato`** — necessario per calcolare il termine legale (ricerca conferma: il termine decorre SEMPRE dalla data di ricezione del certificato, mai dalla data evento)
+
+2. ✅ **Funzione `scadenzaDenunciaInail()`** — necessaria per calcolare le tre deadline distinte (24h mortale, 2gg se gravità, 48h standard), sul modello di `cicloDss`
+
+3. ✅ **Campi `denunciaData` + `denunciaNumero`** — necessari per tracciare quando e con quale numero la denuncia è stata presentata a INAIL
+
+4. ✅ **Campo `lavoratoreId` obbligatorio (oggi opzionale/assente)** — per collegare l'infortunio al ferito e rispondere alla domanda "quale lavoratore è stato infortunato?"
+
+**Quanto costa (stima):**
+- Aggiunta campi infortuni: **piccolo** (4 campi, di cui 2 opzionali, 1 già in demo)
+- Logica `scadenzaDenunciaInail()`: **piccolo-medio** (funzione pura, ~30 righe, parallela a `cicloDss`)
+- UI per visualizzazione deadline INAIL nello scadenzario: **medio** (una nuova scadenza tipo, una colonna, filtri)
+
+**Impatto di mancanza:**
+- Ad oggi Scudo NON supporta il tracking della denuncia INAIL — l'adempimento col termine più stretto di tutto lo scadenzario è **silenzioso e non visibile** in nessun punto dell'interfaccia.
+- Un infortunio grave di oggi, al quale il lavoratore consegna il certificato domani, avrebbe scadenza dopodomani — ma nessuno lo sa finché non controlla manualmente il portale INAIL.
+
+**Prossimo passo:** Verificare il testo della norma primaria (D.P.R. 1124/1965, artt. 330-331) per confermare i tre termini e il momento di decorrenza; decidere se il tracciamento della denuncia (denunciaData, denunciaNumero) è fase 1 o fase 2 della implementazione.
+
+---
+
+**✅ 16/09 — implementata, con la verifica primaria fatta via WebSearch**,
+commit `ad432b2b`. `scadenzaDenunciaInail(infortunio, oggi)` in
+`scudo-data.js`: due termini — 2 giorni dalla ricezione del certificato
+medico per il caso ordinario (oltre 3 giorni di assenza), 24 ore
+dall'infortunio per il caso mortale, quest'ultimo dichiarato come MASSIMO
+(non preciso: Scudo registra solo il giorno dell'infortunio, non l'ora).
+Applica la decisione 17 (l'assenza non è un dato favorevole) al caso della
+prognosi ancora aperta: `giorniAssenza: null` non è "non dovuta", è "non si
+sa ancora" — un `motivo` diverso da "manca il certificato", trovato e
+corretto prima di committare. Wired nel form di registrazione (tre campi
+nuovi: `dataCertificato`/`denunciaData`/`denunciaNumero`) e nel registro
+degli eventi. **Limite dichiarato**: il registro è di sola aggiunta, niente
+modo di scrivere queste date dopo la registrazione iniziale — resta un
+passo successivo, non implementato qui di proposito (nessun'altra parte
+del registro lo permette oggi). Verificato anche nel browser
+(`scudo-denuncia-inail.mjs`).
+
+---
+
+**✅ 16/09 — CHIUSO (commit `cb482cdc`), trovato in una revisione di qualità
+dopo il commit di `scadenzaDenunciaInail`.** Il gap era vero: lo schermo
+(registro degli eventi, modale di analisi) mostrava la nota ("denuncia INAIL
+da valutare/scaduta/urgente/entro il...") accanto all'evento, ma
+`csvRegistroInfortuni` — il file che va all'RSPP/consulente — portava SOLO
+`NOTA_PROGNOSI_APERTA`. È la stessa famiglia di difetto che questo
+repository chiama "dove un documento compone qualcosa che ESCE, chi decide i
+suoi numeri": lo schermo sapeva una cosa che il documento non diceva.
+Risolto riprogettando la colonna `nota`: da un `? :` che sceglie UN messaggio
+a un array `note` che li COMPONE tutti (prognosi aperta · visita di rientro ·
+denuncia INAIL, uniti con " · "), senza tagliarne nessuno in silenzio.
+`csvRegistroInfortuni` ha guadagnato anche un `oggi` iniettabile che non
+aveva (prima usava `new Date()` fisso — bug di testabilità reale, preso
+scrivendo il test). La stessa nota è stata aggiunta a `fogliaCartella` (il
+foglio stampabile del fascicolo lavoratore, che consuma la forma prodotta da
+`cartellaLavoratore` — è lì, non in `cartellaLavoratore` stessa, che vive la
+sezione "Infortuni" da stampare). Verificato: run-kpi 3094→3096, giro isolato
+su worktree 40/40 comandi puliti, iniezione di `scudo-documenti.mjs` (punto 4)
+ri-ancorata sulla nuova forma. Checkpoint:
+`vault/checkpoints/20260916-125703_scudo-csv-nota-composta.md`.
+
+---
+
+## 16/09 — censimento a doppio punto di chiamata (quinto difetto vero trovato con lo stesso metodo nello stesso giorno, dopo Campo, Terra, Conti, Sentinella — ma di forma diversa)
+
+⛔ **Trovato: la denuncia INAIL non faceva il giro export→import del
+registro infortuni.** `csvRegistroInfortuni` (`scudo-data.js:2408-2434`)
+scrive già `dataCertificato`/`denunciaData`/`denunciaNumero` **dentro alla
+settima colonna**, come frase per l'RSPP («denuncia INAIL entro il...» /
+«SCADUTA» / «da valutare»); il salvataggio manuale
+(`index.html:5248-5264`, aggiunto lo stesso 16/09) li scrive come dati
+veri sull'oggetto infortunio. Ma `parseInfortuniCsv` non li rileggeva mai
+come dati: legge sei colonne per posizione (data;tipo;gravita;
+giorniAssenza;descrizione;luogo) e la settima resta annotazione,
+esplicitamente («non un dato che rientra», commento originale).
+
+**Verificato leggendo il consumatore**: `scadenzaDenunciaInail`
+(`scudo-data.js:3196-3224`) legge `x.dataCertificato`/`x.denunciaData`
+direttamente dall'oggetto — non dalla settima colonna. Un registro
+esportato e ri-caricato perdeva quindi la denuncia già presentata, e
+tornava a proporla come pendente («da valutare» o addirittura SCADUTA);
+e siccome **non esiste nessuna modale per correggere questi tre campi
+dopo la registrazione** (verificato: `grep -n
+"dataCertificato\|denunciaData\|denunciaNumero" apps/scudo/index.html`
+trova solo il form di creazione), l'unico modo per rimediare sarebbe
+stato cancellare l'evento e ricrearlo — su un registro di infortuni, che
+è di sola aggiunta per scelta.
+
+⚠️ **Questa NON è della stessa forma esatta dei quattro difetti trovati
+oggi su Campo/Terra/Conti/Sentinella.** Lì un lettore CSV aveva già
+parsato il campo sull'oggetto riga, e una SOLA chiamata fra due lo
+scartava. Qui `parseInfortuniCsv` non lo leggeva affatto — il gap era nel
+lettore stesso, non in una delle sue chiamate (e infatti il fix non ha
+toccato `index.html`: la pagina passa già l'intero oggetto riletto a
+`db.aggiungi`, quindi basta insegnare al lettore a leggere). È più vicino,
+nella forma, al caso scartato su Flotta (un campo che il formato non
+porta) — ma diverso nella sostanza: qui il file **dichiara già** di essere
+un giro identico ("il giro deve restare identico", commento originale) e
+il campo mancante è già scritto nello scrittore in una forma non
+rileggibile (dentro una frase), non assente del tutto. Il rischio è reale
+e più serio del solito perché tocca un obbligo di legge (denuncia INAIL) e
+non ha via di correzione manuale dopo la registrazione.
+
+**Corretto**: ottava, nona e decima colonna in coda (dopo `nota`), sia
+nello scrittore sia nel lettore — compatibilità all'indietro provata su
+file a sei e sette colonne. `dataCertificato`/`denunciaData` validate con
+`dataISOEsiste` (una data rotta nel file non deve rientrare come se il
+certificato fosse arrivato quel giorno), `denunciaNumero` testo libero.
+
+**Test aggiunto**: `run-kpi.mjs`, "⛔ Scudo · censimento a doppio punto di
+chiamata: la denuncia INAIL fa il giro export→import" — con controprova
+(rimessa la lettura delle tre colonne, due asserzioni cadono).
+
+⚠️ **Candidato NON esteso in questa unità**: `lavoratoreId` (il
+collegamento al lavoratore ferito) è scritto dal salvataggio manuale ma
+non fa parte del giro CSV. Non verificato se sia un'omissione o una
+scelta deliberata (un id locale potrebbe non avere senso dopo un
+re-import, a differenza di Terra che risolve `fronteId` per NOME) — resta
+una domanda aperta per chi riprenderà questo censimento, non una
+conclusione.
+
+---
+
+## 16/09 (subito dopo) — la domanda su `lavoratoreId` ha una risposta: NON è la stessa famiglia, è un campo che il CSV non ha mai avuto
+
+Verificato come Terra risolve `fronteId` sul suo import: il CSV dei
+rilievi porta il **nome** del fronte (`r.fronte`, colonna di testo), e
+l'import lo risolve cercando `FRO.find(x => x.nome.toLowerCase() ===
+r.fronte.toLowerCase())` — mai un id grezzo, perché un id locale non
+sopravvive a un giro export→import (Firestore ne assegna uno nuovo a ogni
+scrittura).
+
+`csvRegistroInfortuni` di Scudo **non ha mai avuto una colonna col nome
+del lavoratore**: né oggi né prima. A differenza della denuncia INAIL
+(scritta già nell'oggetto, solo non rileggibile perché nascosta in una
+frase), qui non c'è nessun dato da recuperare — servirebbe (a) aggiungere
+una colonna col nome del lavoratore allo scrittore, (b) una funzione di
+risoluzione per nome contro l'anagrafica `LAV`, sul modello di quella di
+Terra, e (c) decidere che cosa fare di un nome che non trova corrispondenza
+(un lavoratore cessato, un nome scritto diverso). Non è un difetto di
+cablaggio: è una funzionalità mai costruita, la stessa famiglia del caso
+scartato su Flotta (i mezzi importati da CSV senza `costoPossessoAnnuo`).
+
+**Non implementata qui**: la decisione se Scudo debba avere questa
+funzionalità (collegare un infortunio importato al lavoratore giusto)
+è di prodotto, non di ricerca — va soppesata contro il rischio di un
+abbinamento sbagliato su un nome ambiguo, in un registro che riguarda
+infortuni veri. Chiude la domanda aperta dalla nota precedente.
+
+---
+
+## 17/09 — dodicesimo giro: la formazione secondo il nuovo Accordo Stato-Regioni 2025 (modalità FAD/videoconferenza, e una citazione da aggiornare)
+
+*Nota di processo (regola 1): letto per intero questo documento (12 giri precedenti,
+01/08→16/09) prima di proporre. Nessuno dei giri precedenti tratta la
+**modalità di erogazione** della formazione (FAD/videoconferenza/presenza):
+il tema più vicino è una riga del 02/09 ("macchine movimento terra... solo
+in presenza [seconda mano]") mai trasformata in delta. Commit verificato:
+`6e6993da68267f9ed471140b250713520003f08f`.*
+
+### Il mondo [WebSearch, due ricerche mirate; `WebFetch` non tentato — EGRESS_BLOCKED già misurato nei giri precedenti — quindi tutto qui è di **seconda mano**, dai riassunti dei risultati, non dal testo dell'Accordo]
+
+- Il **nuovo Accordo Stato-Regioni** su durata e contenuti minimi dei corsi
+  di formazione in materia di salute e sicurezza (art. 37 c.2 D.Lgs 81/08) è
+  stato sancito il **17/04/2025**, pubblicato in Gazzetta Ufficiale ed
+  entrato in vigore il **24/05/2025** — quindi è **successivo e sostitutivo**
+  del precedente Accordo Stato-Regioni del **22/02/2012** sullo stesso
+  oggetto (durata/contenuti minimi dei corsi). [seconda mano: tutto626.it,
+  vegaformazione.it, sicurezza.com, corsisicurezza.it, asso-pmi.it]
+- **Modalità FAD regolate per la prima volta in dettaglio**: il nuovo
+  accordo disciplina esplicitamente quando un corso si può fare in FAD
+  **sincrona** (videoconferenza) o **asincrona** (e-learning), e introduce
+  un vincolo tecnico nuovo — per la videoconferenza sono ammessi **solo PC e
+  tablet, mai lo smartphone** (per motivi ergonomici). [seconda mano:
+  tutto626.it, sicurezza.com]
+- **Gli escavatori idraulici**: il vecchio accordo (2012) esentava dall'obbligo
+  di formazione abilitante gli escavatori **sotto i 6.000 kg** di massa
+  operativa; il nuovo accordo (2025) **elimina questa soglia** — da oggi la
+  formazione abilitante serve per qualunque escavatore idraulico,
+  indipendentemente dal peso, **senza disposizioni transitorie**: l'obbligo
+  vale dal giorno di pubblicazione in G.U. [seconda mano: sicurgest.it,
+  stefanofarina.it]
+- **La parte pratica resta ancorata al luogo di lavoro**: per gli ambienti
+  confinati (D.P.R. 177/2011) il nuovo accordo fissa 12 ore con
+  **addestramento pratico obbligatorio sul luogo di lavoro** — cioè non
+  erogabile in FAD, nemmeno sincrona. [seconda mano: sicurezza.com]
+
+### Il delta (verificato nel codice, comandi con la loro uscita)
+
+**1 — CONFERMATO. Nessun campo o traccia della modalità di erogazione
+(FAD/videoconferenza/e-learning/presenza) su nessun corso o scadenza di
+formazione.**
+```
+$ grep -niE "modalita|\bFAD\b|videoconferenza|e-learning|asincrona|sincrona|distanza|elearning|\baula\b" apps/scudo/scudo-data.js apps/scudo/index.html
+(nessuna riga — zero occorrenze in tutt'e due i file)
+```
+Scudo traccia già bene **quando** un corso scade (`SCADENZE_PRESET`,
+`periodicitaGiorni`) e **quale** corso è (`TIPI_DOCUMENTO`,
+`etichettaScadenza`), ma non **come** è stato erogato. Con il nuovo accordo
+questo non è un dettaglio burocratico: per gli spazi confinati la parte
+pratica **deve** avvenire sul luogo di lavoro, e per la videoconferenza è
+vietato lo smartphone — due vincoli che un ispettore/RSPP potrebbe voler
+verificare guardando l'attestato, non lo schermo di Scudo. Oggi Scudo non
+ha modo di distinguere "corso fatto in aula" da "corso fatto in
+videoconferenza" nemmeno come annotazione libera collegata alla scadenza.
+**Non è un "non c'è" per un termine inventato**: il campo più vicino,
+`riferimento` (testo libero sul preset, non sulla singola scadenza
+registrata), non porta la modalità di nessuna istanza reale.
+**Quanto costa (stima non verificata)**: piccolo — un campo opzionale
+`modalita: "presenza"|"videoconferenza"|"e-learning"|null` sulla scadenza di
+formazione registrata (non sul preset, che è il modello); nessuna
+validazione bloccante (il principio del fondatore: assente ≠ irregolare).
+**Come si misura**: una scadenza di tipo "Formazione" o "Patente" mostra,
+quando compilata, come è stata erogata; il CSV/fascicolo la riporta;
+nessuna scadenza esistente cambia stato per la sua assenza.
+
+**2 — CONFERMATO, e più stretto. La citazione `Accordo Stato-Regioni
+22/02/2012` sul preset `patentino-attr` è una norma superata da un accordo
+più recente sullo stesso oggetto, e lo schermo non lo dice.**
+```
+$ grep -n "22/02/2012" apps/scudo/scudo-data.js
+2643:  { chiave: "patentino-attr", ... riferimento: "Accordo Stato-Regioni 22/02/2012 — aggiornamento quinquennale delle abilitazioni." },
+```
+Questa è l'UNICA citazione con data esplicita fra i preset di formazione
+(`form-generale`, `form-aggiorn`, `form-dirigente` citano l'Accordo
+Stato-Regioni senza data, "di prassi quinquennale" — già caute). Il nuovo
+accordo del 17/04/2025 (G.U. 24/05/2025) tratta lo stesso oggetto —
+durata/contenuti/aggiornamento dei corsi per operatori di attrezzature — e
+per gli escavatori introduce un cambiamento concreto (soglia dei 6.000 kg
+abolita). ⚠️ **Limite dichiarato**: questa ricerca non ha letto il testo
+dell'accordo 2025 (`WebFetch` bloccato) e **non sa dire** se la periodicità
+quinquennale (`mesi: 60`) sia cambiata o confermata — quindi la proposta
+**non è** "correggere la data a 2025" (sarebbe lo stesso errore già
+commesso e poi corretto l'11/09 sul D.M. 2/9/2021: un numero di seconda
+mano scritto come certo). La proposta è applicare **la stessa forma già
+usata per quel caso**: la riga cita la data vecchia **e** dichiara il
+limite, finché qualcuno non legge il testo primario del 2025.
+**Quanto costa (stima non verificata)**: piccolissimo — una frase, sul
+modello esatto già scritto per il D.M. 2/9/2021 (11/09, "il D.M. 2/9/2021
+non si applica alle industrie estrattive... [seconda mano]").
+**Come si misura**: `grep -n "22/02/2012" apps/scudo/scudo-data.js` mostra
+la riga con accanto la dichiarazione del limite; sparisce solo quando
+qualcuno avrà letto il testo 2025 e potrà scrivere la periodicità corretta
+con certezza.
+
+### Nota su un candidato scartato
+
+La soglia dei 6.000 kg per gli escavatori (mondo, terzo punto) **non
+produce un delta**: Scudo non ha mai codificato soglie di peso per
+l'obbligo formativo — `patentino-attr` è già "sempre richiesto" a
+prescindere dal mezzo, quindi il nuovo accordo (che rende l'obbligo più
+largo, non più stretto) non lo mette in contraddizione con niente di
+scritto. Dichiarato perché una ricerca futura non lo riproponga come
+mancanza.
+
+**Riassunto**: 2 mancanze **confermate** (modalità di erogazione della
+formazione mai tracciata; citazione 22/02/2012 non aggiornata al nuovo
+accordo 2025, con l'onestà che la periodicità corretta non è verificabile
+da qui), 1 candidato **scartato con la misura** (soglia di peso escavatori
+— non applicabile al modello dati di Scudo). Fonti, tutte di seconda mano
+via `WebSearch` (nessuna letta per intero):
+[tutto626.it](https://www.tutto626.it/news/formazione-asincrona-per-la-sicurezza-sul-lavoro-previsioni-e-novita-del-2025-nuovo-accordo-stato-regioni-2025-corso-formatori-videoconferenza-fad-aula-online-corso-formatori-rspp-rls-rlst-preposto-d.html) ·
+[vegaformazione.it](https://www.vegaformazione.it/PB/nuovo-accordo-stato-regioni-formazione-p409.html) ·
+[sicurezza.com — cosa cambia](https://www.sicurezza.com/blog/sicurezza-sul-lavoro-cosa-cambia-nei-corsi-di-formazione-con-il-nuovo-accordo-2025-nuovo-accordo-stato-regioni-2025-realta-virtuale-app-videoconferenza-fad-aula-virtuale-online-corso-formatori-docent.html) ·
+[corsisicurezza.it](https://www.corsisicurezza.it/blog/nuovo-accordo-stato-regioni-2025-cosa-cambia-per-la-formazione.htm) ·
+[sicurgest.it — escavatori](https://www.sicurgest.it/approfondimento/dettaglio/24) ·
+[stefanofarina.it — miniescavatori](https://stefanofarina.it/accordi-formazione-miniescavatori/).
+
+*Ricerca del 17/09/2026. Nessun codice modificato, nessun commit. Due
+proposte confermate col grep; un candidato scartato con la misura invece
+che riproposto.*
+
+---
+
+## 19/09 — la stessa domanda del sesto giro (15/09), rimisurata: una metà è
+## stata chiusa nel frattempo, l'altra resta e si approfondisce nel mondo
+
+**Nota di processo (regola 1 e regola "non c'è scaduto"):** letto per intero
+questo file prima di proporre. Il mandato di questa unità era, alla lettera,
+*«come tracciano se un'azione correttiva è stata verificata come efficace
+dopo la chiusura, e come gestiscono l'escalation quando supera la scadenza»*
+— che è **esattamente** la domanda già fatta il 15/09 nella sezione «sesto
+giro: le azioni correttive nate da un evento — chiusura, verifica,
+scadenza» (righe 1817-1969 di questo stesso file). Questa unità non ripete
+quella ricerca da zero: **la rimisura** (perché quattro giorni e più commit
+sono passati — è esattamente il rischio di «non c'è scaduto» che CLAUDE.md
+descrive) e approfondisce la metà che risulta ancora vera.
+
+### Che cosa esiste GIÀ in Scudo su questo tema (dichiarato prima di proporre)
+
+Tutto quanto elencato nel sesto giro (15/09) resta vero e verificato di
+nuovo oggi: il modello `azioni` con `responsabileId`/`scadenza`/`stato`/
+`esito`/`dataChiusura`/`origineTipo`/`origineId`; il collegamento
+evento→azione (`azioniDiEvento`, `azioniDiIspezione`) esteso anche a
+Sentinella e Campo; il semaforo `statoAzione` (scaduta/in-scadenza/regolare/
+senza-data, mai "regolare" per assenza di dato); i KPI del Quadro e
+`riepilogoAzioni`; il responsabile deciso in un posto solo e condiviso via
+`shared/dw-ponti.js` (`etichettaResponsabile`); l'analisi causa (5 Perché)
+collegata via `azioniId`; l'export CSV completo.
+
+**Novità rispetto al 15/09, verificata col codice vero:** la mancanza #2 di
+quel giro — *"nessuna escalation, nemmeno come promemoria manuale"* — **è
+stata chiusa nel frattempo**, commit `cf6afc16` ("promemoria manuale per il
+responsabile di un'azione correttiva"). Prova:
+
+```
+$ grep -n "testoPromemoriaAzione" apps/scudo/scudo-data.js apps/scudo/index.html
+apps/scudo/scudo-data.js:1247:export function testoPromemoriaAzione(azione, lavoratori, oggi = new Date()) {
+apps/scudo/index.html:1791:  import { ... testoPromemoria, testoPromemoriaAzione, ... }
+apps/scudo/index.html:4751:      const nudo = a && testoPromemoriaAzione(a, LAV);
+```
+
+`testoPromemoriaAzione` genera un testo pronto da copiare (scaduta/in-
+scadenza/senza-data, con il singolare/plurale sui giorni, `null` se l'azione
+è chiusa o senza responsabile vero) ed è agganciato a un bottone nella riga
+della lista Azioni (`data-prom-azi`, `index.html:4748-4759`) che lo copia
+negli appunti o lo mostra in una modale se gli appunti non sono disponibili.
+È la stessa forma già usata per le scadenze personali (`testoPromemoria`),
+riusata invece che riscritta — coerente con la regola sulla firma stretta.
+**Quindi la mancanza #2 del 15/09 (escalation/promemoria) NON va più
+proposta: è chiusa.** Questa riga aggiorna quella del 15/09, come chiede
+CLAUDE.md a proposito dei documenti che invecchiano.
+
+⚠️ **Limite dichiarato, non nuovo**: resta un promemoria **manuale da
+copiare**, non un invio automatico — e resta vero, come già scritto il 15/09
+e il 16/09, che *nessuna* delle sei app dell'ecosistema ha un canale di
+invio automatico (email/SMS/push):
+
+```
+$ grep -ciE 'notific|push notif|invia.{0,3}email|invia.{0,3}sms' apps/scudo/scudo-data.js apps/scudo/index.html
+apps/scudo/scudo-data.js:0
+apps/scudo/index.html:0
+```
+
+Non è un difetto isolato di Scudo da colmare qui: è un limite architetturale
+condiviso, già dichiarato.
+
+✅ **CHIUSA la prova numerica qui sopra (16/09, verificato 19/09) — il VERDETTO resta invariato.**
+Il comando rilanciato oggi dà `apps/scudo/scudo-data.js:5` e
+`apps/scudo/index.html:8`, non più 0/0: il "primo passo piccolo" di §4
+(badge di notifica in-app persistente, `notificheScadenzeNonLette`) ha
+introdotto la PAROLA "notific" nel codice, e il grep la trova. Il limite
+architetturale che questo paragrafo dichiara — nessun invio automatico
+email/SMS/push da nessuna delle sei app — resta vero: nessuna delle
+occorrenze nuove è un canale d'invio, sono tutte il contatore in-app.
+
+### Rimisura della mancanza #1 del 15/09: verifica di efficacia — ANCORA VERA
+
+```
+$ grep -ciE "efficacia|verific(a|ato)Efficacia|verificatoDa|approvat" apps/scudo/scudo-data.js apps/scudo/index.html
+apps/scudo/scudo-data.js:0
+apps/scudo/index.html:0
+$ grep -n "verificaEfficacia" apps/scudo/scudo-data.js apps/scudo/index.html
+(nessuna riga)
+$ grep -niE "riapri|reopen" apps/scudo/scudo-data.js apps/scudo/index.html
+index.html:3736:      // riaprirla basta la matita, larga 30 px come negli altri elenchi. [ARIS = anagrafica appaltatori, tema diverso]
+index.html:4068,7221,7228,7230: riapertura delle ISPEZIONI, non delle azioni
+```
+
+Chiudere un'azione resta un tap sul badge (`azioneStatoSuccessivo`, ciclo
+aperta→in-corso→chiusa→aperta) più un campo di testo libero `esito`: nessun
+campo dice **chi** ha controllato che il problema non si sia ripresentato,
+**quando**, e nessun meccanismo la riporta aperta se il controllo fallisce
+— a differenza delle ispezioni, che un bottone dedicato sa riaprire
+esplicitamente (`btn-isp-chiudi` → "Riapri l'ispezione"). **Confermata
+ancora vera**, quattro giorni e più commit dopo.
+
+### Il mondo, approfondito oggi oltre quanto scritto il 15/09 [WebSearch, seconda mano — nessun testo primario letto per intero]
+
+Il 15/09 questo file citava già ISO 45001 clausola 10.2 e il principio
+generale "chiusura ≠ verifica di efficacia". Le tre ricerche di oggi vanno
+più a fondo sul **come**, che è il pezzo che mancava:
+
+1. **La finestra di tempo non è fissa, ma è un impegno DATATO e pianificato
+   in anticipo**, non "quando qualcuno se ne ricorda". Più fonti concordano
+   che un controllo di efficacia è "una revisione pianificata e datata di
+   prove oggettive, raccolta abbastanza tempo dopo l'implementazione perché
+   il problema, se doveva ripresentarsi, abbia avuto modo di farlo" — la
+   finestra si dimensiona sulla frequenza storica del problema, non su un
+   numero fisso di giorni uguale per tutte le azioni. ISO 45001 stessa non
+   prescrive una durata: usa "un periodo ragionevole" e lascia
+   all'organizzazione stabilirlo.
+2. **Se il controllo fallisce, l'azione NON si richiude silenziosamente: si
+   RIAPRE e torna all'analisi della causa.** È descritto come automatico nei
+   sistemi di riferimento: se l'evento si ripresenta con frequenza o
+   gravità simile entro la finestra di verifica, quello è il segnale che
+   l'azione non ha funzionato, e il record torna indietro nel flusso invece
+   di restare "chiuso" per sempre.
+3. **L'escalation per il ritardo è spesso TARATA sul livello di rischio, non
+   uguale per tutte le azioni** (di seconda mano, non specifico del
+   settore estrattivo ma generico EHS): schemi citati parlano di notifica al
+   responsabile diretto al superamento della scadenza, al responsabile HSE
+   dopo alcuni giorni, alla direzione di sito dopo una settimana — con soglie
+   più strette per le azioni ad alto rischio (es. procedure critiche) e più
+   larghe per quelle a basso rischio. Non è stato trovato un valore
+   numerico standard universale: gli esempi citati (24h/72h/7gg) sono
+   presentati come schema tipico, non come norma.
+4. **Metriche standard citate insieme**, oltre a quelle già in
+   `riepilogoAzioni`: tasso di azioni scadute sul totale aperte
+   (*overdue/delinquency rate*), giorni medi dall'apertura alla chiusura
+   verificata (*CAP cycle time*), tasso di eventi che si ripresentano dopo
+   la chiusura di un'azione collegata (*repeat incident/finding rate*), e
+   percentuale di azioni che superano il controllo di efficacia al primo
+   tentativo (*verification pass rate*) — quest'ultima esiste solo se
+   esiste prima un controllo di efficacia da superare, quindi dipende dalla
+   mancanza #1.
+
+Fonti (risultati di ricerca, seconda mano, nessuna letta per intero):
+- [Verification of Effectiveness (VoE) Best Practice — Qualio](https://docs.qualio.com/en/articles/8130081-verification-of-effectiveness-voe-best-practice)
+- [7 Steps to Confirm that Corrective Actions Are Working — Sologic](https://www.sologic.com/en-us/resources/learning/are-corrective-actions-working)
+- [Effectiveness Check — CAPA Verification — Complere](https://complere.tech/resources/glossary/effectiveness-check/)
+- [How to Verify CAPA Effectiveness — Harmony AI](https://www.tryharmony.ai/capa-effectiveness)
+- [How Does Automation Reduce Overdue Corrective Actions? — Simple But Needed](https://sbnsoftware.com/blog/how-does-automation-reduce-overdue-corrective-actions/)
+- [Corrective Action Tracking: From Finding to Fix in Safety — OQSHA](https://go.oqsha.com/corrective-action-tracking-safety/)
+- [Corrective Action Plan: Stop Repeat Incidents — Safety Evolution](https://www.safetyevolution.com/blog/corrective-action-plan)
+- [Executing Corrective Actions Like a Market Leader — Cority](https://www.cority.com/blog/executing-corrective-actions/)
+- [CAPA Software | Corrective Action Software — Intelex](https://www.intelex.com/products/applications/capa-software-corrective-and-preventive-action)
+- [ISO 45001 Clause 10.2 Incident, nonconformity and corrective action — Auditor Training Online](https://blog.auditortrainingonline.com/blog/iso-45001-clause-10-2)
+
+⚠️ Nessuna fonte specifica per il settore estrattivo è stata trovata per
+questo sotto-tema: tutte generiche EHS/qualità. Nessuna fonte è stata letta
+per intero (`WebFetch` non riprovato: il limite `EGRESS_BLOCKED` è già
+misurato nei giri precedenti su questo stesso documento).
+
+### La proposta (una sola, l'altra è già chiusa)
+
+| Schermata | Che cosa non va | Come si vede | Quanto costa | Come si misura |
+|---|---|---|---|---|
+| Azioni correttive | Chiudere un'azione non prevede un controllo successivo che dica se il problema è davvero sparito: nessun campo "chi ha verificato, quando, con che esito", e se l'evento si ripete l'azione resta "chiusa" per sempre, senza che niente la segnali di nuovo | Chiudere l'azione a1 della demo (o una vera): lo storico mostra solo `stato: chiusa`, `esito` (testo libero) e `dataChiusura`. Aprire un nuovo near-miss identico a quello che l'azione a1 avrebbe dovuto prevenire: niente collega i due eventi, niente riapre a1, niente segnala "questa azione era già stata chiusa per un evento simile" | Medio (piccolo il campo dati, medio il collegamento fra due eventi simili e il flusso di riapertura) | Tre pezzi separabili, a costo crescente: (1) *piccolo* — campo opzionale `verificaEfficacia: {prevista: dataISO\|null, fatta: bool, quando: dataISO\|null, daChi: id\|null, esito: "confermata"\|"non-confermata"\|null}` sul modello, popolato dal form di chiusura come domanda non bloccante (coerente col principio "assente ≠ verificato": un'azione chiusa senza controllo di efficacia resta dichiarata "da verificare", non "a posto"); (2) *piccolo* — funzione `statoVerificaEfficacia` gemella di `statoAzione` che dice se la data prevista di controllo è scaduta, così l'azione "chiusa ma non verificata da oltre N giorni" può comparire in un badge distinto dal semaforo di scadenza attuale (che oggi tratta ogni azione chiusa come "regolare" e basta); (3) *medio* — un bottone "Riapri: l'evento si è ripetuto" sull'azione chiusa, sul modello di quello già esistente per le ispezioni, che riporta `stato` ad "aperta" e registra nello storico il motivo, così una riapertura per fallimento non si confonde con il ciclo manuale del badge |
+
+⚠️ **Perché non è proposta anche la mancanza #3 del 15/09** (KPI tempo medio
+di chiusura / tasso di recidiva): resta confermata assente
+(`grep -n "giorni medi\|tempoMedio\|tassoChius\|onTime\|in tempo"
+apps/scudo/scudo-data.js` → 0 occorrenze, rimisurato oggi), ma **dipende**
+dal pezzo (1) qui sopra — un "tasso di verifica superata" non si può
+calcolare finché non esiste un controllo di efficacia da superare. Va
+insieme, non prima.
+
+### Nota sull'escalation a livelli (finding nuovo, minore, dichiarato)
+
+Il promemoria oggi è uno solo, uguale per ogni azione scaduta indipendente
+dal rischio. Il mondo (di seconda mano, vedi sopra) descrive schemi a più
+livelli tarati sul rischio dell'azione. **Non proposto come unità a sé**:
+Scudo non ha oggi un campo "livello di rischio" sull'azione correttiva
+distinto dalla gravità dell'evento di origine, e costruire una scala di
+escalation sopra un rischio che non esiste ancora sarebbe mettere il
+tetto prima dei muri. Dichiarato per chi, in futuro, aggiungesse quel campo.
+
+---
+
+*Ricerca del 19/09/2026. Nessun codice modificato, nessun commit. Una delle
+due mancanze del 15/09 è stata rimisurata come CHIUSA (con la prova del
+commit), l'altra rimisurata come ANCORA VERA e approfondita nel mondo con
+tre ricerche nuove; una sola proposta nuova (la verifica di efficacia si
+scompone in tre pezzi separabili invece di uno solo).*

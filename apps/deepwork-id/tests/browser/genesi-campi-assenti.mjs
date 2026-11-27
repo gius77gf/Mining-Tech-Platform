@@ -85,6 +85,13 @@ const SORVEGLIATI = [
    leggere, così il giorno in cui una di queste righe si muove il repository lo
    dice in tre secondi invece di far girare una controprova su un prodotto sano. */
 const DIFETTI = [
+  /* ⛔ 27/11 — per la terza domanda riscritta: la maglia torna a disegnarsi anche SENZA
+     spalla (la forma di prima del 14/09). Con questo difetto i fori ricompaiono, la scheda
+     si riempie di numeri usciti da una spalla che nessuno ha scritto, e la scheda CSV esce.
+     La guardia sui documenti presa DA SOLA è controprovata nel suo banco
+     (`genesi-maglia-assente.mjs --controprova=documenti`): qui starebbe sotto questa. */
+  ["  D2.magliaAssente = magliaAssenteMotivo(D2.B, D2.S);\n  if(D2.magliaAssente){ D2.holes=[]; D2.sel=-1; D2.selPrev=-1; D2.lastDet=0; D2.firmaMaglia=null; return; }\n  D2.bf = D2.B;",
+   "  D2.magliaAssente = null;\n  D2.bf = D2.B;"],
   ["  D2.B = valoreCampo(gvv('dB'), D2.B, 1.5, 8);",
    "  D2.B = Math.max(1.5, Math.min(8, gvv('dB')||D2.B));"],
   ["  D2.S = valoreCampo(gvv('dS'), D2.S, 1.5, 8);",
@@ -231,6 +238,15 @@ async function apriSenza(chiave, extra) {
     localStorage.setItem("genesiVolate", JSON.stringify([{ id: "v1", nome: "Fronte Nord",
       data: "2026-07-12", sintesi: "12 fori", design: dd }]));
   }, d);
+  /* senza rete vera in questo contenitore, l'import da gstatic morirebbe da
+     solo dopo ~13 s PER OGNI pagina aperta (sono sedici): lo si taglia
+     subito, come già fa `genesi-locale.mjs` per lo stesso identico import.
+     Trovato il 14/09 scrivendo `genesi-maglia-assente.mjs`: senza questa
+     riga il banco impiegava minuti invece di secondi per aprire una sola
+     volata, in un contenitore dove la rete verso gstatic non fallisce
+     subito ma resta appesa — un ambiente diverso da quello in cui questo
+     banco era stato scritto e verificato l'ultima volta. */
+  await pg.route("https://www.gstatic.com/**", (r) => r.abort());
   await pg.goto(`http://127.0.0.1:${PORTA}/apps/genesi/genesi.html`, { waitUntil: "domcontentloaded" });
   await pg.waitForTimeout(2200);
   await pg.evaluate(() => {
@@ -282,11 +298,27 @@ for (const [id, chiave, inventato, extra] of SORVEGLIATI) {
      `measureGeom2D` fa `null.toFixed(2)`, `setScreen('design')` muore, la
      scheda validatori resta a ZERO righe e — peggio — il toast che NOMINA il
      valore mancante (`volataSenzaValori`) non viene mai mostrato, perché sta
-     nella riga dopo `setScreen`. */
-  const vive = await pg.evaluate(() => document.querySelectorAll("#d2-scheda .sv-row").length);
-  dice(pg.__errori.length === 0 && vive > 20,
-    `${id}: aprire la volata senza questo valore NON uccide il 2D (${vive} righe di scheda)`,
-    pg.__errori[0] || `righe: ${vive}`);
+     nella riga dopo `setScreen`.
+     ⏱️ 14/09 (B0-septies, cantiere G37): per B e S QUESTA riga è cambiata di
+     proposito, non è un regresso — `magliaAssenteMotivo` fa uscire
+     `renderScheda2D` PRIMA di disegnare qualunque riga, con la sola frase
+     dichiarata («Pianta non disegnabile: manca la spalla / l'interasse»), invece di
+     una scheda a metà su una geometria degenere. Zero `.sv-row` è adesso il
+     comportamento GIUSTO per questi due campi soli — non per gli altri
+     quattordici, dove la vecchia aspettativa resta quella vera. */
+  const magliaAssenteAttesa = id === "dB" ? "manca la spalla" : id === "dS" ? "manca l'interasse" : null;
+  if (magliaAssenteAttesa) {
+    const vive = await pg.evaluate(() => document.querySelectorAll("#d2-scheda .sv-row").length);
+    const scheda = await pg.evaluate(() => (document.getElementById("d2-scheda") || {}).textContent || "");
+    dice(pg.__errori.length === 0 && vive === 0 && /non disegnabile/.test(scheda) && scheda.includes(`Pianta non disegnabile: ${magliaAssenteAttesa}.`),
+      `${id}: senza ${chiave} la pianta si dichiara non disegnabile (0 righe, ragione nominata), non una scheda a metà`,
+      pg.__errori[0] || `righe: ${vive}, testo: ${scheda.slice(0, 120)}`);
+  } else {
+    const vive = await pg.evaluate(() => document.querySelectorAll("#d2-scheda .sv-row").length);
+    dice(pg.__errori.length === 0 && vive > 20,
+      `${id}: aprire la volata senza questo valore NON uccide il 2D (${vive} righe di scheda)`,
+      pg.__errori[0] || `righe: ${vive}`);
+  }
   await pg.close();
 }
 
@@ -376,6 +408,28 @@ console.log("\n· la seconda domanda: con la carica assente, nessuna riga della 
    mediana di **107 m** di gittata, cioè 428 m di sgombero persone. Misurato sul
    prodotto: stessa cava Ø102, spalla vera 1,5 m → «133 m, sgombero 267/533 m»;
    spalla assente col vecchio ripiego → «101 m, 202/404 m». */
+/* ⏱️ 27/11 — QUESTA SEZIONE È STATA RISCRITTA SULLA VERITÀ DI OGGI. Dal 14/09
+   (B0-septies, `1b904f01`) una volata salvata SENZA spalla non disegna nessuna
+   maglia: `genMaglia2D` imposta `D2.magliaAssente='burden'`, i fori sono zero
+   e la scheda dice «Pianta non disegnabile: manca la spalla». La sezione di prima
+   pretendeva una scheda con più di venti righe, non la trovava per
+   costruzione, e rispondeva «NON MISURATI (2)» uscendo 1: onesto, scritto qui
+   sopra — e **rosso per due mesi e mezzo**, cioè un rosso che nessuno
+   guardava più. Trovato il 27/11 con una bisezione su 35 commit, mentre si
+   cercava se a romperlo fosse stata una modifica del giorno.
+   La DOMANDA è rimasta la stessa — «con la spalla assente, la gittata non
+   esce da un burden inventato» — e oggi ha una risposta più forte di prima:
+   senza spalla la gittata non esce AFFATTO, da nessuna strada della pagina.
+   La scheda non ha righe né numeri, e (dal 27/11) nemmeno la scheda CSV
+   esce: la ferma `nonEsceSenzaPianta`.
+   ⚠️ Che cosa NON si misura più da qui, e dove sta: la FORBICE della gittata
+   quando la spalla manca («fra 101 e 133 m», «sgombero persone fra 404 e 533
+   m») e il flyrock inverso senza verdetto non sono più raggiungibili dalla
+   pagina — li provano in `run-kpi` «gittataSenzaSpalla: dove la spalla
+   DECIDE, il numero non si dà» e «…dove la spalla NON decide, il numero si dà
+   lo stesso». Le due iniezioni di questo banco che rimettono `D2.B ||
+   SPALLA` restano (trovano ancora il loro testo), ma dalla pagina il loro
+   effetto non si vede più: a farle cadere sono quelle due prove. */
 console.log("\n· la terza domanda: con la spalla assente, la gittata non esce da un burden inventato");
 {
   const testoDi = (pg, re) => pg.evaluate((r) => {
@@ -388,65 +442,54 @@ console.log("\n· la terza domanda: con la spalla assente, la gittata non esce d
     && await pg.evaluate(() => document.querySelectorAll("#d2-scheda .sv-row").length > 20)
     && pg.__errori.length === 0;
 
-  /* 1+3 — la maglia di dimostrazione, dove la spalla DECIDE (a 1,5 m il face
-     burst arriva a 133 m e scavalca i 101 di McKenzie) */
+  /* 1 — SENZA LA SPALLA: niente fori, niente gittata, niente file. Due volte:
+     sulla maglia di dimostrazione e col borraggio corto (1,6 m), dove un tempo
+     la gittata usciva lo stesso perché la spalla «non decideva». */
+  const senzaSpalla = async (quale, extra) => {
+    const pg = await apriSenza("B", extra);
+    const q = await pg.evaluate(() => ({ nav: document.body.className.includes("scr-design"),
+      fori: window.__genesi ? window.__genesi.D2.holes.length : -1, assente: window.__genesi ? window.__genesi.D2.magliaAssente : undefined,
+      scheda: ((document.getElementById("d2-scheda") || {}).innerText || "").replace(/\s+/g, " ").trim() }));
+    if (!q.nav || q.fori < 0) { nonMisurati.push(`${quale} (la volata senza spalla non si è aperta nel 2D)`); await pg.close(); return; }
+    dice(pg.__errori.length === 0 && q.fori === 0 && q.assente === "burden",
+      `⛔ ${quale}: senza la spalla nessun foro viene disegnato, e la pagina lo sa (zero errori, zero fori, motivo «burden»)`, JSON.stringify([pg.__errori[0], q.fori, q.assente]));
+    dice(/Pianta non disegnabile: manca la spalla\./.test(q.scheda) && !/\d/.test(q.scheda) && !/gittata|sgombero/i.test(q.scheda),
+      `⛔ ${quale}: la scheda dice che cosa manca e non mostra NESSUN numero — nessuna gittata, nessuna distanza di sgombero esce da una spalla inventata`, q.scheda.slice(0, 220));
+    /* e nemmeno il file: premendo «Esporta scheda volata» non esce niente */
+    const u = await pg.evaluate(async () => { const usciti = []; const vero = HTMLAnchorElement.prototype.click;
+      HTMLAnchorElement.prototype.click = function () { if (this.download) { usciti.push(this.download); return; } return vero.call(this); };
+      document.getElementById("btn-scheda-csv").click(); await new Promise((r) => setTimeout(r, 700)); HTMLAnchorElement.prototype.click = vero;
+      return { usciti, toast: [...document.querySelectorAll(".toast, #toast, .dw-toast")].map((t) => t.innerText.replace(/\s+/g, " ")).join(" | ") }; });
+    dice(u.usciti.length === 0 && /non esce: la pianta non è disegnabile — manca la spalla\./.test(u.toast),
+      `⛔ ${quale}: e la scheda CSV non esce — il messaggio dice perché`, JSON.stringify(u).slice(0, 260));
+    await pg.close();
+  };
+  await senzaSpalla("spalla assente");
+  await senzaSpalla("spalla assente, borraggio 1,6 m", { stem: 1.6 });
+
+  /* 2 — IL VERSO OPPOSTO, sul progetto sano: i numeri storici non si muovono */
   const pgB = await apriSenza(null);
-  const pgSenzaB = await apriSenza("B");
-  if (!(await vivaEsana(pgB)) || !(await vivaEsana(pgSenzaB))) {
-    nonMisurati.push("la spalla (una delle due schede non si è aperta, o la pagina ha errori)");
-  } else {
-    const flySenza = await testoDi(pgSenzaB, /GITTATA FLYROCK/);
-    dice(flySenza !== null && /non calcolabile/i.test(flySenza),
-      "⛔ spalla: senza di lei la gittata NON esce più dal ripiego globale di 3,0 m", flySenza);
-    /* ⛔ e la ragione deve dire QUANTO è largo il dubbio: un «non calcolabile»
-       nudo toglie il numero e non mette niente al suo posto, mentre il fochino
-       una distanza di sgombero la deve pur scegliere. */
-    dice(flySenza !== null && /fra 101 e 133 m/.test(flySenza),
-      "⛔ e la ragione porta la FORBICE della gittata, non solo il dubbio", flySenza);
-    /* ⚠️ 533 e non 532: la gittata vera al capo basso del burden è 133,37 m, e
-       4 × 133,37 = 533,5. La prova gemella in `run-kpi` dice 532 perché lì il
-       face burst è costruito a mano su un 133 tondo — due ingressi diversi, non
-       una discordanza da «correggere» allineando i due numeri. */
-    dice(flySenza !== null && /sgombero persone fra 404 e 533 m/.test(flySenza),
-      "⛔ e la dichiara anche in metri di sgombero persone, che è l'unità con cui si decide", flySenza);
-    /* il flyrock inverso: il REQUISITO non dipende dalla spalla e resta scritto;
-       quello che dipende dalla spalla è se il progetto lo rispetti */
-    const invSenza = await testoDi(pgSenzaB, /FLYROCK INVERSO/);
-    dice(invSenza !== null && /burden ≥ 1,9/.test(invSenza),
-      "spalla: il REQUISITO del flyrock inverso resta scritto — non si spegne una riga che non dipende dalla spalla", invSenza);
-    dice(invSenza !== null && /non si può dire/.test(invSenza) && !/rispetta entrambi/.test(invSenza),
-      "⛔ ma il verdetto sul burden non si dà più: «rispetta entrambi» lo diceva il ripiego di 3,0 m", invSenza);
-    /* il verso opposto, sul progetto sano: i numeri storici non si muovono */
+  if (!(await vivaEsana(pgB))) nonMisurati.push("la spalla presente (la scheda non si è aperta, o la pagina ha errori)");
+  else {
     const flySano = await testoDi(pgB, /GITTATA FLYROCK/);
     dice(flySano !== null && /101 m/.test(flySano) && /202 \/ 404 m/.test(flySano),
       "e con la spalla vera la gittata è ancora 101 m con sgombero 202 / 404 m", flySano);
-    /* ⚠️ E QUI L'ASSERZIONE GIUSTA NON È «rispetta entrambi»: sulla maglia di
-       dimostrazione il borraggio è 2,2 m contro i 2,6 richiesti, quindi il
-       verdetto vero è che il progetto NON li rispetta. Quello che questa riga
-       deve provare non è QUALE verdetto esce, è che un verdetto esca — cioè
-       che con la spalla scritta la riga smetta di dire «non si può dire». */
+    /* ⚠️ l'asserzione giusta NON è «rispetta entrambi»: sulla maglia di
+       dimostrazione il borraggio è 2,2 m contro i 2,6 richiesti. Quello che
+       questa riga prova è che un verdetto ESCA. */
     const invSano = await testoDi(pgB, /FLYROCK INVERSO/);
     dice(invSano !== null && /Il progetto attuale/.test(invSano) && !/non si può dire/.test(invSano),
-      "e con la spalla vera il flyrock inverso torna a dare il suo verdetto sul burden", invSano);
+      "e con la spalla vera il flyrock inverso dà il suo verdetto sul burden", invSano);
   }
-  await pgB.close(); await pgSenzaB.close();
-
-  /* 2 — LA PROVA CHE LA DIFESA NON HA SPENTO LA RIGA. Borraggio 1,6 m invece
-     di 2,2: il cratering domina su tutto il dominio della spalla, quindi la
-     gittata è determinata anche senza di lei e il numero dev'esserci. */
+  await pgB.close();
   const pgCorto = await apriSenza(null, { stem: 1.6 });
-  const pgCortoSenza = await apriSenza("B", { stem: 1.6 });
-  if (!(await vivaEsana(pgCorto)) || !(await vivaEsana(pgCortoSenza))) {
-    nonMisurati.push("la spalla che non decide (borraggio 1,6 m: una delle due schede non si è aperta)");
-  } else {
+  if (!(await vivaEsana(pgCorto))) nonMisurati.push("la spalla presente col borraggio 1,6 m (la scheda non si è aperta)");
+  else {
     const con = await testoDi(pgCorto, /GITTATA FLYROCK/);
-    const senza = await testoDi(pgCortoSenza, /GITTATA FLYROCK/);
-    dice(senza !== null && /174 m/.test(senza) && !/non calcolabile/i.test(senza),
-      "⛔ spalla: dove la spalla NON decide la gittata (borr. 1,6 m, domina il cratering) il numero resta — la difesa non ha spento la riga", senza);
-    dice(con !== null && senza !== null && con === senza,
-      "⛔ e con la spalla o senza è lo STESSO identico testo: dove non decide, non cambia nulla", `${con} || ${senza}`);
+    dice(con !== null && /174 m/.test(con) && !/non calcolabile/i.test(con),
+      "e col borraggio corto (1,6 m) e la spalla vera la gittata è 174 m: domina il cratering, il numero c'è", con);
   }
-  await pgCorto.close(); await pgCortoSenza.close();
+  await pgCorto.close();
 }
 
 if (nonMisurati.length) {

@@ -91,8 +91,14 @@ const COME = {
      «NON MISURATE: conti» — e nessuno l'aveva letto: è la regola delle righe
      «non ho guardato», da leggere PRIMA dei KO. */
   conti: [
+    // ⛔ 17/09: la lettera non è più la stessa a ogni livello
+    // (livelloSollecito in conti-data.js, 15/09) — l'oggetto cambia in
+    // "sollecito di pagamento" / "secondo sollecito di pagamento" /
+    // "ultimo avviso di pagamento" a seconda del ritardo, e la
+    // dimostrazione può capitare su una fattura di qualunque livello.
     { sezione: "nav-fat", bottone: "[data-sollecito]",
-      dentro: /Oggetto: sollecito di pagamento/, quale: "il sollecito di pagamento nelle fatture" },
+      dentro: /Oggetto: (sollecito di pagamento|secondo sollecito di pagamento|ultimo avviso di pagamento) — fattura/,
+      quale: "il sollecito di pagamento nelle fatture" },
     { sezione: "nav-rep", bottone: "[data-espo]",
       dentro: /Estratto conto —/, quale: "l'estratto conto del cliente nei report" },
   ],

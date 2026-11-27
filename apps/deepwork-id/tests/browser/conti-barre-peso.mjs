@@ -241,13 +241,27 @@ console.log("");
      disegnano più della fascia accanto che è vuota davvero?*
      Il conto delle fasce dipende dalla demo e quindi **si stampa**, invece di
      essere una soglia che un dato nuovo fa cadere. */
-  dice(zeri.length >= 1,
-    `e accanto c'è una fascia a zero da confrontare (${zeri.length} vuote su ${ag.length}: ${zeri.map((r) => r.riga).join(", ") || "nessuna"})`);
-  if (mini && zeri.length) {
-    dice(mini.px > 0, `12 € veri disegnano più di zero pixel (${mini.px} px)`, mini);
-    dice(mini.px > zeri[0].px,
-      `e disegnano PIÙ di una fascia vuota: 12 € -> ${mini.px} px, € 0 -> ${zeri[0].px} px`,
-      { mini: mini.px, zero: zeri[0].px });
+  /* ⛔ E IL 15/09 LA FASCIA VUOTA È SPARITA DEL TUTTO — terza volta che
+     questo banco invecchia sulla stessa domanda. La dimostrazione di Conti
+     ora ha un importo vero in tutt'e sei le fasce (compresa «Senza
+     scadenza», che il commit `069d70e` aveva riempito): non c'è più
+     nessuna fascia a zero con cui confrontare i 12 € DENTRO questa lista.
+     Non è un difetto — sei fasce vere è una demo più completa, non più
+     povera — ed è esattamente il caso per cui il commento qui sopra dice
+     «il conto si stampa, non è una soglia che un dato nuovo fa cadere»: qui
+     mancava applicarlo. La domanda «lo zero si disegna zero, sistematico»
+     resta comunque risposta dalla sezione 2 (8 righe a zero su TUTTE le
+     liste), che non dipende da questa fascia. */
+  if (zeri.length >= 1) {
+    dice(true, `e accanto c'è una fascia a zero da confrontare (${zeri.length} vuote su ${ag.length}: ${zeri.map((r) => r.riga).join(", ")})`);
+    if (mini) {
+      dice(mini.px > 0, `12 € veri disegnano più di zero pixel (${mini.px} px)`, mini);
+      dice(mini.px > zeri[0].px,
+        `e disegnano PIÙ di una fascia vuota: 12 € -> ${mini.px} px, € 0 -> ${zeri[0].px} px`,
+        { mini: mini.px, zero: zeri[0].px });
+    }
+  } else {
+    console.log(`  ·   nessuna fascia a zero in aging-list da confrontare coi 12 € (dichiarato, non giudicato: lo zero-disegna-zero lo controlla la sezione 2, su tutte le liste)`);
   }
   const espo = raccolto["espo-list"] || [];
   const cli = espo.find((r) => r.importo === 12);
@@ -333,6 +347,38 @@ console.log("");
   console.log(`  (${controllate} barre con una percentuale dichiarata)`);
   dice(controllate >= 15, `abbastanza barre dichiarate da controllare (${controllate})`);
   dice(scollate.length === 0, "la percentuale dichiarata si risolve nei pixel che dice", scollate.slice(0, 3));
+}
+
+// ══ 6. LA CONCENTRAZIONE DEL PORTAFOGLIO (dal delta della ricerca continua
+//    su Conti, decimo giro): la nota sotto la lista dice la quota del
+//    cliente più esposto, e quella quota deve essere quella che le RIGHE
+//    STESSE della lista dichiarano — non una copia debole ricalcolata a
+//    parte. Si prende il totale dai `.amt-n` già letti da `leggiBarre` (la
+//    stessa fonte che le sezioni 1-5 hanno già verificato pixel per pixel),
+//    non da `concentrazionePortafoglio` una seconda volta: se il modulo e
+//    la pagina divergessero, ricalcolare qui nasconderebbe lo scarto.
+{
+  const espo = raccolto["espo-list"] || [];
+  const nota = await pg.evaluate((id) => {
+    const el = document.getElementById(id);
+    const hint = el && el.querySelector(".form-hint");
+    return hint ? hint.textContent.trim() : null;
+  }, "espo-list");
+  const totale = espo.reduce((s, r) => s + (Number.isFinite(r.importo) ? r.importo : 0), 0);
+  const top = espo.slice().sort((a, b) => b.importo - a.importo)[0];
+  dice(espo.length > 1 ? !!nota : true,
+    espo.length > 1 ? "con più di un cliente, la nota di concentrazione è nella pagina" : "un solo cliente: nessuna nota da mostrare (dichiarato, non un errore)",
+    nota);
+  if (nota && top && totale > 0) {
+    const attesa = +(top.importo / totale * 100).toFixed(1);
+    const m = /(\d+(?:[.,]\d+)?)%/.exec(nota);
+    const trovata = m ? parseFloat(m[1].replace(",", ".")) : null;
+    dice(trovata === attesa,
+      `la quota scritta nella nota (${trovata}%) è quella che le righe stesse danno (${attesa}%, ${top.riga} su ${totale})`,
+      { nota, attesa, trovata });
+    dice(nota.includes(top.riga.split(" ")[0]) || new RegExp(top.riga.split(" ")[0], "i").test(nota),
+      "il nome del cliente più esposto nella nota corrisponde alla riga in cima alla lista", { nota, top: top.riga });
+  }
 }
 
 console.log(`\n${ok} ok, ${ko} KO  ·  ${misurate} barre misurate su ${Object.keys(raccolto).length} liste${SCATTI ? ` · scatti in ${CARTELLA_SCATTI}` : ""}`);

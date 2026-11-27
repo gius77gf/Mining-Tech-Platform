@@ -38,11 +38,13 @@ const srv = createServer((q, s) => {
   let corpo = readFileSync(p);
   /* CONTROPROVA: si serve il verbale «com'era», cioè senza la provenienza del
      calcolo. Si tocca la risposta HTTP, mai il file. */
-  if (CONTROPROVA && p.endsWith("apps/terra/index.html")) {
+  /* ⏱️ dal 05/09 il paragrafo lo compone `verbaleRilievo` nel MODULO: la
+     riga da togliere sta lì, non nella pagina */
+  if (CONTROPROVA && p.endsWith("apps/terra/terra-data.js")) {
     let t = corpo.toString("utf8");
-    const a = '      + " " + descriviOrigine(r)';
+    const a = '    + " " + descriviOrigine(r)';
     iniezioni += t.split(a).length - 1;
-    t = t.replace(a, '      + ""');
+    t = t.replace(a, '    + ""');
     corpo = Buffer.from(t, "utf8");
   }
   s.writeHead(200, { "content-type": TIPI[extname(p)] || "application/octet-stream" });

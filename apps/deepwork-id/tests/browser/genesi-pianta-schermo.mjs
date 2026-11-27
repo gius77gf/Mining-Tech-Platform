@@ -1,0 +1,600 @@
+/* GENESI — LA PIANTA SI LEGGE E SI TOCCA SULLO SCHERMO VERO
+   ───────────────────────────────────────────────────────────────────────
+   Uso:
+     node genesi-pianta-schermo.mjs [--porta=8702]
+     node genesi-pianta-schermo.mjs --controprova            (la pianta torna in punti di tela: DEVE fallire)
+     node genesi-pianta-schermo.mjs --controprova=dettagli   (i sei difetti di dettaglio, UNO PER VOLTA:
+                                                              ognuno deve far cadere il SUO controllo)
+
+   PERCHÉ ESISTE. Il 27/11, misurando una frase scritta sulla pianta, è uscito
+   che TUTTA la pianta era scritta in punti di tela: la tela ha 960 punti di
+   larghezza e il foglio la mostra a `width:100%` (al massimo 560 px). Su un
+   telefono da 320 è larga 292 px: il numero di un foro (corpo 9) usciva alto
+   2,7 px, le quote 3,3. E, misurato premendo: il raggio con cui si prende un
+   foro era 18 punti, cioè 5,5 px — un tocco a 6 px dal centro di un foro non
+   lo selezionava, ne CREAVA uno nuovo. Nessun banco lo vedeva: il testo di
+   una tela non sta nel DOM, e i banchi che toccano i fori li toccano al
+   centro esatto.
+   Adesso la pianta si disegna in px di schermo. Questo banco lo pretende
+   chiedendo al BROWSER che cosa è stato scritto — registra ogni testo e ogni
+   cerchio che la pagina disegna sulla tela, con la trasformazione attiva in
+   quel momento — invece di calcolarlo.
+
+   CHE COSA PRETENDE, a 320, 430 e 1280 px di schermo:
+     · in sei viste (base, foro scelto, isocrone, relief, energia, innesco) e
+       con gli strumenti Fronte e Tratto: ogni testo è alto almeno 9 px veri,
+       sta dentro la tela, non si sovrappone a un altro testo e — dove i fori
+       stanno fermi — non sta sopra un foro;
+     · i cerchi dei fori sono DOVE la mappatura per chi tocca (`D2._m`) dice
+       che sono: se le due cose si scostano, ogni tocco cade nel posto
+       sbagliato;
+     · la tela tiene i suoi 960 punti (la nitidezza non si paga);
+     · col DITO, a 320 e 430: un tocco a 10 px dal centro di un foro lo
+       sceglie e non ne crea un altro; un tocco lontano da tutti ne crea uno.
+       Col mouse, a 1280: 12 px scelgono, 30 px creano;
+     · con una maglia FITTA (20 fori per fila, 3 file): due pallini vicini non
+       si sovrappongono, e il numero del foro o si legge (almeno 7 px) o non
+       c'è — mai un numero da 3 px.
+
+   E I GESTI (27/11, più tardi). Misurato coi tocchi veri, a più dita: una
+   passata verticale partita dal vuoto della pianta — chi vuole scorrere la
+   pagina — creava un foro; un pizzico sul vuoto ne creava DUE; un pizzico
+   partito su due fori ne spostava uno di 14 metri. Adesso un dito conduce,
+   il secondo annulla il gesto del primo, e col dito un foro nasce quando il
+   dito si alza senza essersi mosso. Qui si rifanno quei tre gesti (più un
+   secondo dito che arriva a metà di un trascinamento) e si pretende che
+   NESSUN foro nasca o si sposti; e, nel verso opposto, che trascinare un
+   foro con un dito lo sposti ancora.
+
+   E LA VISTA (27/11, sera): la pianta si ingrandisce e si sposta — pizzico,
+   due dita, i tre bottoni sotto la tela, Ctrl + rotella. Qui si fa un pizzico
+   vero su una maglia fitta e si pretende: il foro che stava fra le dita resta
+   fra le dita; nessun foro nasce o si sposta (cambia la vista, non il
+   progetto); i numeri dei fori, che adattati non si scrivevano, ingranditi si
+   leggono; la cornice resta ferma e i fori sono disegnati DENTRO il ritaglio;
+   un tocco sul foro ingrandito sceglie quel foro; un tocco sulla cornice, dove
+   sotto — invisibile — c'è un foro, non prende niente.
+
+   ⚠️ CHE COSA NON GUARDA: il fronte modellato a mano con molti punti, i tratti
+   importati da un DXF, il piede; le maglie con più di 20 fori per fila (lì i
+   pallini restano da 4 px e si toccano: è il limite di una pianta senza
+   ingrandimento, dichiarato in roadmap); il contrasto dei colori sulla tela.
+   Con gli strumenti Fronte e Tratto non si controlla «nessun testo sopra un
+   foro»: il gesto di prova sposta il fronte, e i fori con lui. */
+import { createServer } from "node:http";
+import { readFileSync, existsSync, statSync, writeFileSync, unlinkSync } from "node:fs";
+import { join, extname } from "node:path";
+
+const R = process.env.DW_RADICE || "/home/user/Mining-Tech-Platform";
+const CONTRO_DETT = process.argv.includes("--controprova=dettagli");
+const CONTROPROVA = process.argv.includes("--controprova") || CONTRO_DETT;
+const PORTA = Number((process.argv.find((a) => a.startsWith("--porta=")) || "").split("=")[1]) || 8702;
+const TIPI = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript",
+  ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png",
+  ".glb": "model/gltf-binary", ".obj": "text/plain", ".wasm": "application/wasm",
+  ".webmanifest": "application/manifest+json" };
+
+/* LA CONTROPROVA: la pianta torna a misurarsi in punti di tela — una riga sola,
+   che è la radice. Sta a parte dalle altre perché le MASCHERA: senza la scala
+   la pianta è larga 960 «px», non è mai stretta, e i sei dettagli qui sotto
+   non avrebbero niente da rompere. */
+const DIFETTI = [
+  ["apps/genesi/genesi.html",
+   "  const kT=scalaTestoTela(cv.width, cv.getBoundingClientRect().width), W=cv.width/kT;",
+   "  const kT=1, W=cv.width/kT;"],
+];
+/* LA SECONDA CONTROPROVA, `--controprova=dettagli`: la scala resta, e tornano uno per uno i
+   difetti che lo scatto a 320 ha mostrato mentre la si metteva. */
+const DIFETTI_DETTAGLI = [
+  /* la presa torna quella fissa: 18 punti di tela, 5,5 px su un telefono */
+  ["apps/genesi/genesi.html", "  let i=d2HitTest(D2, p.x,p.y, _presaPx(e, true));\n", "  let i=d2HitTest(D2, p.x,p.y);\n"],
+  /* il pallino torna 9 px comunque: con 20 fori per fila si sovrappongono */
+  ["apps/genesi/genesi.html", "  const rF=raggioForoTela(Math.min(D2.S, D2.bf||D2.B)*scale), rr=rF/9;", "  const rF=9, rr=1;"],
+  /* la scritta del fronte e le quote tornano fra il fronte e la prima fila, sopra i fori */
+  ["apps/genesi/genesi.html", "  const bassa=D2.B*Math.min(scaleW, (_Hc0-padBot-padTop0)/depthTot) < 44;", "  const bassa=false;"],
+  /* la legenda torna su una riga sola: esce dalla tela */
+  ["apps/genesi/genesi.html", "  return righeDiVoci(larg, larghezzaMax).map(r=>r.map(i=>({ i, w:larg[i] })));", "  return righeDiVoci(larg, Infinity).map(r=>r.map(i=>({ i, w:larg[i] })));"],
+  /* il suggerimento in fondo torna su una riga sola */
+  ["apps/genesi/genesi.html", "  const _suggRighe=cMis.measureText(_sugg).width>W-24 ? _sugg.split(' · ') : [_sugg];", "  const _suggRighe=[_sugg];"],
+  /* la mappatura per chi tocca torna in px di schermo mentre chi tocca parla in punti di tela */
+  ["apps/genesi/genesi.html", "  D2._m={scale:scale*kT, startX:startX*kT, faceY:faceY*kT, u:kT, vista:_vista};", "  D2._m={scale, startX, faceY, u:kT, vista:_vista};"],
+  /* i tocchi tornano com'erano: ogni dito è un gesto a sé, e si crea posandolo */
+  ["apps/genesi/genesi.html",
+   "cv.addEventListener('pointerdown',d2PuntGiu); cv.addEventListener('pointermove',d2PuntMuove); window.addEventListener('pointerup',e=>d2PuntSu(e,false)); window.addEventListener('pointercancel',e=>d2PuntSu(e,true));",
+   "cv.addEventListener('pointerdown',d2Down); cv.addEventListener('pointermove',d2Move); window.addEventListener('pointerup',d2Up);"],
+  /* la vista: il pizzico ingrandisce attorno al centro della tela invece che al punto fra le dita */
+  ["apps/genesi/genesi.html",
+   "  const v=vistaZoomAttorno(d2Due.v, q.fattore, (q.cx-r.left)*k, (q.cy-r.top)*k, g.ox, g.oy, g.W, g.H);",
+   "  const v=vistaZoomAttorno(d2Due.v, q.fattore, g.ox, g.oy, g.ox, g.oy, g.W, g.H);"],
+  /* la vista: il contenuto non è più ritagliato, e ingrandito finisce sopra le scritte di cornice */
+  ["apps/genesi/genesi.html",
+   "ctx.rect(0, _vista.su, W, _vista.giu-_vista.su); ctx.clip(); }",
+   "ctx.rect(0, _vista.su, W, _vista.giu-_vista.su); }"],
+  /* la vista: un foro finito sotto la cornice, invisibile, torna a farsi prendere */
+  ["apps/genesi/genesi.html",
+   "  if(d2FuoriVista(e)){ d2Attesa=",
+   "  if(false){ d2Attesa="],
+  /* la MIC: a bottone acceso l'anello va a TUTTI i fori */
+  ["apps/genesi/genesi.html", "    if(_nellaMic && _nellaMic.has(i)){\n", "    if(_nellaMic){\n"],
+  /* la MIC: il messaggio conta tutti i fori invece di quelli cerchiati */
+  ["apps/genesi/genesi.html", "const _mm=micDaMostrare(), _quanti=foriNellaMic(D2.holes, D2.kg).length;", "const _mm=micDaMostrare(), _quanti=D2.holes.length;"],
+  /* la MIC: si cerchia anche quando ogni foro parte da solo (la regola sta nel modulo: vale per il foglio e per la tela) */
+  ["apps/genesi/genesi-data.js", "  if (finestre.every((f) => f.dentro.length === 1)) return vuoto;\n  let mic = null;", "  let mic = null;"],
+];
+const TABELLA = CONTRO_DETT ? DIFETTI_DETTAGLI : DIFETTI;
+/* ⛔ UNO PER VOLTA. La prima stesura rimetteva i sei dettagli insieme, e uno solo — la
+   mappatura per chi tocca — ne copriva quattro: senza i cerchi dove la mappatura li dichiara,
+   «nessun testo sopra un foro» e «i pallini non si sovrappongono» cadevano TUTTI per quella
+   ragione, non per il difetto che dovevano provare (40 KO, e non si sapeva di chi). Quindi
+   il server serve un difetto solo (`ATTIVE`), e per ognuno si pretende che cada il controllo
+   che lo riguarda (`BERSAGLI`, nello stesso ordine della tabella). */
+let ATTIVE = TABELLA;
+
+const colpiti = new Set();
+const srv = createServer((q, s) => {
+  let p = join(R, decodeURIComponent(q.url.split("?")[0]));
+  if (existsSync(p) && statSync(p).isDirectory()) p = join(p, "index.html");
+  if (!existsSync(p)) { s.writeHead(404); return s.end("no"); }
+  let corpo = readFileSync(p);
+  if (CONTROPROVA) {
+    const perQui = ATTIVE.filter(([f]) => p.endsWith(f));
+    if (perQui.length) {
+      let t = corpo.toString("utf8");
+      for (const [, da, a] of perQui) { if (t.includes(da)) { colpiti.add(da); t = t.split(da).join(a); } }
+      corpo = Buffer.from(t, "utf8");
+    }
+  }
+  s.writeHead(200, { "content-type": TIPI[extname(p)] || "application/octet-stream" });
+  s.end(corpo);
+});
+await new Promise((r, x) => { srv.once("error", x); srv.listen(PORTA, r); });
+
+/* ⛔ IL CONTRASSEGNO COL PROPRIO PID: un banco che trova la porta occupata e
+   la RIUSA non fallisce, misura la copia di qualcun altro. */
+const SEGNO = join(R, "__genesi-pianta-" + process.pid);
+writeFileSync(SEGNO, String(process.pid));
+try {
+  const eco = await (await fetch(`http://127.0.0.1:${PORTA}/__genesi-pianta-${process.pid}`)).text();
+  if (eco.trim() !== String(process.pid)) {
+    console.error(`✗ sulla porta ${PORTA} risponde un ALTRO server: misurerei la sua copia.`);
+    process.exit(2);
+  }
+} finally { try { unlinkSync(SEGNO); } catch (e) {} }
+
+const { chromium } = await import("/opt/node22/lib/node_modules/playwright/index.mjs");
+const b = await chromium.launch({ executablePath: process.env.CHROMIUM || "/opt/pw-browsers/chromium" });
+
+let ok = 0, ko = 0; const nonMisurati = [];
+const caduti = [];
+const dice = (c, t, x) => {
+  if (c) { ok++; console.log(`  ok  ${t}`); }
+  else { ko++; caduti.push(t); console.log(`  KO  ${t}${x !== undefined ? `\n        -> ${JSON.stringify(String(x).slice(0, 360))}` : ""}`); }
+};
+
+console.log(`\n════════ Genesi: la pianta si legge e si tocca sullo schermo vero${CONTROPROVA ? (CONTRO_DETT ? " · controprova dei dettagli" : " · controprova") : ""} ════════`);
+
+const DESIGN = { B: 3, S: 3.5, diam: 102, prof: 10, kg: 58, stem: 2.2, sub: 0.9, file: 2, perRow: 8,
+  esplosivo: "anfo-standard", innesco: "nonel", roccia: "calcare", frat: "media",
+  bagnato: false, presplit: false, psSpacing: 0.9, psCharge: 0.4, ucs: 100, eMod: 55,
+  sequenza: "diagonale", ritardo: 42, ritardoFila: 84, recNorma: "din-res", recFreq: 25, recDist: 300 };
+const FITTA = { ...DESIGN, perRow: 20, file: 3 };
+
+/* IL REGISTRO: ogni testo e ogni cerchio che la pagina disegna sulla tela della pianta, con
+   la trasformazione attiva in quel momento. Si monta PRIMA che la pagina parta. */
+const REGISTRO = () => {
+  const P = CanvasRenderingContext2D.prototype, ft = P.fillText, ar = P.arc, sv = P.save, rs = P.restore, cl = P.clip;
+  /* il RITAGLIO attivo quando si disegna: `clip` lo accende, `save`/`restore` lo ricordano e lo
+     rimettono. Serve a sapere se un foro è stato disegnato dentro l'area ritagliata o fuori. */
+  const mia = (c) => c.canvas && c.canvas.id === "d2-canvas";
+  P.save = function () { if (mia(this)) (this.__pila || (this.__pila = [])).push(this.__rit || 0); return sv.apply(this, arguments); };
+  P.restore = function () { if (mia(this) && this.__pila && this.__pila.length) this.__rit = this.__pila.pop(); return rs.apply(this, arguments); };
+  P.clip = function () { if (mia(this)) this.__rit = (this.__rit || 0) + 1; return cl.apply(this, arguments); };
+  P.fillText = function (t, x, y) {
+    if (window.__reg && this.canvas && this.canvas.id === "d2-canvas") {
+      const m = this.getTransform(), px = parseFloat((this.font.match(/([\d.]+)px/) || [])[1]);
+      window.__reg.testi.push({ t: String(t), x, y, w: this.measureText(String(t)).width, px, al: this.textAlign, bl: this.textBaseline, a: m.a, b: m.b, c: m.c, d: m.d, e: m.e, f: m.f, rit: this.__rit || 0 });
+    }
+    return ft.apply(this, arguments);
+  };
+  P.arc = function (x, y, r) {
+    if (window.__reg && this.canvas && this.canvas.id === "d2-canvas") { const m = this.getTransform(); window.__reg.archi.push({ x, y, r, a: m.a, b: m.b, e: m.e, f: m.f, rit: this.__rit || 0 }); }
+    return ar.apply(this, arguments);
+  };
+};
+
+/* apre una volata salvata dalla via vera: `localStorage` → Home → «Apri» */
+async function apri(larghezza, design, dito) {
+  const ctx = await b.newContext({ viewport: { width: larghezza, height: 950 }, hasTouch: !!dito });
+  const pg = await ctx.newPage();
+  const errori = []; pg.on("pageerror", (e) => errori.push(e.message));
+  await pg.addInitScript(REGISTRO);
+  await pg.addInitScript((dd) => {
+    localStorage.setItem("genesiDisclaimerV1", "1");
+    localStorage.setItem("genesiVolate", JSON.stringify([{ id: "v1", nome: "Fronte Nord", data: "2026-07-12", sintesi: "fori", design: dd }]));
+  }, design);
+  await pg.route("https://www.gstatic.com/**", (r) => r.abort());
+  await pg.goto(`http://127.0.0.1:${PORTA}/apps/genesi/genesi.html`, { waitUntil: "domcontentloaded" });
+  await pg.waitForTimeout(2200);
+  await pg.evaluate(() => {
+    const l = document.getElementById("loginBtn"); if (l) l.click();
+    const c = document.getElementById("consensoOk");
+    if (c) { document.getElementById("disclaimerChk").checked = true; c.classList.remove("disabled"); c.click(); }
+  });
+  await pg.waitForTimeout(500);
+  await pg.evaluate(() => { const it = document.querySelector('.hg-item[data-id="v1"]'); const btn = it && it.querySelector('button[data-act="apri"]'); if (btn) btn.click(); });
+  await pg.waitForTimeout(1400);
+  await pg.evaluate(() => { const c = document.getElementById("d2-canvas"); if (c) c.scrollIntoView({ block: "center" }); });
+  await pg.waitForTimeout(250);
+  pg.__errori = errori; pg.__ctx = ctx;
+  return pg;
+}
+const pronta = (pg) => pg.evaluate(() => document.body.className.includes("scr-design") && !!window.__genesi && window.__genesi.D2.holes.length > 0);
+
+/* fa ridisegnare la pianta col registro acceso e riporta tutto in PX DI SCHERMO, relativi alla tela */
+const leggi = (pg) => pg.evaluate(async () => {
+  const cv = document.getElementById("d2-canvas"), r = cv.getBoundingClientRect(), k = cv.width / r.width;
+  window.__reg = { testi: [], archi: [] };
+  { const c = cv.getContext("2d"); c.__rit = 0; c.__pila = []; }
+  window.dispatchEvent(new Event("resize"));
+  await new Promise((f) => setTimeout(f, 120));
+  const reg = window.__reg; window.__reg = null;
+  const D = window.__genesi.D2, m = D._m;
+  const testi = reg.testi.map((q) => {
+    const base = Math.abs(q.b) < 1e-6 && Math.abs(q.c) < 1e-6 && Math.abs(q.e) < 1e-6 && Math.abs(q.f) < 1e-6;
+    const corpo = q.px * Math.hypot(q.a, q.b) / k, W = q.w * q.a / k, X = q.x * q.a / k, Y = q.y * q.d / k;
+    const x0 = q.al === "center" ? X - W / 2 : q.al === "right" || q.al === "end" ? X - W : X;
+    const y0 = q.bl === "middle" ? Y - corpo / 2 : Y - corpo * 0.8;
+    return { t: q.t, corpo: +corpo.toFixed(2), base, rit: q.rit, numero: /^\d+([.,]\d+)?$/.test(q.t.trim()), x0: +x0.toFixed(1), x1: +(x0 + W).toFixed(1), y0: +y0.toFixed(1), y1: +(y0 + corpo).toFixed(1) };
+  });
+  /* i fori, dove la mappatura per chi tocca dice che sono (punti di tela), e il cerchio più
+     piccolo che la pagina ha disegnato lì: il pallino */
+  const archiBase = reg.archi.filter((a) => Math.abs(a.b) < 1e-6 && Math.abs(a.e) < 1e-6 && Math.abs(a.f) < 1e-6);
+  let senzaCerchio = 0, raggio = Infinity, fuoriRitaglio = 0;
+  const fori = D.holes.map((h) => {
+    const px = m.startX + h.mx * m.scale, py = m.faceY + h.my * m.scale;
+    const qui = archiBase.filter((a) => Math.hypot(a.x * a.a - px, a.y * a.a - py) < 0.75);
+    if (!qui.length) senzaCerchio++; else { raggio = Math.min(raggio, ...qui.map((a) => a.r * a.a / k)); if (qui.some((a) => !a.rit)) fuoriRitaglio++; }
+    return { x: px / k, y: py / k, rMax: qui.length ? Math.max(...qui.map((a) => a.r * a.a / k)) : 0 };
+  });
+  return { k: +k.toFixed(3), larga: +r.width.toFixed(1), alta: +r.height.toFixed(1), punti: cv.width, testi, fori, senzaCerchio, fuoriRitaglio, raggio: Number.isFinite(raggio) ? +raggio.toFixed(2) : null,
+    passo: +(Math.min(D.S, D.bf || D.B) * m.scale / k).toFixed(2), sel: D.sel, n: D.holes.length };
+});
+
+const fuoriTela = (L) => L.testi.filter((q) => q.base && (q.x0 < -1 || q.x1 > L.larga + 1 || q.y0 < -1 || q.y1 > L.alta + 1)).map((q) => `«${q.t}» [${q.x0}…${q.x1} su ${L.larga}]`);
+const sovrapposti = (L) => { const v = L.testi.filter((q) => q.base && !q.numero), fuori = [];
+  for (let i = 0; i < v.length; i++) for (let j = i + 1; j < v.length; j++) { const a = v[i], c = v[j];
+    if (a.x0 < c.x1 - 1 && c.x0 < a.x1 - 1 && a.y0 < c.y1 - 1 && c.y0 < a.y1 - 1) fuori.push(`«${a.t}» × «${c.t}»`); }
+  return fuori; };
+const sopraUnForo = (L) => { const fuori = [];
+  for (const q of L.testi.filter((q) => q.base && !q.numero)) for (const f of L.fori) {
+    const dx = Math.max(q.x0 - f.x, 0, f.x - q.x1), dy = Math.max(q.y0 - f.y, 0, f.y - q.y1);
+    if (Math.hypot(dx, dy) < (L.raggio || 0) - 0.5) { fuori.push(`«${q.t}»`); break; } }
+  return fuori; };
+const centro = async (pg, i) => { const L = await leggi(pg); const c = await pg.locator("#d2-canvas").boundingBox(); return { x: c.x + L.fori[i].x, y: c.y + L.fori[i].y, c, L }; };
+
+/* ───── 1 · LE VISTE: che cosa è scritto, quanto è alto, dove sta ───── */
+const VISTE = [
+  ["base", async () => {}, async () => {}, true],
+  ["foro scelto", async (pg) => { const q = await centro(pg, 2); await pg.mouse.click(q.x, q.y); }, async () => {}, true],
+  ["isocrone", async (pg) => { await pg.click("#dlIso"); }, async (pg) => { await pg.click("#dlIso"); }, true],
+  ["relief", async (pg) => { await pg.click("#dlRel"); }, async (pg) => { await pg.click("#dlRel"); }, true],
+  ["energia", async (pg) => { await pg.click("#dlEne"); }, async (pg) => { await pg.click("#dlEne"); }, true],
+  ["innesco", async (pg) => { await pg.click("#dlInn"); }, async (pg) => { await pg.click("#dlInn"); }, true],
+  ["strumento Fronte, un punto scelto", async (pg) => { await pg.click("#dtFronte"); const c = await pg.locator("#d2-canvas").boundingBox(); await pg.mouse.click(c.x + c.width * 0.5, c.y + c.height * 0.45); }, async () => {}, false],
+  ["strumento Tratto", async (pg) => { await pg.click("#dtTratto"); }, async () => {}, false],
+];
+async function viste(larghezze) {
+  for (const larghezza of larghezze) {
+    console.log(`\n· schermo da ${larghezza} px`);
+    const pg = await apri(larghezza, DESIGN, false);
+    if (!(await pronta(pg))) { nonMisurati.push(`le viste a ${larghezza} px (la volata non si è aperta nel 2D)`); await pg.__ctx.close(); continue; }
+    let contati = 0;
+    for (const [nome, entra, esce, foriFermi] of VISTE) {
+      await entra(pg); await pg.waitForTimeout(250);
+      await pg.evaluate(() => document.getElementById("d2-canvas").scrollIntoView({ block: "center" }));
+      const L = await leggi(pg);
+      contati += L.testi.length;
+      const piccoli = L.testi.filter((q) => q.corpo < 9 - 0.05).map((q) => `«${q.t}» ${q.corpo} px`);
+      dice(L.testi.length >= 4 && piccoli.length === 0, `⛔ ${larghezza} · ${nome}: ogni testo della pianta è alto almeno 9 px veri (${L.testi.length} testi scritti)`, piccoli.slice(0, 4).join(" · ") || `solo ${L.testi.length} testi`);
+      const fuori = fuoriTela(L);
+      dice(fuori.length === 0, `${larghezza} · ${nome}: nessun testo esce dalla tela`, fuori.slice(0, 3).join(" · "));
+      const sopra = sovrapposti(L);
+      dice(sopra.length === 0, `${larghezza} · ${nome}: nessun testo sta sopra un altro`, sopra.slice(0, 3).join(" · "));
+      if (foriFermi) {
+        const sf = sopraUnForo(L);
+        dice(L.raggio !== null && sf.length === 0, `⛔ ${larghezza} · ${nome}: nessun testo sta sopra un foro`, L.raggio === null ? "nessun pallino trovato dove la mappatura dice che sono i fori" : sf.slice(0, 4).join(" · "));
+      }
+      if (nome === "base") {
+        dice(L.senzaCerchio === 0, `⛔ ${larghezza}: i ${L.n} fori sono disegnati DOVE la mappatura per chi tocca dice che sono`, `${L.senzaCerchio} fori senza un cerchio nel punto dichiarato`);
+        dice(L.punti === 960, `${larghezza}: la tela tiene i suoi 960 punti (un px di schermo ne vale ${L.k})`, L.punti);
+      }
+      await esce(pg); await pg.waitForTimeout(150);
+    }
+    console.log(`      (${contati} testi letti in ${VISTE.length} viste)`);
+    dice(pg.__errori.length === 0, `${larghezza}: nessun errore di pagina in tutte le viste`, pg.__errori[0]);
+    await pg.__ctx.close();
+  }
+}
+
+/* ───── 2 · IL TOCCO: scegliere un foro senza centrarlo, e crearne uno dove non ce n'è ───── */
+const TOCCHI = [[320, true, 10, 30], [430, true, 10, 34], [1280, false, 12, 30]];
+async function tocco(casi) {
+  console.log("\n· il tocco");
+  for (const [larghezza, dito, vicino, lontano] of casi) {
+    const pg = await apri(larghezza, DESIGN, dito);
+    if (!(await pronta(pg))) { nonMisurati.push(`il tocco a ${larghezza} px (la volata non si è aperta nel 2D)`); await pg.__ctx.close(); continue; }
+    const tocca = async (x, y) => { if (dito) await pg.touchscreen.tap(x, y); else await pg.mouse.click(x, y); await pg.waitForTimeout(300); };
+    const come = dito ? "col dito" : "col mouse";
+    const q = await centro(pg, 2), prima = q.L.n;
+    await tocca(q.x, q.y + vicino);
+    let s = await pg.evaluate(() => ({ n: window.__genesi.D2.holes.length, sel: window.__genesi.D2.sel }));
+    dice(s.n === prima && s.sel === 2, `⛔ ${larghezza} · ${come}: un tocco a ${vicino} px dal centro del foro 3 lo SCEGLIE, e non ne crea uno nuovo (fori a ${q.L.passo} px l'uno dall'altro)`, JSON.stringify({ prima, ...s }));
+    /* sotto l'ultima fila, lontano da tutti: lì un tocco crea */
+    const ultimo = q.L.fori.reduce((a, f) => (f.y > a.y ? f : a), q.L.fori[0]);
+    const dentro = q.c.y + ultimo.y + lontano < q.c.y + q.c.height - 2;
+    if (!dentro) nonMisurati.push(`la creazione di un foro a ${larghezza} px (sotto l'ultima fila non c'è posto nella tela)`);
+    else {
+      const n0 = s.n;
+      await tocca(q.c.x + ultimo.x, q.c.y + ultimo.y + lontano);
+      s = await pg.evaluate(() => ({ n: window.__genesi.D2.holes.length }));
+      dice(s.n === n0 + 1, `${larghezza} · ${come}: un tocco a ${lontano} px da ogni foro ne crea uno nuovo — il gesto di sempre resta`, JSON.stringify({ prima: n0, dopo: s.n }));
+    }
+    dice(pg.__errori.length === 0, `${larghezza}: nessun errore di pagina toccando`, pg.__errori[0]);
+    await pg.__ctx.close();
+  }
+}
+
+/* ───── 3 · LA MAGLIA FITTA: 20 fori per fila ───── */
+async function fitta(larghezze) {
+  console.log("\n· la maglia fitta (20 fori per fila, 3 file)");
+  for (const larghezza of larghezze) {
+    const pg = await apri(larghezza, FITTA, false);
+    if (!(await pronta(pg))) { nonMisurati.push(`la maglia fitta a ${larghezza} px (la volata non si è aperta nel 2D)`); await pg.__ctx.close(); continue; }
+    const L = await leggi(pg);
+    dice(L.raggio !== null && 2 * L.raggio <= L.passo + 0.5, `⛔ ${larghezza} · fitta: due pallini vicini non si sovrappongono (raggio ${L.raggio} px, fori a ${L.passo} px)`, JSON.stringify({ raggio: L.raggio, passo: L.passo, senzaCerchio: L.senzaCerchio }));
+    const numeri = L.testi.filter((q) => q.base && /^\d+$/.test(q.t.trim()));
+    const illeggibili = numeri.filter((q) => q.corpo < 7 - 0.05);
+    dice(illeggibili.length === 0 && (numeri.length === 0 || numeri.length === L.n), `${larghezza} · fitta: il numero del foro o si legge (almeno 7 px) o non c'è — ${numeri.length ? `${numeri.length} numeri da ${Math.min(...numeri.map((q) => q.corpo))} px` : "non scritti: pallini da " + L.raggio + " px"}`, illeggibili.slice(0, 3).map((q) => `«${q.t}» ${q.corpo} px`).join(" · ") || `${numeri.length} numeri su ${L.n} fori`);
+    const altri = L.testi.filter((q) => !(q.base && /^\d+$/.test(q.t.trim())) && q.corpo < 9 - 0.05);
+    dice(altri.length === 0 && fuoriTela(L).length === 0, `${larghezza} · fitta: tutti gli altri testi sono alti almeno 9 px e dentro la tela`, altri.concat(fuoriTela(L)).slice(0, 3).map((q) => (q.t ? `«${q.t}» ${q.corpo} px` : q)).join(" · "));
+    await pg.__ctx.close();
+  }
+}
+
+/* ───── 4 · I GESTI: che cosa NON deve creare né spostare niente, coi tocchi veri a più dita ───── */
+async function gesti(larghezze) {
+  console.log("\n· i gesti col dito");
+  for (const larghezza of larghezze) {
+    const pg = await apri(larghezza, DESIGN, true);
+    if (!(await pronta(pg))) { nonMisurati.push(`i gesti a ${larghezza} px (la volata non si è aperta nel 2D)`); await pg.__ctx.close(); continue; }
+    const cdp = await pg.__ctx.newCDPSession(pg);
+    const dita = (type, pts) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: pts.map((p, i) => ({ x: p[0], y: p[1], id: i + 1, radiusX: 8, radiusY: 8, force: 1 })) });
+    const foto = () => pg.evaluate(() => { const D = window.__genesi.D2; return { fori: D.holes.map((h) => [h.mx, h.my]), annulla: window.__genesi.d2UndoLen }; });
+    const uguale = (a, c) => JSON.stringify(a.fori) === JSON.stringify(c.fori) && a.annulla === c.annulla;
+    const q = await centro(pg, 2), c = q.c, L = q.L;
+    const ultimo = L.fori.reduce((a, f) => (f.y > a.y ? f : a), L.fori[0]);
+    const vuotoY = c.y + ultimo.y + 30, lontano = L.fori.every((f) => Math.hypot(f.x - c.width * 0.5, f.y - (ultimo.y + 30)) > 24);
+    if (!(vuotoY < c.y + c.height - 2) || !lontano) { nonMisurati.push(`i gesti a ${larghezza} px (sotto l'ultima fila non c'è un punto lontano da ogni foro)`); await pg.__ctx.close(); continue; }
+    /* a · la passata di chi vuole scorrere la pagina: parte dal vuoto e sale di 150 px, attraversando i fori */
+    let prima = await foto(); const x = c.x + c.width * 0.5;
+    await dita("touchStart", [[x, vuotoY]]); for (let k = 1; k <= 6; k++) { await dita("touchMove", [[x, vuotoY - k * 25]]); await pg.waitForTimeout(16); } await dita("touchEnd", []); await pg.waitForTimeout(250);
+    let dopo = await foto();
+    dice(uguale(prima, dopo), `⛔ ${larghezza} · una passata di 150 px partita dal vuoto della pianta non crea e non sposta nessun foro (prima ne creava uno)`, JSON.stringify({ fori: [prima.fori.length, dopo.fori.length], annulla: [prima.annulla, dopo.annulla] }));
+    /* b · un pizzico sul vuoto */
+    prima = await foto(); const xa = c.x + c.width * 0.40, xb = c.x + c.width * 0.60;
+    await dita("touchStart", [[xa, vuotoY]]); await pg.waitForTimeout(30); await dita("touchStart", [[xa, vuotoY], [xb, vuotoY]]);
+    for (let k = 1; k <= 6; k++) { await dita("touchMove", [[xa - k * 6, vuotoY], [xb + k * 6, vuotoY]]); await pg.waitForTimeout(16); } await dita("touchEnd", []); await pg.waitForTimeout(250);
+    dopo = await foto();
+    dice(uguale(prima, dopo), `⛔ ${larghezza} · un pizzico con due dita sul vuoto non crea nessun foro (prima ne creava due)`, JSON.stringify({ fori: [prima.fori.length, dopo.fori.length], annulla: [prima.annulla, dopo.annulla] }));
+    /* ⏱️ 27/11, sera: da quando la pianta si ingrandisce, un pizzico di prova la INGRANDISCE davvero —
+       e i tocchi dopo, fatti alle posizioni lette prima, cadevano nel vuoto: il banco diceva «un dito
+       non trascina più», ed era lui a toccare dove il foro non c'era. Dopo ogni pizzico la pianta
+       torna adattata («Adatta», se c'è ed è acceso) e le posizioni si rileggono. */
+    const adatta = async () => { await pg.evaluate(() => { const b2 = document.getElementById("dvAdatta"); if (b2 && !b2.disabled) b2.click(); }); await pg.waitForTimeout(200);
+      await pg.evaluate(() => document.getElementById("d2-canvas").scrollIntoView({ block: "center" })); await pg.waitForTimeout(150); return (await centro(pg, 2)); };
+    let qq = await adatta();
+    /* c · un pizzico che parte SU due fori */
+    prima = await foto(); let A = [qq.c.x + qq.L.fori[2].x, qq.c.y + qq.L.fori[2].y], B = [qq.c.x + qq.L.fori[5].x, qq.c.y + qq.L.fori[5].y];
+    await dita("touchStart", [A]); await pg.waitForTimeout(30); await dita("touchStart", [A, B]);
+    for (let k = 1; k <= 6; k++) { await dita("touchMove", [[A[0] - k * 6, A[1]], [B[0] + k * 6, B[1]]]); await pg.waitForTimeout(16); } await dita("touchEnd", []); await pg.waitForTimeout(250);
+    dopo = await foto();
+    dice(uguale(prima, dopo), `⛔ ${larghezza} · un pizzico partito su due fori non ne sposta nessuno (prima uno finiva a 14 metri)`, JSON.stringify(dopo.fori.map((f, i) => [i, +(f[0] - prima.fori[i][0]).toFixed(2)]).filter((z) => z[1] !== 0)));
+    /* d · il secondo dito che arriva A METÀ di un trascinamento: il foro torna dov'era */
+    qq = await adatta(); A = [qq.c.x + qq.L.fori[2].x, qq.c.y + qq.L.fori[2].y]; B = [qq.c.x + qq.L.fori[5].x, qq.c.y + qq.L.fori[5].y];
+    prima = await foto();
+    await dita("touchStart", [A]); for (let k = 1; k <= 3; k++) { await dita("touchMove", [[A[0] + k * 8, A[1]]]); await pg.waitForTimeout(16); }
+    const aMeta = await foto();
+    await dita("touchStart", [[A[0] + 24, A[1]], B]); for (let k = 1; k <= 3; k++) { await dita("touchMove", [[A[0] + 24 + k * 6, A[1]], [B[0] + k * 6, B[1]]]); await pg.waitForTimeout(16); } await dita("touchEnd", []); await pg.waitForTimeout(250);
+    dopo = await foto();
+    dice(aMeta.fori[2][0] !== prima.fori[2][0] && uguale(prima, dopo), `⛔ ${larghezza} · un secondo dito a metà di un trascinamento lo annulla: il foro, che si stava muovendo, torna dov'era`, JSON.stringify({ prima: prima.fori[2], aMeta: aMeta.fori[2], dopo: dopo.fori[2], annulla: [prima.annulla, dopo.annulla] }));
+    /* e · il verso opposto: UN dito su un foro lo trascina ancora */
+    qq = await adatta(); A = [qq.c.x + qq.L.fori[2].x, qq.c.y + qq.L.fori[2].y];
+    prima = await foto();
+    await dita("touchStart", [A]); for (let k = 1; k <= 4; k++) { await dita("touchMove", [[A[0], A[1] + k * 6]]); await pg.waitForTimeout(16); } await dita("touchEnd", []); await pg.waitForTimeout(250);
+    dopo = await foto();
+    dice(dopo.fori.length === prima.fori.length && dopo.fori[2][1] > prima.fori[2][1] && dopo.annulla === prima.annulla + 1 && dopo.fori.every((f, i) => i === 2 || (f[0] === prima.fori[i][0] && f[1] === prima.fori[i][1])),
+      `${larghezza} · e un dito solo su un foro lo trascina ancora: quel foro si sposta, gli altri no, e il gesto si può annullare — la disciplina non è un interruttore`, JSON.stringify({ prima: prima.fori[2], dopo: dopo.fori[2], annulla: [prima.annulla, dopo.annulla] }));
+    dice(pg.__errori.length === 0, `${larghezza}: nessun errore di pagina coi gesti`, pg.__errori[0]);
+    await pg.__ctx.close();
+  }
+}
+
+/* ───── 5 · LA VISTA: ingrandire e spostare la pianta ───── */
+async function vista() {
+  console.log("\n· la vista: ingrandire e spostare");
+  const stato = (pg) => pg.evaluate(() => { const D = window.__genesi.D2; const b = (id) => { const e = document.getElementById(id), r = e.getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height), sx: Math.round(r.left), dx: Math.round(window.innerWidth - r.right), spento: e.disabled }; };
+    return { quanto: document.getElementById("dvQuanto").textContent, fori: D.holes.map((h) => [h.mx, h.my]), sel: D.sel, annulla: window.__genesi.d2UndoLen, meno: b("dvMeno"), piu: b("dvPiu"), adatta: b("dvAdatta") }; });
+  const inVista = (pg) => pg.evaluate(() => document.getElementById("d2-canvas").scrollIntoView({ block: "center" }));
+  const numeriDeiFori = (L) => L.testi.filter((q) => q.base && /^\d+$/.test(q.t.trim()));
+  const cornice = (L) => L.testi.filter((q) => / fori · /.test(q.t) || /^trascina un foro/.test(q.t)).map((q) => [q.t, q.x0, q.y0, q.rit]);
+  /* ── sul telefono, col dito, con la maglia fitta ── */
+  { const pg = await apri(320, FITTA, true);
+    if (!(await pronta(pg))) { nonMisurati.push("la vista a 320 px (la volata non si è aperta nel 2D)"); await pg.__ctx.close(); }
+    else {
+      const cdp = await pg.__ctx.newCDPSession(pg);
+      const dita = (type, pts) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: pts.map((p, i) => ({ x: p[0], y: p[1], id: i + 1, radiusX: 8, radiusY: 8, force: 1 })) });
+      const i = 30, s0 = await stato(pg), L0 = await leggi(pg), c = await pg.locator("#d2-canvas").boundingBox();
+      dice(s0.quanto === "100%" && s0.meno.spento && s0.adatta.spento && !s0.piu.spento && [s0.meno, s0.piu, s0.adatta].every((x) => x.w >= 44 && x.h >= 44 && x.sx >= 12 && x.dx >= 12),
+        "320 · a pianta adattata: «100%», «−» e «Adatta» spenti, «+» acceso — e i tre bottoni sono da 44×44 px, a 12 px dai bordi", JSON.stringify([s0.quanto, s0.meno, s0.piu, s0.adatta]));
+      /* il pizzico: le dita partono a 40 px l'una dall'altra, attorno al foro, e arrivano a 120 → ×3 */
+      const fx = c.x + L0.fori[i].x, fy = c.y + L0.fori[i].y;
+      await dita("touchStart", [[fx - 20, fy]]); await dita("touchStart", [[fx - 20, fy], [fx + 20, fy]]);
+      for (let k = 1; k <= 8; k++) { await dita("touchMove", [[fx - 20 - k * 5, fy], [fx + 20 + k * 5, fy]]); await pg.waitForTimeout(16); } await dita("touchEnd", []); await pg.waitForTimeout(250);
+      const s1 = await stato(pg), L1 = await leggi(pg), scarto = +Math.hypot(L1.fori[i].x - L0.fori[i].x, L1.fori[i].y - L0.fori[i].y).toFixed(2);
+      dice(s1.quanto === "300%" && scarto < 1.5, `⛔ 320 · un pizzico che triplica la distanza fra le dita porta la pianta al 300%, e il foro che stava fra le dita resta fra le dita (scarto ${scarto} px)`, JSON.stringify({ quanto: s1.quanto, prima: L0.fori[i], dopo: L1.fori[i] }));
+      dice(JSON.stringify(s1.fori) === JSON.stringify(s0.fori) && s1.annulla === s0.annulla && !s1.meno.spento && !s1.adatta.spento, "⛔ 320 · ingrandire non crea e non sposta nessun foro: cambia la vista, non il progetto (e «−» e «Adatta» si accendono)", JSON.stringify({ fori: [s0.fori.length, s1.fori.length], annulla: [s0.annulla, s1.annulla] }));
+      const n0 = numeriDeiFori(L0), n1 = numeriDeiFori(L1);
+      dice(n0.length === 0 && n1.length === L1.n && n1.every((q) => q.corpo >= 9 - 0.05), `⛔ 320 · maglia fitta: adattata i numeri dei fori non si scrivono (${n0.length}), ingrandita si leggono (${n1.length} numeri da ${n1.length ? Math.min(...n1.map((q) => q.corpo)) : "—"} px)`, JSON.stringify([n0.length, n1.length]));
+      dice(JSON.stringify(cornice(L1)) === JSON.stringify(cornice(L0)) && cornice(L1).length === 2 && cornice(L1).every((x) => x[3] === 0) && L1.senzaCerchio === 0 && L1.fuoriRitaglio === 0,
+        "⛔ 320 · ingrandita, la cornice resta ferma (riepilogo e suggerimento dov'erano, fuori dal ritaglio) e tutti i fori sono disegnati DENTRO il ritaglio: non finiscono sopra le scritte", JSON.stringify({ prima: cornice(L0), dopo: cornice(L1), fuoriRitaglio: L1.fuoriRitaglio, senzaCerchio: L1.senzaCerchio }));
+      /* un tocco sul foro ingrandito */
+      await pg.touchscreen.tap(c.x + L1.fori[i].x, c.y + L1.fori[i].y + 8); await pg.waitForTimeout(300);
+      const s2 = await stato(pg);
+      dice(s2.sel === i && s2.fori.length === s0.fori.length, "⛔ 320 · a pianta ingrandita un tocco a 8 px dal centro del foro sceglie QUEL foro: chi tocca e chi disegna usano la stessa mappatura", JSON.stringify({ scelto: s2.sel, atteso: i, fori: s2.fori.length }));
+      /* un foro finito sotto la cornice: si porta la vista in basso finché una fila sta sotto il riepilogo, e si tocca lì */
+      const yBasso = c.y + c.height - 14;
+      await dita("touchStart", [[c.x + c.width * 0.5, yBasso]]); for (let k = 1; k <= 6; k++) { await dita("touchMove", [[c.x + c.width * 0.5, yBasso - k * 12]]); await pg.waitForTimeout(16); } await dita("touchEnd", []); await pg.waitForTimeout(250);
+      const L2 = await leggi(pg), su = await pg.evaluate(() => window.__genesi.D2._m.vista.su);
+      const nascosti = L2.fori.map((f, k) => [k, f]).filter(([, f]) => f.y < su - 12 && f.y > 8 && f.x > 20 && f.x < L2.larga - 20);
+      if (!nascosti.length) nonMisurati.push("il tocco su un foro nascosto dalla cornice a 320 px (nessun foro è finito sotto le righe in alto)");
+      else { const [k, f] = nascosti[0], prima = await stato(pg);
+        await pg.touchscreen.tap(c.x + f.x, c.y + f.y); await pg.waitForTimeout(300);
+        const dopo = await stato(pg);
+        dice(dopo.sel === prima.sel && JSON.stringify(dopo.fori) === JSON.stringify(prima.fori) && dopo.annulla === prima.annulla, `⛔ 320 · un tocco sulla cornice, dove sotto — invisibile — c'è il foro ${k + 1}, non lo sceglie e non crea niente (${nascosti.length} fori nascosti dalla cornice)`, JSON.stringify({ sceltoPrima: prima.sel, sceltoDopo: dopo.sel, fori: [prima.fori.length, dopo.fori.length] })); }
+      /* un dito sulla cornice, trascinato: sposta la vista, e basta */
+      const s3 = await stato(pg), L3 = await leggi(pg);
+      await dita("touchStart", [[c.x + c.width * 0.6, yBasso]]); for (let k = 1; k <= 6; k++) { await dita("touchMove", [[c.x + c.width * 0.6 - k * 10, yBasso]]); await pg.waitForTimeout(16); } await dita("touchEnd", []); await pg.waitForTimeout(250);
+      const s4 = await stato(pg), L4 = await leggi(pg), passo = +(L4.fori[i].x - L3.fori[i].x).toFixed(1);
+      dice(Math.abs(passo + 60) < 1.5 && JSON.stringify(s4.fori) === JSON.stringify(s3.fori) && s4.annulla === s3.annulla, `320 · a pianta ingrandita un dito trascinato di 60 px sposta la vista di 60 px (misurati ${-passo}) e non crea e non sposta nessun foro`, JSON.stringify({ passo, fori: [s3.fori.length, s4.fori.length] }));
+      /* «Adatta»: tutto torna dov'era, e adattata la stessa passata non sposta niente */
+      await pg.click("#dvAdatta"); await pg.waitForTimeout(250); await inVista(pg);
+      const c5 = await pg.locator("#d2-canvas").boundingBox(), L5 = await leggi(pg), s5 = await stato(pg);
+      await dita("touchStart", [[c5.x + c5.width * 0.6, c5.y + c5.height - 14]]); for (let k = 1; k <= 6; k++) { await dita("touchMove", [[c5.x + c5.width * 0.6 - k * 10, c5.y + c5.height - 14]]); await pg.waitForTimeout(16); } await dita("touchEnd", []); await pg.waitForTimeout(250);
+      const L6 = await leggi(pg), s6 = await stato(pg);
+      dice(s5.quanto === "100%" && Math.hypot(L5.fori[i].x - L0.fori[i].x, L5.fori[i].y - L0.fori[i].y) < 0.6 && Math.abs(L6.fori[i].x - L5.fori[i].x) < 0.1 && JSON.stringify(s6.fori) === JSON.stringify(s0.fori),
+        "⛔ 320 · «Adatta» rimette la pianta com'era, al pixel; e a pianta adattata la stessa passata non sposta niente — non si trascina via per sbaglio", JSON.stringify({ quanto: s5.quanto, prima: L0.fori[i], adattata: L5.fori[i], dopoLaPassata: L6.fori[i] }));
+      dice(pg.__errori.length === 0, "320: nessun errore di pagina ingrandendo e spostando", pg.__errori[0]);
+      await pg.__ctx.close();
+    }
+  }
+  /* ── sul computer, col mouse ── */
+  { const pg = await apri(1280, DESIGN, false);
+    if (!(await pronta(pg))) { nonMisurati.push("la vista a 1280 px (la volata non si è aperta nel 2D)"); await pg.__ctx.close(); }
+    else {
+      const s0 = await stato(pg), L0 = await leggi(pg);
+      await pg.click("#dvPiu"); await pg.waitForTimeout(200); const s1 = await stato(pg);
+      await pg.click("#dvMeno"); await pg.waitForTimeout(200); const s2 = await stato(pg), L2 = await leggi(pg);
+      dice(s0.quanto === "100%" && s1.quanto === "150%" && s2.quanto === "100%" && Math.hypot(L2.fori[5].x - L0.fori[5].x, L2.fori[5].y - L0.fori[5].y) < 0.6, "1280 · i bottoni: «+» porta al 150%, «−» riporta al 100% e la pianta torna com'era", JSON.stringify([s0.quanto, s1.quanto, s2.quanto]));
+      /* Ctrl + rotella sopra un foro: quel foro resta sotto il puntatore */
+      await inVista(pg); const c = await pg.locator("#d2-canvas").boundingBox(), La = await leggi(pg);
+      await pg.mouse.move(c.x + La.fori[5].x, c.y + La.fori[5].y); await pg.keyboard.down("Control"); await pg.mouse.wheel(0, -240); await pg.keyboard.up("Control"); await pg.waitForTimeout(250);
+      const s3 = await stato(pg), Lb = await leggi(pg), sc = +Math.hypot(Lb.fori[5].x - La.fori[5].x, Lb.fori[5].y - La.fori[5].y).toFixed(2);
+      dice(parseInt(s3.quanto, 10) > 150 && sc < 1.5 && JSON.stringify(s3.fori) === JSON.stringify(s0.fori), `⛔ 1280 · Ctrl + rotella sopra un foro ingrandisce (${s3.quanto}) e quel foro resta sotto il puntatore (scarto ${sc} px); nessun foro creato o spostato`, JSON.stringify({ quanto: s3.quanto, prima: La.fori[5], dopo: Lb.fori[5] }));
+      /* la rotella SENZA Ctrl resta della pagina */
+      await pg.mouse.wheel(0, 120); await pg.waitForTimeout(200); const s4 = await stato(pg);
+      dice(s4.quanto === s3.quanto, "1280 · senza Ctrl la rotella non ingrandisce: resta della pagina", JSON.stringify([s3.quanto, s4.quanto]));
+      dice(pg.__errori.length === 0, "1280: nessun errore di pagina", pg.__errori[0]);
+      await pg.__ctx.close();
+    }
+  }
+}
+
+/* ───── 6 · LA MIC SULLA TELA: il bottone «MIC» cerchia i fori dei gruppi che arrivano alla MIC ───── */
+/* la MIC ricontata QUI dai fori della pagina (ritardo e carica di ognuno), senza passare dal modulo */
+const ricontoMic = (pg) => pg.evaluate(() => { const D = window.__genesi.D2, H = D.holes, kg = (h) => (h.kg === undefined || h.kg === null || h.kg === "" ? +D.kg : +h.kg), t = (h) => h.tDet || 0;
+  const dentroDi = (a) => H.map((q, j) => (t(q) >= t(a) && t(q) < t(a) + 8 ? j : -1)).filter((j) => j >= 0);
+  const somme = H.map((a) => dentroDi(a).reduce((s, j) => s + kg(H[j]), 0)), mic = Math.max(...somme), dentro = new Set();
+  H.forEach((a, i) => { if (Math.abs(somme[i] - mic) < 1e-6) dentroDi(a).forEach((j) => dentro.add(j)); });
+  return { mic, soli: H.every((a) => dentroDi(a).length === 1), dentro: [...dentro].sort((x, y) => x - y) }; });
+const cerchiati = (L) => L.fori.map((f, i) => (f.rMax >= L.raggio * 1.85 ? i : -1)).filter((i) => i >= 0);
+const toccaMic = async (pg) => { const q = await pg.evaluate(() => { const e = document.getElementById("dlMic"); if (!e) return null; e.scrollIntoView({ block: "center" }); const r = e.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; });
+  if (!q) return null; await pg.touchscreen.tap(q.x, q.y); await pg.waitForTimeout(350);
+  return pg.evaluate(() => ({ acceso: document.getElementById("dlMic").classList.contains("on"), toast: (document.getElementById("toast") || {}).textContent || "" })); };
+async function micTela() {
+  console.log("\n· la MIC sulla tela: il bottone che cerchia i fori che partono insieme");
+  /* fra le file 100 ms: due fori di file diverse cadono a 5 ms uno dall'altro */
+  let pg = await apri(430, { ...DESIGN, ritardoFila: 100 }, true);
+  if (!(await pronta(pg))) nonMisurati.push("MIC sulla tela: la pagina non è arrivata al progetto");
+  else {
+    const prima = await leggi(pg);
+    dice(cerchiati(prima).length === 0 && prima.senzaCerchio === 0, "MIC sulla tela: a bottone spento nessun foro ha l'anello", JSON.stringify(cerchiati(prima)));
+    const st = await toccaMic(pg), dopo = await leggi(pg), R = await ricontoMic(pg);
+    if (!st) nonMisurati.push("MIC sulla tela: il bottone «MIC» non c'è");
+    else {
+      dice(st.acceso && R.dentro.length >= 2 && R.dentro.length < dopo.n && JSON.stringify(cerchiati(dopo)) === JSON.stringify(R.dentro),
+        `MIC sulla tela: toccato «MIC», hanno l'anello i fori — e solo quelli — dei gruppi che arrivano alla MIC, ricontati qui dai ritardi (${R.dentro.length} su ${dopo.n})`, JSON.stringify({ acceso: st.acceso, cerchiati: cerchiati(dopo), ricontati: R.dentro }));
+      const detti = (st.toast.match(/cerchiati (\d+) for[oi]/) || [])[1];
+      dice(+detti === R.dentro.length && /La MIC la formano i fori/.test(st.toast), `MIC sulla tela: il messaggio dice quanti ne ha cerchiati (${R.dentro.length}) e chi forma la MIC`, st.toast);
+      const st2 = await toccaMic(pg), spento = await leggi(pg);
+      dice(st2 && !st2.acceso && cerchiati(spento).length === 0, "MIC sulla tela: toccato di nuovo, gli anelli spariscono", JSON.stringify({ acceso: st2 && st2.acceso, cerchiati: cerchiati(spento) }));
+    }
+  }
+  await pg.__ctx.close();
+  /* una fila sola: ogni foro parte da solo */
+  pg = await apri(430, { ...DESIGN, file: 1 }, true);
+  if (!(await pronta(pg))) nonMisurati.push("MIC sulla tela, foro per foro: la pagina non è arrivata al progetto");
+  else {
+    const st = await toccaMic(pg), dopo = await leggi(pg), R = await ricontoMic(pg);
+    if (!st) nonMisurati.push("MIC sulla tela, foro per foro: il bottone «MIC» non c'è");
+    else dice(st.acceso && R.soli && cerchiati(dopo).length === 0 && /niente da cerchiare/.test(st.toast) && /Ogni foro parte da solo/.test(st.toast),
+      "MIC sulla tela: con ogni foro che parte da solo il bottone non cerchia niente, e lo DICE (un livello acceso e vuoto sembrerebbe rotto)", JSON.stringify({ cerchiati: cerchiati(dopo), toast: st.toast, soli: R.soli }));
+  }
+  await pg.__ctx.close();
+}
+
+const ATTESE = 3 * (6 * 4 + 2 * 3 + 2 + 1) + (3 * 3) + (3 * 3) + (2 * 6) + (10 + 4) + 5;
+let riuscita;
+if (!CONTRO_DETT) {
+  await viste([320, 430, 1280]); await tocco(TOCCHI); await fitta([320, 430, 1280]); await gesti([320, 430]); await vista(); await micTela();
+  if (CONTROPROVA) {
+    console.log(`(iniezioni: ${colpiti.size}/${TABELLA.length} hanno trovato il loro pezzo)`);
+    dice(colpiti.size === TABELLA.length, `l'iniezione ha trovato e sostituito il suo testo nella pagina servita (${colpiti.size}/${TABELLA.length})`, [...colpiti].map((x) => x.slice(0, 40)));
+    /* con la pianta in punti di tela devono cadere le due cose per cui la correzione esiste */
+    const leggibile = caduti.some((t) => /alto almeno 9 px veri/.test(t)), presa = caduti.some((t) => /lo SCEGLIE/.test(t));
+    dice(leggibile && presa, "⛔ col difetto rimesso cadono i due controlli per cui la correzione esiste: il testo leggibile e il foro che si prende", JSON.stringify({ leggibile, presa }));
+    riuscita = leggibile && presa && colpiti.size === TABELLA.length;
+  }
+} else {
+  /* nello stesso ordine di DIFETTI_DETTAGLI: che cosa rimette, dove guardare, quale controllo deve cadere */
+  const BERSAGLI = [
+    ["la presa torna a 18 punti di tela", () => tocco(TOCCHI.slice(0, 2)), /lo SCEGLIE/],
+    ["il pallino torna 9 px comunque", () => fitta([320]), /due pallini vicini non si sovrappongono/],
+    ["la scritta del fronte e le quote tornano fra il fronte e la prima fila", () => viste([320]), /nessun testo sta sopra un foro/],
+    ["la legenda torna su una riga sola", () => viste([320]), /relief: nessun testo esce dalla tela/],
+    ["il suggerimento in fondo torna su una riga sola", () => viste([320]), /strumento Tratto: nessun testo esce dalla tela/],
+    ["la mappatura per chi tocca torna in px di schermo", () => viste([430]), /DOVE la mappatura per chi tocca dice che sono/],
+    ["i tocchi tornano com'erano: ogni dito un gesto a sé", () => gesti([320]), /un pizzico con due dita sul vuoto non crea nessun foro/],
+    ["il pizzico ingrandisce attorno al centro della tela", () => vista(), /resta fra le dita/],
+    ["il contenuto non è più ritagliato", () => vista(), /DENTRO il ritaglio/],
+    ["un foro sotto la cornice torna a farsi prendere", () => vista(), /un tocco sulla cornice, dove sotto/],
+    ["la MIC: l'anello va a tutti i fori", () => micTela(), /hanno l'anello i fori — e solo quelli/],
+    ["la MIC: il messaggio conta tutti i fori", () => micTela(), /il messaggio dice quanti ne ha cerchiati/],
+    ["la MIC: si cerchia anche quando ogni foro parte da solo", () => micTela(), /con ogni foro che parte da solo il bottone non cerchia niente/],
+  ];
+  const esitiD = [];
+  for (let k = 0; k < DIFETTI_DETTAGLI.length; k++) {
+    ATTIVE = [DIFETTI_DETTAGLI[k]];
+    const [nome, guarda, attesa] = BERSAGLI[k], da = caduti.length;
+    console.log(`\n──────── dettaglio ${k + 1}/${DIFETTI_DETTAGLI.length}, da solo: ${nome} ────────`);
+    await guarda();
+    const miei = caduti.slice(da);
+    esitiD.push({ nome, caduti: miei.length, bersaglio: miei.some((t) => attesa.test(t)) });
+  }
+  console.log(`\n(iniezioni: ${colpiti.size}/${TABELLA.length} hanno trovato il loro pezzo)`);
+  for (const e of esitiD) console.log(`  ${e.bersaglio ? "✔" : "✗"} ${e.nome}: ${e.caduti} controlli caduti${e.bersaglio ? ", fra cui il suo" : " — ma NON quello che lo riguarda"}`);
+  riuscita = colpiti.size === TABELLA.length && esitiD.every((e) => e.bersaglio);
+}
+if (nonMisurati.length) {
+  console.log(`\n⚠️ NON MISURATI (${nonMisurati.length}) — non è «a posto», è «non ho guardato»:`);
+  for (const x of nonMisurati) console.log(`   · ${x}`);
+}
+console.log(`\nRisultato pianta sullo schermo di Genesi: ${ok} passati, ${ko} falliti  ·  ${ATTESE} asserzioni attese nel passaggio sano (33 per larghezza × 3 nelle viste, 9 sul tocco, 9 sulla maglia fitta, 12 sui gesti, 14 sulla vista, 5 sulla MIC)`);
+await b.close();
+srv.close();
+/* una controprova RIUSCITA esce 0: ha fallito come doveva, con tutte le iniezioni sul bersaglio
+   (è la convenzione che `tutti.mjs` dichiara: il banco gira il verdetto da sé). Sotto
+   controprova un soggetto «non misurato» è ammesso: è il difetto rimesso a renderlo
+   irraggiungibile — con la pianta in punti di tela, sotto l'ultima fila non resta posto. */
+if (!CONTROPROVA) riuscita = ko === 0 && nonMisurati.length === 0;
+if (CONTROPROVA) console.log(riuscita ? "✔ CONTROPROVA OK: col difetto rimesso il banco cade, e cade dove deve" : "✗ CONTROPROVA FALLITA: il banco non distingue, o un'iniezione non ha trovato il suo pezzo");
+process.exitCode = riuscita ? 0 : 1;

@@ -183,19 +183,23 @@ const DIFETTI = {
   "apps/scudo/index.html": [
     ["  const avvisoEsempio = (frase) => { const m = modoDimostrazione(db.mode);",
      '  const avvisoEsempio = (frase) => { const m = modoDimostrazione("live");'],
-    /* il modello non registrato che sul verbale firmato si leggeva «questo
-       dispositivo non ha un modello» */
-    ['<td>${c.modello ? esc(c.modello) : "non registrato"}</td>',
-     '<td>${esc(c.modello || "—")}</td>'],
+  ],
+  /* il modello non registrato che sul verbale firmato si leggeva «questo
+     dispositivo non ha un modello» (⏱️ dal 05/09 la cella la compone
+     `fogliaVerbaleDpi` nel modulo) */
+  "apps/scudo/scudo-data.js": [
+    ['c.modello ? String(c.modello) : "non registrato",',
+     'String(c.modello || "—"),'],
   ],
   /* ⛔ CONTI, dall'08/08: i due trattini della riga a IMPORTO UNICO, rimessi.
      È il difetto vero corretto un'ora prima — quantità e prezzo unitario che
      su una fattura si leggevano «niente da segnalare» invece di «non
      dettagliati». Serve perché una regola nuova senza la sua controprova è una
      riga che non si sa se sappia fallire. */
-  "apps/conti/index.html": [
-    ['<td class="num">non dettagliata</td><td class="num">non dettagliato</td>',
-     '<td class="num">—</td><td class="num">—</td>'],
+  "apps/conti/conti-data.js": [
+    /* ⏱️ dal 05/09 la riga la compone `fogliaFattura` nel modulo */
+    ['quantita: "non dettagliata", prezzo: "non dettagliato", sconto: "",',
+     'quantita: "—", prezzo: "—", sconto: "",'],
   ],
   "apps/sentinella/sentinella-data.js": [
     // 4. il filtro che giudica la data da com'è scritta

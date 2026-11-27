@@ -1,0 +1,247 @@
+/* TUTTI I DOCUMENTI CHE ESCONO DALLE SEI APP E DA GENESI, SULLA DIMOSTRAZIONE, SENZA BROWSER
+   ═══════════════════════════════════════════════════════════════════════
+   Uso: node apps/deepwork-id/tests/documenti-dimostrazione.mjs [--dimmi]
+        node apps/deepwork-id/tests/documenti-dimostrazione.mjs --controprova
+          (sporca in memoria il primo documento di ogni app con «undefined»,
+           «1 rilievi» e «€ 0,00»: le prove 3 e 4 DEVONO cadere e la misura
+           salire di 7 — un righello che non sa fallire non dimostra niente)
+
+   PERCHÉ ESISTE. Il 05/09 ogni file e ogni foglio che esce dalle sei app è
+   diventato una funzione pura del modulo (`csv*`, `foglia*`,
+   `rapportoGiornata`, `prospettoDenuncia`, `testoConsegnaTurno`,
+   `verbaleRilievo`, `relazioneLotto`). Quindi il «premere ogni bottone che
+   produce un file e aprire il file» — che CLAUDE.md prescrive e che finora
+   voleva un browser — si può fare qui in due secondi, su TUTTI i documenti
+   insieme, con gli stessi dati di dimostrazione.
+
+   CHE COSA GIUDICA (asserzioni):
+     1. ogni documento si compone senza sollevare, e non è vuoto;
+     2. nessun documento contiene «undefined», «NaN», «[object Object]» o la
+        parola «null» come testo (il CSV di Conti l'ha già scritta una volta);
+     3. nessun singolare sbagliato: «1 rilievi», «1 fermi», «1 giorni»… (la
+        famiglia delle 32 frasi corrette il 03/08, letta sui documenti veri).
+   CHE COSA MISURA E STAMPA, senza giudicare (candidati, non verdetti):
+     · quante celle «tranquille» ci sono (€ 0,00 · 0% · 0 m³ · ;0;) per
+       documento — un numero tranquillo dove non è stato misurato niente è il
+       difetto del fondatore, ma se lo zero sia misurato o no lo sa solo chi
+       apre il documento: qui si contano e si elencano con --dimmi.
+   ⏱️ 27/11 — C'È ANCHE GENESI, per i pezzi del suo foglio che sono già
+   funzioni pure del modulo (la pianta, la tabella dei fori, le cariche nel
+   tempo, lo storico della riconciliazione, e dal 27/11 sera il CSV della
+   legge di sito, quello del confronto A/B e il piano di carico). ⚠️ NON
+   è tutto Genesi: il foglio intero e il CSV della scheda volata li compone
+   ancora la pagina, e qui NON ci sono —
+   quelli li aprono i banchi del browser. Il conto dichiara quanti sono di
+   Genesi, perché «142 documenti» non si legga come «tutto».
+   Genesi non ha una `DEMO`: la sua dimostrazione qui è la volata che nasce
+   dai parametri di partenza della pagina (`generaMaglia` +
+   `sequenzaSuMaglia`), in cinque vesti — com'è, coi valori propri e il
+   fronte modellato, con una fila sola, la più fitta che i campi accettano,
+   e con un foro solo (per i singolari). Per leggerli, ai plurali cercati si
+   aggiungono «fori», «gruppi», «istanti»: provato prima che sulle altre
+   sei app non scattano (zero allarmi su 142 documenti).
+   Il denominatore si stampa: quanti documenti, quante funzioni, quanti
+   caratteri. Un documento che non si riesce a chiamare NON è «a posto»: si
+   conta a parte e fa cadere la prova 1. */
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+const HERE = dirname(fileURLToPath(import.meta.url));
+const DIMMI = process.argv.includes("--dimmi");
+const CONTROPROVA = process.argv.includes("--controprova");
+const app = async (n) => import(join(HERE, "..", "..", n, n + "-data.js"));
+const [campo, conti, flotta, scudo, sentinella, terra] = await Promise.all(["campo", "conti", "flotta", "scudo", "sentinella", "terra"].map(app));
+const shell = await import(join(HERE, "..", "..", "..", "shared", "deepwork-id-client", "dw-shell.js"));
+const OGGI = new Date(2026, 8, 5), OGGI_ISO = "2026-09-05";
+const dmy = (iso) => shell.dataIt(iso, "senza data");
+
+let passati = 0, falliti = 0;
+const ok = (c, t, x) => { if (c) { passati++; console.log("  ✓ " + t); } else { falliti++; console.log("  ✗ " + t + (x !== undefined ? "\n      " + String(x).slice(0, 600) : "")); } };
+
+/* ── I DOCUMENTI: uno per riga, con gli argomenti della dimostrazione — gli
+      stessi che passa la pagina (le chiamate sono copiate dai bottoni). ── */
+const DOC = [];
+const doc = (a, nome, f) => DOC.push({ app: a, nome, f });
+{ // TERRA
+  const D = terra.DEMO, aut = terra.autorizzazioneVigente(D.autorizzazioni);
+  const R = terra.riepilogoAnnuale(D.rilievi, 2026, aut);
+  const DEN = { R, aut, soglia: aut && +aut.sogliaGuardiaPct > 0 ? +aut.sogliaGuardiaPct : null, base: terra.baseOnereEscavazione(R, {}), banchi: terra.ripartizioneBanchi(R, D.fronti) };
+  doc("terra", "csvInventari", () => terra.csvInventari(D.inventari));
+  doc("terra", "csvRiepilogoAnno", () => terra.csvRiepilogoAnno(DEN, D.fronti, OGGI));
+  doc("terra", "csvFrontiRilievi", () => terra.csvFrontiRilievi(D.fronti, D.rilievi));
+  doc("terra", "csvRilievi", () => terra.csvRilievi(D.rilievi, D.fronti));
+  doc("terra", "prospettoDenuncia", () => terra.prospettoDenuncia(DEN, D.fronti, OGGI));
+  for (const l of D.lotti) doc("terra", "relazioneLotto " + l.id, () => terra.relazioneLotto(l, D.rilievi, D.fronti, OGGI));
+  doc("terra", "calendarioTerra", () => terra.calendarioTerra(D.scadenze, D.autorizzazioni, OGGI, "2026-09-11T02:00:00Z").ics);
+  for (const r of D.rilievi.filter((x) => terra.rilievoUsabile(x))) doc("terra", "verbaleRilievo " + r.id, () => terra.verbaleRilievo(r, { rilievi: D.rilievi, fronti: D.fronti, autorizzazioni: D.autorizzazioni }));
+}
+{ // CONTI
+  const D = conti.DEMO, NOT = D.note || [];
+  doc("conti", "csvSituazioneFatture", () => conti.csvSituazioneFatture(D.fatture, D.incassi, NOT, D.clienti));
+  doc("conti", "csvIncassi", () => conti.csvIncassi(D.incassi));
+  doc("conti", "csvProspettoIncassi", () => conti.csvProspettoIncassi(D.incassi, D.fatture, NOT, D.clienti));
+  doc("conti", "csvClienti", () => conti.csvClienti(D.clienti));
+  doc("conti", "csvProspettoClienti", () => conti.csvProspettoClienti(D.clienti));
+  doc("conti", "csvProspettoCosti", () => conti.csvProspettoCosti(D.costi, "2026-01-01", "2026-12-31"));
+  doc("conti", "csvPrezziConvertiti", () => conti.csvPrezziConvertiti(D.prodotti));
+  doc("conti", "csvRimanenze", () => conti.csvRimanenze(D.inventariTerra, D.prodotti));
+  doc("conti", "csvListini", () => conti.csvListini(D.listini, D.prodotti));
+  doc("conti", "csvRegistroVendite", () => conti.csvRegistroVendite(D.fatture, D.clienti, NOT));
+  doc("conti", "csvPesate", () => conti.csvPesate(D.pesate));
+  doc("conti", "csvProspettoDdt", () => conti.csvProspettoDdt(D.pesate, D.fatture, D.ordini));
+  doc("conti", "csvListino", () => conti.csvListino(D.prodotti));
+  doc("conti", "csvGare", () => conti.csvGare(D.gare));
+  doc("conti", "csvProspettoPreventivi", () => conti.csvProspettoPreventivi(D.ordini, D.clienti, OGGI));
+  for (const o of D.ordini) doc("conti", "fogliaPreventivo " + o.id, () => conti.fogliaPreventivo(o, { clienti: D.clienti, oggi: OGGI }));
+  for (const p of D.pesate) doc("conti", "fogliaDdt " + p.id, () => conti.fogliaDdt(p, { clienti: D.clienti }));
+  for (const f of D.fatture) doc("conti", "fogliaFattura " + f.id, () => conti.fogliaFattura(f, { clienti: D.clienti, incassi: D.incassi, note: NOT }));
+}
+{ // CAMPO
+  const D = campo.DEMO;
+  const dg = (l) => (l || []).filter((r) => campo.eDelGiorno(r, OGGI_ISO));
+  const d = { oggi: OGGI_ISO, rapportini: dg(D.rapportini), attivita: dg(D.attivita), obiettivi: D.obiettivi, checklist: D.checklist,
+    meteo: D.meteo, chiusure: D.chiusure, squadre: D.squadre, operatori: D.operatori, presenze: D.presenze, durate: D.durate,
+    volateSentinella: D.volateSentinella, infortuniScudo: D.infortuniScudo };
+  for (const t of campo.TURNI) doc("campo", "csvAppello " + t, () => campo.csvAppello(D.operatori, D.presenze, D.durate, OGGI_ISO, t, "", dmy));
+  doc("campo", "csvStorico", () => campo.csvStorico(campo.storicoSettimana(D.attivita, D.rapportini, 14), campo.registrazioniSenzaGiorno(D.attivita, D.rapportini)));
+  doc("campo", "csvAttivita", () => campo.csvAttivita(D.attivita));
+  doc("campo", "csvSquadre", () => campo.csvSquadre(D.squadre));
+  doc("campo", "testoConsegnaTurno", () => campo.testoConsegnaTurno(d, { avviso: "", dmy }));
+  doc("campo", "rapportoGiornata", () => campo.rapportoGiornata(d, { dmy }));
+}
+{ // SCUDO
+  const D = scudo.DEMO;
+  doc("scudo", "csvRegistroInfortuni", () => scudo.csvRegistroInfortuni(D.infortuni));
+  doc("scudo", "csvPersonaleScadenze", () => scudo.csvPersonaleScadenze(D.lavoratori, D.scadenze, D.documenti));
+  doc("scudo", "csvAzioni", () => scudo.csvAzioni(D.azioni));
+  doc("scudo", "csvProspettoAzioni", () => scudo.csvProspettoAzioni(D.azioni, { lavoratori: D.lavoratori, infortuni: D.infortuni, ispezioni: D.ispezioni }));
+  doc("scudo", "csvRiepilogoNearMiss", () => scudo.csvRiepilogoNearMiss(D.infortuni, D.azioni, 90, OGGI));
+  doc("scudo", "fascicoloIspezione", () => scudo.fascicoloIspezione({ cantieri: D.cantieri, documenti: D.documenti, infortuni: D.infortuni, nomine: D.nomine, lavoratori: D.lavoratori,
+    scadenze: D.scadenze, mansioni: D.mansioni, dpi: D.dpi, appalti: D.appalti, appaltatori: D.appaltatori, ispezioni: D.ispezioni, azioni: D.azioni }, OGGI));
+  doc("scudo", "calendarioScadenze", () => scudo.calendarioScadenze(D.scadenze, D.lavoratori, OGGI, "2026-09-11T02:00:00Z").ics);
+  for (const l of D.lavoratori) {
+    doc("scudo", "fogliaVerbaleDpi " + l.id, () => scudo.fogliaVerbaleDpi(l, { dpi: D.dpi, mansioni: D.mansioni, oggi: OGGI }));
+  for (const i of D.ispezioni) doc("scudo", "fogliaIspezione " + i.id, () => scudo.fogliaIspezione(i, { cantieri: D.cantieri, lavoratori: D.lavoratori, azioni: D.azioni, oggi: OGGI }));
+    doc("scudo", "fogliaCartella " + l.id, () => scudo.fogliaCartella(scudo.cartellaLavoratore(l, { scadenze: D.scadenze, mansioni: D.mansioni, dpi: D.dpi, nomine: D.nomine, documenti: D.documenti }, OGGI), OGGI));
+  }
+}
+{ // FLOTTA
+  const D = flotta.DEMO;
+  doc("flotta", "csvRegistroInterventi", () => flotta.csvRegistroInterventi(D.interventi));
+  doc("flotta", "csvScadenzeDiLegge", () => flotta.csvScadenzeDiLegge(D.scadenze, D.mezzi, OGGI, 30));
+  doc("flotta", "csvCosti", () => flotta.csvCosti(D.costi));
+  doc("flotta", "csvRicambi", () => flotta.csvRicambi(D.ricambi));
+  doc("flotta", "csvSituazione", () => flotta.csvSituazione(D.mezzi, D.manutenzioni, D.ricambi, D.rifornimenti));
+  doc("flotta", "csvGiriMacchina", () => flotta.csvGiriMacchina(D.controlli));
+  doc("flotta", "csvListaDellaSpesa", () => flotta.csvListaDellaSpesa(flotta.propostaScorte(D.ricambi, D.interventi, {})));
+  doc("flotta", "csvFermiMacchina", () => flotta.csvFermiMacchina(D.fermi, OGGI));
+  doc("flotta", "csvBudget", () => flotta.csvBudget(flotta.budgetVsSpesa(D.budget, D.costi, 2026, OGGI)));
+  doc("flotta", "calendarioMezzi", () => flotta.calendarioMezzi(D.scadenze, D.manutenzioni, OGGI, "2026-09-11T02:00:00Z").ics);
+  for (const m of D.mezzi) doc("flotta", "csvLibretto " + (m.id || m.nome), () => flotta.csvLibretto(m, { manutenzioni: D.manutenzioni, interventi: D.interventi, scadenze: D.scadenze, controlli: D.controlli, rifornimenti: D.rifornimenti, fermi: D.fermi }, OGGI, 30));
+}
+{ // SENTINELLA
+  const D = sentinella.DEMO;
+  doc("sentinella", "csvRefertiGenesi", () => sentinella.csvRefertiGenesi(sentinella.refertiDaVolate(D.volate).tutti));
+  doc("sentinella", "csvAmbiente", () => sentinella.csvAmbiente(D.monitoraggi, D.adempimenti, D.ricettori));
+  doc("sentinella", "csvRegistroVolate", () => sentinella.csvRegistroVolate(D.volate));
+  doc("sentinella", "csvRicettori", () => sentinella.csvRicettori(D.ricettori));
+  for (const x of D.reclami) doc("sentinella", "rispostaReclamo " + x.id, () => sentinella.rispostaReclamo(x, { monitoraggi: D.monitoraggi, ricettori: D.ricettori, volate: D.volate }, OGGI));
+  doc("sentinella", "csvTarature", () => sentinella.csvTarature(D.monitoraggi));
+  doc("sentinella", "calendarioAmbiente", () => sentinella.calendarioAmbiente(D.adempimenti, D.monitoraggi, D.programma, OGGI, "2026-09-11T02:00:00Z").ics);
+  for (const v of D.volate) doc("sentinella", "fogliaVolata " + v.id, () => sentinella.fogliaVolata(v, { monitoraggi: D.monitoraggi, reclami: D.reclami, ricettori: D.ricettori, oggi: OGGI }));
+}
+
+{ // GENESI — i pezzi del foglio che sono funzioni pure (vedi l'intestazione: non è tutto Genesi)
+  const genesi = await import(join(HERE, "..", "..", "genesi", "genesi-data.js"));
+  const pontiG = await import(join(HERE, "..", "..", "..", "shared", "dw-ponti.js"));   // il testo del piano di carico lo scrive `pianoCsvGenesi`, condiviso con Campo
+  const P = { B: 3, S: 3.5, bf: 3, file: 2, perRow: 8, stagger: true, dir: "sx", sequenza: "diagonale", ritardo: 42, ritardoFila: 100, kg: 58, prof: 10, stem: 2.2, diam: 102, incl: 0, sub: 0.9 };
+  const volata = (q, ritocca) => { const d = { ...P, ...q }; d.holes = genesi.generaMaglia(d.B, d.S, d.file, d.perRow, d.bf, d.stagger);
+    genesi.sequenzaSuMaglia(d.holes, d.ritardo, d.ritardoFila, d.S, d.dir, d.sequenza); if (ritocca) ritocca(d); return d; };
+  const VESTI = [["com'è", volata({})],
+    ["valori propri e fronte modellato", volata({}, (d) => { d.holes[2].kg = 0; d.holes[4].prof = 8.5; d.holes[4].stem = 1.5; d.profilo = [{ x: 3, y: 0 }, { x: 11, y: 1.6 }, { x: 21, y: -0.8 }];
+      d.piede = [{ x: 0, y: -1.2 }, { x: 12, y: -1.9 }, { x: 24, y: -1.0 }]; d.tratti = [{ pts: [{ x: 2, y: 9.5 }, { x: 12, y: 10.5 }, { x: 22, y: 9 }], aperto: false, origine: "dxf" }]; })],
+    ["una fila", volata({ file: 1 })], ["la più fitta", volata({ perRow: 30, file: 6 })],
+    /* un foro solo: è la veste che fa uscire i singolari («1 foro», «1 istante») — senza, la prova sui plurali non avrebbe niente da leggere */
+    ["un foro solo", volata({ file: 1, perRow: 1 })]];
+  for (const [veste, d] of VESTI) {
+    doc("genesi", "piantaPerFoglio " + veste, () => genesi.piantaPerFoglio(d));
+    doc("genesi", "piantaPerFoglio " + veste + " (telefono)", () => genesi.piantaPerFoglio(d, { larghezza: 358 }));
+    doc("genesi", "tabellaForiPerFoglio " + veste, () => genesi.tabellaForiPerFoglio(d.holes, d));
+    doc("genesi", "diagrammaTempiPerFoglio " + veste, () => genesi.diagrammaTempiPerFoglio(d.holes, d.kg));
+    doc("genesi", "piano di carico " + veste, () => pontiG.pianoCsvGenesi(genesi.righePianoDiCarico(d.holes, d)));
+    doc("genesi", "fraseFinestraMic " + veste, () => "MIC " + genesi.micFinestra(d.holes, d.kg) + " kg. " + genesi.fraseFinestraMic(genesi.finestraDellaMic(d.holes, d.kg)));
+  }
+  /* due gruppi alla pari: l'unico caso in cui la frase dice «Un altro gruppo» — nelle cinque vesti gli altri gruppi sono zero o molti,
+     e senza questo «Altri 1 gruppi» passerebbe (controprova del 27/11: rimesso il difetto, la prova restava verde) */
+  doc("genesi", "fraseFinestraMic due gruppi alla pari", () => genesi.fraseFinestraMic(genesi.finestraDellaMic([0, 0, 42, 84, 84].map((t, i) => ({ tDet: t, seq: i })), 58)));
+  doc("genesi", "csvLeggeDiSito", () => genesi.csvLeggeDiSito([{ d: 300, w: 58, ppv: 6.4, nome: "Recettore Est", ts: "2026-07-12", fonte: "mano" }, { d: 180, w: 116, ppv: 14.2, nome: "Cascina", ts: "2026-07-19", fonte: "csv" }, { d: 420, w: 58, ppv: 3.1, nome: "Strada", ts: "2026-07-26", fonte: "mano" }]));
+  { const kpi = (q) => ({ maglia: "3,0 × 3,5 m", setup: "ANFO standard · Nonel", nf: 16, qtot: 928, pf: 0.55, x20: 13, x50: 28, x80: 50, ppv: 6.4, lim: 15, norma: "DIN residenziale @ 25 Hz",
+      ppvBase: { fonte: "manuale", K: 1906, beta: 1.55, referti: 0, testo: "K≈1.906/β≈1,55 stimati da Calcare", provvisoria: false }, fly: 101, presplit: false, cost: 2234, foriPropri: 0, flyTipo: 0, fragTipo: 0, ...q });
+    doc("genesi", "csvConfrontoAB", () => genesi.csvConfrontoAB({ ts: "12/07/2026, 10:00", kpi: kpi({}) }, { ts: "12/07/2026, 10:20", kpi: kpi({ maglia: "3,2 × 3,8 m", nf: 14, qtot: 812, pf: 0.48, x50: 31, ppv: 5.9, fly: 96, cost: 1980, foriPropri: 1, flyTipo: 1, fragTipo: 1 }) }));
+    doc("genesi", "csvConfrontoAB senza costo", () => genesi.csvConfrontoAB({ ts: "12/07/2026, 10:00", kpi: kpi({ cost: null, costChe: "manca il prezzo dell'esplosivo" }) }, { ts: "12/07/2026, 10:20", kpi: kpi({}) })); }
+  doc("genesi", "csvRiconciliazione", () => genesi.csvRiconciliazione([
+    { ts: "2026-07-12", nome: "Fronte Nord", prev: { x50: 28, ppv: 6.4, fly: 101, ppvBase: { breve: "manuale (Calcare)" } }, real: { x50: 31, ppv: 5.1, fly: 60, ovs: 4, note: "primo sparo" } },
+    /* la riga di chi ha salvato la previsione e non ha ancora misurato niente: celle vuote, non zeri */
+    { ts: "2026-07-19", nome: "Fronte Nord 2", prev: { x50: 30, ppv: 7.1, fly: 110 }, real: {} }]));
+}
+
+/* ── il testo di un documento: un CSV è già testo; un foglio è un oggetto di
+      stringhe annidate, e si legge ogni stringa (le chiavi no). ── */
+const testoDi = (x, out = []) => {
+  if (x == null) return out;
+  if (typeof x === "string") out.push(x);
+  else if (Array.isArray(x)) x.forEach((y) => testoDi(y, out));
+  else if (typeof x === "object") Object.values(x).forEach((y) => testoDi(y, out));
+  else if (typeof x === "number" && !Number.isFinite(x)) out.push("NaN");
+  return out;
+};
+/* i plurali che una frase col numero UNO non deve portare — le parole dei
+   documenti di questa casa, non un dizionario */
+const PLURALI = "fori|gruppi|istanti|rilievi|fermi|giorni|righe|persone|dispositivi|addestramenti|rapportini|squadre|mesi|ore|minuti|volate|consegne|fatture|scadenze|mezzi|interventi|fronti|banchi|lotti|azioni|infortuni|letture|punti|indicativi|presenti|assenti|viaggi|turni|voci|ricambi|controlli|documenti|anomalie|riprese|cumuli|note di credito|near-miss registrati|mancati infortuni|clienti|ordini|preventivi|pesate|incassi|costi|manutenzioni|verifiche|ispezioni|lavoratori|operatori|reclami|ricettori|monitoraggi|superamenti|attività concluse|ore lavorate|euro|tonnellate|metri";
+const SINGOLARE = new RegExp("(^|[^\\d.,])1 (" + PLURALI + ")\\b", "g");
+const SPORCO = /\bundefined\b|\bNaN\b|\[object Object\]|(^|[;\s"(])null([;\s")]|$)/;
+const TRANQUILLO = /€ 0,00|(^|[^\d,.])0%|(^|[^\d,.])0 m³|;0(;|$)/gm;
+
+console.log("\n════════ tutti i documenti delle sei app e i pezzi puri del foglio di Genesi, sulla dimostrazione, senza browser ════════");
+/* la controprova: il PRIMO documento di ogni app esce sporco — è lo scanner
+   che si mette alla prova, non il prodotto (che qui non si tocca) */
+if (CONTROPROVA) {
+  const visti = new Set();
+  for (const d of DOC) if (!visti.has(d.app)) { visti.add(d.app); const f = d.f; d.f = () => testoDi(f()).join("\n") + "\nundefined · 1 rilievi · € 0,00\n"; }
+  console.log("  ⚠️ CONTROPROVA: sette documenti sporcati in memoria (il primo di ogni app, Genesi compresa) — qui sotto il rosso è quello VOLUTO");
+}
+const perApp = {};
+let chiamabili = 0, caratteri = 0, singolari = [], sporchi = [], vuoti = [], rotti = [], tranquilli = 0;
+const tranqPer = [];
+for (const d of DOC) {
+  let out;
+  try { out = d.f(); } catch (e) { rotti.push(d.app + " · " + d.nome + " → " + String(e && e.message).slice(0, 120)); continue; }
+  chiamabili++;
+  const testi = testoDi(out);
+  const testo = testi.join("\n");
+  caratteri += testo.length;
+  perApp[d.app] = (perApp[d.app] || 0) + 1;
+  if (testo.trim().length < 20) vuoti.push(d.app + " · " + d.nome);
+  for (const t of testi) {
+    let m; SINGOLARE.lastIndex = 0;
+    while ((m = SINGOLARE.exec(t))) singolari.push(d.app + " · " + d.nome + " → «1 " + m[2] + "» in «" + t.slice(Math.max(0, m.index - 30), m.index + 40).replace(/\n/g, " ") + "»");
+    if (SPORCO.test(t)) sporchi.push(d.app + " · " + d.nome + " → «" + t.slice(0, 120).replace(/\n/g, " ") + "»");
+  }
+  const n = (testo.match(TRANQUILLO) || []).length;
+  if (n) { tranquilli += n; tranqPer.push([d.app + " · " + d.nome, n]); }
+}
+const denominatore = `${chiamabili} documenti su ${DOC.length} (${Object.entries(perApp).map(([a, n]) => a + " " + n).join(", ")}), ${caratteri.toLocaleString("it-IT", { useGrouping: true })} caratteri letti`;
+console.log("  [denominatore] " + denominatore);
+ok(rotti.length === 0, "ogni documento della dimostrazione si compone senza sollevare (" + DOC.length + ")", rotti.join("\n      "));
+ok(vuoti.length === 0, "e nessuno è vuoto", vuoti.join(", "));
+ok(sporchi.length === 0, "⛔ nessun documento scrive «undefined», «NaN», «[object Object]» o la parola «null»", sporchi.join("\n      "));
+ok(singolari.length === 0, "⛔ nessun documento dice «1 rilievi», «1 fermi», «1 giorni»… (" + PLURALI.split("|").length + " plurali cercati)", singolari.join("\n      "));
+ok(chiamabili >= 60 && caratteri > 50000, "il controllo ha guardato abbastanza soggetti da voler dire qualcosa: " + denominatore);
+console.log(`  [misura] celle «tranquille» (€ 0,00 · 0% · 0 m³ · ;0;): ${tranquilli} in ${tranqPer.length} documenti — CANDIDATI, non verdetti: se lo zero sia misurato lo sa solo chi apre il documento` + (DIMMI ? "\n      " + tranqPer.map(([n, k]) => n + " (" + k + ")").join("\n      ") : " (--dimmi per l'elenco)"));
+console.log(`\nRisultato documenti della dimostrazione: ${passati} passati, ${falliti} falliti  ·  ${denominatore}`);
+if (CONTROPROVA) {
+  const bene = falliti === 2 && sporchi.length === 7 && singolari.length === 7 && tranqPer.filter(([n]) => /csvInventari|csvSituazioneFatture|csvAppello Mattina|csvRegistroInfortuni|csvRegistroInterventi|csvRefertiGenesi|genesi · piantaPerFoglio com'è$/.test(n)).length === 7;
+  console.log(bene ? "✔ CONTROPROVA OK: lo scanner SA fallire (2 prove cadute, 7 sporchi, 7 singolari, 7 documenti in più fra i tranquilli)"
+    : `⛔ CONTROPROVA FALLITA: ${falliti} cadute, ${sporchi.length} sporchi, ${singolari.length} singolari — lo scanner non vede quello che dovrebbe`);
+  process.exit(bene ? 0 : 3);
+}
+process.exit(falliti ? 1 : 0);

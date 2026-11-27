@@ -55,7 +55,9 @@ const DIFETTI_PAGINA = [
   ['${(() => { const d = denominatoreEsito(R); return d ? " " + esc(d) : ""; })()}',
    '${R.nPuntiSenzaSoglia && R.esito !== "senza-soglia" ? " vecchia riga" : ""}'],
   // 3 · la taratura del singolo punto non arrivava nella sua scheda
-  ["${ric}<br>${fonte}${conflitto}${tar}<br>", "${ric}<br>${fonte}${conflitto}<br>"],
+  ["${ric}<br>${fonte}${conflitto}${tar}${evento}${condTesto}<br>", "${ric}<br>${fonte}${conflitto}${evento}${condTesto}<br>"],
+  // 4 · il riferimento della soglia non arriva nel documento (05/09)
+  ['      : "") + rif;', '      : "");'],
 ];
 
 /* I CASI, in coda al modulo dati. `DEMO` è un oggetto e la pagina ne fa una
@@ -155,6 +157,20 @@ await pg.waitForTimeout(600);
   dice(/Cascina Belvedere/.test(esito), "⛔ e lo chiama per nome", esito);
 }
 if (SCATTI) { mkdirSync(SCATTI, { recursive: true }); await pg.evaluate(() => { const e = document.querySelector(".rep-esito"); if (e) e.scrollIntoView({ block: "center" }); }); await pg.waitForTimeout(200); await pg.screenshot({ path: join(SCATTI, "report-tutta-cava.png") }); }
+/* la risposta al superamento (05/09): nella scheda di OGNI punto oltre soglia
+   il documento dice che cosa si è fatto — in dimostrazione niente è registrato
+   in Scudo, quindi «nessuna azione correttiva registrata», con le parole. Si
+   guarda il report di TUTTA la cava, prima di stringerlo a un ricettore; se
+   nell'anno nessun punto è in superamento, lo si dichiara: non è «a posto». */
+{
+  const docTutta = testo(await pg.$eval("#rep-doc", (e) => e.innerHTML).catch(() => ""));
+  const inSup = (docTutta.match(/superamenti: [1-9]\d*/g) || []).length;
+  if (inSup) dice((docTutta.match(/Azioni correttive: /g) || []).length === inSup
+      && /Azioni correttive: nessuna azione correttiva registrata per questo punto/.test(docTutta),
+    `⛔ ${inSup === 1 ? "il punto" : "i " + inSup + " punti"} in superamento ${inSup === 1 ? "dice" : "dicono"} che nessuna azione correttiva è registrata — non ${inSup === 1 ? "tace" : "tacciono"}`,
+    (docTutta.match(/.{0,60}Azioni correttive.{0,100}/) || [])[0] || "(nessuna scheda con «Azioni correttive»)");
+  else console.log("  ⚠️ NON MISURATO: nel report dell'anno nessun punto è in superamento, la riga «Azioni correttive» non si può giudicare qui");
+}
 await pg.selectOption("#rep-ricettore", { label: "Cascina Moretti" }).catch(() => {});
 await pg.waitForTimeout(700);
 {
@@ -165,6 +181,27 @@ await pg.waitForTimeout(700);
 
 const doc = testo(await pg.$eval("#rep-doc", (e) => e.innerHTML).catch(() => ""));
 dice(doc.length > 400, "il documento è stato composto", doc.length + " caratteri");
+/* il riferimento della soglia (05/09): ogni punto con una soglia dice se quel
+   numero è di norma (con l'avvertenza) o scritto a mano. I tre punti del caso
+   hanno la soglia scritta sul punto, senza preset. */
+{
+  /* si contano le RIGHE della scheda («soglia applicata 5 mm/s, presa dal…»),
+     non la parola: il grafico di ogni punto porta l'etichetta «soglia
+     applicata» sulla linea, e contarla gonfiava il denominatore (5 su 3) */
+  const applicate = (doc.match(/soglia applicata [^,]+, (presa dal ricettore|impostata sul punto di misura)/g) || []).length;
+  const rif = (doc.match(/Riferimento della soglia: /g) || []).length;
+  dice(applicate > 0 && rif === applicate, `⛔ ogni «soglia applicata» ha accanto il suo «Riferimento della soglia» (${rif} su ${applicate})`, (doc.match(/.{0,80}Riferimento della soglia.{0,120}/) || [])[0]);
+  dice(/Riferimento della soglia: soglia scritta a mano sul punto di misura, non da un riferimento normativo\./.test(doc), "⛔ e sui punti del caso, senza preset, dice «scritta a mano»: non si inventa una norma", (doc.match(/Riferimento della soglia.{0,120}/) || [])[0]);
+}
+/* la portata del documento (05/09): una frase, una volta, che dice che cosa
+   il report giudica e che cosa no */
+dice((doc.match(/Non valuta il disturbo alle persone \(UNI 9614\)/g) || []).length === 1, "⛔ il documento dichiara la sua portata: effetti sugli edifici sì, disturbo alle persone (UNI 9614) no — una volta", (doc.match(/.{0,80}UNI 9614.{0,40}/) || [])[0]);
+/* la comunicazione della volata (05/09): nella tabella «Volate del periodo» la
+   colonna c'è e ogni riga dice se la volata è stata comunicata — anche no */
+if (/Volate del periodo/.test(doc)) {
+  dice(/Comunicazione/.test(doc), "⛔ la tabella delle volate del periodo ha la colonna «Comunicazione»", doc.slice(doc.indexOf("Volate del periodo"), doc.indexOf("Volate del periodo") + 300));
+  dice(/comunicata all'ente|nessuna comunicazione registrata|comunicazione registrata a metà/.test(doc), "e ogni volata dice se è stata comunicata, con le parole anche quando no", doc.slice(doc.indexOf("Volate del periodo"), doc.indexOf("Volate del periodo") + 400));
+} else console.log("  (nessuna volata nel periodo scelto: la colonna «Comunicazione» non si misura qui — dichiarato)");
 
 // ── 1 · IL PERIODO DICHIARATO CONTRO QUELLO MISURATO ──────────────────────
 console.log("\n· il periodo dichiarato e quello davvero misurato");

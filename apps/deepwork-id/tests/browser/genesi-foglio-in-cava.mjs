@@ -113,6 +113,17 @@ const DIFETTI = [
      corpo si adatta — ma di headroom non ce n'è: basta un `min-width` al posto
      suo perché esca. */
   ["max-width:720px;margin:24px auto", "min-width:1000px;margin:24px auto"],
+  /* i fori con valori loro (26/11): la sezione sparisce, la nota accanto al
+     valore del progetto tace, il grassetto non distingue più di chi è il
+     valore, e il foro scarico torna un «0» qualunque */
+  ["const _fpSez=!_fp.conPropri ? '' : '<h2>Fori con valori propri</h2>'", "const _fpSez=true ? '' : '<h2>Fori con valori propri</h2>'"],
+  ["const _fpNota=(campo,fem)=>_fp.quanti[campo] ? ", "const _fpNota=(campo,fem)=>false ? "],
+  ["return '<td>'+(r.propri[c]?'<b>'+tx+'</b>':tx)+'</td>'; }", "return '<td>'+tx+'</td>'; }"],
+  ["+((c==='kg' && r[c]===0)?' (scarico)':'');", "+'';"],
+  /* la gittata sul foro tipo (26/11): il foglio torna a stampare la distanza di
+     sgombero senza dire per quanti fori non è stata calcolata */
+  ["+((_rFlyTipo && k.fly!==null && k.fly!==undefined)?'<br><b>Sul foro tipo</b> — '+esc(_rFlyTipo)+' Le distanze di sgombero qui sotto valgono per il foro tipo.':'')", ""],
+  ["+(_rX50Tipo?'<br><b>Sul foro tipo</b> — '+esc(_rX50Tipo):'')", ""],
 ];
 
 const colpiti = new Set();
@@ -160,8 +171,18 @@ async function apri(preludio, arg) {
   const errori = [];
   pg.on("pageerror", (e) => errori.push(e.message));
   if (preludio) await pg.addInitScript(preludio, arg);
+  /* senza rete vera in questo contenitore, l'import da gstatic morirebbe da
+     solo dopo ~13 s: lo si taglia subito, come in `genesi-locale.mjs`. */
+  await pg.route("https://www.gstatic.com/**", (r) => r.abort());
   await pg.goto(`http://127.0.0.1:${PORTA}/apps/genesi/genesi.html`, { waitUntil: "domcontentloaded" });
   await pg.waitForTimeout(2500);
+  await ganci(pg);
+  pg.__errori = errori;
+  return pg;
+}
+/* i ganci del banco sulla pagina (consenso, finestra di stampa, il CSV che
+   esce): vivono nella pagina, quindi una RICARICA li perde e vanno rimessi */
+async function ganci(pg) {
   await pg.evaluate(() => {
     const l = document.getElementById("loginBtn"); if (l) l.click();
     const c = document.getElementById("consensoOk");
@@ -175,16 +196,28 @@ async function apri(preludio, arg) {
     };
   });
   await pg.waitForTimeout(600);
-  pg.__errori = errori;
-  return pg;
 }
+/* ⏱️ 12/09: LO SPLASH D'AVVIO PRENDE FINO A 15-20s A SPARIRE IN QUESTO
+   AMBIENTE (senza GPU: la scena 3D iniziale è lenta a costruirsi), non i
+   ~1,85s previsti dal suo stesso timer. Un solo click con un'attesa fissa
+   cade quasi sempre PRIMA che lo splash sparisca (misurato con
+   `elementFromPoint` sul bottone: `DIV#splash`, non il bottone) — non è una
+   regressione, lo stesso schianto (`Cannot read properties of null`, più a
+   valle, dove il codice si aspettava di essere già nel 2D) usciva sul
+   commit precedente a questa sessione. Si RIPROVA il click ogni 400ms fino
+   a 25s invece di aspettare una volta sola. Vedi
+   `genesi-numeri-tranquilli.mjs` per la misura completa. */
 async function vaiA(pg, schermo) {
-  await pg.evaluate((s) => {
-    const x = [...document.querySelectorAll("#bottomnav button")].find((y) => y.dataset.scr === s);
-    if (x) x.click();
-  }, schermo);
-  await pg.waitForTimeout(1200);
-  const cls = await pg.evaluate(() => document.body.className);
+  const scadenza = Date.now() + 25000;
+  let cls = "";
+  do {
+    await pg.evaluate((s) => {
+      const x = [...document.querySelectorAll("#bottomnav button")].find((y) => y.dataset.scr === s);
+      if (x) x.click();
+    }, schermo);
+    await pg.waitForTimeout(400);
+    cls = await pg.evaluate(() => document.body.className);
+  } while (!cls.includes("scr-" + schermo) && Date.now() < scadenza);
   dice(cls.includes("scr-" + schermo), `navigato davvero (→ ${schermo})`, cls);
 }
 /* il foglio come lo legge una persona: via i tag, una riga per `<tr>` */
@@ -257,14 +290,20 @@ const SITO_TRE = { usa: true, punti: [
   { d: 120, w: 50, ppv: 9.2, fonte: "mano", ts: "2026-06-02", nome: "A" },
   { d: 260, w: 55, ppv: 3.1, fonte: "csv", ts: "2026-06-14", nome: "B" },
   { d: 430, w: 48, ppv: 1.4, fonte: "sentinella", ts: "2026-06-30", nome: "C" }] };
+/* stessa attesa di `vaiA`: questo click cade sulla Home, dove lo splash
+   d'avvio può restare sopra fino a 15-20s in questo ambiente. */
 async function apriVolata(pg) {
-  await pg.evaluate(() => {
-    const it = document.querySelector('.hg-item[data-id="vX"]');
-    const btn = it && it.querySelector('button[data-act="apri"]');
-    if (btn) btn.click();
-  });
-  await pg.waitForTimeout(1500);
-  const cls = await pg.evaluate(() => document.body.className);
+  const scadenza = Date.now() + 25000;
+  let cls = "";
+  do {
+    await pg.evaluate(() => {
+      const it = document.querySelector('.hg-item[data-id="vX"]');
+      const btn = it && it.querySelector('button[data-act="apri"]');
+      if (btn) btn.click();
+    });
+    await pg.waitForTimeout(400);
+    cls = await pg.evaluate(() => document.body.className);
+  } while (!cls.includes("scr-design") && Date.now() < scadenza);
   dice(cls.includes("scr-design"), "la volata salvata si apre davvero nel 2D", cls);
 }
 
@@ -367,6 +406,13 @@ console.log("\n· A e B sono lo STESSO progetto, e fra i due scatti si accende l
   await pg.evaluate(() => document.getElementById("cmpSaveA").click());
   await pg.waitForTimeout(300);
   await pg.evaluate((s) => localStorage.setItem("genesiSito", JSON.stringify(s)), SITO_TRE);
+  /* ⛔ Dal 02/09 (unità 3 di GENESI_FUORI_DAL_BROWSER) la legge di sito si legge
+     UNA volta all'apertura, dalla porta sui dati: chi la cambia dall'app passa
+     da `sitoSalva`, che aggiorna la copia di lavoro. Scrivere la chiave a mano
+     è una scorciatoia del banco, non un gesto dell'utente — quindi si ricarica,
+     come farebbe un secondo dispositivo. Lo scatto A è già nella sua chiave. */
+  await pg.reload({ waitUntil: "domcontentloaded" }); await pg.waitForTimeout(2500); await ganci(pg);
+  await vaiA(pg, "design");
   await pg.evaluate(() => document.getElementById("cmpSaveB").click());
   await pg.waitForTimeout(300);
   await pg.evaluate(() => document.getElementById("cmpShow").click());
@@ -394,8 +440,11 @@ console.log("\n· A e B sono lo STESSO progetto, e fra i due scatti si accende l
      identico ad A — la terza causa dell'elenco, l'iniezione che non inietta.
      Misurato: la prima stesura di questa riga dava «0 celle verdi» e sembrava
      un difetto della correzione. */
+  await pg.evaluate(() => localStorage.removeItem("genesiSito"));
+  // stessa ragione di sopra: la legge tolta a mano si vede alla riapertura
+  await pg.reload({ waitUntil: "domcontentloaded" }); await pg.waitForTimeout(2500); await ganci(pg);
+  await vaiA(pg, "design");
   await pg.evaluate(() => {
-    localStorage.removeItem("genesiSito");
     const e = document.getElementById("dKg");
     e.value = "30";
     e.dispatchEvent(new Event("input", { bubbles: true }));
@@ -445,6 +494,47 @@ console.log("\n· A e B sono lo STESSO progetto, e fra i due scatti si accende l
   dice(/;"3;5 m";/.test(csv2), "   e un `;` dentro una cella non sfonda la riga",
     csv2.split("\n").find((r) => /Maglia/.test(r)));
   if (SCATTI) await pg.screenshot({ path: join(CARTELLA_SCATTI, "confronto-390.png"), fullPage: true });
+  dice(pg.__errori.length === 0, "la pagina non solleva errori", pg.__errori[0]);
+  await pg.close();
+}
+
+// ── I FORI CON VALORI LORO: sul foglio ci devono essere ───────────────────
+console.log("\n· un foro lasciato scarico e accorciato, uno più inclinato: il foglio li elenca?");
+{
+  const pg = await apri(VOLATA, { ...BASE });
+  await apriVolata(pg);
+  const P = await pg.evaluate(() => { const D = window.__genesi.D2; for (const h of D.holes) for (const c of ["kg", "prof", "stem", "diam", "incl"]) delete h[c];
+    return { n: D.holes.length, kg: D.kg, prof: D.prof, incl: D.incl || 0, numeri: D.holes.map((h, i) => (h.seq != null ? h.seq : i) + 1) }; });
+  await pg.evaluate(() => { window.__doc = null; document.getElementById("btn-report").click(); });
+  await pg.waitForTimeout(700);
+  const liscio = await foglio(pg);
+  dice(!/Fori con valori propri/i.test(liscio) && !/del progetto —/.test(rigaFoglio(liscio, /Carica per foro/)) && /Carica per foro/.test(liscio),
+    "⛔ NEUTRALITÀ: senza valori per foro il foglio non ha la sezione nuova né una nota accanto alla carica", rigaFoglio(liscio, /Carica per foro/));
+
+  await pg.evaluate(() => { const H = window.__genesi.D2.holes; H[2].kg = 0; H[2].prof = 8.5; H[4].incl = 20; window.__doc = null; document.getElementById("btn-report").click(); });
+  await pg.waitForTimeout(700);
+  const t = await foglio(pg), html = await pg.evaluate(() => String(window.__doc || ""));
+  const sez = (/<h2>Fori con valori propri<\/h2>([\s\S]*?)<h2>/.exec(html) || [])[1] || "";
+  dice(!!sez, "⛔ il foglio ha la sezione «Fori con valori propri»: prima un foro scarico, sul foglio che si porta in cava, non esisteva", html.slice(0, 80));
+  dice(new RegExp("2 fori su " + P.n + " hanno valori diversi da quelli del progetto").test(t), `e dice quanti: 2 su ${P.n}`, rigaFoglio(t, /hanno valori diversi/) || t.slice(0, 200));
+  const testa = [...sez.matchAll(/<th>([^<]*)<\/th>/g)].map((m) => m[1]);
+  dice(JSON.stringify(testa) === JSON.stringify(["Foro", "Carica (kg)", "Profondità (m)", "Inclinazione (°)"]), "⛔ le colonne sono SOLO quelle in cui qualcuno si scosta (carica, profondità, inclinazione): borraggio e diametro, uguali per tutti, non ci sono", testa);
+  const righe = [...sez.matchAll(/<tr><td>(\d+)<\/td>([\s\S]*?)<\/tr>/g)].map((m) => ({ n: +m[1], celle: [...m[2].matchAll(/<td>([\s\S]*?)<\/td>/g)].map((c) => c[1]) }));
+  const rScarico = righe.find((r) => r.n === P.numeri[2]), rIncl = righe.find((r) => r.n === P.numeri[4]);
+  dice(righe.length === 2 && JSON.stringify(righe.map((r) => r.n)) === JSON.stringify([P.numeri[2], P.numeri[4]].sort((a, b) => a - b)), `due righe, quelle dei due fori toccati (numeri ${P.numeri[2]} e ${P.numeri[4]}), in ordine di numero`, righe.map((r) => r.n));
+  dice(!!rScarico && rScarico.celle[0] === "<b>0 (scarico)</b>" && rScarico.celle[1] === "<b>8,5</b>", "⛔ il foro lasciato scarico è scritto «0 (scarico)», in grassetto, coi suoi 8,5 m", rScarico);
+  dice(!!rScarico && rScarico.celle[2] === String(P.incl), `la sua inclinazione, che è quella del progetto (${P.incl}), NON è in grassetto: il grassetto dice di chi è il valore`, rScarico);
+  dice(!!rIncl && rIncl.celle[2] === "<b>20</b>" && !/<b>/.test(rIncl.celle[0]) && !/<b>/.test(rIncl.celle[1]), "il foro inclinato ha in grassetto i suoi 20° e basta", rIncl);
+  dice(/del progetto — 1 foro ne ha una sua: vedi «Fori con valori propri»/.test(rigaFoglio(t, /Carica per foro/)), "⛔ e accanto a «Carica per foro» il foglio dice che è quella del PROGETTO e che un foro ne ha una sua", rigaFoglio(t, /Carica per foro/));
+  dice(/1 foro ne ha una sua/.test(rigaFoglio(t, /Inclinazione/)) && /1 foro ne ha una sua/.test(rigaFoglio(t, /Profondità \/ sottoperf/)), "lo stesso accanto a profondità e inclinazione", [rigaFoglio(t, /Inclinazione/), rigaFoglio(t, /Profondità \/ sottoperf/)]);
+  dice(!/del progetto —/.test(rigaFoglio(t, /^\s*Borraggio/)) && !/del progetto —/.test(rigaFoglio(t, /Diametro foro/)), "e NON accanto a borraggio e diametro, che nessun foro ha diversi", [rigaFoglio(t, /^\s*Borraggio/), rigaFoglio(t, /Diametro foro/)]);
+  /* ⛔ e le due previsioni sul foro tipo lo dicono SUL FOGLIO: è lui che si porta in cava */
+  dice(/Sul foro tipo — 2 fori hanno un valore proprio di carica o inclinazione: la gittata è calcolata sul FORO TIPO del progetto, e per quei fori non è calcolata\. Le distanze di sgombero qui sotto valgono per il foro tipo/.test(rigaFoglio(t, /Gittata flyrock/)),
+    "⛔ accanto alla gittata il foglio dice che è sul foro tipo e per quanti fori NON è calcolata — prima stampava la distanza di sgombero e basta", rigaFoglio(t, /Gittata flyrock/));
+  dice(/Sul foro tipo — 1 foro ha un valore proprio di carica o profondità: la pezzatura è calcolata sul FORO TIPO/.test(rigaFoglio(t, /Frammentazione x20/)), "e accanto alla pezzatura (lì conta il foro scarico e accorciato; quello solo più inclinato no)", rigaFoglio(t, /Frammentazione x20/));
+  dice(!/Sul foro tipo/.test(liscio), "⛔ NEUTRALITÀ: senza valori per foro il foglio non dice «foro tipo» da nessuna parte", (/Sul foro tipo[^\n]*/.exec(liscio) || [""])[0]);
+  await larghezzaFoglio(b, pg, "il foglio coi fori diversi");
+  if (SCATTI) { const p2 = await b.newPage({ viewport: { width: 390, height: 900 } }); await p2.setContent(html); await p2.screenshot({ path: join(CARTELLA_SCATTI, "fori-propri-390.png"), fullPage: true }); await p2.close(); }
   dice(pg.__errori.length === 0, "la pagina non solleva errori", pg.__errori[0]);
   await pg.close();
 }

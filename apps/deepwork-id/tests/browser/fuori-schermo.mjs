@@ -54,7 +54,8 @@
    ⚠️ LA DOMANDA B È PRETESA SOLO DOVE OGGI È PULITA (`PRETESE`), sulle altre è
    CONTATA E STAMPATA. Ragione: al 03/08 l'arretrato è tutto in Sentinella (22
    segnalazioni: 7 a 390 px, 7 a 360, 8 a 320 — sono quattro o cinque righe di
-   elenco viste a tre larghezze), ed è lavoro di un altro cantiere. Un banco che
+   elenco viste a tre larghezze), ed è lavoro di un altro cantiere. (Chiuso il
+   10/09 nella passata su Sentinella: era una variabile sola, `--info-basis`.) Un banco che
    diventa rosso in casa d'altri viene spento, non riparato. L'arretrato è
    dichiarato per essere visto scendere: chi pulisce la sua app si aggiunge a
    `PRETESE`, e da lì in poi non ci torna.
@@ -102,7 +103,13 @@ const FONDO = 4;
    movimento: metterli qui vuol dire far diventare rosso in casa d'altri un
    controllo che nessuno ha chiesto — ed è il modo di farlo spegnere. Chi pulisce
    la sua app ce la aggiunge, e da lì in poi il difetto non ci torna. */
-const PRETESE = new Set(['campo']);
+/* ✅ SENTINELLA DAL 10/09: le 22 righe dell'arretrato (7 a 390, 7 a 360, 8 a
+   320 — i badge «In ritardo di N giorni», «Confine di proprietà», «Taratura non
+   dichiarata» che finivano SOTTO la matita) erano UNA causa: `--info-basis`
+   a 110 px, la più stretta delle sei app, che lasciava al testo 121–130 px
+   accanto ai comandi. A 190 i comandi vanno a capo e le tre larghezze danno
+   zero. Da qui non ci torna. */
+const PRETESE = new Set(['campo', 'sentinella']);
 
 /* La controprova sporca una superficie che è a posto: allarga un comando fino a
    farlo uscire. Senza, «0 fuori schermo» può voler dire «non sto guardando». */
@@ -137,7 +144,19 @@ const SPORCA_RIQUADRO = () => {
 
 const MISURA = (larghezza) => {
   const fuori = [];
+  /* ⛔ I COMANDI DENTRO UN SOTTOALBERO `aria-hidden="true"` NON SI GIUDICANO, E
+     SI CONTANO. Misurato il 10/09 sulla vetrina: 16 «fuori dallo schermo» a
+     ogni larghezza, ed erano le voci del nastro che scorre (`.striscia .scorre`,
+     nove nomi ripetuti due volte per il giro continuo, 2730 px in una scatola
+     con overflow nascosto). Non sono il modo di aprire un'app — le schede sotto
+     lo sono — e un nastro che passa non è un comando che una persona possa
+     raggiungere a colpo sicuro: la vetrina lo dichiara decorativo, e qui si
+     rispetta la dichiarazione. Ma «non guardato» non è «a posto»: il numero
+     esce nel riepilogo, se no un `aria-hidden` messo su una lista intera
+     spegnerebbe il banco in silenzio. */
+  let nascosti = 0;
   document.querySelectorAll('button, a[href], [role=button]').forEach((e) => {
+    if (e.closest('[aria-hidden="true"]')) { nascosti++; return; }
     const r = e.getBoundingClientRect();
     if (r.width < 1 || r.height < 1) return;
     const cs = getComputedStyle(e);
@@ -153,7 +172,7 @@ const MISURA = (larghezza) => {
     });
   });
   return {
-    fuori,
+    fuori, nascosti,
     scorreDiLato: document.documentElement.scrollWidth > larghezza + 0.5,
     scrollWidth: document.documentElement.scrollWidth,
   };
@@ -210,7 +229,7 @@ const MISURA_RIQUADRO = (fondo) => {
   return { fuori, guardati };
 };
 
-let ok = 0, ko = 0, koB = 0, arretrato = 0, iniezioniB = 0, elementiB = 0, trovatiB = 0;
+let ok = 0, ko = 0, koB = 0, arretrato = 0, iniezioniB = 0, elementiB = 0, trovatiB = 0, nascostiTot = 0;
 const b = await chromium.launch({ executablePath: CHROMIUM });
 for (const [nome, via] of SUPERFICI) {
   if (SOLO && SOLO !== nome) continue;
@@ -227,6 +246,7 @@ for (const [nome, via] of SUPERFICI) {
       }
       if (LARGHEZZE.includes(larghezza)) {
         const r = await p.evaluate(MISURA, larghezza);
+        nascostiTot += r.nascosti || 0;
         if (r.scorreDiLato && !visti.has('lato')) {
           visti.add('lato'); male++; ko++;
           console.log(`  KO  ${nome} @${larghezza}: la pagina scorre di lato (${r.scrollWidth} px di contenuto)`);
@@ -265,7 +285,8 @@ for (const [nome, via] of SUPERFICI) {
 await b.close();
 console.log(`\n${ok} schermate pulite, ${ko} cose fuori posto `
   + `(${ko - koB} fuori dallo schermo, ${koB} fuori dal proprio riquadro) · `
-  + `${elementiB} elementi guardati dentro voci di lista e barra alta, ${arretrato} nell'arretrato non preteso`);
+  + `${elementiB} elementi guardati dentro voci di lista e barra alta, ${arretrato} nell'arretrato non preteso`
+  + (nascostiTot ? ` · ${nascostiTot} comandi dentro sottoalberi aria-hidden NON giudicati (dichiarati decorativi dalla pagina)` : ''));
 if (CONTROPROVA) {
   /* `trovatiB` è il conto GREZZO, prima che il de-duplicatore accorpi le
      ripetizioni: `koB` conta una volta sola lo stesso difetto in dieci

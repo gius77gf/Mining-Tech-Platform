@@ -126,22 +126,26 @@ const MODULI = {
   `,
 };
 
-/* Le due iniezioni che rimettono il difetto. Restano nel CORPO SERVITO: il file
-   su disco non si tocca mai. Ognuna dichiara quanti caratteri ha cambiato — una
-   sostituzione che non trova niente finisce in silenzio e lascia un banco che
-   «non distingue» per il motivo sbagliato. */
-const INIEZIONI = [
+/* L'iniezione che rimette il difetto di `salva`, sul corpo di flotta/index.html.
+   Resta nel CORPO SERVITO: il file su disco non si tocca mai. */
+const INIEZIONI_FLOTTA = [
   ['la difesa: `salva` aspetta e basta, come prima',
    'const salva = (azione, cosa, poi) => scriviConEsito(azione, {',
    'const salva = async (azione) => { await azione(); return { ok: true, messaggio: "" }; };\n  const salvaVecchio = (azione, cosa, poi) => scriviConEsito(azione, {'],
+];
+/* ⏱️ RI-ANCORATA il 18/09: `occupato` è salita da una copia locale di Flotta a
+   `shared/dw-app-ui.js` (serve anche a Terra, adesso), com'è per `go`/`toast`.
+   L'iniezione la segue: non tocca più flotta/index.html, tocca il MODULO
+   condiviso — ed è una funzione dichiarata, non una costante a freccia. */
+const INIEZIONI_CONDIVISE = [
   ['il bottone che si spegne mentre la scrittura è per aria',
-   'const occupato = (id, on, testo) => {',
-   'const occupato = () => {};\n  const occupatoVecchio = (id, on, testo) => {'],
+   'function occupato(id, on, testo) {',
+   'function occupato(id, on, testo) { return; // difetto rimesso dal banco'],
 ];
 
-function senzaGuardia(corpo) {
+function applicaIniezioni(corpo, iniezioni) {
   let fatto = 0, caratteri = 0;
-  for (const [nome, cerca, metti] of INIEZIONI) {
+  for (const [nome, cerca, metti] of iniezioni) {
     const quante = corpo.split(cerca).length - 1;
     if (quante !== 1) {
       console.error(`✗ iniezione «${nome}»: il testo da sostituire compare ${quante} volte, non 1.`);
@@ -155,6 +159,8 @@ function senzaGuardia(corpo) {
   console.log(`  (controprova: ${fatto} iniezioni, ${caratteri >= 0 ? '+' : ''}${caratteri} caratteri nel corpo servito)`);
   return corpo;
 }
+const senzaGuardia = (corpo) => applicaIniezioni(corpo, INIEZIONI_FLOTTA);
+const senzaOccupato = (corpo) => applicaIniezioni(corpo, INIEZIONI_CONDIVISE);
 
 async function apriFlotta(browser) {
   const ctx = await browser.newContext({ viewport: { width: 430, height: 950 }, locale: 'it-IT' });
@@ -172,6 +178,10 @@ async function apriFlotta(browser) {
     await p.route('**' + VIA, async (r) => {
       const res = await r.fetch();
       await r.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: senzaGuardia(await res.text()) });
+    });
+    await p.route('**/shared/dw-app-ui.js', async (r) => {
+      const res = await r.fetch();
+      await r.fulfill({ status: 200, contentType: 'text/javascript; charset=utf-8', body: senzaOccupato(await res.text()) });
     });
   }
   await p.goto(`http://127.0.0.1:${PORTA}${VIA}`);

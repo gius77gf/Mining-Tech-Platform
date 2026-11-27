@@ -124,6 +124,47 @@ console.log("\n— I due modi di fermarsi, e nessuno dei due tace —");
   dice(e2.letture === 5, "e il tetto si può alzare", String(e2.letture));
 }
 
+console.log("\n— ⚠️ LIMITE DICHIARATO (15/09, candidato da ricerca, mai osservato in produzione): con TRE scritture ravvicinate sullo stesso utente, «convergiuto: true» non vuol dire «stato reale», vuol dire solo «le mie ultime due letture coincidono» —");
+{
+  /* Scena: `acceptInvites` (functions/index.js) accetta in un solo giro TRE
+     inviti pendenti dello stesso utente (consulente esterno con più
+     organizzazioni, previsto da ARCHITETTURA.md §4). Ogni `memRef.set(...)`
+     sveglia un trigger indipendente sullo stesso uid.
+     T3 (nato dall'ULTIMA scrittura, su orgC) legge súbito il quadro completo:
+     converge corretto al primo giro. */
+  const condiviso = mondo([]);
+  const TRIPLA = { orgA: "member", orgB: "member", orgC: "member" };
+  const t3 = await convergiClaims({ leggi: async () => TRIPLA, scrivi: condiviso.scrivi });
+  dice(stessiOrgs(condiviso.claims, TRIPLA) && t3.convergiuto === true,
+    "T3, nato per ultimo, converge súbito sul quadro completo", JSON.stringify(t3));
+
+  /* T1 (nato dalla PRIMA scrittura, su orgA) è più lento: le sue tre letture
+     (giriMax=3) cadono tutte PRIMA che orgC diventi visibile dal suo lato —
+     non perché qualcosa sia rotto, ma perché è partito prima che orgC
+     esistesse. Il suo ultimo giro converge (due letture di fila uguali) e
+     scrive DOPO T3, sovrascrivendo il quadro corretto con uno incompleto. */
+  const copioneT1 = [{ orgA: "member" }, { orgA: "member", orgB: "member" },
+    { orgA: "member", orgB: "member" }];
+  let i = 0;
+  const t1 = await convergiClaims({
+    leggi: async () => copioneT1[Math.min(i++, copioneT1.length - 1)],
+    scrivi: condiviso.scrivi,
+  });
+  dice(!("orgC" in condiviso.claims),
+    "T1 in ritardo sovrascrive il token e orgC sparisce", JSON.stringify(condiviso.claims));
+  dice(t1.convergiuto === true,
+    "e lo fa dichiarandosi convergiuto: NESSUN warning, nessuna riga di registro", JSON.stringify(t1));
+
+  /* La mitigazione che esiste già, non scritta qui come prova perché vive nel
+     chiamante e non in questa funzione pura: `acceptInvites` fa anche una
+     chiamata esplicita finale a `rebuildClaims(uid)` DOPO aver scritto tutti
+     gli inviti nello stesso giro — quella lettura, partendo per ultima e nello
+     stesso processo, vede già tutt'e tre le membership. Il buco residuo è
+     stretto: serve che la scrittura di un trigger nato MOLTO prima (qui T1)
+     atterri fisicamente DOPO quella della chiamata esplicita finale — non
+     riprodotto sotto l'emulatore, resta un candidato con meccanismo dimostrato. */
+}
+
 console.log(`\nRisultato convergenza dei claims: ${ok} passati, ${ko} falliti`
   + `  ·  nessun emulatore: il soggetto è l'ORDINE delle mosse, che sotto`
   + ` l'emulatore capita una volta su trenta e non si sa comandare`);

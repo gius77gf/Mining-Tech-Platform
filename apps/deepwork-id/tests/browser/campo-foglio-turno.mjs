@@ -110,6 +110,20 @@ const CASO_VUOTO = `
 DEMO.attivita = []; DEMO.rapportini = []; DEMO.presenze = []; DEMO.checklist = [];
 `;
 
+/* ── IL CASO DELLA CHECKLIST DUPLICATA (19/09, dal deep-pass QA su Campo) ──
+   Due record per lo stesso (turno, squadra) — possibile con una corsa TOCTOU
+   in salvaEsiti, la stessa famiglia già chiusa altrove in questo file: lo
+   schermo ne mostra uno solo (checklistDi, l'ultima vince), e prima del fix i
+   due documenti stampati li elencavano ENTRAMBI. Il secondo porta un marchio
+   riconoscibile («BANCO-DUP») così il banco può contare, non solo vedere. */
+const CASO_CHK_DUP = `
+/* ── caso montato dal banco campo-foglio-turno.mjs (mai sul disco) ── */
+DEMO.checklist = [
+  { data: OGGI_DEMO, turno: "Mattina", squadra: "Squadra A", ora: "06:10", esiti: { a: "ok" } },
+  { data: OGGI_DEMO, turno: "Mattina", squadra: "Squadra A", ora: "06:40", chiusaDa: "BANCO-DUP", esiti: { a: "ok", b: "ok" } },
+];
+`;
+
 /* ── LA CONTROPROVA: i difetti rimessi nella copia SERVITA ─────────────────
    ⛔ LA PRIMA INIEZIONE SPEGNE LA DECISIONE, NON LA FRASE. C'è UN posto solo
    che decide «questo è un foglio di dimostrazione», e il rapporto e la
@@ -134,15 +148,34 @@ DEMO.attivita = []; DEMO.rapportini = []; DEMO.presenze = []; DEMO.checklist = [
    giusto: cresce con le pagine, non coi difetti.
    Le altre due rimettono i due numeri tranquilli del Quadro. */
 const DIFETTI = {
+  /* (05/09) la consegna che dice «nessuna attività aperta» su un turno con
+     quattro lavori aperti: `lavoriNonConclusi` che risponde sempre vuoto */
+  "apps/campo/campo-data.js": [
+    ['  return (attivita || []).filter((a) => a && a.stato !== "conclusa")',
+     '  return (attivita || []).filter(() => false)   /* difetto rimesso dal banco */'],
+    /* (05/09) la sezione delle volate che resta VUOTA quando oggi non ce ne sono:
+       una sezione vuota si legge come «niente da dire», non come «nessuna» */
+    ['  if (!r.n) return ["nessuna volata registrata oggi in Sentinella"];',
+     '  if (!r.n) return [];   /* difetto rimesso dal banco */'],
+    /* ⏱️ dal 05/09 il Quadro del rapporto stampato lo compone `rapportoGiornata`
+       nel modulo: i due «0/0 concluse · 0 anomalie» si rimettono qui, non più
+       nella pagina (che disegna e basta) */
+    ['    av.totale ? { n: String(av.anomalie), t: av.anomalie === 1 ? "anomalia aperta" : "anomalie aperte" } : { n: "—", t: "anomalie: nessuna attività da cui contarle" },',
+     '    { n: String(av.anomalie), t: "anomalie aperte" },'],
+    ['    av.totale ? { n: av.concluse + "/" + av.totale, t: "attività concluse" } : { n: "—", t: "attività: nessuna registrata oggi" },',
+     '    { n: av.concluse + "/" + av.totale, t: "attività concluse" },'],
+    /* (19/09, dal deep-pass QA su Campo) i due documenti tornano a filtrare
+       CHK per sola data, senza la regola "l'ultima vince" per (turno,
+       squadra) di checklistDi: con due record per lo stesso slot li
+       elencano ENTRAMBI, mentre lo schermo ne mostra uno solo. */
+    ["const chkOggi = checklistUltimePerTurno(CHK, OGGI).map((c) =>",
+     'const chkOggi = CHK.filter((c) => String(c.data || "") === OGGI).map((c) =>'],
+    ["const chkT = checklistUltimePerTurno(CHK, OGGI);",
+     'const chkT = CHK.filter(c => String(c.data || "") === OGGI);'],
+  ],
   "shared/deepwork-id-client/dw-shell.js": [
     ['  return modo === "live" ? null : String(modo || "non dichiarata");',
      "  return null;"],
-  ],
-  "apps/campo/index.html": [
-    ['${av.totale?`<b>${av.anomalie}</b> ${av.anomalie===1?"anomalia aperta":"anomalie aperte"}`:`<b>—</b> anomalie: nessuna attività da cui contarle`}',
-     '<b>${av.anomalie}</b> anomalie aperte'],
-    ['${av.totale?`<b>${av.concluse}/${av.totale}</b> attività concluse`:`<b>—</b> attività: nessuna registrata oggi`}',
-     '<b>${av.concluse}/${av.totale}</b> attività concluse'],
   ],
 };
 
@@ -215,6 +248,7 @@ const inietta = (rotta, testo) => {
    tre i documenti, e svuotarlo sempre vorrebbe dire non provare mai il foglio
    pieno. Lo decide questa variabile, che il giro sposta fra un caso e l'altro. */
 let MONTA_VUOTO = false;
+let MONTA_CHK_DUP = false;
 
 const srv = createServer((q, s) => {
   const rotta = decodeURIComponent(q.url.split("?")[0]);
@@ -229,6 +263,7 @@ const srv = createServer((q, s) => {
   if (/\.(html|js|mjs|css)$/.test(p)) {
     let t = corpo.toString("utf8");
     if (MONTA_VUOTO && p.endsWith("apps/campo/campo-data.js")) { t += CASO_VUOTO; nCasi++; }
+    if (MONTA_CHK_DUP && p.endsWith("apps/campo/campo-data.js")) { t += CASO_CHK_DUP; nCasi++; }
     if (CONTROPROVA || FINGE_LIVE) t = inietta(rotta, t);
     corpo = Buffer.from(t, "utf8");
   }
@@ -331,9 +366,12 @@ const leggiFoglio = async (pop, nome) => {
 
 // le dieci sezioni che il rapporto ha sempre: se l'avviso ne coprisse una, si
 // vede qui e non nella somma dei caratteri
+// ⛔ 18/09, dal terzo giro di deep-pass: «Segnalazioni del turno» è nuova —
+// prima il rapporto stampato non la portava affatto, mentre la consegna
+// testuale (sotto) sì.
 const SEZIONI = ["Quadro", "Checklist di inizio turno", "Meteo e condizioni del sito",
   "Personale presente", "Obiettivo del turno", "Attività", "Fermi per causale",
-  "Disponibilità del turno", "Produzione", "Rapportini", "Chiusura e firme"];
+  "Disponibilità del turno", "Segnalazioni del turno", "Produzione", "Rapportini", "Chiusura e firme"];
 
 // ══ 1 · IL RAPPORTO DI FINE TURNO, giornata piena ═════════════════════════
 if (fai("pieno")) {
@@ -375,6 +413,14 @@ if (fai("pieno")) {
   dice(a4.doc <= a4.win + 1, "sul foglio A4 (688 px) il rapporto non esce dalla larghezza", a4);
 
   dice(errori.length === 0, "e nessun errore in pagina alla fine del giro", errori.slice(0, 2));
+  /* ⛔ 18/09, dal terzo giro di deep-pass: il giudizio di idoneità (ponte con
+     Scudo) non arrivava nel rapporto stampato e FIRMATO, mentre il Quadro
+     schermo lo mostra già (Luca Bianchi, non idoneo, nei dati di
+     dimostrazione). Qui si legge il documento vero, in finestra, non il
+     modulo isolato: se la pagina smettesse di passare lavoratoriHSE/
+     scadenzeHSE/infortuniScudo a rapportoGiornata, questa riga lo vedrebbe. */
+  dice(/NON è idonea/.test(d.testo) && /Luca Bianchi/.test(d.testo),
+    "⛔ il rapporto stampato avvisa sul giudizio di idoneità, come già il Quadro", d.testo.slice(0, 40));
   await pop.close(); await ctx.close();
 }
 
@@ -415,7 +461,50 @@ if (fai("vuoto")) {
   MONTA_VUOTO = false;
 }
 
-// ══ 3 · LA CONSEGNA DI TURNO IN .txt, SCARICATA DAVVERO ═══════════════════
+// ══ 3 · DUE CHECKLIST PER LO STESSO TURNO/SQUADRA: I DOCUMENTI NE MOSTRANO
+//        UNA SOLA, COME GIÀ LO SCHERMO (19/09, dal deep-pass QA su Campo) ══
+if (fai("chkdup")) {
+  console.log("\n── Due checklist per lo stesso slot: il rapporto stampato non le raddoppia ──");
+  MONTA_CHK_DUP = true;
+  const { ctx, pg, errori } = await apriApp();
+  const [pop] = await Promise.all([
+    pg.waitForEvent("popup", { timeout: 9000 }).catch(() => null),
+    pg.click("#btn-rapporto-turno"),
+  ]);
+  if (!pop) { console.log("  ✗ la finestra del rapporto non si è aperta: il banco non prova niente"); await b.close(); srv.close(); process.exit(2); }
+  const d = await leggiFoglio(pop, "rapporto-chkdup");
+  /* solo la sezione della checklist, non tutto il foglio: «Squadra A» compare
+     anche nel briefing e nel personale, che non sono lo slot duplicato. Le
+     intestazioni <h2> escono senza riga vuota fra un blocco e l'altro
+     nell'innerText, quindi il taglio è alla PROSSIMA intestazione nota, non a
+     «\n\n» (che qui non separa niente). */
+  const idxCk = d.testo.indexOf("Checklist di inizio turno");
+  const resto = d.testo.slice(idxCk + "Checklist di inizio turno".length + 1);
+  const prossime = [...SEZIONI, "Briefing di inizio turno"].map((h) => resto.indexOf(h)).filter((i) => i > 0);
+  const sezCk = resto.slice(0, prossime.length ? Math.min(...prossime) : resto.length);
+  const occCk = (sezCk.match(/Squadra A/g) || []).length;
+  dice(occCk === 1, "⛔ il rapporto stampato elenca lo slot (Mattina, Squadra A) una sola volta, come checklistDi", { occCk, sezCk });
+  dice(sezCk.includes("06:40") && !sezCk.includes("06:10"), "ed è l'ULTIMA salvata (06:40), non la prima", sezCk);
+  await pop.close();
+  // lo stesso slot duplicato, ma nel documento GEMELLO: la consegna testuale
+  const [dl] = await Promise.all([
+    pg.waitForEvent("download", { timeout: 9000 }).catch(() => null),
+    pg.click("#btn-consegna"),
+  ]);
+  if (dl) {
+    let testo = ""; { const s = await dl.createReadStream(); for await (const c of s) testo += c; }
+    // solo la sezione della checklist: «Squadra A (turno Mattina)» compare
+    // anche nel BRIEFING, che non è lo slot duplicato
+    const sezTxt = (testo.split("CHECKLIST DI INIZIO TURNO\n")[1] || "").split("\n\n")[0];
+    const occTxt = (sezTxt.match(/Squadra A \(turno Mattina\)/g) || []).length;
+    dice(occTxt === 1, "⛔ e la consegna testuale nemmeno la raddoppia", { occTxt, sezTxt });
+    dice(sezTxt.includes("06:40") && !sezTxt.includes("06:10"), "ed è la stessa ultima salvata", sezTxt);
+  } else dice(false, "nessun file scaricato: il banco non prova niente sulla consegna");
+  await ctx.close();
+  MONTA_CHK_DUP = false;
+}
+
+// ══ 4 · LA CONSEGNA DI TURNO IN .txt, SCARICATA DAVVERO ═══════════════════
 /* Non è un foglio che si stampa, ma è lo stesso documento in un altro
    vestito: il testo che passa di mano fra due turni. Si legge il file VERO
    che il browser salverebbe (evento `download`), non la stringa costruita in
@@ -454,7 +543,59 @@ if (fai("consegna")) {
   // (b) e non ha mangiato il documento
   for (const t of ["RAPPORTINI", "PRODUZIONE", "CHIUSURA DEL TURNO", "ANOMALIE / FERMI"])
     dice(testo.includes(t), `la consegna ha ancora la sezione «${t}»`);
-  dice(errori.length === 0, "e nessun errore in pagina alla fine del giro", errori.slice(0, 2));
+  /* le volate di oggi dal registro di Sentinella (ponte P6, 05/09): la sezione
+     c'è sempre, e quando oggi non ce ne sono lo DICE — in dimostrazione il
+     registro copiato non ne ha nessuna di oggi; fingendo la produzione
+     Sentinella non si raggiunge, e nemmeno quello è «nessuna». */
+  const sezVol = (testo.split("VOLATE DEL GIORNO (registro di Sentinella)\n")[1] || "").split("\n\n")[0];
+  dice(sezVol.length > 0 && testo.indexOf("VOLATE DEL GIORNO") < testo.indexOf("LAVORI NON CONCLUSI"),
+    "la consegna ha la sezione «VOLATE DEL GIORNO», da Sentinella, prima dei lavori non conclusi", sezVol || "(vuota)");
+  /* ⚠️ anche con `--live` i dati restano quelli della dimostrazione (le
+     iniezioni «come live» cambiano il MODO dichiarato, non la memoria): quindi
+     la frase giusta è «nessuna» in tutt'e due i casi. La frase del registro
+     non leggibile («non si sanno») la prova run-kpi sul modulo, con `null`. */
+  dice(/^- nessuna volata registrata oggi in Sentinella$/m.test(sezVol),
+    "⛔ la sezione dice che oggi non ne risulta nessuna, invece di restare vuota", sezVol || "(vuota)");
+  /* ⛔ LE DUE COSE CHE IL TURNO ENTRANTE LEGGE PER PRIME (05/09): i lavori non
+     conclusi e le segnalazioni. Lo schermo le aveva, il foglio no. La regola
+     dei lavori è `lavoriNonConclusi` (fermi prima, chi ce l'ha in carico,
+     «nessuno in carico» dove non c'è un nome), quella delle segnalazioni è
+     `testoSegnalazioniTurno`, la stessa frase della riga dei near-miss. La
+     controprova rimette `lavoriNonConclusi` che risponde sempre vuoto: la
+     consegna scriverebbe «nessuna attività aperta» su un turno con quattro
+     lavori aperti, e il banco deve cadere. */
+  const sezLav = (testo.split("LAVORI NON CONCLUSI\n")[1] || "").split("\n\n")[0];
+  const sezSeg = (testo.split("SEGNALAZIONI DEL TURNO\n")[1] || "").split("\n\n")[0];
+  dice(sezLav.length > 0 && testo.indexOf("LAVORI NON CONCLUSI") < testo.indexOf("CHIUSURA DEL TURNO"), "la consegna ha la sezione «LAVORI NON CONCLUSI», prima della chiusura", testo.slice(0, 80));
+  const righeLav = sezLav.split("\n").filter((r) => r.startsWith("- "));
+  /* ⛔ 17/09: dal 15/09 un fermo porta anche il perché e i minuti
+     (lavoriNonConclusi/campo-data.js, PERCHÉ documentato lì) — la regex
+     era ancorata a fine riga subito dopo lo stato e non prevedeva la coda
+     "· causale · N min", scaduta su un miglioramento reale, non un difetto:
+     misurato premendo il banco prima di allargarla. */
+  dice(righeLav.length >= 3 && /^- Frantoio primario \(Fermo per intasamento tramoggia\) — nessuno in carico \[fermo \/ anomalia\] · Intasamento impianto · 55 min$/.test(righeLav[0]), "⛔ il fermo sta per primo, col dettaglio, e «nessuno in carico» dove l'attività non ha un nome sopra", righeLav.join(" | "));
+  dice(righeLav.some((r) => /^- Perforazione fronte Est \(14\/22 fori\) — Luca Bianchi \[in corso\]$/.test(r)), "un lavoro in corso porta chi ce l'ha in carico e lo stato in italiano", righeLav.join(" | "));
+  dice(!righeLav.some((r) => /Controllo pre-turno mezzi/.test(r)), "e l'attività conclusa non c'è: non è un lavoro da consegnare", righeLav.join(" | "));
+  dice(!/nessuna attività aperta/.test(sezLav), "⛔ e non dice «nessuna attività aperta» su un turno con lavori aperti", sezLav);
+  dice(sezSeg.length > 0 && /senza turno indicato \(non si sa se di questo turno\)/.test(sezSeg), "la sezione «SEGNALAZIONI DEL TURNO» porta la segnalazione di oggi senza turno, dichiarata così — la stessa frase dello schermo", sezSeg);
+  dice(!/nessuna segnalazione oggi/.test(sezSeg), "e non dice «nessuna segnalazione» quando ce n'è una", sezSeg);
+  /* ⛔ 18/09, dal terzo giro di deep-pass: il giudizio di idoneità mancava
+     anche qui, nel documento che passa al turno successivo. */
+  const sezIdon = (testo.split("IDONEITÀ DEL TURNO\n")[1] || "").split("\n\n")[0];
+  dice(sezIdon.length > 0 && testo.indexOf("IDONEITÀ DEL TURNO") < testo.indexOf("SEGNALAZIONI DEL TURNO"), "la consegna ha la sezione «IDONEITÀ DEL TURNO», prima delle segnalazioni", testo.slice(0, 80));
+  dice(/NON è idonea.*Luca Bianchi/.test(sezIdon), "e avvisa sul giudizio del medico competente, come già il Quadro schermo", sezIdon);
+  /* ⛔ IL TESTO SI ARCHIVIA, NON SOLO SI SCARICA (15/09): prima usciva solo
+     come .txt, ora `btn-consegna` scrive anche `testoConsegna` sulla
+     `chiusura` del turno (stesso upsert di `btn-fir`). Un secondo clic deve
+     passare dal ramo `aggiorna` invece di `aggiungi` (`chiusuraDi` trova
+     già il documento) senza sollevare niente — è il ramo che un solo clic
+     non esercita mai. */
+  const [dl2] = await Promise.all([
+    pg.waitForEvent("download", { timeout: 9000 }).catch(() => null),
+    pg.click("#btn-consegna"),
+  ]);
+  dice(!!dl2, "un secondo clic scarica di nuovo (non si blocca sull'upsert)");
+  dice(errori.length === 0, "e un secondo clic — il ramo che aggiorna invece di creare — non solleva niente", errori.slice(0, 2));
   await ctx.close();
 }
 

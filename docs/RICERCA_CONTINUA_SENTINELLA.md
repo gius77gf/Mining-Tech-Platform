@@ -35,3 +35,1863 @@ Candidati di miglioramento emersi dalla lettura delle schermate, del modulo dati
 | **Esito della volata senza PPV misurata** | Una volata marchiata come «eseguita» potrebbe non avere PPV misurata (la volata è stata fatta, ma il sismografo non era lì o non ha registrato). L'app la mostra lo stesso nel riepilogo come se fosse un referto completo. | Dati: b2 e b4 sono volate eseguite senza `ppvMisurata`. Report della volata mensile: il numero di «volate completate» include sia quelle misurate che quelle senza. | Piccolo | Nella funzione `refertoDaVolata` (che esiste in sentinella-data.js) o negli export: verificare che il report dica quante delle volate eseguite hanno una PPV misurata, e quante no. Misura: aggiungere una riga di riepilogo che dica «14 volate eseguite, 11 misurate, 3 senza sismografo». |
 | **Tolleranza del programma indefinita** | Il programma di monitoraggio ha una tolleranza (`tolleranzaGiorni`): "la misura è entro soglia fino a questo ritardo, poi diventa da fare". Ma se è una freccia rossa (in ritardo) da mesi nessuno sa quando ripristinare. Non c'è una data di "scadenza della tolleranza". | Pagina programma: una riga dice «In ritardo di 45 giorni». Entro il giallo (tolleranza) rientra ancora — è giallo. Dopo scade il giallo e diventa rosso. Non c'è scritto quando il rosso scatta, l'utente non sa «mi resta 5 giorni di tolleranza» o «la tolleranza è già scaduta». | Piccolo | Creare una riga di programma con ultima misura 20 giorni fa, ogniGiorni=7, tolleranzaGiorni=10. La prossima era il giorno 7, il giallo vale 7+10=17 giorni. Oggi è il giorno 20, in rosso. Verificare che la label dello stato dica «In ritardo di 3 giorni oltre la tolleranza» con il numero esatto. |
 
+
+
+---
+
+<!-- UNITO IL 03/09. Le sezioni da qui in giù vivevano in docs/RICERCA_CONTINUA_sentinella.md
+     (stesso nome, in minuscolo), nato il 14/08 da un agente di ricerca che non ha
+     trovato questo file perché lo cercava con il nome sbagliato. Due file con lo
+     stesso nome a maiuscole diverse non convivono su Windows e macOS: il repository
+     non si sarebbe nemmeno potuto clonare intero. Il contenuto è quello, testuale;
+     i riferimenti nei checkpoint del 02/09 puntano al nome vecchio. -->
+
+## Ricerca del 2026-09-02 — monitoraggio ambientale di una cava con esplosivo (metà sul mondo)
+
+### Che cosa esiste già da noi
+Non verificato da questa ricerca: il delta lo fa chi ha il codice.
+
+### Normi e soglie — vibrazioni (PPV)
+
+**UNI 9916:2004** [seconda mano: risultato ricerca]: misura Peak Particle Velocity (PPV) in mm/s, range 0,1–150 Hz. Soglie variate per tipo edificio (residenziale, industriale, storico) e frequenza dominante, senza limiti precisi — fornisce metodo di misura e valutazione. Analisi FFT su tre assi (X, Y, Z).
+
+**DIN 4150-3** [seconda mano]: range 1–80 Hz per confort. PPV in mm/s. Soglie per strutture ordinarie vs. sensibili/storiche. Vieta danni strutturali (crepe, deformazioni). Punti di rilievo e velocità massime per vibrazioni transitorie e continue.
+
+**USBM RI-8507 (USA)** [seconda mano]: soglie PPV 0,5–2,0 in/s (ca. 12,7–50,8 mm/s) per strutture residenziali, dipendenti da frequenza e tipo di muratura. Studio su 76 strutture, 219 esplosioni. Base della maggior parte delle normative USA.
+
+### Rumore — D.Lgs 447/1995
+[seconda mano]: Legge quadro italiana. Limiti diurni/notturni per sei classi acustiche (es. diurno classe I residenziale: 50 dB; classe VI industriale: 70 dB). Periodo notturno 22:00–06:00. Criterio differenziale: +5 dB giorno, +3 dB notte (ambient − residual).
+
+### Polveri — D.Lgs 155/2010
+[seconda mano]: PM10 limite giornaliero 50 µg/m³ (non superabile >35 volte/anno); media annuale 40 µg/m³. Applicato ai recettori.
+
+### Taratura e catena delle registrazioni
+
+**Fonometri classe 1** [seconda mano]: taratura prima e dopo ogni sessione con calibratore Accredia certificato (rinnovato ogni 12 mesi, norma IEC 61672). Frequenza più ampia e tolleranze più strette di classe 2.
+
+**Sismografi** [seconda mano]: taratura annuale conforme UNI 9916. Catena metrologica documentata ininterrotta verso standard nazionali/internazionali. ARPA gestisce laboratori LAT (Laboratorio di Taratura) per certificazione.
+
+**Registrazioni** [seconda mano]: ARPA misura frequenze variabili (mensile–annuale) per matrice ambientale. Rapporti riportano metodi, frequenza, parametri di processo, sistemi di abbattimento.
+
+### Rapporto all'ente (ARPA)
+
+[seconda mano]: Frequenza e contenuti dipendono dalle specifiche autorizzative (AIA). Piano di monitoraggio dichiara: punti di misura, frequenza, parametri, metodologie. Report contiene risultati per ogni matrice, confronto con limiti normativi. Firma richiesta da tecnico competente.
+
+### Strumenti e software
+
+| Prodotto | Funzioni | Fonte |
+|----------|----------|-------|
+| Instantel Blastmate/Minimate | Registra PPV (5 modi: single shot, continuous, manual, histogram). Software Vision II/Blastware. Report compliance | [seconda mano] |
+| Sigicom INFRA | Wireless vibration, air blast, noise, dust, crack movement. INFRA Net: web-based reporting, allarmi, grafici | [seconda mano] |
+| Syscom Instruments MR3000C | Vibration monitoring civile/mining/blasting. Cloud SCS software, near real-time | [seconda mano] |
+| 01dB Duo + Syscom | Noise + vibration integrati | [seconda mano] |
+| Vibrock V901/V9000 | Full software suite seismica | [seconda mano] |
+
+### Domande per il delta (confronto con Sentinella)
+
+1. Chi decide in Sentinella la soglia PPV per un recettore specifico (edificio residenziale vs. industriale) e come si applica DIN 4150-3 vs. USBM RI-8507 per siti transnazionali?
+2. La app distingue airblast (dB(L)) da rumore D.Lgs 447/1995, e consente allarmi automatici SMS/mail se superata una soglia?
+3. Come gestisce la taratura degli strumenti e la catena metrologica — vi è un registro certificato con date e laboratori LAT?
+4. Esporta rapporti ARPA con i contenuti richiesti (frequenza, metodologie, firma tecnico competente)?
+5. Integra i dati di PM10 dai campionatori e li confronta con D.Lgs 155/2010 (50 µg/m³ giornaliero)?
+6. Consente impostazione di soglie differenziate per classe acustica di zona e criteri differenziali diurno/notturno?
+
+### Fonti (tutte [seconda mano])
+
+- [Instantel Products](https://www.instantel.com/products)
+- [Sigicom INFRA System](https://www.sigicom.com/)
+- [Syscom Instruments – Orica](https://www.orica.com/en/digital-solutions/geosolutions/syscom-instruments-sa)
+- [ARPA Lombardia – Taratura strumenti](https://www.arpalombardia.it/temi-ambientali/aria/rete-di-rilevamento/qualita-dei-dati/taratura-degli-strumenti/)
+- [D.Lgs 155/2010 – Qualità dell'aria](https://leg13.camera.it/parlam/leggi/deleghe/testi/10155dl.htm)
+- [ARPA Umbria – Monitoraggio ambientale](https://www.arpa.umbria.it/resources/documenti/Via_protocolli/PROTOCOLLO%20192.pdf)
+- [Vibrock Downloads](https://www.vibrock.com/downloads/)
+
+### Il delta, fatto da chi ha il codice in mano (02/09, contro `ba83a289`)
+
+Le sei domande, risposte aprendo `apps/sentinella/sentinella-data.js` e
+cercando il MECCANISMO. Per ogni «non c'è» il comando e la sua uscita.
+
+1. **La soglia PPV per un ricettore** → la decide chi registra il ricettore,
+   con i preset di norma a portata di mano e MAI applicati da soli:
+   `presetSoglia` (DIN 4150-3 residenziale/sensibile/industriale per banda di
+   frequenza, USBM RI 8507 intonaco e alta frequenza, `daVerificare` SEMPRE
+   true — «nessun valore normativo va usato senza controllo»),
+   `sogliaDelRicettore` (la soglia propria della casa) e `sogliaEfficace` (se
+   il ricettore ha la sua e la stessa unità vince quella, se no la soglia del
+   punto, e con unità diverse NON si converte: si segnala). DIN contro USBM
+   non è una scelta «per sito transnazionale»: sono due preset accanto, e la
+   scelta resta di chi firma. `grep -c 'tipo: "vibrazioni"' apps/sentinella/sentinella-data.js` → 8.
+2. **Airblast contro rumore** → distinti per tipo e unità: `unitaMisura` dà
+   `airblast: "dB"` e `rumore: "dB(A)"`, il preset `airblast-133` (USBM RI
+   8485) esiste, il piano di volata porta `airblastPrevisto`. Gli **allarmi
+   via SMS/mail NON ci sono**: `grep -ciE 'sms|e-?mail' apps/sentinella/sentinella-data.js` → **0**. Le
+   allerte esistono a schermo (`allerteTaratura`, i superamenti nel Quadro);
+   una notifica fuori dall'app è un servizio (Cloud Function + un fornitore
+   di SMS) e una SPESA: decisione del fondatore, non di un cantiere.
+3. **Taratura e catena metrologica** → esiste ed è il pezzo più solido:
+   `coperturaTaratura`, `statoTaraturaStrumento` (con `statoScadenzaHSE` di
+   shared: una scadenza è una scadenza), `contaCoperture`, `taratureDelReport`,
+   CSV andata e ritorno (`parseTaratureCsv`/`csvTarature`), `allerteTaratura`
+   — 106 occorrenze di «taratur». Il laboratorio è un campo del certificato
+   (`grep -ciE 'accredia|\bLAT\b|laboratorio' apps/sentinella/sentinella-data.js` → 3): c'è, ma non c'è un
+   elenco chiuso di laboratori accreditati — e non deve esserci, cambierebbe
+   fuori dal codice.
+4. **Il rapporto all'ente** → esiste: `reportConformita` con i quattro esiti
+   per punto (`senza-dati`, `senza-soglia`, `non-conforme`, `conforme` — e
+   «senza dati» NON è «conforme», CLAUDE.md), le tarature del periodo dentro
+   il report (`taratureDelReport`), «ARPA» 11 volte. Frequenza e firma del
+   tecnico competente sono di chi lo firma: il report non firma per nessuno.
+5. **PM10** → esiste come tipo (`polveri`, µg/m³, 17 occorrenze) con i preset
+   della media annua (UE 2008/50/CE: 40; UE 2024/2881 dal 2030: 20), tutti
+   `daVerificare`. **Il limite giornaliero con i superamenti ammessi l'anno
+   NON c'è** (`grep -ciE '155/2010' apps/sentinella/sentinella-data.js` → **0**; nessun preset «giornaliero»):
+   la ricerca lo riporta di seconda mano (50 µg/m³, 35 superamenti). ⏱️
+   Candidato: un preset «PM10 · media giornaliera» e il conto dei superamenti
+   nell'anno — SOLO dopo aver letto il D.Lgs 155/2010 sul testo, non su un
+   risultato di ricerca. Una soglia di legge sbagliata in una schermata è
+   peggio di una assente.
+6. **Soglie per classe acustica e criterio differenziale** → **non ci sono**:
+   `grep -c 'tipo: "rumore"' apps/sentinella/sentinella-data.js` → **0** preset per il rumore, `grep -ciE
+   'notturn|differenziale' apps/sentinella/sentinella-data.js` → **0**. La classe acustica compare tre volte
+   nei COMMENTI come «la decisione che fissa la soglia» ed è lasciata a chi
+   registra il ricettore, che scrive il limite in dB(A). ⏱️ Candidato: i
+   preset delle sei classi (diurno/notturno) dal D.P.C.M. 14/11/1997 — stessa
+   condizione: testo primario prima, `daVerificare` sempre.
+
+Riassunto: **quattro esistono (1, 2 in parte, 3, 4)**, tre mancanze vere —
+le notifiche fuori dall'app (una spesa: del fondatore), il limite giornaliero
+del PM10 coi superamenti, le classi acustiche — le ultime due sospese a una
+lettura del testo primario. Nessun numero di norma riportato dalla ricerca
+entra nel prodotto.
+
+---
+
+## Ricerca del 2026-09-04 — i file dei sismografi e il rapporto del perito (metà sul mondo)
+
+**Nessuna pagina primaria è stata letta: ogni articolo, soglia, formato o prodotto citato viene da risultati di ricerca (`WebSearch`) ed è di SECONDA MANO.** `WebFetch`/`curl` non sono stati usati (bloccati per direttiva). Le soglie DIN 4150-3, UNI 9916, USBM RI 8507/8485, SN 640312a riportate qui sono di seconda mano: nel prodotto non si toccano senza il testo primario.
+
+### Già scritto il 02/09 (non ripetuto qui)
+La sezione del 02/09 copre: le soglie normative (UNI 9916, DIN 4150-3, USBM RI-8507, D.Lgs 447/1995 rumore, D.Lgs 155/2010 polveri), la taratura (fonometri classe 1, sismografi, laboratori LAT/ARPA), il contenuto generale del rapporto ARPA (piano di monitoraggio, frequenza da AIA, firma di tecnico competente) e un primo elenco di produttori/software (Instantel, Sigicom INFRA, Syscom MR3000C, 01dB+Syscom, Vibrock). Il delta di quel giorno ha già verificato su `sentinella-data.js`: preset di soglia con `daVerificare`, distinzione airblast/rumore, taratura con CSV andata/ritorno, `reportConformita` a quattro esiti, PM10 come tipo senza limite giornaliero, nessun preset per le classi acustiche. Questa ricerca **non ripete** quei punti: si concentra sui FILE che escono dallo strumento, sul contenuto puntuale del rapporto del perito (planimetria, legge di attenuazione, classificazione edificio, chi firma/a chi va/con che frequenza) e sui software di gestione (presentazione, tracciabilità, gestione evento non valido).
+
+### 1. I sismografi e il formato dei file esportati
+
+**Instantel (Minimate/Minimate Plus/Micromate/Blastmate III)** [seconda mano]: cinque modalità di registrazione — Single Shot, Continuous, Manual, Histogram, Histogram Combo (fonte: groundvibrationmonitoring.com, Minimate Plus FAQ). Il software **Blastware** (moduli Compliance + Advanced) gestisce, programma e scarica gli eventi; l'analisi dell'evento completo riporta: ora dell'evento, sorgente del trigger, PPV per ogni canale di vibrazione, picco di sovrapressione aerea, frequenze zero-crossing (ZC), picco vettore somma (PVS), accelerazione massima, spostamento massimo (fonte: pagina prodotto Blastware Advanced Module). I file grezzi `.BIN` si convertono con l'Export Wizard di Blastware in ASCII, MATLAB (.mat) o HDF5; gli eventi si esportano anche in XML e in report PDF (fonte: Blastware FAQ). Il software **THOR** (piattaforma desktop, inclusa con ogni strumento) raggruppa/filtra/ordina gli eventi per: numero di serie dello strumento, data, ora, livello di trigger, PPV, tipo di evento, frequenza di campionamento (fonte: Instantel Event Management Software, pagina prodotto THOR). **Vision** è la piattaforma cloud di Instantel (alternativa/affiancata a THOR) per ospitare, riportare e analizzare gli eventi da remoto (fonte: pagina prodotto THOR). Non è stato trovato con WebSearch un elenco pubblico delle colonne esatte del CSV/TXT esportato (separatore, intestazioni letterali): query `Instantel Blastware CSV export column headers PPV frequency separator` non ha restituito una tabella di colonne — solo l'elenco dei CAMPI presenti (sopra), non il file grezzo.
+
+**Sigicom (INFRA C22/D10/S10-S11/Point)** [seconda mano]: registra PPV e frequenza dominante, trasmette in continuo al cloud Sigicom per allerta a soglia automatica e reportistica (fonte: pagina prodotto INFRA C22). I sensori S10/S11 misurano la sovrapressione aerea per la conformità a standard nazionali/internazionali. **INFRA Net** è lo strumento cloud di project management: vista dati in tempo reale online, analisi, creazione report, esportazione delle visualizzazioni (fonte: pagina prodotto S10/S11, sito Sigicom construction-site-monitoring). Non trovato con WebSearch il formato file di export puntuale (CSV/JSON, colonne) di INFRA Net: query `Sigicom INFRA Net API export CSV format columns` non ha restituito una specifica tecnica pubblica.
+
+**Syscom (MR3000/MR3003, ROCK)** [seconda mano]: **SCS (Syscom Cloud Software)** gestisce/visualizza/riporta i dati di ROCK, MR3003, MR3000; ogni strumento MR3000 si associa al cloud con un token univoco e i dati registrati vengono inviati automaticamente a SCS. Esporta in formato binario o ASCII. Include confronto automatico con curve di conformità («compliance-curve comparison») e reportistica automatica, con template di report configurabili per evento o file di fondo (fonte: SCS brochure, pagina Syscom "Your questions answered", Geoengineer.org).
+
+**GeoSIG (GMSplus, software GeoDAS)** [seconda mano]: GeoDAS è applicazione Windows per la configurazione strumento e l'acquisizione dati da qualunque strumento GeoSIG standard; supporta export/import verso vari formati e può collegarsi automaticamente a un database SEISAN esistente. Non trovato con WebSearch il dettaglio delle colonne di export per il monitoraggio da volata specificamente (il manuale GeoDAS trovato è generico sismologia/ingegneria strutturale, non focalizzato su blasting in cava).
+
+**Nomis Seismographs (Mini-SuperGraph II)** [seconda mano]: software **SuperGraphics Suite** per reportistica e analisi da semplice a complessa di dati sismici e sonori; nessun dettaglio di formato file trovato con WebSearch (query `Nomis SuperGraphics CSV export format columns` non ha restituito specifiche).
+
+**White Industrial Seismology (Mini-Seis III Pro)** [seconda mano]: software **Seismograph Data Analysis** comunica e scarica dati dagli strumenti via connessione locale o remota (TCP/IP); **Alpha-Blast** ottimizza i tempi di ritardo analizzando combinazioni per frequenza, spostamento e rapporto alta/bassa frequenza. Servizio di **Reporting automatico**: se lo strumento ha un dispositivo di accesso remoto, i dati vengono inviati automaticamente e possono generare notifiche email/SMS ai destinatari designati (fonte: pagina "Automatic Reporting Service"). Non trovato con WebSearch il formato colonne del file esportato.
+
+**Riassunto sul punto 1**: tutti i produttori dichiarano PPV per asse, frequenza (dominante o zero-crossing), vettore somma/picco vettore somma, sovrapressione aerea, ora/data e identificativo dello strumento come contenuto minimo comune dell'evento; **nessuna ricerca ha restituito una tabella pubblica letterale di intestazioni-colonna e separatore** per nessuno dei sei produttori — è un limite dichiarato di questa ricerca, non un'assenza del dato nel mondo (probabilmente i manuali tecnici completi con le tabelle di export non sono indicizzati o richiedono accesso diretto al PDF, che WebFetch non può leggere qui).
+
+### 2. Il rapporto del perito/tecnico dopo un monitoraggio
+
+**Legge di attenuazione / "legge di sito"** [seconda mano, fonte principale: Roberto Folchi, "Monitoraggio delle onde elastiche", Metrologia Applicata, nitrex-explosives-engineering.com]: la velocità di vibrazione in punti diversi da quelli misurati si stima per estrapolazione dalla curva di decadimento (legge di sito) del sito nella direzione specifica, oppure per interpolazione di misure fatte lungo un allineamento. La regressione statistica richiede cautele per massimizzarne l'affidabilità e va accompagnata dall'indicazione dei limiti di rappresentatività (non è stata trovata con WebSearch la formula esplicita `PPV = K·(D/√Q)^-α` scritta per esteso in una fonte italiana consultabile: query `"legge di sito" K alpha scaled distance regressione minimi quadrati cava` ha restituito solo pagine generiche sul metodo dei minimi quadrati, non la formula applicata al caso volate — il documento Folchi la tratta ma il contenuto integrale non è stato recuperabile via ricerca, solo il titolo/riassunto).
+
+**UNI 9916** [seconda mano]: norma (revisione 2014) "Criteri di misura e valutazione degli effetti delle vibrazioni sugli edifici". Copre: scelta del metodo di misura, trattamento dati, valutazione dei fenomeni vibratori rispetto alla risposta strutturale e all'integrità architettonica; obiettivo di ottenere dati comparabili fra misure fatte in tempi diversi sullo stesso edificio o su edifici diversi con la stessa sorgente. Range di frequenza 0,1–150 Hz. Tratta i "danni di soglia" (fessurazioni, distacco di intonaco) e non i danni strutturali pericolosi. Si applica a edifici vicini a traffico veicolare/ferroviario, cantieri, attività industriali (fonte: Ingenio-web, Promos Ricerche, ediliziainrete.it).
+
+**DIN 4150-3** [seconda mano]: divide gli edifici in classi (industriale/commerciale, civile, sensibile) su bande di frequenza 4-8/8-30/30-100 Hz con velocità massime combinate: industriale 20/20-40/40-50 mm/s, civile 5/5-15/15-20 mm/s, sensibile 3/3-8/8-10 mm/s (valori indicativi riportati da fonti secondarie, non dal testo della norma). Distingue misura a livello di fondazione (dove entra l'energia vibratoria, curve limite applicate direttamente) da misura all'ultimo piano (soglia consigliata 2,5 mm/s residenziale, 10 mm/s industriale/commerciale per vibrazione continua di lunga durata) (fonte: micromega-dynamics.com, svantek.com, oculustech.au — tutte fonti commerciali di seconda mano, valori da verificare sul testo DIN originale).
+
+**SN 640312a (norma svizzera)** [seconda mano]: usata insieme a Circolare 23/07/1986; permette la scelta fra vibrazione di breve o lunga durata e il tipo di edificio (industriale, residenziale, monumento, tubazione) (fonte: guida.cfsl.ch, pagine commerciali PCE Instruments). Nessun valore numerico di soglia trovato con WebSearch per questa norma.
+
+**Contenuto del rapporto** [seconda mano, generico ambientale non specifico a volate]: il piano di monitoraggio ambientale (PMA) dichiara punti di misura, frequenza, parametri, metodologie; ARPA valuta con **cadenza trimestrale** i rapporti del proponente su vari componenti ambientali (fonte: ARPAT piano di monitoraggio vibrazioni, va.mite.gov.it). Non è stata trovata con WebSearch una fonte che descriva puntualmente la cadenza specifica «per volata / mensile / annuale» per il rapporto di monitoraggio da volata in cava in Italia (query `relazione mensile monitoraggio vibrazioni cava trasmessa Comune ARPA committente tecnico abilitato firma cadenza` non ha restituito un documento con questo dettaglio esplicito) — è verosimile che vari per prescrizione autorizzativa (AIA/autorizzazione cava), come già scritto nella sezione del 02/09, ma questa ricerca non ha trovato un valore standard.
+
+**Classificazione danno edificio** [seconda mano]: il rapporto tra effetti vibratori e danno indotto alle strutture dipende da molti parametri — dimensioni edificio, materiali, metodo costruttivo, tipo di fondazione; le norme correlano il livello di danno alla PPV tramite curve di correlazione empirico-statistiche (fonte: Ediltecnico.it "Vibrazioni e danni edifici").
+
+### 3. I software di monitoraggio: presentazione, tracciabilità, eventi non validi
+
+**Presentazione grafica** [seconda mano]: i software di monitoraggio scaricano i dati e generano report grafici/numerici con i valori di picco registrati, le frequenze e altri dati importanti; le versioni avanzate fanno analisi spettrale FFT, filtraggio dati, modifica di scale, regressioni lineari. Alcuni sismografi (fonte: geonoise.com, geonica.com) dichiarano conformità a USBM/OSMRE, DIN 4150, UNE 22381 (Spagna) con funzioni «USBM/OSM/DIN Analysis» e FFT a schermo per revisione e stampa. Esiste un programma pubblico statunitense — **OSMRE BIVDEP** (Blast-Induced Vibration Data Evaluation Program) — dedicato proprio alla valutazione dei dati di vibrazione da volata rispetto alle curve regolatorie (fonte: osmre.gov, documentazione tecnica), a conferma che il confronto grafico PPV/frequenza con curve normative è una funzione standard del settore, non solo dei produttori commerciali privati.
+
+**Sovrapressione aerea in dB(L)**: gli strumenti che misurano il rumore impulsivo da volata registrano tipicamente fino a 2 Hz in basso; queste misure "scala lineare" si esprimono in dB(L). Il limite USBM RI-8485 / OSMRE è 133 dB(L) (banda 2-200 Hz) per la sicurezza strutturale — a 133 dB corrisponde una sovrapressione di circa 0,015 psi, associata alla caduta di scaglie di intonaco sciolto. Questo livello, pur «sicuro» per la struttura, genera comunque lamentele significative dei residenti (fonte: cedd.gov.hk, revey associates handout).
+
+**Gestione evento non valido / trigger da fonte estranea** [seconda mano, generico]: i sismografi da volata iniziano a registrare a soglie di trigger impostate abbastanza basse da rilevare la volata ma abbastanza alte da evitare registrazioni accidentali da attività non correlate (es. attività umana nei pressi). Sistemi avanzati distinguono eventi originati dal sito operativo da eventi estranei (camminare, tagliare l'erba, camion su strada) confrontando i livelli di vibrazione fra più stazioni: se un evento non compare in modo coerente su più postazioni, viene scartato come non correlato al sito (fonte: imseismology.org, softdb.com master-trigger). Non è stata trovata con WebSearch una descrizione puntuale di COME un singolo software commerciale (Instantel/Sigicom/Syscom) marca esplicitamente un evento come «non valido» nell'interfaccia (es. un flag «rejected» visibile nell'elenco eventi) — solo il principio generale del filtro multi-stazione.
+
+**Tracciabilità/taratura nel software** [seconda mano, generico gestione calibrazione — non specifico al settore blast]: i sistemi di gestione calibrazione tracciano ogni scadenza, certificato, limite di tolleranza e non conformità; ogni interazione (inserimento dati, caricamento certificato, modifica scadenza, perfino la sola visualizzazione) viene registrata con utente e timestamp in un registro immutabile; ogni evento di calibrazione è collegato a un certificato digitale con identità strumento, data, esito, tecnico (fonte: articoli generici su calibration management software — nessuna fonte specifica trovata per un prodotto di monitoraggio blast che documenti pubblicamente questa funzione).
+
+### 4. Le parole del mestiere in italiano (come le usano fonti reali)
+
+Dalle fonti trovate: **vettore somma** — dal seismogramma (una componente verticale + due orizzontali ortogonali) si ricostruisce il vettore misurato e la sua variazione nel tempo (fonte: distad.unimi.it, sismografo.pdf). **Sovrapressione** — le onde di sovrapressione da esplosione sono un contributo importante alla sismicità indotta; l'assenza di sovrapressione aerea aumenta l'attenuazione dei livelli di vibrazione (fonte: stessa area di ricerca accademica). **Volata** — il monitoraggio della sismicità da cariche esplosive in gallerie minerarie è condotto con geofoni per registrare i valori di picco della velocità particellare in funzione della distanza scalata (fonte: ricerca accademica generica). **Sismografo** — strumento per la registrazione di onde elastiche; il moto del terreno è rilevato da un sensore chiamato geofono, amplificato e filtrato elettronicamente (fonte: Folchi). **Taratura** — verifiche periodiche di controllo del trasduttore, con normativa italiana che indica un intervallo di verifica annuale (fonte: Folchi). Non è stato possibile, con WebSearch, reperire un fac-simile o un estratto letterale di un rapporto/referto reale di monitoraggio da volata in cava italiana che usasse insieme i termini «postazione», «recettore», «referto», «legge di sito» nel loro contesto naturale — le ricerche mirate (query `"referto" sismografo volata cava "postazione" "recettore" tecnico competente relazione esempio`) hanno restituito solo documenti di relazione sismica geotecnica (per l'edilizia, non per il monitoraggio da volata), fuori tema.
+
+### Fonti
+
+| URL | Che cosa dice | Fiducia |
+|---|---|---|
+| https://www.instantel.com/products/thor | THOR desktop, Vision cloud; THOR ordina eventi per serial number/data/ora/trigger/PPV/tipo evento/sample rate | media (sito produttore) |
+| https://www.instantel.com/blastware-faqs | Blastware: export BIN→ASCII/MAT/HDF5, XML, report PDF | media (sito produttore) |
+| https://www.instantel.com/media/1756/download (Blastware Advanced Module) | Contenuto evento: ora, trigger source, PPV per canale, picco sovrapressione, frequenze ZC, PVS, accelerazione/spostamento max | media (sito produttore) |
+| https://groundvibrationmonitoring.com/ground-vibration-monitoring-recording/ | Cinque modalità di registrazione Instantel (Single Shot, Continuous, Manual, Histogram, Histogram Combo) | media |
+| https://www.sigicom.com/products/vibration/infra-c22-wireless-vibration-monitor/ | INFRA C22: PPV e frequenza dominante trasmessi al cloud per allerta automatica | media (sito produttore) |
+| https://www.sigicom.com/products/noise/s10-s11-air-blast-sensor/ | INFRA Net: vista dati real-time, analisi, report, export | media (sito produttore) |
+| https://www.syscom.ch/wp-content/uploads/SCS-brochure.pdf | SCS: gestione cloud MR3000/MR3003/ROCK, token univoco, export binario/ASCII, confronto curve di conformità | media (brochure produttore) |
+| https://www.geosig.com/Software/GeoDAS | GeoDAS: applicazione Windows, acquisizione/configurazione, export/import multi-formato, link a SEISAN | media (sito produttore) |
+| https://nomis.com/home/ ; supergraphics-suite.software.informer.com | Nomis Mini-SuperGraph II + SuperGraphics Suite, nessun dettaglio formato file | bassa (nessun dettaglio tecnico) |
+| https://whiteseis.com/automatic-reporting-service/ | White: Seismograph Data Analysis, Alpha-Blast, reporting automatico con notifica email/SMS | media (sito produttore) |
+| https://www.nitrex-explosives-engineering.com/wp-content/uploads/2018/10/03-Monitoraggio-delle-onde-elastiche.pdf (Folchi) | Legge di sito per estrapolazione/interpolazione, vettore somma, taratura annuale, sismografo/geofono | media (solo riassunto recuperato, non il testo integrale) |
+| http://geo-tec.it/wp-content/uploads/2015/02/Norme-UNI-9916-04-...pdf (titolo) + ingenio-web.it | UNI 9916: criteri di misura, range 0,1–150 Hz, danni di soglia, revisione 2014 | media |
+| https://micromega-dynamics.com/din-4150-3-vibration-limits-buildings/ | DIN 4150-3: classi edificio, bande di frequenza, valori mm/s per fondazione/ultimo piano | media (sito commerciale, valori da verificare sul testo originale) |
+| https://guida.cfsl.ch/panoramica-della-guida/ambiente-di-lavoro/vibrazioni-nell_ambiente-di-lavoro/valori-limite-per-vibrazioni | SN 640312a: breve/lunga durata, tipo edificio, nessun valore numerico trovato | bassa |
+| https://www.arpat.toscana.it/.../piano-di-monitoraggio-ambientale-vibrazioni | PMA: contenuti, valutazione ARPA con cadenza trimestrale (generico ambientale, non specifico volate) | media |
+| https://www.cedd.gov.hk/filemanager/eng/content_417/er232links.pdf | dB(L), limite USBM 133 dB(L) 2-200 Hz, 0,015 psi | media |
+| https://higherlogicdownload.s3.amazonaws.com/.../TAC%20-%202013%20VIBRATION%20AND%20AIR-OVERPRESSURE... (Revey Associates) | 133 dB(L) sicuro strutturalmente ma genera lamentele residenti | media |
+| https://www.osmre.gov/sites/default/files/inline-files/OSMRE_BIVDEP%202.0%20Documentation.pdf | BIVDEP: programma USA per valutare dati vibrazione da volata contro curve regolatorie | media |
+| https://imseismology.org/xes/ ; https://www.softdb.com/monitoring/advanced-features/master-trigger/ | Trigger multi-stazione per scartare eventi non correlati al sito (camion, attività umana) | media |
+| https://ediltecnico.it/vibrazioni-e-danni-agli-edifici/ | Correlazione danno-PPV dipende da molti parametri edificio, curve empirico-statistiche | media |
+
+### Domande per il delta (sul MECCANISMO, non risposte)
+
+1. In Sentinella, chi legge un file/CSV di eventi esportato da un sismografo (Instantel/Sigicom/Syscom/altro), e quali colonne si aspetta? C'è già una funzione di import per un formato di uno di questi produttori, o l'unico ingresso è il CSV "a colonne libere" già censito il 02/09 (T1)?
+2. Chi decide, quando manca, la frequenza dominante di un evento — la calcola l'app da un waveform, o è sempre un valore che l'utente inserisce a mano leggendo lo strumento?
+3. C'è un posto dove Sentinella distingue un evento "valido" da uno "trigger spurio" (mezzo, temporale) — un campo di stato dell'evento, o ogni riga registrata è trattata come una volata vera?
+4. Chi calcola/mostra una legge di attenuazione (PPV in funzione della distanza scalata) per un fronte/cava, con la sua regressione — esiste una funzione che fa questo conto, o la distanza scalata (`SD = R/√W`, già trovata il 02/09) è l'unico calcolo presente senza la curva/regressione che ne deriva?
+5. Il report di volata/monitoraggio che Sentinella genera cita la classificazione dell'edificio/ricettore (industriale, civile, sensibile) usata per scegliere la soglia, o resta implicita nel numero scelto da chi registra il ricettore?
+6. Il vettore somma (PVS/risultante triassiale) è un campo distinto dal singolo PPV per asse nel modulo dati, o Sentinella lavora solo con un valore di PPV già "riassunto" dall'utente?
+7. Chi traccia, in Sentinella, che un certo export/report è stato scaricato e da chi (un log di accesso ai documenti), rispetto alla sola scadenza di taratura già censita il 02/09?
+
+### Il delta, fatto da chi ha il codice in mano (04/09, verificato contro il commit `70c66b87`)
+
+Risposte alle sette domande aprendo le funzioni di `apps/sentinella/sentinella-data.js`,
+non cercando i nomi del mondo nel codice. Ogni «non c'è» porta il comando.
+
+1. **Chi legge un file di eventi.** `preparaLetture(righe, mappa)`: un
+   lettore GENERICO con una mappa di colonne scelta dall'utente (`colData`,
+   `colOra`, `colValore`, `conIntestazione`), con il ripiego «data e ora nella
+   stessa cella», la firma anti-doppione (`firmaLettura`) e `unisciLetture`.
+   Non esiste un import per marca: `grep -ci "instantel\|sigicom\|syscom" apps/sentinella/sentinella-data.js apps/sentinella/index.html`
+   → 0 e 0. Cioè la scelta di prodotto è già «qualunque CSV, l'utente indica
+   le tre colonne»; il mondo dice che un evento porta anche PPV per asse,
+   frequenza e sovrapressione, e qui entra **un valore solo** per lettura.
+2. **La frequenza dominante.** Non è un campo della lettura né della volata:
+   `grep -n "frequenz" sentinella-data.js` trova solo la frequenza del
+   PROGRAMMA (ogni N giorni: `etichettaFrequenza`) e le etichette delle soglie
+   DIN («residenziale, <10 Hz») in `SOGLIE_NORMA`. La banda di frequenza è
+   dunque scelta a mano da chi imposta la soglia (la chiave `din-res-fond` /
+   `din-res-alto`), non letta dall'evento. Nessuno la calcola: non c'è un
+   waveform.
+3. **Evento valido / trigger spurio.** Non c'è uno stato dell'evento:
+   `grep -n "spurio\|trigger" sentinella-data.js` → 0. Esiste
+   `correggiLettura(l, nuovo, quando)` (la correzione tracciata di un valore)
+   ed esiste `coincidenzaVolata(volate, dataISO)` /
+   `lettureVibrazioniDelGiorno`, cioè il collegamento «questa lettura è di
+   quel giorno di volata»: una lettura senza volata quel giorno è un candidato
+   trigger spurio, ma il prodotto non lo dice.
+4. **La legge di attenuazione.** `scaledDistance(R, W)` e `caricaMax(R, SD)`
+   ci sono; la regressione NO, per scelta scritta nel codice (commento sopra
+   `refertoDaVolata`: «la regressione la fa Genesi, che ce l'ha già», e il
+   vincolo T9: una volata prevista non entra mai nei referti). Il ponte
+   Sentinella → Genesi porta i referti (`refertiDaVolate`, `csvRefertiGenesi`).
+5. **La classe dell'edificio.** ⚠️ Prima risposta sbagliata e corretta
+   rileggendo la pagina: il campo `classe` del ricettore («I», «III», «V») è
+   la **classe acustica** della zonizzazione (la pagina lo scrive così, «classe
+   acustica», nella scheda e nel report), non la classe DIN dell'edificio. La
+   classe DIN sta nella CHIAVE della soglia scelta a mano (`SOGLIE_NORMA`:
+   `din-res-fond`, `din-sens-fond`, `din-ind-fond`) e nel `tipo` del ricettore
+   («abitazione», «scuola», «confine»); la soglia efficace la decide
+   `sogliaEfficace(m, ricettori)` (vince quella del ricettore se l'unità
+   coincide; nessuna conversione). Nel report per l'ente entrano il tipo, la
+   distanza e la classe acustica (`grep -n "classe acustica" apps/sentinella/index.html`
+   → scheda e report), non la parola «DIN residenziale»: la norma scelta si
+   legge solo dall'etichetta della soglia.
+6. **Il vettore somma.** Un solo `valore` per lettura e una sola `ppvMisurata`
+   per volata (`ppvDiVolata`): non esistono i tre assi né la risultante
+   (`grep -n "ppvX\|risultante\|vettore" sentinella-data.js` → 0). Chi
+   inserisce sceglie che cosa scrivere (di solito il PVS letto dallo strumento).
+7. **Chi ha scaricato.** Nessun registro degli scarichi: i CSV/report escono
+   dal browser senza traccia (`grep -n "scaricat" apps/sentinella/index.html`
+   → solo il gancio di prova dei banchi). La sola tracciabilità è la taratura
+   dello strumento (`statoTaraturaStrumento`, `contaCoperture`).
+
+**Che cosa ne segue** (candidati, non cantieri; nessun numero di norma entra
+in una schermata senza il testo primario):
+- (a) ✅ **fatta il 04/09, sera** — la mappa di `preparaLetture` accetta
+  cinque colonne facoltative (`proponiColonneEvento`: tre assi, frequenza,
+  sovrapressione); il valore resta la colonna scelta, oppure la risultante
+  √(L²+T²+V²) dai tre assi (`risultanteAssi`, mai a due assi); `campiEvento`
+  è l'unico elenco di che cosa viaggia con la lettura (ingresso, schermate,
+  report, CSV con `evento` e `valore_da` in coda); `provenienzaValore` dice
+  quale colonna ha giudicato. Misurato: run-kpi +10, banco
+  `sentinella-evento-import` 52/0 — il file di prova a otto colonne rientra
+  con i suoi assi nella serie, nel report e nel CSV. La riga 6 qui sopra
+  («non esistono i tre assi né la risultante») è invecchiata da quel giorno.
+- (b) ✅ **fatta il 04/09** — la lettura dichiarata non valida con la
+  ragione (`RAGIONI_ANNULLAMENTO`: mezzo di passaggio, temporale, prova dello
+  strumento, altro con testo), `annullaLettura`/`ripristinaLettura` simmetriche
+  a `correggiLettura` (il valore resta scritto), `letturaValida` in un filtro
+  solo (`lettureLeggibili`) da cui ereditano tutti i conti, che dichiarano
+  `annullate`; `letturaSenzaVolata` è un suggerimento a tre risposte, non
+  un'esclusione. Misurato: `riepilogoConformita` cambia solo con la
+  dichiarazione (run-kpi 2531 → 2545), banco `sentinella-annullate` 60/0 e
+  controprova che cade (6 su 60) quando il filtro viene tolto.
+- (c) ✅ **fatta il 04/09, notte** — la frequenza è un campo della lettura
+  (`extra.freq`, dalla colonna dell'import) e `frequenzaFuoriBanda` dichiara
+  quando è fuori dalla banda della soglia applicata; la banda la dichiarano i
+  preset (`bandaPreset`, trascritta dall'etichetta) e il punto ricorda il
+  preset da cui nasce la soglia (`sogliaPreset`). ⚠️ Non «sceglie la banda
+  DIN al posto della chiave»: il limite dell'altra banda sarebbe un numero di
+  norma di seconda mano, quindi Sentinella dice «fuori banda» e rimanda alla
+  norma. Misurato: run-kpi +4, banco `sentinella-evento-import` 56/0.
+- (d) la NORMA della soglia (l'etichetta di `SOGLIE_NORMA`, «DIN
+  residenziale, <10 Hz») scritta nel foglio per l'ente accanto al numero, così
+  chi legge sa da dove viene il limite: costo basso; misura: il banco
+  `sentinella-report-dichiarazioni` legge l'etichetta nel testo del foglio.
+  Da verificare prima se il foglio la scrive già per un'altra via.
+
+---
+
+## Ricerca del 2026-09-05 — il «diario delle volate» e la relazione periodica per l'ente (metà sul mondo)
+
+**Strumento**: solo `WebSearch` (sei ricerche); `WebFetch` risponde `EGRESS_BLOCKED`,
+quindi **nessuna pagina primaria è stata letta**: ogni riga qui sotto è di
+seconda mano, dai riassunti dei risultati, e va marcata così. **Che cosa esiste
+già in Sentinella**: non verificato da questa ricerca — il delta lo fa chi ha il
+codice in mano (vedi le domande in fondo). La sezione del 02/09 copre già le
+norme (UNI 9916, DIN 4150-3, USBM) e i software dei produttori: qui si guarda
+**il documento che l'ente riceve e ciò che l'ispettore chiede**.
+
+### Fatti dal mondo
+
+1. **Il «diario delle attività» quando si usano esplosivi.** Le linee guida di
+   ARPA FVG per il piano di monitoraggio di un'attività estrattiva soggetta a
+   VIA dicono che, quando l'attività usa esplosivi, tenere un diario è **parte
+   integrante del monitoraggio ambientale**: vi si registrano **modalità e
+   frequenza delle volate eseguite**, i **riferimenti alle comunicazioni fatte
+   alle autorità competenti o alla popolazione**, e gli **eventuali reclami
+   ricevuti**. Il diario resta **a disposizione per i controlli** delle autorità.
+   [seconda mano: arpa.fvg.it, LG21.02 «Linee guida concernenti la redazione di
+   un piano di monitoraggio… attività estrattiva»]
+2. **Le norme che il piano cita**: UNI 9614 (vibrazioni negli edifici e criterio
+   del disturbo alle persone) accanto a UNI 9916 (effetti sugli edifici). Cioè
+   il piano guarda **due** cose: il danno e il disturbo. [seconda mano: stessa
+   linea guida]
+3. **Il rapporto post-operam sulle vibrazioni**, quando è prescritto, va
+   trasmesso all'autorità regionale competente e contiene **i valori misurati**,
+   **considerazioni sulle soglie di percezione e sull'interferenza con le
+   attività**, e **le eventuali misure di mitigazione da adottare**. [seconda
+   mano: va.mite.gov.it, relazione tecnica di un piano di monitoraggio rumore
+   e vibrazioni — opera infrastrutturale, non una cava]
+4. **La cadenza**: le fonti trovate non danno una cadenza generale per le cave
+   («entro il …» non è uscito in nessun risultato): la cadenza è **una
+   prescrizione dell'autorizzazione**, caso per caso. Per i PMA ambientali
+   generici ARPAT indica una valutazione **trimestrale** (già scritto il 02/09).
+   [seconda mano; e l'assenza di un risultato NON prova che una cadenza standard
+   non esista]
+5. **La polizia mineraria** (DPR 128/1959, D.Lgs 624/1996, D.Lgs 81/2008) fa
+   ispezioni in cava, e fra le attività elencate ci sono la **sorveglianza
+   sull'uso degli esplosivi**, le verifiche periodiche e straordinarie degli
+   impianti, e la **previsione e misura dei livelli di vibrazione indotti dagli
+   esplosivi**. Prima della visita l'ufficio **esamina il registro dei
+   rapporti** e annota sul registro l'avvenuto esame. [seconda mano:
+   regione.piemonte.it, cittametropolitana.mi.it, osservatorioamianto.it]
+6. **Il verbale della volata per la pubblica sicurezza**: nelle procedure di
+   questura citate, il questore può prescrivere **un verbale dettagliato delle
+   operazioni di sparo** (luogo, data, …) oppure, in alternativa, la
+   **dichiarazione del fochino firmata da tutti i presenti** nelle diverse fasi
+   e **la registrazione della centralina sismo-acustica** che misura vibrazioni
+   e sovrapressione aerea. Cioè la misura strumentale può **valere come
+   documentazione** della volata. [seconda mano: sicurezzapubblica.wikidot.com,
+   scuolaedile.com «Prescrizioni esplosivi» — fonti secondarie, da verificare
+   prima di scriverle in una schermata]
+7. **La tabella tipica della relazione** (dalle relazioni tecniche di
+   monitoraggio trovate, gallerie e grandi opere, non cave): per ogni evento
+   **PPV per asse e vettore somma, frequenza dominante (FFT), confronto con la
+   soglia della classe di edificio** (DIN 4150-3 ripresa in appendice B della
+   UNI 9916); nei casi di esplosioni il **fattore di cresta** può arrivare a 6.
+   [seconda mano: va.mite.gov.it «Approfondimento relativo alla tematica
+   Vibrazioni»; vielleacustica.it; svantek.it]
+
+### Fonti (risultati di ricerca, nessuna letta per intero)
+
+| URL | Che cosa dice | Fiducia |
+|---|---|---|
+| https://www.arpa.fvg.it/documents/3561/LG21.02_e2_r1_Redaz_piano_monitor_attivita_estrattiva_01_paFXjlI.pdf | LG ARPA FVG: diario delle volate (modalità, frequenza, comunicazioni, reclami), a disposizione dei controlli; UNI 9614 + UNI 9916 | alta (ente pubblico, linea guida ufficiale) — **ma non letta** |
+| https://www.arpa.fvg.it/temi/temi/supporto-tecnico-e-controlli/pubblicazioni/linee-guida-concernenti-la-redazione-di-un-piano-di-monitoraggio-relativo-alla-procedura-di-valutazione-di-impatto-ambientale-via-di-unattivita-estrattiva/ | la pagina che presenta la linea guida | alta |
+| https://va.mite.gov.it/File/Documento/474594 | relazione tecnica di un PMA rumore e vibrazioni: contenuto del rapporto post-operam | media (documento di un'opera, non una cava) |
+| https://va.mite.gov.it/File/Documento/743447 | approfondimento «Vibrazioni»: appendice B UNI 9916 → DIN 4150; fattore di cresta | media |
+| https://www.regione.piemonte.it/web/temi/sviluppo/attivita-estrattive/polizia-mineraria | attività della polizia mineraria, fra cui la misura delle vibrazioni da esplosivo | alta (ente) |
+| https://www.cittametropolitana.mi.it/ambiente/guida_autorizzazioni_ambientali/imprese_enti/attivita_estrattiva/Polizia-mineraria | ispezioni, verbali, sanzioni | alta (ente) |
+| http://sicurezzapubblica.wikidot.com/esplosivi · https://www.scuolaedile.com/public/Seminario_21_11_11/07-17%20Prescrizioni%20esplosivi.pdf | verbale della volata o dichiarazione del fochino + registrazione della centralina | bassa (fonti secondarie) |
+| https://www.arpa.marche.it/rumore-e-vibrazioni · https://www.arpalombardia.it/temi-ambientali/rumore-e-vibrazioni/ | ruolo di ARPA: supporto tecnico a Comuni e Province | media |
+
+### Domande per il delta (sul MECCANISMO — nessuna risposta qui)
+
+1. Il registro volate di Sentinella è il «diario» della linea guida? Cioè: chi
+   registra, accanto a una volata, **la comunicazione fatta** (a chi, quando,
+   con quale riferimento) e **il reclamo ricevuto** — esiste un campo o un
+   collegamento fra la volata e la collezione dei reclami, o le due vivono
+   separate e si accostano solo per data (la «coincidenza» già censita)?
+2. Il report per l'ente (`reportConformita`) porta **le due letture** — il danno
+   agli edifici (UNI 9916/DIN) e il **disturbo alle persone** (UNI 9614) — o solo
+   la prima? Se il disturbo non c'è, il report lo dichiara o tace?
+3. Il report contiene una sezione **«misure di mitigazione»** (che cosa si è
+   fatto o si farà dopo un superamento) o si ferma al verdetto? Chi la
+   scriverebbe — le azioni correttive del ponte con Scudo sono già quel posto?
+4. Il report è **per periodo prescritto** (trimestre, semestre, anno) con la
+   data di trasmissione e il destinatario **scritti sul documento**, e c'è un
+   posto che ricorda **quando scade la prossima trasmissione** (come per le
+   tarature), o la cadenza vive solo nella testa di chi lo manda?
+5. Per la polizia mineraria: esiste una stampa del registro volate «da tenere
+   a disposizione» con **modalità e frequenza** delle volate (numero di volate
+   nel periodo, chili per ritardo, fronte) e l'esame dell'ispettore annotabile?
+6. La registrazione della centralina può «valere come verbale»: il foglio di
+   una volata di Sentinella porta insieme **i dati della volata e la misura
+   dell'evento** (PPV per asse, vettore somma, frequenza, aria) con lo
+   strumento e la taratura, così che un fochino possa allegarlo?
+
+⚠️ **Il delta non è scritto qui di proposito** (regola del 14/08): lo fa il
+ciclo con il codice in mano, partendo dal meccanismo — `reportConformita`,
+`taratureDelReport`, la collezione `reclami`, `volateDelGiorno`/`coincidenzaVolata`,
+il foglio di stampa della volata — non cercando «diario» o «UNI 9614» nel codice.
+
+### Il delta, fatto da chi ha il codice in mano (05/09, verificato contro il commit `0c807ba3`)
+
+Risposte alle sei domande aprendo `apps/sentinella/sentinella-data.js` e
+`apps/sentinella/index.html`, dal meccanismo; ogni «non c'è» col comando.
+
+1. **Il diario.** Il registro volate (`volate/{id}`: data, fronte, nFori,
+   kgTotali, kgMaxRitardo, distanzaRicettore, esito, stato, la previsione da
+   Genesi e la PPV misurata) e la collezione `reclami/{id}` (data, ora, tipo,
+   ricettoreId, chi, descrizione, **azione**, **stato**) ci sono tutt'e due, e
+   il report per periodo li porta insieme (`reportConformita` → `volate`,
+   `reclami`). Il legame fra una volata e un reclamo è **solo la data**
+   (`coincidenzaVolata`, con l'avviso che una coincidenza non è una causa).
+   **La comunicazione fatta** (a chi, quando, con quale riferimento) NON c'è:
+   `grep -ci "comunicat\|preavvis" apps/sentinella/sentinella-data.js
+   apps/sentinella/index.html` → **0 e 0**. È la terza voce del diario della
+   linea guida, e manca.
+2. **Le due letture.** Il report giudica la soglia del punto (o del ricettore):
+   è il danno agli edifici. Il disturbo alle persone (UNI 9614) non c'è e il
+   documento non dice di non valutarlo: `grep -ci "9614\|disturbo"` → **0 e 0**.
+3. **Le mitigazioni.** `grep -ci "mitigazion"` → **0 e 0**. Le azioni
+   correttive nate da un superamento vivono in Scudo (ponte T7,
+   `bozzaAzioneSuperamento`, `azioniDiOrigine`), ma il report **non le
+   legge**: un superamento esce col numero e senza «che cosa si è fatto».
+4. **La cadenza.** C'è, e vive negli **adempimenti**: `periodoMesi` e
+   `giorniConsegna`, e `periodoAdempimento` (T2f) fa partire il report sul
+   periodo ricavato dalla scadenza — la dimostrazione ha «Relazione annuale
+   emissioni · ARPA». Quello che il documento NON scrive è il **destinatario**
+   e la **data di trasmissione**: `grep -ci "destinatario\|trasmission"` →
+   **0 e 0** nel modulo; la pagina stampa il periodo e la data di generazione.
+5. **Il registro a disposizione dell'ispettore.** C'è a metà: il report per
+   periodo ha la sezione «Volate del periodo» (data, fronte, fori, kg totali,
+   kg max/ritardo, distanza, SD) e il registro esce in CSV
+   (`csvRegistroVolate`). Una stampa del solo registro non c'è, e non serve
+   finché il report la contiene.
+6. **La scheda della volata con la misura.** Non c'è una stampa per singola
+   volata: `grep -n "scheda della volata\|schedaVolata\|vol-scheda"
+   apps/sentinella/index.html` → **0** (la frase «scheda della volata» sta solo
+   nel reclamo d'esempio). La misura dell'evento per asse (`campiEvento`,
+   `risultanteAssi`) e la taratura dello strumento esistono; quello che manca è
+   il foglio che le mette accanto ai dati della volata.
+
+**Che cosa ne segue** (candidati, in ordine di costo, nessuno aperto):
+- (a) ✅ **fatta il 05/09** — `campiComunicazioneVolata`, `descriviComunicazione`,
+  `DESTINATARI_COMUNICAZIONE`; tre colonne in coda al CSV del registro
+  (censimento aggiornato); azione «Segna la comunicazione» sulla riga; la riga
+  e la tabella «Volate del periodo» del report la scrivono, e quando manca
+  scrivono «nessuna comunicazione registrata» (`grep -c "descriviComunicazione"
+  apps/sentinella/index.html` → 4). run-kpi +3; banchi `sentinella-numeri-tranquilli`
+  e `sentinella-report-dichiarazioni` con le prove nuove;
+- (b) ✅ **fatta il 05/09** — `PORTATA_REPORT`, una frase in corsivo sotto le
+  dichiarazioni del report (`grep -c "PORTATA_REPORT" apps/sentinella/index.html`
+  → 2: l'import e l'uso);
+- (c) ✅ **fatta il 05/09** — `rispostaSuperamento(azioni, puntoId)` e
+  `FRASI_RISPOSTA`; `reportConformita` riceve `azioni` (`null` = Scudo non
+  leggibile, che NON è «nessuna») e la scheda del punto in superamento scrive
+  «Azioni correttive: …» con lo stato di `statoPonte`
+  (`grep -c "rispostaSuperamento" apps/sentinella/sentinella-data.js` → 2);
+- (d) ✅ **fatta a metà il 05/09** — `intestazioneOrigineReport(a, p)`: quando il
+  report parte da un adempimento il DOCUMENTO scrive «Redatto per l'adempimento
+  «…» (ente), periodo dal … al …, scadenza il …», e la riga sparisce appena si
+  toccano le date (direbbe il falso). La **data di trasmissione** resta fuori:
+  nessuno la registra oggi, ed è un fatto che solo chi invia può scrivere —
+  candidato a sé, dopo che il fondatore dice se il report va «segnato come
+  trasmesso»;
+- (e) ✅ **fatta il 05/09** — `fogliaVolata(v, {monitoraggi, reclami, oggi})`
+  nel modulo, bottone `data-foglio-vol` su ogni riga del registro, finestra da
+  stampare o allegare. Cinque sezioni: volata (con SD), previsione, misura
+  dell'evento (la lettura cercata per data E ora, con le componenti e la
+  provenienza; una lettura annullata lo grida), strumento e taratura
+  (`coperturaTaratura` sulla data della lettura), reclami dello stesso giorno
+  (`AVVISO_COINCIDENZA`). La frase «vale come verbale» NON è scritta, come
+  chiedeva questa riga: il foglio dice che «la registrazione originale dello
+  strumento resta il documento di riferimento». Prova:
+  `grep -c "fogliaVolata" apps/sentinella/sentinella-data.js apps/sentinella/index.html`
+  → 2 e 3; banco `tests/browser/sentinella-foglio-volata.mjs`, 27 prove.
+
+---
+
+## Ricerca del 2026-09-05 (notte) — le condizioni meteo della misura (metà sul mondo)
+
+**Strumento**: solo `WebSearch` (tre ricerche); `WebFetch` risponde
+`EGRESS_BLOCKED`, quindi **nessuna pagina primaria è stata letta**: ogni riga è
+di seconda mano, dai riassunti dei risultati. Il delta l'ha fatto il ciclo
+aprendo il modulo (vedi in fondo), non la ricerca.
+
+### Fatti dal mondo [tutti di seconda mano]
+
+- **Rumore — DM 16/03/1998, Allegato B (tecniche di rilevamento)**: le misure
+  vanno fatte «in assenza di precipitazioni atmosferiche, di nebbia e/o neve»
+  e con «velocità del vento non superiore a 5 m/s»; il microfono va dotato di
+  cuffia antivento. È la regola che decide se una misura di rumore **vale**.
+  [risultati di ricerca: anit.it, arpa.veneto.it — non letti per intero]
+- **Le relazioni fonometriche riportano le condizioni meteo** (vento,
+  direzione, pioggia, temperatura, umidità) accanto a ogni rilievo, e gli enti
+  regionali le chiedono nella scheda tecnica del rilievo. [ARPA FVG, ARPAE —
+  risultati di ricerca]
+- **Polveri (PM10 al confine)**: la direzione del vento serve a dire se il
+  ricettore era **sottovento** rispetto alla sorgente (cava, piste, frantoio):
+  senza la posizione relativa sorgente-ricettore il dato di vento da solo non
+  giudica niente. Le linee guida sulle polveri diffuse da attività estrattive
+  usano la rosa dei venti per scegliere i punti di misura, non per invalidare
+  una lettura. [ARPAE, linee guida polveri — risultati di ricerca]
+- **Vibrazioni**: nessuna condizione meteo invalida una misura di PPV; il vento
+  forte può muovere il geofono mal accoppiato, ma è un problema d'installazione,
+  non una soglia. [deduzione dai risultati sulla UNI 9916, non una fonte]
+
+### Il delta, fatto da chi ha il codice in mano (05/09, verificato contro il commit successivo a `2318bfb2`)
+
+- ✅ **fatto** — cinque campi facoltativi sulla lettura, `condizioniMisura`,
+  `misuraFuoriCondizioni` (rumore: fuori · dentro · **non si può dire**),
+  `contaFuoriCondizioni` nel report, ragione di annullamento `meteo`, due
+  colonne nel CSV ambiente. Prova: `grep -c 'misuraFuoriCondizioni'
+  apps/sentinella/sentinella-data.js apps/sentinella/index.html` → 3 e 4.
+- ⛔ **non fatto, di proposito**: il verdetto «sottovento» sulle polveri.
+  Vorrebbe la posizione della sorgente rispetto al ricettore, che l'app non
+  ha; scriverlo dal solo vento sarebbe un numero tranquillo. Se un giorno il
+  ricettore avrà un azimut dalla cava, la domanda è già scritta nel commento
+  di `condizioniMisura`.
+- ✅ **fatto la sera stessa (05/09)** — le cinque condizioni entrano anche dal
+  file: `proponiColonneMeteo` (indizi in modo «parola», perché «vento» sta
+  dentro «evento»; italiano e inglese), `direzioneVento` (sigla, anche W→O e a
+  sedici punte, o gradi), `pioggiaDaCella` (sì/no o millimetri),
+  `preparaLetture` con `meteoNonLetti` (una cella illeggibile si dichiara,
+  non scarta la riga), `unisciLetture` che le tiene. Prova: `grep -c
+  "proponiColonneMeteo" apps/sentinella/sentinella-data.js
+  apps/sentinella/index.html` → 1 e 2. ⚠️ Le intestazioni dei produttori
+  restano **non verificate**: gli indizi sono le parole italiane e inglesi
+  ovvie, e l'utente le corregge nella finestra come per gli assi.
+
+## Ricerca del 2026-09-11 — il registro dei reclami: che cosa contiene fuori, e che cosa promette il nostro (metà sul mondo)
+
+*Strumento: `WebSearch` (funziona); `WebFetch` è bloccato, quindi **nessuna
+fonte è stata letta per intero**: ogni fatto qui sotto viene da un risultato di
+ricerca ed è marcato `[seconda mano]`. Nessun numero di legge è entrato in una
+schermata.*
+
+### Fatti dal mondo [tutti di seconda mano]
+
+- **Che cosa si registra di un reclamo, secondo chi lo fa di mestiere.** Le
+  guide del settore estrattivo (Pit & Quarry, «Managing community blasting
+  complaints»; il modulo comunale «Quarry Event/Complaint Form» di Franklin,
+  WI) elencano: nome e recapito di chi reclama (senza, il reclamo non si può
+  verificare), giorno e ora, che cosa è stato percepito (vibrazione, rumore,
+  polvere), dove, e — se c'è — il danno lamentato con una stima. Una persona
+  sola risponde ai reclami, e la prima cosa da capire al telefono è **la vera
+  origine**: spesso «la volata» è la parola con cui si nomina un fastidio che
+  viene dalla polvere o dal rumore notturno. [seconda mano]
+- **La velocità della risposta è il criterio.** Le stesse guide: si prende sul
+  serio, si risponde presto, si investiga, si chiude — «il peggio è ignorare».
+  Quello che il residente vuole quasi sempre è la **rassicurazione che si sta
+  guardando** (la misura di quel giorno, l'indagine avviata), più che un
+  risarcimento. [seconda mano]
+- **Il collegamento reclamo → misura è il pezzo che i prodotti vendono.**
+  Envirosuite descrive il proprio modulo dei reclami così: ricevuto un reclamo
+  su vibrazione o polvere, l'operatore **accetta o respinge la responsabilità
+  in fretta** perché il reclamo è **affiancato ai dati di monitoraggio** di quel
+  momento, e collega gli eventi acustici alle attività di cantiere per la
+  causa. [seconda mano, sito del produttore]
+- **In Italia l'esposto ha una sua strada, diversa dal reclamo.** Le pagine
+  ARPA (Veneto, Valle d'Aosta, FVG, Piemonte, Lazio): il cittadino presenta
+  un **esposto scritto al Comune** (o alla polizia locale / forestale)
+  indicando la sorgente, gli orari del disturbo e i propri recapiti; il Comune
+  verifica prima che l'attività sia autorizzata e nelle condizioni concesse,
+  poi chiede ad ARPA la **misura fonometrica**, che il tecnico concorda con
+  l'esponente per giorno e ora. Nessuna delle pagine trovate dichiara un
+  termine in giorni per la misura: ARPA «definisce una priorità». [seconda
+  mano]
+- **ISO 14001:2015 chiede la comunicazione esterna e la sua registrazione**
+  (le pagine ARPAV/Assolombarda/SIGE sull'EMAS insistono sulla comunicazione
+  verso l'esterno e sulla trasparenza verso gli enti di controllo); un
+  registro dei reclami con la risposta data è la forma con cui le aziende
+  certificate lo dimostrano. [seconda mano, generico: nessuna pagina cita la
+  clausola]
+
+### Fonti (risultati di ricerca, nessuna letta per intero)
+
+- Pit & Quarry, *Managing community blasting complaints* —
+  https://www.pitandquarry.com/managing-community-blasting-complaints/
+- City of Franklin (WI), *Quarry Complaint Procedures* —
+  https://www.franklinwi.gov/Departments/Planning/Quarry-Monitoring/Quarry-Complaint-Procedures.htm
+- Quarry Magazine, *Managing vibration and airblast issues* —
+  https://www.quarrymagazine.com/managing-vibration-and-airblast-issues
+- CSRM (Univ. of Queensland), *Community complaints and grievance mechanisms* —
+  https://www.csrm.uq.edu.au/media/docs/257/community_complaints_grievance_mechanisms_australian_minerals_industry.pdf
+- Envirosuite, *The smarter way to monitor noise and vibration in mining* —
+  https://envirosuite.com/insights/news/the-smarter-way-to-monitor-noise-and-vibration-in-mining
+- Envirosuite, *Noise monitoring for mine site compliance* —
+  https://envirosuite.com/insights/news/how-can-noise-monitoring-systems-support-compliance-at-mine-sites
+- ARPA Veneto, *Esposti dei cittadini e deroghe* —
+  https://www.arpa.veneto.it/temi-ambientali/rumore/esposti-dei-cittadini-per-rumore
+- ARPA Valle d'Aosta, *Cosa fare se sei disturbato da un rumore* —
+  https://arpa.vda.it/?catid=36&id=1648&view=article
+- ARPA Piemonte, *Come presentare un esposto per rumore?* —
+  https://www.arpa.piemonte.it/faq/come-presentare-un-esposto-per-rumore
+- ARPA Lazio, *Scheda informativa attività di controllo sul rumore* (2020) —
+  https://www.arpalazio.it/documents/20124/b06df591-1b3a-14dc-6cca-a52cb03e7984
+- ARPA Veneto, *ISO 14001 e regolamento EMAS* —
+  https://www.arpa.veneto.it/servizi/altri-servizi/certificazioni-ambientali/gli-strumenti-per-la-certificazione/iso-14001-e-regolamento-emas/iso-14001-e-regolamento-emas
+
+### Domande per il delta (sul MECCANISMO — nessuna risposta qui)
+
+1. Chi decide che cosa si registra di un reclamo? (i campi del modulo e
+   della collezione, non la parola «reclamo»)
+2. Chi mette accanto al reclamo **la misura di quel giorno**? Esiste una
+   funzione che, dato un reclamo, trova le letture del giorno sui punti che
+   misurano la stessa grandezza del ricettore?
+3. Chi sa dire **da quanto** un reclamo è aperto, e quando è stato risposto?
+4. Un reclamo che diventa **esposto** (Comune/ARPA) ha uno stato suo?
+
+### Il delta, fatto da chi ha il codice in mano (11/09, verificato contro il commit `6b2776e1`)
+
+- **Domanda 1 — C'È.** La collezione `reclami/{id}` porta `data, ora, tipo,
+  ricettoreId, chi, descrizione, azione, stato` (intestazione di
+  `sentinella-data.js`), il modulo della pagina ha gli stessi otto campi
+  (`rec-data … rec-azione`), `TIPI_RECLAMO` distingue rumore, polvere,
+  vibrazione, acque, altro. È l'elenco delle guide, compreso il «con parole
+  sue» del segnaposto. E il reclamo apre già un'**azione correttiva in Scudo**
+  con la scadenza (`bozzaAzioneReclamo`, `vociPonte` nella pagina): il «si
+  investiga, si chiude» esiste. *Prova:* `grep -c 'bozzaAzioneReclamo'
+  apps/sentinella/sentinella-data.js apps/sentinella/index.html` → **2 e 3**.
+- **Domanda 2 — MANCA, e la pagina lo PROMETTE.** Lo stato vuoto del registro
+  dice: *«Quando arriva l'ente, la risposta è già scritta — con accanto le
+  misure di quel giorno»* (`grep -c 'misure di quel giorno'
+  apps/sentinella/index.html` → **1**). Ma nessuna funzione le mette accanto:
+  `grep -cE 'lettureDelGiorno|letturaDelGiorno|misureDelGiorno'
+  apps/sentinella/sentinella-data.js apps/sentinella/index.html` → **0 e 0**,
+  e la riga del reclamo in `renderReclami` stampa tipo, ricettore, stato,
+  data, chi, descrizione e «fatto» — nessuna lettura. Il verso opposto c'è:
+  `fogliaVolata` porta *il reclamo del giorno* accanto alla volata
+  (`reclamiSuoi`), e `coincidenzaVolata` dice se quel giorno c'è stata una
+  volata. Nella dimostrazione il reclamo `x1` porta la misura **scritta a
+  mano** nel campo «azione» («Mostrata la misura di V1 (1,8 mm/s, sotto
+  soglia)»): cioè il prodotto sa che serve, e lo lascia fare all'utente.
+  **Delta concreto**: una funzione pura `misureDelGiornoPerReclamo(reclamo,
+  ricettore, monitoraggi)` che risponde con le letture di quel giorno sui punti
+  che misurano la **stessa grandezza** del ricettore (`ricettore.unita` /
+  `tipo` del punto — il ricettore non ha un `monitoraggioId`, e non serve
+  aggiungerlo), col verdetto sulla soglia (`statoMisura`) e la frase
+  «nessuna lettura quel giorno» quando non c'è — il principio del fondatore:
+  **l'assenza della misura non è un reclamo infondato**. Poi la riga del
+  registro la stampa. È l'unica cosa che Envirosuite vende su questo fronte e
+  che qui manca. **In roadmap come unità.**
+  ✅ **FATTO lo stesso giorno** (roadmap: «Le misure di quel giorno accanto al
+  reclamo»): `grep -c '^export function misureDelGiornoPerReclamo'
+  apps/sentinella/sentinella-data.js` → 1. Questa nota è stata aggiunta
+  dall'unità 96, che ha trovato la riga senza il suo ✅: chi chiude un'unità
+  aggiorna la riga che gliel'aveva proposta.
+- **Domanda 3 — A METÀ.** `riepilogoReclami` conta gli aperti e l'ultimo;
+  lo stato è `aperto|chiuso` senza una data di chiusura né di risposta:
+  `grep -cE 'dataRisposta|rispostoIl|chiusoIl|apertoDa' apps/sentinella/
+  sentinella-data.js` → **0** (le 2 occorrenze di `dataChiusura` sono
+  dell'AZIONE in Scudo, non del reclamo). Quindi «da quanto è aperto» si può
+  dire (data del reclamo → oggi), «quanto ci abbiamo messo» no. Delta piccolo:
+  `apertoDaGiorni` sulla riga aperta e, chiudendo, `chiusoIl` scritto dalla
+  pagina; il riepilogo dice il più vecchio aperto. Candidato dichiarato,
+  dopo la domanda 2.
+  ✅ **FATTO lo stesso giorno** (roadmap: «Aperto da N giorni» e la data di
+  chiusura): `grep -cE '^export function (apertoDaGiorni|tempoRispostaReclamo)'
+  apps/sentinella/sentinella-data.js` → 2, `chiusoIl` nel record.
+- **Domanda 4 — ASSENTE, e non è detto che serva.** `grep -ciE 'esposto'
+  apps/sentinella/sentinella-data.js apps/sentinella/index.html` → **2 e 0**,
+  e le due sono la parola «esposto» in un commento, non uno stato. Un reclamo
+  che diventa esposto all'ente è un fatto che l'azienda viene a sapere dal
+  Comune: la forma minima è una nota nel campo «azione», che c'è già. Nessun
+  cantiere.
+
+## Ricerca del 2026-09-11 — secondo giro: che cosa chiede l'ente dopo un reclamo per le vibrazioni, e che cosa protegge la cava prima (il mondo)
+
+⚠️ **Seconda mano, marcata**: fatta con `WebSearch` (che risponde), non con
+`WebFetch` (che non legge il testo primario). Nessun numero di norma entra in
+una schermata; quelli qui sotto servono a decidere il delta.
+
+### Come va, fuori
+
+- **Chi riceve il reclamo, in Italia.** Il cittadino disturbato da rumore o
+  vibrazioni di un'attività produttiva presenta l'**esposto al Comune**, che
+  può chiedere all'**ARPA** la misura strumentale (Lombardia, L.R. 16/1999;
+  Veneto; Marche; Toscana; Puglia; FVG). E la frase che cambia il delta:
+  **«la normativa italiana non tratta la matrice vibrazioni, quindi non ci
+  sono valori limite da verificare»** — il fenomeno vibratorio è di solito
+  accompagnato dal rumore, per cui il Comune è competente. I limiti che si
+  usano sono **norme tecniche di riferimento**, non legge. *[risultati di
+  ricerca: arpalombardia.it, arpa.marche.it, arpat.toscana.it,
+  arpa.veneto.it, arpa.puglia.it, arpa.fvg.it]*
+- **La norma tecnica per gli edifici**: UNI 9916:2014 (in accordo con ISO
+  4866) — criteri di misura e valutazione degli effetti delle vibrazioni sugli
+  edifici, con l'obiettivo dichiarato di **dati comparabili** su uno stesso
+  edificio in tempi diversi o su edifici diversi a parità di sorgente; il
+  parametro è la **velocità di picco lungo i tre assi**, gamma 0,1–150 Hz;
+  si applica a sorgenti esterne come cantieri e traffico. *[risultati di
+  ricerca: va.mite.gov.it (due approfondimenti sulle vibrazioni),
+  ediliziainrete.it, assoacustici.it, dewesoft.com, indaginidiagnostiche.it]*
+- **Come si gestisce un reclamo per una volata, secondo chi lo fa da anni**
+  (Agg-Net, Quarry Magazine): ogni reclamo si tratta con rispetto e
+  credibilità — «la percezione del reclamante è la realtà effettiva», e
+  liquidarlo senza indagine non soddisfa nessuno anche se i livelli erano nei
+  limiti; si accerta **di che cosa** si lamenta (la maggior parte non
+  distingue vibrazione da sovrappressione aerea); il danno va notificato
+  **subito** e un incaricato va **a casa del reclamante**; il sismografo
+  triassiale (verticale, radiale, trasversale) è la registrazione che regge, e
+  «chi monta il sismografo non è per forza qualificato a interpretarne i
+  risultati»; comunicare coi vicini, programmi di comunità, monitoraggio e
+  **rilievi preventivi**. *[risultati di ricerca: agg-net.com,
+  quarrymagazine.com, uwavems.com, geosonicsvibratech.com,
+  seismicsurveys.com]*
+- **Il rilievo preventivo (pre-blast survey)**: la documentazione dello
+  **stato delle proprietà vicine PRIMA** delle volate — foto o video delle
+  **fessure e dei difetti esistenti** con posizione, lunghezza, ampiezza e
+  tipo; tipo e qualità della costruzione; interno ed esterno, porte, muri,
+  finestre, fondazioni. Secondo un liquidatore assicurativo citato **elimina
+  il 96 % delle richieste pretestuose**; per gli avvocati è «la migliore
+  difesa» contro «la mia casa non aveva crepe prima». *[risultati di ricerca:
+  pitandquarry.com, up.codes, preseis.com, preblast.com, rogerstownsend.com,
+  smithadjusting.com, sgwasa.org, hammondriverholdings.com]*
+
+### Fonti (risultati di ricerca, non lette per intero)
+
+arpalombardia.it · arpa.marche.it · arpat.toscana.it · arpa.veneto.it ·
+arpa.puglia.it · arpa.fvg.it · euroacustici.org · va.mite.gov.it ·
+ediliziainrete.it · assoacustici.it · dewesoft.com · indaginidiagnostiche.it ·
+portaleagentifisici.it · acusticatecnica.it · agg-net.com ·
+quarrymagazine.com · uwavems.com · geosonicsvibratech.com ·
+seismicsurveys.com · pitandquarry.com · up.codes · preseis.com ·
+preblast.com · rogerstownsend.com · smithadjusting.com · sgwasa.org ·
+hammondriverholdings.com · uttamblastech.com.
+
+### Domande per il delta (sul MECCANISMO, non sul nome)
+
+1. Chi compone la relazione per l'ente, e che cosa porta: periodo, punti,
+   letture sui tre assi, soglie con il loro riferimento, taratura, condizioni,
+   da dove vengono i numeri?
+2. Chi mette accanto al reclamo la misura di quel giorno?
+3. Chi sa com'era il ricettore PRIMA delle volate — fessure, foto, chi ha
+   guardato e quando?
+4. Chi scrive la risposta al reclamante, e con quali pezzi?
+5. Chi decide che un limite è «di riferimento» e non «di legge»?
+6. Chi tratta l'esposto al Comune e la misura dell'ARPA?
+
+### Il delta, fatto da chi ha il codice in mano (11/09, verificato contro il commit `7578e26a`)
+
+- **Domanda 1 — C'È.** `grep -cE '^export function
+  (reportConformita|taratureDelReport|coperturaTaratura|condizioniMisura|composizioneProvenienza)'
+  apps/sentinella/sentinella-data.js` → 5: il report per l'ente porta il
+  periodo, i punti col ricettore e la soglia efficace, le letture con la
+  provenienza riga per riga, le tarature del periodo, le condizioni della
+  misura; la pagina lo stampa con le firme «Il direttore responsabile / Il
+  tecnico che ha eseguito la misura» (`grep -c 'Il direttore responsabile'
+  apps/sentinella/index.html` → 1). Niente da aggiungere.
+- **Domanda 2 — C'È, dal mattino.** `grep -c '^export function
+  misureDelGiornoPerReclamo'` → 1 (chiusa dalla ricerca del primo giro,
+  unità della roadmap «Le misure di quel giorno accanto al reclamo»).
+- **Domanda 3 — MANCA, ed è la difesa che il mondo mette per prima.**
+  `grep -ciE 'fessur|crep|sopralluogo|stato di fatto|pre-blast|ante operam'`
+  → 0 e 0 (modulo, pagina). Il ricettore porta `nome, tipo, distanza, classe,
+  soglia, unita, nota` (intestazione del modulo): sa **quanto** è lontano e
+  **quanto** regge, non **com'era** prima che si sparasse. Senza lo stato di
+  fatto, «quella crepa l'avete fatta voi» non ha risposta. **Mancanza
+  confermata, aperta**: un sopralluogo per ricettore (`statoDiFatto`: data,
+  chi, che cosa si è visto — fessure e dove), scritto nella scheda del
+  ricettore, richiamato accanto al reclamo di quel ricettore e nella
+  relazione per l'ente. ⚠️ Le **foto** sono una decisione (dove si tengono,
+  quanto pesano): qui entra il testo, la foto resta dichiarata.
+  ✅ **FATTO lo stesso giorno, unità 97**: `descriviStatoDiFatto`,
+  `statoDiFatto` sul ricettore, form e righe. Prova: `grep -c '^export
+  function descriviStatoDiFatto' apps/sentinella/sentinella-data.js` → 1.
+- **Domanda 4 — MANCA come documento.** `grep -cE '^export function
+  (foglia|testo|lettera)[A-Za-z]*Reclam'` → 0; le occorrenze di «risposta»
+  accanto a «reclamo» (`grep -niE 'rispost.*reclam'` → 2 e 4) sono il tempo
+  di risposta e una frase della pagina. I pezzi esistono tutti — il reclamo,
+  le misure di quel giorno (`misureDelGiornoPerReclamo`), la soglia col suo
+  riferimento (`riferimentoSoglia`), la volata coincidente
+  (`coincidenzaVolata`), lo stato di fatto della domanda 3 quando ci sarà —
+  ma nessuno li compone nella **risposta scritta** che si consegna al
+  reclamante o al Comune. **Mancanza confermata, aperta**: composizione, non
+  calcolo, sullo stampo di `fascicoloIspezione`.
+  ✅ **FATTO lo stesso giorno, unità 97**: `rispostaReclamo` (cinque sezioni,
+  chiusura, firme), foglio dalla riga del reclamo. Prova: `grep -c '^export
+  function rispostaReclamo' apps/sentinella/sentinella-data.js` → 1.
+- **Domanda 5 — C'È.** `grep -c 'daVerificare'` → 3 e `riferimentoSoglia` → 1:
+  ogni preset porta «da verificare: sempre», e la soglia scrive il suo
+  riferimento (UNI 9916 / DIN 4150, `grep -ciE 'DIN ?4150'` → 6 nel modulo).
+  È esattamente la posizione dell'ARPA: riferimento tecnico, non limite di
+  legge. Niente da aggiungere.
+- **Domanda 6 — DICHIARATO, non riaperto.** L'esposto al Comune e la misura
+  dell'ARPA sono la domanda 4 della ricerca del mattino («non è detto che
+  serva»): un reclamo che diventa esposto è un `tipo` o uno `stato` in più, e
+  si decide quando un cliente lo chiede.
+
+**Riassunto** — 2 mancanze **confermate e aperte** (lo stato di fatto del
+ricettore prima delle volate; la risposta scritta al reclamo composta dai
+pezzi esistenti), 1 **dichiarata** (l'esposto), 3 **già a posto** (la
+relazione per l'ente, le misure accanto al reclamo, la soglia dichiarata di
+riferimento).
+
+## Ricerca del 2026-09-11 — terzo giro: la catena di misura — taratura in laboratorio, calibrazione in campo, e quando una misura non vale (il mondo)
+
+*Terzo giro su Sentinella. Strumento: `WebSearch` (sei ricerche); `WebFetch`
+risponde `EGRESS_BLOCKED`: **nessuna fonte letta per intero**, tutto di
+seconda mano dai riassunti. La metà sul delta, sotto, è fatta da chi ha il
+codice in mano.*
+
+### Come va, fuori [tutto di seconda mano]
+
+- **Due cose diverse con nomi che si confondono.** La **taratura** è quella
+  del laboratorio (certificato, tracciabilità ai campioni nazionali, in
+  Italia i laboratori **LAT** accreditati da Accredia), con una **scadenza**;
+  la **calibrazione in campo** è il controllo con un calibratore **prima e
+  dopo ogni ciclo di misura**, che dice se la misura appena fatta vale.
+- **Rumore (fonometro di classe 1)**: il D.M. 16 marzo 1998 (tecniche di
+  rilevamento dell'inquinamento acustico), all. B: strumenti e catena di
+  misura **con certificato di taratura e controllati almeno ogni due anni**;
+  prima e dopo ogni ciclo di misura la catena si controlla con un
+  **calibratore di classe 1**, e la misura è **valida solo se le due
+  calibrazioni differiscono al massimo di 0,5 dB**. Il fonometro di classe 1
+  è quello che la legge italiana pretende per le misure «legali»; la
+  taratura biennale riguarda **tutta la catena** (microfono,
+  preamplificatore, filtri, calibratore).
+- **Vibrazioni (sismografo / geofono)**: la UNI 9916 rimanda alla **verifica
+  annuale** della conformità dei valori letti, come prescritto dal
+  costruttore; per i misuratori di vibrazioni la periodicità di buona
+  pratica è **biennale** (ISO 8041), non fissata da una norma vincolante, e
+  se il costruttore ne indica un'altra vale quella. Gli accelerometri di
+  classe A si tarano ogni due anni, quelli di classe B ogni quattro. La
+  taratura **dell'intera catena** si fa all'inizio e alla fine di ogni ciclo
+  di misura; i laboratori accreditati emettono certificati in **mm/s** con
+  tavola vibrante e campioni tarati.
+- **Che cosa chiede chi controlla** (bandi ARPA, prescrizioni nelle VIA): la
+  strumentazione «tarata secondo ISO 5347 / ISO 16063» con i certificati
+  del costruttore o di un centro che garantisca la tracciabilità; il
+  certificato **allegato** al rapporto di misura.
+- **Il mestiere**: il perito che consegna il rapporto scrive la data e il
+  numero del certificato dello strumento, e per il rumore i due valori del
+  calibratore (prima/dopo) con lo scarto; un ARPA che riceve una misura
+  senza calibrazione registrata la considera **non valida**, non «da
+  verificare».
+
+### Fonti (risultati di ricerca, nessuna letta per intero)
+
+- D.M. 16 marzo 1998, testo: anit.it; arpa.veneto.it; regione
+  Emilia-Romagna (ambiente.regione.emilia-romagna.it); olympus.uniurb.it (id
+  184); inquinamentoacustico.it; bgacustica.it; magistersrl.eu; ingcassella.it
+  «DMA 16 marzo 1998»; normativaitaliana.it.
+- Fonometri di classe 1 e taratura biennale: arwmisure.it (tre pagine);
+  antcoviello.wixsite.com; spectra.it; it.rs-online.com; fonometroclick.com;
+  sonorasrl.com «Taratura dei fonometri»; narkive (lavoro.prevenzione).
+- UNI 9916 e taratura dei sismografi: ediliziainrete.it (UNI 9916);
+  geo-tec.it (UNI 9916:2004, pdf); distad.unimi.it (scheda «sismografo»);
+  ntx-int.com «Calibrazione sismografi»; skylabsrl.it (laboratorio di taratura
+  accreditato per vibrazioni); tecnopenta.com (geofoni); winmasw.com;
+  geomarche.eu; bresciaacusticaenergia.com (norme di riferimento).
+- Periodicità e tracciabilità: portaleagentifisici.it (FAQ B.2 e B.3);
+  consiimpianti.it «La validità del certificato di taratura»; samatools.it;
+  ottouno.it (UNI 11568); va.mite.gov.it (documenti 185695 e 1380967:
+  monitoraggi vibrazionali in VIA); arpa.veneto.it (bando «sistema di
+  monitoraggio vibrazioni»).
+
+### Domande per il delta (sul MECCANISMO, non sul nome)
+
+1. **Chi decide che la taratura di uno strumento è scaduta**, e da dove
+   viene la scadenza (la scrive l'utente dal certificato? l'app propone una
+   periodicità per tipo di strumento?).
+2. **Che cosa conserva del certificato** (ente, numero, tracciabilità) e
+   che cosa ne scrive nel report per l'ente.
+3. **Chi registra la calibrazione in campo** — i due valori prima/dopo — e
+   chi dice se una misura di rumore **vale** (scarto entro il massimo)?
+4. **Una misura presa con lo strumento scoperto** si distingue da una
+   coperta, nel report e nel file?
+
+### Il delta, fatto da chi ha il codice in mano (11/09, verificato contro il commit `747de8a2`)
+
+- **Domanda 1 — C'È, e la scadenza è dell'utente: giusto così.**
+  `statoTaraturaStrumento(punto)` prende l'ultimo certificato e chiede a
+  `statoScadenzaHSE` (in `shared/`, la stessa di Scudo e Campo) se è
+  regolare / in scadenza / scaduto; senza certificati risponde
+  «non-dichiarata», che è un avviso e non un via libera. La data «Valida
+  fino al» la scrive l'utente dal certificato (`tar-scad`), e la pagina non
+  propone una periodicità (`grep -c 'tar-scad").value ='` → solo lo
+  svuotamento del form): coerente col mondo, dove la periodicità «non è
+  fissata da una norma vincolante» e vale quella del costruttore o del
+  certificato. Una proposta per tipo (24 mesi per il fonometro, 12 per il
+  sismografo) sarebbe un numero di seconda mano messo in un campo: **non
+  si fa**, e la riga resta a posto.
+- **Domanda 2 — C'È.** Il certificato porta `{ data, scadenza, ente,
+  certificato, nota }` (il segnaposto dell'ente dice già «Centro LAT n.
+  118»), e `taratureDelReport` lo scrive nel report per l'ente accanto al
+  conto delle letture coperte — senza toccare l'esito sulle soglie, di
+  proposito.
+- **Domanda 3 — MANCA, ed è il delta.** Le letture portano `{ data, ora,
+  valore }` (più frequenza e meteo dove servono); di **calibrazione in
+  campo** non c'è traccia: `grep -ciE 'calibraz|calibrat'` → 4 nel modulo e
+  tutte sulla **legge di sito** di Genesi («legge calibrata»), 0 sulle
+  letture. Quindi per una misura di rumore nessuno sa dire se i due valori
+  del calibratore, prima e dopo, stavano entro lo scarto: la misura entra
+  nel report come valida **perché nessuno ha chiesto**. Il meccanismo per
+  dichiarare una lettura non valida esiste (`annullaLettura` con le
+  `RAGIONI_ANNULLAMENTO`, `letturaValida`, `contaAnnullate` nel report), ma
+  non c'è la domanda. **Mancanza confermata, aperta**: sulla lettura di
+  rumore `calibrazione: { prima, dopo }` in dB (facoltativi); sul punto lo
+  **scarto massimo ammesso** `scartoCalibrazioneDb`, **dichiarato
+  dall'utente dal decreto** (il testo del decreto non è stato letto: il
+  suggerimento dice che il decreto sulle tecniche di rilevamento lo fissa,
+  senza scrivere il numero); `scartoCalibrazione(lettura)` → `{ noto,
+  scartoDb }` e `validitaCalibrazione(lettura, punto)` → valida / non
+  valida (con lo scarto) / non registrata / soglia non dichiarata — mai un
+  verde senza i due numeri; una lettura «non valida» si propone
+  all'annullamento con una ragione nuova `calibrazione`, e il report conta
+  le letture di rumore senza calibrazione registrata accanto alle coperte.
+  ✅ **FATTO l'11/09 (unità 114)**: `scartoCalibrazioneDb` sul punto,
+  `calibrazione: { prima, dopo }` sulla lettura, `scartoCalibrazione` /
+  `validitaCalibrazione` / `contaCalibrazioni` nel modulo, la ragione
+  «calibrazione», la riga nella tabella e il conto nel report (nel periodo).
+- **Domanda 4 — C'È.** `coperturaTaratura(tarature, data)` risponde per
+  ogni lettura coperta / scoperta / prima dello storico / non dichiarata,
+  `contaCoperture` li conta in un posto solo (quattro secchi, perché ne
+  divergevano tre copie), e il file per l'ARPA e il report li scrivono.
+
+**Riassunto** — 1 mancanza **confermata e aperta** (la calibrazione in campo
+delle misure di rumore, con lo scarto massimo dichiarato dall'utente), 3 a
+posto (la scadenza della taratura, il certificato nel report, la copertura
+per lettura), e una proposta **scartata** con la ragione (la periodicità per
+tipo: sarebbe un numero di seconda mano in un campo).
+
+---
+
+## 15/09 — sesto giro di ricerca mirata: trend multi-mese e reclami ricorrenti per punto
+
+*Nota di processo: prodotta da un agente in background isolato in worktree
+(dopo un primo tentativo andato perso per un crash da compattazione del
+contesto dell'agente stesso — nessun difetto del repository, solo un
+limite dell'agente, risolto rilanciandolo). Riverificato di persona sul
+codice vero prima di entrare qui.*
+
+**Delta 1 — CONFERMATO. Il confronto è solo mese-su-mese, mai una serie.**
+`confrontoMesi` (`sentinella-data.js:3887`, che calcola `deltaMedia` e
+`deltaPct` alle righe 3895-3901) confronta sempre e solo il mese in corso
+col mese immediatamente precedente — nessun ciclo su finestre più ampie,
+nessuna media mobile, nessuna distribuzione stagionale. Verificato
+leggendo l'intera funzione: `p = new Date(o.getFullYear(), o.getMonth() -
+1, 1)` è l'unico mese di confronto possibile. Un punto le cui volate si
+stanno avvicinando sistematicamente alla soglia nell'arco di 4-5 mesi (mai
+superandola in un singolo mese) non riceve nessun segnale — ogni confronto
+vede solo l'ultimo gradino, mai la salita.
+
+**Delta 2 — CONFERMATO. I reclami non si aggregano per punto.**
+`riepilogoReclami` (`sentinella-data.js:3584`) restituisce `totale`,
+`aperti`, `ultimo` e (dall'11/09) i tempi di risposta — ma nessun
+raggruppamento per `ricettoreId`. Un tecnico non può chiedere "questo
+ricettore si lamenta sempre?" al sistema: dovrebbe scorrere l'elenco a
+mano. Verificato: la funzione non contiene `ricettoreId` da nessuna parte
+nel suo corpo.
+
+**Costo indicativo** (stima dell'agente, non verificato): medio per il
+trend multi-mese (serve iterare su N finestre invece di una fissa, più la
+UI per mostrarle), piccolo per l'aggregazione reclami per punto (un
+`reduce` in più sopra dati già esistenti).
+
+**Riassunto** — 2 lacune **confermate** (nessuna delle due esisteva prima:
+`confrontoMesi` e `riepilogoReclami` sono entrambe funzioni mature,
+verificate anche nei giri di ricerca precedenti su Sentinella per altri
+scopi, e in nessuno di quei giri era stato notato il limite a due mesi o
+l'assenza di aggregazione per punto).
+
+---
+
+## 15/09 — settimo giro di ricerca mirata: catena di custodia e attributione delle modifiche
+
+*Nota di processo: Il tema affronta un requisito legale (chi ha modificato la soglia il 10/09 alle 14:30?) rilevante per le dispute con i ricettori. Ricerca sulla pratica mondiale di audit trail in software di monitoraggio ambientale, seguito da verifica del codice Sentinella. Nessun git.*
+
+**PASSO 2 — il mondo: come la pratica professionale traccia le modifiche**
+
+Ricerca su audit trail in software di monitoraggio ambientale per cave/miniere:
+
+1. **Compliance software LIMS (Laboratory Information Management Systems)** per ambienti minerari:
+   - OnLIMS (per laboratori di mining): "audit trails, status controls, historical QC record retention, electronic sample locks" — ogni modifica registra timestamp E credenziali autenticate dell'operatore [dedotto da risultati ricerca, non documento primario consultato];
+   - Quentic (piattaforma cloud-based per dati ambientali, permessi, documenti): documentazione descrive "audit-ready deliverables" e traccia delle modifiche con ruoli/utenti [dedotto];
+   - KPMIS (consulting-backed suite per compliance mineraria): offre "audit trails, emissions tracking" con tracciamento delle operazioni [dedotto].
+
+2. **Monitoraggio vibrazioni in campo**: Instantel e Sigicom (i due leader mondiali, ricerca confermata) distribuiscono monitor (Micromate, Minimate Pro, INFRA C22) con cloud connectivity per "remote management" e "post-processing". La ricerca non ha esplicitato se tracciano user attribution su modifiche da remoto, ma il linguaggio "remote management" implica accesso autenticato (utente + sessione).
+
+3. **Standard di settore**: ISO 9916 (vibrazione, edifici) e UNI 9916 non contengono nel loro standard formale il requisito di audit trail esplicito, ma la pratica professionale di "chain of custody" in laboratori di mining — come descritto dai sistemi LIMS — è universale: ogni trasferimento/modifica registra timestamp + operatore.
+
+**Riassunto metà 1 — il mondo** [dedotto, non primary source]:
+- Professional LIMS systems registrano **chi** ha fatto una modifica, **quando** e spesso **come** (quale valore era, quale è diventato);
+- Questo è lo standard per difendersi legalmente quando il ricettore contesta una misura o una decisione di soglia;
+- La pratica è quasi universale in software di compliance per ambienti minerari/estrattivi.
+
+---
+
+**PASSO 3 — il delta: che cosa manca a Sentinella**
+
+Verifica nel codice di Sentinella:
+
+```bash
+$ grep -n "chi\|utente\|user\|who" apps/sentinella/sentinella-data.js | head -20
+```
+
+Risultato: i commenti del file DESCRIVONO l'attesa di un campo `chi`:
+- Riga 15: `statoDiFatto?: { data (ISO), chi, note } — il sopralluogo`
+- Riga 20-21: `reclami/{id}: { data, ora, tipo, ricettoreId, chi, descrizione, ...}`
+
+Ma il codice REALE non lo implementa. Controllando la struttura `origine` (dove si traccia la provenienza di una lettura):
+
+```javascript
+// Letture importate:
+origine: { da: "import", file: "V1_giugno.csv", quando: "2026-07-01T08:42:00" }
+
+// Letture manuali con correzione:
+origine: { da: "manuale", quando: "2026-06-27T17:10:00", corretta: { quando: "2026-06-28T08:30:00", prima: 4.2 } }
+
+// Nessun campo "chi" in nessun caso
+```
+
+La funzione `correggiLettura(l, nuovo, quando)` (riga 2737) accetta solo timestamp, non utente. Nessun parametro `chi` nella firma; il timestamp viene scritto in `origine.corretta.quando` ma non chi l'ha fatto.
+
+Inoltre:
+- `annullaLettura(l, perche, quando)` (riga 2915): registra il motivo, il timestamp, ma non l'operatore.
+
+⛔ **CORREZIONE (15/09, riverifica di persona prima di scrivere la
+decisione)**: `statoDiFatto(ricettore, data, chi, note)` **non è una
+funzione** — `grep -n "function statoDiFatto"
+apps/sentinella/sentinella-data.js` → zero occorrenze. `statoDiFatto` è
+un CAMPO del ricettore (`{data, chi, note}`, dichiarato nel commento
+dello schema a riga 15), e il suo `chi` è già scritto e persistito: la
+pagina lo legge da un input libero (`#rec-... `→ `sdfChi`) e lo salva nel
+record (`index.html:6080`, `sentinella-data.js:817-818`). Lo stesso vale
+per i reclami: hanno GIÀ un campo `chi` (riga 20 dello schema,
+`index.html:6108` → `$("rec-chi").value`) — ma è **chi ha SEGNALATO** il
+reclamo (un nome del ricettore, es. "Sig. Bianchi", "Direzione
+scolastica"), non l'operatore interno che ha chiuso o modificato la
+pratica. La distinzione fra le due cose resta vera e regge il delta
+(nessuna funzione traccia l'operatore INTERNO che corregge una lettura,
+cambia una soglia o chiude un reclamo) — solo l'affermazione specifica
+sulla funzione inesistente era sbagliata.
+
+**Delta confermato — Sentinella traccia QUANDO ma non CHI:**
+
+1. Tutte le modifiche hanno `quando` (timestamp ISO);
+2. Nessuna ha `chi` (l'operatore che l'ha fatta);
+3. Il campo `chi` di `statoDiFatto` e dei reclami esiste ed è persistito, ma è **chi ha SEGNALATO** (il ricettore), non l'operatore interno — vedi la correzione qui sopra;
+4. Correzioni, annullamenti, soglie cambiate, reclami chiusi — nessuno registra l'utente.
+
+**Impatto legale** (il perché conta):
+- Ricettore contesta: "Avete cambiato la soglia da 5 a 6 mm/s il 10/09 alle 14:30 per nascondere il superamento";
+- Risposta oggi: "Abbiamo il timestamp 2026-09-10T14:30:00, ma non sappiamo chi l'ha fatto — era uno dei 3 tecnici, e nessuno ricorda";
+- Risposta in un sistema con audit trail: "L'ingegnere Rossi (credenziali utente ROS_2026) ha cambiato la soglia il 10/09 alle 14:30:23 da 5 a 6 mm/s. Prima lettura con nuova soglia: 6,2 mm/s il 12/09."
+
+Questo è la ragione per cui ogni LIMS professionale lo traccia.
+
+**Costo indicativo**: medio-grande. Richiede:
+- Aggiungere `chi` (o `idUtente`, `emailUtente`) ai parametri di ogni funzione che modifica dati (correggiLettura, annullaLettura, cambio soglia, chiusura reclamo, stato di fatto);
+- Persistenza: scrivere il campo nei dati memorizzati (Firestore);
+- Fonte: leggere l'identità dall'SDK di deepwork-id al momento della modifica (presumibilmente disponibile in `orgCollection`);
+- UI: mostrarla nei dettagli della lettura, della soglia, del reclamo (chi l'ha modificato, quando);
+- Report: opzionalmente un export per audit esterno ("storico completo delle modifiche a ricettore X dal 01/01/2026").
+
+**Riassunto** — 1 lacuna **confermata** (Sentinella traccia i timestamp delle modifiche ma non l'operatore). Il delta è legittimo: è uno standard di settore, richiesto dalle dispute legali, e implementato da tutti i software LIMS professionali. La pratica mondiale lo tiene come standard per "chain of custody". Verificato non primario (la ricerca non accedeva ai documenti tecnici ufficiali di OnLIMS/Quentic/KPMIS, solo a descrizioni marketing e risultati ricerca web), ma il principio è coerente e il motivo è tangibile.
+
+---
+
+## 15/09 — ottavo giro di ricerca mirata: le condizioni meteo nella valutazione di un superamento (vento sulle polveri, inversione termica sul rumore, terreno saturo sulle vibrazioni)
+
+*Metodo «prima il mondo, poi la nostra app». Strumento: `WebSearch` (tre
+ricerche, tutte hanno risposto); `WebFetch` non è stato provato in questo
+giro — per lo stesso limite già misurato più volte in questo file
+(`EGRESS_BLOCKED` su dominio generico), si presume valga ancora e non si
+ripete la prova. **Nessuna fonte è stata letta per intero**: ogni riga sul
+mondo è di seconda mano, dai riassunti dei risultati di ricerca.*
+
+**Punto 1 del protocollo — che cosa esiste già, dichiarato prima di
+proporre.** La ricerca del 05/09 (sezione qui sopra, «le condizioni meteo
+della misura») ha già costruito: cinque campi meteo facoltativi sulla
+lettura (`vento`, `ventoDa`, `pioggia`, `temperatura`, `umidita`), un
+giudizio di validità **solo sul rumore** (`misuraFuoriCondizioni`: vento
+oltre 5 m/s o pioggia → misura non valida per il DM 16/03/1998, All. B),
+l'import da file con `proponiColonneMeteo`, e ha **deliberatamente
+escluso** un verdetto «sottovento» sulle polveri perché servirebbe la
+posizione della sorgente rispetto al ricettore, che l'app non ha. Questo
+giro **non ripete** quella domanda (l'attribuzione di un PM10 misurato alla
+sorgente): guarda una domanda diversa e più stretta — se le condizioni
+meteo cambiano l'**urgenza della risposta operativa** a un superamento già
+misurato, e se lo fanno anche per rumore e vibrazioni, non solo per la
+validità del rumore.
+
+### PASSO 1 — il mondo [tutto di seconda mano, WebSearch]
+
+- **Polveri — TARP (Trigger Action Response Plan).** Le miniere che fanno
+  monitoraggio in tempo reale usano un TARP dinamico: un sistema di supporto
+  alla decisione che combina le letture di polvere in tempo reale con le
+  condizioni meteo locali (vento, temperatura, umidità) per **prevenire un
+  superamento prima che avvenga**, non solo per giudicarlo dopo. Quando il
+  vento o la quantità di particolato superano una soglia di innesco, può
+  essere necessario **alterare o sospendere le operazioni** per proteggere
+  la popolazione vicina; alcuni sistemi sono cablati per innescare
+  automaticamente la soppressione polveri (nebulizzatori) al superamento di
+  un livello predeterminato. *[risultati di ricerca: envirosuite.com (quattro
+  pagine, tra cui una specifica sui TARP), aeroqual.com, metone.com,
+  makesafetyeasy.com — nessuna letta per intero]*
+- **Rumore — inversione termica.** Di sera il gradiente di temperatura si
+  inverte (più freddo al suolo): il suono si piega verso il basso e torna a
+  terra lungo percorsi che in condizioni diurne normali si perdono in cielo,
+  risultando in livelli **più alti** alla posizione dell'ascoltatore. È una
+  condizione **comunissima**, presente in quasi tutte le notti calme e
+  serene. Il rumore di una cava/miniera può così essere regolarmente
+  udibile a **5 km o più** in quelle condizioni. Temperatura e gradiente del
+  vento insieme possono spostare il livello misurato fino a **20 dB**
+  rispetto a quanto la sola distanza predirebbe — una differenza enorme (20
+  dB ≈ un fattore 100 in energia sonora). Le condizioni notturne favorevoli
+  alla propagazione sono: atmosfera stabile, umidità alta, forte inversione
+  termica, forte wind shear. *[risultati di ricerca: hbkworld.com (Brüel &
+  Kjær), abdengineering.com, mocpa.com, iere.org, train-horn.com — nessuna
+  letta per intero]*
+- **Vibrazioni — condizioni del terreno.** La velocità di picco (PPV) si
+  attenua secondo un andamento logaritmico con la distanza, e quanto si
+  attenua dipende dallo spessore del suolo e dalla presenza di uno strato di
+  roccia alterata; passando da roccia a terreno la PPV verticale **cala del
+  37,2%** all'interfaccia roccia-suolo. Un peso specifico del suolo più alto
+  riduce le sollecitazioni indotte e la PPV per maggiore smorzamento; una
+  falda più profonda **aumenta** invece spostamenti e PPV. Cioè le
+  condizioni del terreno — di cui l'umidità/saturazione è una componente —
+  cambiano la propagazione in entrambe le direzioni a seconda del caso, non
+  in una sola. *[risultati di ricerca: sciencedirect.com (due articoli),
+  researchgate.net, mdpi.com — nessuna letta per intero, solo abstract/estratti]*
+
+### PASSO 2 — il delta: verifica nel codice (15/09, contro il commit `a06c7830`)
+
+Comandi eseguiti e uscite reali:
+
+```
+$ grep -c 'vento' apps/sentinella/sentinella-data.js
+71
+$ grep -c 'meteo' apps/sentinella/sentinella-data.js
+13
+$ grep -c 'direzioneVento' apps/sentinella/sentinella-data.js apps/sentinella/index.html
+apps/sentinella/sentinella-data.js:2
+apps/sentinella/index.html:0
+$ grep -c 'condizioniMeteo' apps/sentinella/sentinella-data.js apps/sentinella/index.html
+apps/sentinella/sentinella-data.js:0
+apps/sentinella/index.html:0
+```
+
+`condizioniMeteo` non esiste come nome: il nome vero, trovato leggendo il
+file, è `condizioniMisura` (`grep -c 'condizioniMisura'
+apps/sentinella/sentinella-data.js apps/sentinella/index.html` → 3 e 4) —
+è la quarta causa di falso «non c'è» di CLAUDE.md (cercare la parola del
+mondo invece del meccanismo) presa e corretta sul nascere, non subita.
+
+```
+$ grep -n 'tipo !== "rumore"' apps/sentinella/sentinella-data.js
+2852:  if (tipo !== "rumore") return vuoto;
+4227:  if (tipo !== "rumore") return { pertinente: false, giudicabile: false, fuori: false, breve: "", motivo: "" };
+4242:  if (tipo !== "rumore") return { pertinente: false, totale: L.length, fuori: 0, dentro: 0, nonGiudicabili: 0 };
+```
+
+Le tre righe sono `contaCalibrazioni` (2852, sul calibratore — non c'entra
+col meteo), `misuraFuoriCondizioni` (4227) e `contaFuoriCondizioni` (4242).
+**Ogni** giudizio meteo che l'app sa dare è gated su `tipo === "rumore"`:
+per vibrazioni e polveri, `misuraFuoriCondizioni` torna sempre
+`pertinente: false` a prescindere da che cosa contiene la lettura.
+
+E il modulo di lettura registra vento/pioggia/temperatura/umidità **per
+qualunque tipo di punto**, non solo per il rumore: il form «Registra
+misura» (`apps/sentinella/index.html:1317-1334`) è lo stesso form per
+rumore, vibrazioni e polveri (`mis-sensore` sceglie il punto, i campi meteo
+sono sempre visibili sotto), e `condizioniMisura(l)` (riga 4208) legge
+`vento`, `ventoDa`, `pioggia`, `temperatura`, `umidita` dalla lettura senza
+mai guardare il tipo del punto — la selezione per tipo avviene **dopo**,
+solo dentro `misuraFuoriCondizioni`. Quindi oggi un tecnico può registrare
+«PM10 36,8, vento 12 m/s da Sud (verso l'abitato Sud)» o «PPV 4,2 dopo tre
+giorni di pioggia» e l'app li scrive, li mostra nella riga, li mette nel
+CSV — e non ne fa **nulla**: nessuna funzione li rilegge per giudicare
+niente su quei due tipi.
+
+Confermato anche per la temperatura/umidità **su ogni tipo, rumore
+compreso**:
+
+```
+$ grep -n '\.temperatura\b' apps/sentinella/sentinella-data.js
+1525:    ...colTemp: INDIZI_METEO.temperatura...   (mappatura colonne import)
+4213:  const temperatura = numeroDichiarato(x.temperatura);   (dentro condizioniMisura, solo per comporre il TESTO)
+```
+
+Nessun'altra occorrenza. `temperatura` e `umidita` sono lette **una sola
+volta**, dentro `condizioniMisura`, e servono solo a costruire la frase
+mostrata a schermo (`testo`); nessuna funzione di giudizio (`misuraFuoriCondizioni`
+compresa) le rilegge mai per decidere niente — nemmeno per il rumore, dove
+la norma citata nel commento del modulo riguarda solo vento e pioggia.
+
+### Il delta
+
+**Delta 1 — CONFERMATO. Le polveri non hanno nessuna nozione di urgenza
+legata al vento**, mentre il mondo (TARP) la costruisce apposta per
+decidere se sospendere un'attività polverosa in corso.
+- **Schermata**: Quadro e scheda del punto polveri (es. «Polveri PM10 —
+  confine Est»), quando una lettura è registrata con vento sostenuto.
+- **Che cosa non va**: un superamento di soglia PM10 registrato con vento
+  forte in atteggiamento dispersivo verso un ricettore e uno registrato in
+  calma piatta ricevono la **stessa** riga, lo stesso colore, lo stesso
+  posto in `superamentiAperti` (ordinato solo per `valore/soglia`, verificato
+  leggendo la funzione a riga 4033 del modulo). Il mondo tratta questi due
+  casi in modo diverso: il primo giustifica una sospensione immediata delle
+  attività polverose, il secondo no.
+- **Come si vede**: si registra una lettura di polveri sopra soglia con
+  `vento` alto (es. 12 m/s) e una identica con `vento` basso (es. 0,5 m/s):
+  in `superamentiAperti` compaiono con lo stesso `st.cls: "danger"` e lo
+  stesso ordinamento per ratio, nessun segno le distingue.
+- **Quanto costa** (stima non verificata): piccolo-medio. Non servirebbe
+  ricostruire il verdetto «sottovento» già scartato (quello vorrebbe la
+  geometria sorgente-ricettore, che manca): basterebbe una soglia di **sola
+  velocità del vento** dichiarata sul punto polveri (come già esiste
+  `scartoCalibrazioneDb` per il rumore), e una bandiera «vento sostenuto
+  durante il superamento» sulla riga del `superamentiAperti`, senza calcolare
+  nessuna direzione — un fatto in più da leggere, non un verdetto nuovo da
+  inventare.
+- **Come si misura**: si registrerebbe con `funzione(vento, sogliaVento) →
+  { sopraSoglia, breve }` pura, provabile in `run-kpi.mjs` senza browser,
+  sullo schema delle funzioni meteo già esistenti (`misuraFuoriCondizioni`).
+
+**Delta 2 — CONFERMATO. Il rumore non tiene conto delle condizioni che
+favoriscono la propagazione (inversione termica).** `temperatura` e
+`umidita` sono raccolte e mostrate ma **mai lette da nessun giudizio**
+(vedi grep sopra): l'app oggi può solo dire «vento/pioggia fuori norma →
+misura NON valida», mai «condizioni favorevoli alla propagazione → una
+lettura conforme oggi potrebbe non esserlo in una notte calma e serena».
+- **Schermata**: scheda del punto rumore, riga della lettura con condizioni
+  registrate di notte, calma, cielo sereno (vento basso, umidità alta).
+- **Che cosa non va**: una lettura fatta di giorno con vento moderato che
+  risulta «dentro soglia» non dice niente su una notte calma, dove — per il
+  mondo — lo stesso rumore può propagarsi fino a 20 dB più lontano. L'app
+  non lo segnala mai: il campo che servirebbe (temperatura, umidità, ora)
+  esiste già ma non è collegato a nessun avviso.
+- **Come si vede**: `misuraFuoriCondizioni` con una lettura che ha
+  `temperatura: 8, umidita: 90, vento: 0.3` (condizioni da manuale da
+  inversione termica) torna lo stesso esito di una lettura diurna e ventosa
+  purché entrambe rispettino il limite di 5 m/s e assenza di pioggia:
+  nessuna delle due riceve un avviso diverso.
+- **Quanto costa** (stima non verificata, e onestamente incerta): questa è
+  la proposta più delicata delle tre, perché il mondo non dà una soglia
+  numerica netta («inversione sì/no») paragonabile ai 5 m/s del DM
+  16/03/1998 — è un fenomeno che si riconosce (notte, cielo sereno, vento
+  debole) più che si misura con un singolo numero. Un avviso **descrittivo**
+  («condizioni tipiche da inversione termica: vento debole, notte — una
+  lettura conforme oggi non garantisce le stesse condizioni sfavorevoli»),
+  senza toccare l'esito di conformità, sarebbe piccolo; un calcolo che
+  stimi l'entità dell'effetto sarebbe grande e vorrebbe dati che l'app non
+  ha (gradiente termico verticale, non solo la temperatura al suolo).
+- **Come si misura**: una funzione pura `condizioniFavorevoliPropagazione(l)`
+  che guarda ora (notte, se registrata), vento basso, umidità alta e torna
+  un avviso testuale, mai un blocco — sullo stesso principio prudente di
+  `AVVISO_COINCIDENZA` per le volate (si dichiara la correlazione, mai la
+  causa).
+
+**Delta 3 — PARZIALMENTE CONFERMATO, e corregge una deduzione precedente
+non verificata.** La ricerca del 05/09 scriveva, marcata come *deduzione*:
+«nessuna condizione meteo invalida una misura di PPV; il vento forte può
+muovere il geofono mal accoppiato, ma è un problema d'installazione, non
+una soglia». Il mondo (ricerca vera, non deduzione, di questo giro) dice
+di più: le condizioni del **terreno** — di cui l'umidità è una componente —
+cambiano davvero la propagazione fisica della vibrazione (fino al 37% in
+meno passando da roccia a suolo; falda più profonda e suolo più denso
+spingono la PPV in direzioni opposte). Non è un problema di installazione:
+è fisica dell'attenuazione. La deduzione del 05/09 resta corretta
+sull'esito pratico («nessuna condizione invalida la misura come per il
+rumore» — qui non c'è un DM che fissa un limite di vento per le vibrazioni)
+ma sbagliava la ragione.
+- **Schermata**: scheda del punto vibrazioni, dopo una pioggia prolungata o
+  un periodo di siccità, quando la PPV di uno stesso punto cambia
+  sensibilmente a parità di carica esplosiva dichiarata.
+- **Che cosa non va**: `condizioniMisura` accetta pioggia anche su una
+  lettura di vibrazioni (il form è generico, vedi sopra), ma nessuna
+  funzione la rilegge: un salto di PPV dopo giorni di pioggia (terreno più
+  saturo) non ha nessun contesto scritto accanto, mentre per il rumore un
+  meccanismo di "condizione registrata" (seppure diverso) già esiste.
+- **Come si vede**: `grep -n 'pertinente: false' apps/sentinella/sentinella-data.js`
+  (righe 4227 e 4242 già citate) — la pioggia registrata su una lettura di
+  vibrazioni non entra in nessun conto, nemmeno descrittivo.
+- **Quanto costa** (stima non verificata): piccolo. Non un giudizio di
+  validità (il mondo non lo prevede per le vibrazioni, a differenza del
+  rumore), ma una riga di contesto pura sullo schema di `coincidenzaVolata`:
+  «pioggia registrata nei N giorni precedenti» accanto a una PPV anomala,
+  mai un blocco.
+- **Come si misura**: funzione pura che conta i giorni di pioggia registrati
+  sulle letture precedenti dello stesso punto, provabile senza browser.
+
+**Riassunto** — 3 delta, **nessuno già coperto** (verificato: i tre gate
+`tipo !== "rumore"` a riga 2852/4227/4242 sono le uniche porte che il
+giudizio meteo attraversa, e temperatura/umidità non sono mai lette per un
+verdetto nemmeno sul rumore). Il delta 1 (polveri/vento/urgenza) e il delta
+3 (vibrazioni/terreno) sono proposte di **contesto descrittivo**, non di
+nuove soglie — coerenti con la scelta già presa il 05/09 di non inventare
+verdetti che l'app non ha i dati per sostenere. Il delta 2 (rumore/inversione
+termica) è il più fondato dal mondo (fonte tecnica specializzata, non
+marketing) ma anche il più difficile da tradurre in un numero, ed è scritto
+come tale: un avviso descrittivo, non un calcolo.
+
+---
+
+## 16/09 — nono giro di ricerca mirata: catena di custodia dello STRUMENTO ed escalation sui superamenti RIPETUTI
+
+*Metodo «prima il mondo, poi la nostra app». Strumento: solo `WebSearch`
+(quattro ricerche, tutte hanno risposto); `WebFetch` non è stato provato —
+per il limite già misurato più volte in questo file (`EGRESS_BLOCKED`), si
+presume valga ancora. **Nessuna fonte è stata letta per intero**: ogni riga
+sul mondo è di seconda mano, dai riassunti dei risultati di ricerca.*
+
+**Punto 1 del protocollo — che cosa esiste già, dichiarato prima di
+proporre.** Questo giro **non ripete** la parte di catena di custodia già
+coperta il 15/09 (settimo giro, sezione qui sopra) e già in
+`docs/DECISIONI_WEEKEND.md` §24 come decisione **aperta**: Sentinella
+registra `quando` su ogni correzione/annullamento di lettura ma non `chi`
+(l'operatore interno); il `chi` che esiste già (`statoDiFatto`, reclami) è
+chi ha SEGNALATO, non chi ha modificato. Non riscrivo quella lacuna qui.
+Sono già verificati e restano veri: `coperturaTaratura`,
+`statoTaraturaStrumento`, `contaCoperture`, `taratureDelReport`, il CSV
+andata/ritorno delle tarature (`parseTaratureCsv`/`abbinaTarature`),
+`reportConformita` a quattro esiti, `allerteTaratura` (ricerca del 02/09).
+Questo giro guarda due domande **diverse**, mai poste prima in questo
+file: (a) la taratura è legata a un **punto di misura**, o a uno
+**strumento con un'identità propria** (numero di serie) che può muoversi
+fra punti? (b) un **pattern** di superamenti ripetuti sullo stesso
+ricettore genera un'escalation automatica, o ogni superamento resta un
+evento isolato?
+
+### PASSO 1 — il mondo [tutto di seconda mano, WebSearch]
+
+- **Catena di custodia a livello di strumento.** I LIMS ambientali per il
+  settore minerario estendono la catena di custodia (chain of custody, COC)
+  fino al campo con moduli eCOC, app mobile di raccolta dati e
+  identificazione del campione/evento per QR o barcode; ogni **trasferimento
+  di custodia** viene registrato elettronicamente con timestamp e
+  **credenziali utente autenticate**, e il rilievo di campo cattura
+  coordinate GPS, condizioni ambientali, **letture dello strumento di
+  campo** e firma digitale. [seconda mano: labmanager.com «Environmental Lab
+  LIMS: Chain of Custody Automation for Field Sample Compliance»,
+  qi-a.com «Managing Chain-of-Custody in Field Sampling with Environmental
+  LIMS», onlims.com «From Sample Reception to Certificate: Chain of Custody
+  as the Operating Backbone of a Mining Laboratory LIMS» — nessuna letta
+  per intero]. Il denominatore comune delle tre fonti è che l'identità
+  tracciata è quella dello **strumento usato per quel singolo prelievo/
+  evento**, non quella del punto/postazione dove si trova.
+- **Escalation per violazioni ripetute — il modello «Enforcement Response
+  Plan» (ERP).** Un ERP è un documento che applica un'escalation coerente
+  e crescente man mano che le violazioni si accumulano: il percorso tipico
+  parte da una comunicazione informale o lettera di avviso, passa per la
+  notifica di violazione formale, un piano di adeguamento (compliance
+  schedule), un **monitoraggio intensificato**, un ordine amministrativo,
+  penali, fino alla modifica o sospensione del permesso nei casi più gravi
+  o ripetuti. Un violatore recidivo o negligente richiede una risposta più
+  severa; per un ente che comunica una violazione ripetuta della stessa
+  fonte, la prassi è **citare esplicitamente gli episodi precedenti**
+  invece di ripartire da zero ogni volta. [seconda mano: mod-eng.com
+  «Enforcement Response Plans: How Texas POTWs Escalate Pretreatment
+  Violations», tceq.texas.gov «EPA Drinking Water Enforcement Response
+  Policy» — nessuna letta per intero; il modello ERP nasce per scarichi
+  idrici/pretrattamento, non per volate/rumore, quindi il trasferimento al
+  settore estrattivo è un'analogia, non un fatto verificato per il nostro
+  dominio]
+- **Escalation automatica nel software di compliance ambientale generico.**
+  Sistemi più avanzati automatizzano compiti ricorrenti, individuano il
+  lavoro in ritardo, instradano le eccezioni e fanno salire il rischio di
+  visibilità lungo la catena di comando; un esempio concreto citato è una
+  policy a tre soglie temporali — escalation al supervisore dopo 24 ore, al
+  responsabile EHS dopo 72 ore, al direttore di sito dopo 7 giorni — per
+  garantire che le scadenze di una prescrizione non vengano perse. Un altro
+  sistema (Cority, citato dal risultato di ricerca) fa scattare workflow di
+  notifica e obblighi documentali specifici del permesso quando un operatore
+  registra un superamento o rilascio segnalabile. [seconda mano:
+  sbnsoftware.com «How Does Automation Reduce Overdue Corrective Actions?»,
+  99pt5.com «8 Best Environmental Compliance Management Software»,
+  aethair.io «EHS Compliance Reporting Guide» — nessuna letta per intero.
+  Nessuna fonte trovata cita testualmente una soglia «3 superamenti in 30
+  giorni»: è verosimile che sia specifica di ogni autorizzazione/permesso, non
+  uno standard universale — coerente con quanto già scritto il 05/09 sulla
+  cadenza dei rapporti («la cadenza è una prescrizione dell'autorizzazione,
+  caso per caso»)]
+- **TARP (Trigger Action Response Plan) per le miniere**: già citato il
+  15/09 per le polveri; un esempio concreto documentato per la stabilità dei
+  fronti (Bingham Canyon Mine) mostra un TARP con soglie multiple crescenti
+  ("trigger levels") ognuna collegata a un'azione operativa diversa, non a
+  un singolo superamento isolato — cioè il principio "più soglie superate =
+  risposta più severa" è già un pattern noto nel settore minerario, anche se
+  per un fenomeno diverso (movimento di versante). [seconda mano:
+  researchgate.net / papers.acg.uwa.edu.au, «Trigger action response plan
+  development and optimisation at the Bingham Canyon Mine» — solo abstract/
+  riassunto, non il testo completo]
+
+**Riassunto metà 1 — il mondo** [tutto seconda mano]:
+- la catena di custodia professionale lega l'identità allo **strumento del
+  singolo evento**, non al punto fisso;
+- l'escalation per violazioni ripetute è un modello **a gradini** (ERP):
+  ogni gradino cita gli episodi precedenti ed è più severo del precedente;
+  non è stato trovato un numero universale («3 in 30 giorni») — è materia
+  di prescrizione, non di standard;
+  i software generalisti implementano escalation **basate sul tempo**
+  (SLA/scadenza non rispettata), non ancora trovata una fonte che descriva
+  un'escalation basata sul **conteggio** di eventi ripetuti su uno stesso
+  punto/ricettore.
+
+### PASSO 2 — il delta: verifica nel codice (16/09, contro il commit `e82d36ec`)
+
+**(a) L'identità dello strumento è quella del punto di misura, non una
+identità propria.**
+
+```
+$ grep -ciE 'numeroSerie|matricola|serieStrumento' apps/sentinella/sentinella-data.js
+0
+$ grep -n "function chiaveStrumento" -A3 apps/sentinella/sentinella-data.js
+2163:function chiaveStrumento(s) {
+2164-  return String(s == null ? "" : s).trim().toLowerCase().replace(/\s+/g, " ");
+2165-}
+```
+
+`chiaveStrumento` normalizza il **nome del punto di misura** (`m.nome`,
+letto da `abbinaTarature`, riga 2196: `agg(chiaveStrumento(nome), ...)`),
+non un campo distinto «strumento». Le `tarature` sono un array dentro il
+`punto` (`sentinella-data.js:59-74`, dati demo: `tarature: [{data, scadenza,
+ente, certificato, nota}]`) — nessun numero di serie, marca o modello. Il
+commento del codice (righe 2169-2183) **dichiara la scelta a proposito**:
+«un punto di misura non è un'etichetta: porta una soglia», e vieta di
+creare un punto fantasma dal solo nome di un certificato. La scelta di
+disegno regge per lo scopo per cui è nata (non inventare un punto/soglia da
+un CSV amministrativo), ma **non copre** il caso — comune nel mondo, dove lo
+strumento viaggia (labmanager.com, qi-a.com) — in cui lo **stesso**
+fonometro o sismografo, con lo **stesso** certificato di taratura, viene
+usato su **più punti diversi** in date diverse: oggi andrebbe registrata la
+stessa taratura a mano su ogni punto che lo strumento visita, e non c'è
+modo di dire «questi tre punti, in queste date, hanno usato lo stesso
+strumento fisico» — solo che ognuno ha una taratura valida per conto suo.
+Non è la stessa lacuna del §24 (chi ha modificato il dato): qui il dato
+manca dalla nascita, nessuna funzione lo calcola né lo espone.
+
+**(b) Nessuna funzione conta i superamenti ripetuti su una finestra
+mobile né per ricettore, e nessuna genera un'escalation.**
+
+```
+$ grep -ciE 'escalat|recidiv|reiterat' apps/sentinella/sentinella-data.js
+0
+$ grep -ciE 'superamentiUltimi|finestraMobile|rolling' apps/sentinella/sentinella-data.js
+0
+$ grep -n "function bozzaAzioneSuperamento" -A20 apps/sentinella/sentinella-data.js | grep -ciE "priorit|storico|conta|precedent"
+0
+```
+
+Verificato leggendo le funzioni, non solo il grep:
+- `statPeriodo(m, dal, al, soglia)` (riga 3930) **sa** contare i superamenti
+  di UN punto in un periodo esplicito (`v.filter(x => x >= s).length`), ma
+  vuole `dal`/`al` passati da chi chiama — non c'è una finestra «ultimi 30
+  giorni da oggi» calcolata da sola, e lavora su un punto alla volta;
+- `confrontoMesi` (riga 3948) confronta mese corrente e mese precedente
+  (`deltaSuperamenti`), non una finestra mobile, e resta per punto;
+- `andamentoRicettore` (riga 3977) aggrega i punti di **un** ricettore ma
+  restituisce, per ognuno, il proprio `confronto` mensile separato — non
+  somma i superamenti dei punti del ricettore in un unico conto, e non
+  produce nessuna bandiera «pattern» o «recidiva»;
+- `superamentiAperti` (riga 4057) elenca solo i superamenti **aperti ORA**
+  (stato corrente "danger"), ordinati per gravità del singolo valore — un
+  superamento chiuso ieri e uno di tre mesi fa non lasciano traccia in
+  questa lista;
+- `bozzaAzioneSuperamento` (riga 4084, il ponte verso Scudo) genera la bozza
+  di un'azione correttiva **per singolo superamento aperto**: nessun
+  parametro guarda quanti se ne sono già avuti sullo stesso ricettore, e
+  quindi nessuna azione nasce con priorità più alta o testo diverso perché
+  «è la terza volta in un mese».
+
+Cioè i mattoni per COSTRUIRE il conteggio esistono (`statPeriodo` sul
+periodo, `andamentoRicettore` sull'aggregazione per ricettore), ma **manca
+la finestra mobile**, **manca la somma fra i punti di uno stesso
+ricettore in un numero unico**, e **manca il collegamento fra quel numero
+e una decisione operativa** (priorità dell'azione, avviso diverso a
+schermo, testo che cita gli episodi precedenti come fa un ERP).
+
+### Il delta
+
+**Delta 1 — CONFERMATO. Nessuna identità propria dello strumento,
+distinta dal punto di misura.** Il modello attuale è corretto per lo scopo
+per cui è stato scritto (una soglia appartiene sempre a un punto, mai a un
+pezzo di ferro), ma non distingue «taratura del punto» da «taratura dello
+strumento fisico che in quel momento sta su quel punto». Per una cava che
+usa uno stesso fonometro certificato su più postazioni a rotazione (pratica
+comune, secondo le fonti LIMS) oggi la app non ha modo di dirlo.
+- **Costo (stima non verificata)**: medio. Non tocca l'esito di
+  conformità: aggiungerebbe un campo facoltativo `strumento: {nome,
+  matricola}` alla taratura (già un oggetto, righe 1955-1962), e una
+  funzione pura che raggruppi le tarature per matricola invece che per
+  punto — utile SOLO se un domani serve rispondere «questo strumento, con
+  questa matricola, ha certificati validi su quali punti e quando».
+- **Come si misura**: `grep -n "matricola"` dopo l'unità; prova di andata e
+  ritorno che due punti condividano la stessa matricola con date diverse e
+  il conto li tenga distinti dal certificato-per-punto attuale.
+- ⚠️ **Non è un cantiere ovvio**: prima di costruirlo andrebbe chiesto se
+  le cave clienti tengono davvero strumenti itineranti o uno strumento fisso
+  per punto (il secondo caso rende il delta teorico). Nessuna fonte di
+  questo giro lo conferma per il settore estrattivo specificamente — è
+  un'inferenza dal mondo dei LIMS di laboratorio, dichiarata come tale.
+
+**Delta 2 — CONFERMATO, ed è il più fondato dei due. Un pattern di
+superamenti ripetuti sullo stesso ricettore non genera nessuna escalation,
+né a schermo né nell'azione correttiva.**
+- **Schermata**: Quadro / Monitoraggi — un ricettore con un superamento
+  isolato tre mesi fa e uno con tre superamenti nell'ultimo mese ricevono
+  la stessa riga in `superamentiAperti` se il valore corrente è lo stesso:
+  solo `st.ratio` (quanto il valore attuale supera la soglia) decide
+  l'ordine, mai la frequenza.
+- **Che cosa non va**: il mondo (ERP, TARP) tratta un evento isolato e un
+  pattern ripetuto come **due severità diverse** — il secondo giustifica un
+  monitoraggio intensificato, una comunicazione che cita gli episodi
+  precedenti, un'azione con priorità più alta. Sentinella tratta ogni
+  superamento come indipendente dal suo passato.
+- **Come si vede**: registrare tre letture sopra soglia sullo stesso
+  ricettore in 20 giorni e una quarta lettura sopra soglia isolata su un
+  ricettore diverso, mai misurato prima: in `superamentiAperti` e nella
+  bozza d'azione generata da `bozzaAzioneSuperamento` le due situazioni
+  producono testo e priorità **identici** a parità di rapporto valore/
+  soglia.
+- **Quanto costa** (stima non verificata): medio. Non un nuovo giudizio di
+  conformità (quello resta quello che è: superato o no), ma una funzione
+  pura aggiuntiva, sullo schema di `statPeriodo`/`andamentoRicettore` già
+  esistenti — es. `superamentiUltimiGiorni(monitoraggi, ricettoreId, oggi,
+  finestraGiorni)` che somma i superamenti di TUTTI i punti di quel
+  ricettore nella finestra mobile e torna `{n, soglia: es. 3, pattern:
+  n >= soglia}` — e una bandiera che `bozzaAzioneSuperamento` legga per
+  scrivere «è il terzo superamento negli ultimi 30 giorni su questo
+  ricettore» nel testo dell'azione, sullo stesso principio prudente già
+  usato per `AVVISO_COINCIDENZA` (si dichiara il fatto, non si inventa una
+  causa). La soglia numerica (quanti giorni, quanti superamenti) **non va
+  presa dal mondo di questo giro** — nessuna fonte ha dato un numero
+  universale — va dichiarata come parametro configurabile, non cablata.
+- **Come si misura**: funzione pura provabile in `run-kpi.mjs` senza
+  browser; controprova che, tolta la finestra mobile, tre superamenti
+  distanziati di sei mesi non vengano contati come pattern.
+
+**Riassunto** — 2 delta, **entrambi confermati e nessuno già coperto** (il
+grep su escalation/recidiva/matricola dà zero, e le tre funzioni più vicine
+— `statPeriodo`, `confrontoMesi`, `andamentoRicettore` — sono state lette
+riga per riga, non solo cercate per nome, per escludere che il conto
+esistesse già sotto un altro nome). Il delta 2 (escalation su pattern) è il
+più fondato e il più vicino al linguaggio già usato in Sentinella (si
+appoggia a funzioni che esistono già); il delta 1 (identità dello
+strumento) è più incerto perché nessuna fonte conferma che il caso d'uso
+(strumento itinerante) sia comune nel settore estrattivo specifico — va
+verificato con il fondatore o con un cliente prima di costruirlo, non
+dedotto dal mondo dei laboratori.
+
+
+**✅ 16/09 — il delta 2 (escalation sui superamenti ripetuti) è stato implementato**, riverificato indipendentemente riga per riga prima di scrivere codice: commit `747d6431`. `superamentiUltimiGiorni` in `sentinella-data.js`, `bozzaAzioneSuperamento` reso pattern-aware, badge nel ponte. Il caso non è nella dimostrazione reale (zero superamenti aperti oggi, misurato) — verificato iniettando un punto/ricettore nel browser, mai sul file su disco (`tests/browser/sentinella-escalation-superamenti.mjs`).
+
+**⏸️ Il delta 1 (identità dello strumento) NON è stato implementato**, di proposito: la ricerca stessa lo dichiara incerto (nessuna fonte conferma strumenti itineranti nel settore estrattivo specifico). Diventato la decisione 28 in `docs/DECISIONI_WEEKEND.md`, in attesa di conferma del fondatore prima di costruirlo.
+
+---
+
+## 16/09 — censimento a doppio punto di chiamata (quarto difetto vero trovato con lo stesso metodo nello stesso giorno, dopo Campo, Terra, Conti)
+
+⛔ **Trovato: `db.aggiungi("adempimenti", ...)` perdeva `periodoMesi`/
+`giorniConsegna` sull'import CSV.** `parseAdempimentiCsv`
+(`sentinella-data.js:965-988`) legge correttamente le due colonne
+facoltative (test già esistenti, righe 33568-33585) — ma il gestore che
+scrive DAVVERO nel database dopo l'import (`$("ade-file").onchange`,
+`index.html:5509-5537`) chiamava `db.aggiungi("adempimenti", { titolo:
+r.titolo, ente: r.ente, scadenza: r.scadenza })`, senza `r.periodoMesi`
+né `r.giorniConsegna` — pur essendo entrambi già presenti sull'oggetto
+`r` restituito dal parser. La registrazione manuale (`btn-ade`,
+`index.html:5443-5447`) li scrive già.
+
+**Effetto verificato leggendo il consumatore**: `periodoAdempimento`
+(`sentinella-data.js:3231-3253`) tratta `periodoMesi` assente come
+`motivo: "senza-periodicita"`, `noto: false`. Sullo schermo la riga
+dell'adempimento mostra «periodo coperto non dichiarato» invece del
+periodo vero, e il bottone «Prepara il report» **si rifiuta di partire**
+(`index.html:4909-4911`, `if (!p.noto) { toast(...); return; }`) con lo
+stesso messaggio di un adempimento mai compilato — anche se il file del
+consulente dichiarava fedelmente «trimestrale, consegna 30 giorni».
+
+**Corretto** (commit da verificare nel prossimo checkpoint): aggiunte le
+due chiavi alla chiamata di import. Nessuna normalizzazione a `null`
+necessaria (a differenza del fix su Terra): `parseAdempimentiCsv`
+restituisce sempre le due chiavi con un valore — un numero o `null`,
+mai `undefined` — quindi `r.periodoMesi`/`r.giorniConsegna` sono già
+sicuri per `addDoc` di Firestore.
+
+**Test aggiunto**: `run-kpi.mjs`, "⛔ Sentinella · il ponte
+periodoMesi/giorniConsegna è wired ANCHE sull'import CSV" — con
+controprova (rimesse le due chiavi, il test cade).
+
+**Candidati scartati dallo stesso censimento** (famiglia Flotta, non
+regressioni): monitoraggi manuale vs CSV import differiscono di
+`ricettoreId`/`sogliaPreset`/`scartoCalibrazioneDb` contro `tipo`/`nota`,
+ma non esiste nessun `csvMonitoraggi` esportatore — il formato CSV non è
+mai stato progettato per portare quei campi; la registrazione manuale di
+una taratura omette `nota` che l'import CSV porta, ma il form manuale non
+ha nemmeno il campo `#tar-nota` — il dato non è mai stato raccolto, non
+perso in transito.
+
+⚠️ **Nota di metodo, per chi continuerà questo censimento su altre app**:
+il metodo ha ora trovato **quattro difetti veri su cinque tentativi**
+(Campo, Terra, Conti, Sentinella sì; Flotta no, con la ragione distinta).
+La domanda che separa un difetto vero da un falso allarme è sempre la
+stessa: *il campo mancante è genuinamente disponibile su quel percorso
+(un lettore CSV lo parsa, o lo stato della pagina lo tiene), o non è mai
+esistito lì* — e la risposta va letta nel codice del lettore/parser, non
+dedotta dal nome delle chiavi.
+
+---
+
+## 17/09 — decimo giro di ricerca mirata: la VISITA dell'ispettore (non lo strumento, non il reclamo — l'evento del controllo ricevuto)
+
+*Metodo «prima il mondo, poi la nostra app». Strumento: solo `WebSearch`
+(due ricerche, entrambe hanno risposto); `WebFetch` non è stato provato —
+per il limite già misurato più volte in questo file (`EGRESS_BLOCKED`), si
+presume valga ancora. **Nessuna fonte è stata letta per intero**: ogni riga
+sul mondo è di seconda mano, dai riassunti dei risultati di ricerca.*
+
+### Che cosa esiste già (dichiarato prima di proporre — letto l'intero file)
+
+Ho letto per intero questo documento (1647 righe, dieci giri precedenti)
+prima di scegliere l'angolo. Riassunto di ciò che i giri precedenti hanno
+già costruito o già escluso, per non riproporlo:
+
+- soglie con preset e `daVerificare` sempre vero, `sogliaEfficace`, «norma
+  di riferimento» accanto al numero nel report (02/09, 11/09 secondo giro);
+- taratura in laboratorio (`coperturaTaratura`, `statoTaraturaStrumento`,
+  CSV andata/ritorno) e calibrazione in campo del rumore
+  (`validitaCalibrazione`, `scartoCalibrazioneDb`, 11/09 terzo giro);
+- il «diario»: registro volate + comunicazioni fatte (`descriviComunicazione`),
+  reclami con misure del giorno collegate (`misureDelGiornoPerReclamo`),
+  tempo di risposta (`tempoRispostaReclamo`, `apertoDaGiorni`), stato di
+  fatto pre-blast del ricettore (`descriviStatoDiFatto`), risposta scritta
+  al reclamante (`rispostaReclamo`), mitigazioni lette dal ponte con Scudo
+  (`rispostaSuperamento`) — tutto dal 05/09 e 11/09;
+- l'«esposto» al Comune/ARPA: dichiarato assente e **di proposito non
+  costruito** finché un cliente non lo chiede (11/09 secondo giro,
+  domanda 6);
+- le condizioni meteo sulla lettura e il loro uso solo per il rumore
+  (15/09 ottavo giro);
+- il confronto solo mese-su-mese e i reclami non aggregati per ricettore
+  (15/09 sesto giro — **confermati, non ancora implementati**: verificato
+  di nuovo oggi, `confrontoMesi` a riga 3977 e `riepilogoReclami` a riga
+  3639 sono immutati da quel giro; non li ripropongo qui, sono già in
+  questo file);
+- l'audit interno di **chi** modifica un dato (07/15 settimo giro,
+  `DECISIONI_WEEKEND.md` §24, aperta) — **diverso** da quello che guardo
+  oggi: quello è «chi dei nostri tecnici ha cambiato la soglia», questo è
+  «chi è venuto da fuori a controllarci e che cosa ha scritto»;
+- l'identità propria dello strumento (matricola) e l'escalation sui
+  superamenti ripetuti (16/09 nono giro): la seconda **implementata**
+  (`superamentiUltimiGiorni`, commit `747d6431`), la prima sospesa in
+  `DECISIONI_WEEKEND.md` §28.
+
+Nessuno di questi dieci giri ha guardato **l'ispezione ricevuta come
+evento**: la visita di un tecnico ARPA o della polizia mineraria, che cosa
+scrive, e se lascia una prescrizione con un termine.
+
+### PASSO 1 — il mondo [tutto di seconda mano, WebSearch]
+
+- **Il verbale di ispezione contiene osservazioni, prescrizioni, richieste
+  di regolarizzazione e, nei casi più gravi, le violazioni contestate.**
+  Quando l'ispezione rileva violazioni sanzionabili in via amministrativa,
+  gli ispettori notificano una **diffida**: la regolarizzazione delle
+  violazioni sanabili va fatta entro **30 giorni** dalla notifica del
+  verbale. Diffida e procedimento sanzionatorio sono di norma notificati
+  nello stesso atto. Se le violazioni sono rimosse entro i 30 giorni, si
+  paga la sanzione ridotta (il minimo di legge, o un quarto se il
+  pagamento avviene entro ulteriori **15 giorni**). Le prescrizioni sono
+  talvolta atti preparatori a provvedimenti successivi (revoca,
+  ordinanza). *[seconda mano: conflavoro.it «Ispezione in azienda: diffida
+  e prescrizione obbligatoria»; questi termini (30+15 giorni) vengono
+  dalla disciplina generale delle sanzioni amministrative (L. 689/1981),
+  non da una norma specifica delle cave — si applicano perché è quel
+  regime a coprire le violazioni ambientali accertate in sede ispettiva,
+  ma il numero esatto va riverificato sul testo prima di scriverlo in una
+  schermata]*
+- **La polizia mineraria ispeziona senza preavviso** per verificare il
+  rispetto delle norme tecniche, l'osservanza del regolamento di polizia
+  mineraria e l'attuazione delle misure di sicurezza; può emettere
+  provvedimenti, verbali di violazione, ordini di esecuzione immediata,
+  sequestri e prescrizioni con le relative sanzioni fino all'estinzione
+  della violazione. *[seconda mano: cittametropolitana.mi.it
+  «Polizia mineraria»]*
+- **Prima della visita l'ufficio esamina il registro dei rapporti e annota
+  sul registro l'avvenuto esame** — fatto già trovato e scritto il 05/09
+  (secondo giro), qui confermato dalla stessa fonte e non riverificato con
+  una ricerca nuova.
+
+### PASSO 2 — il delta: verifica nel codice (17/09, contro il commit `cbfc2f2f`)
+
+```
+$ grep -ciE "prescrizion|diffida" apps/sentinella/sentinella-data.js apps/sentinella/index.html
+apps/sentinella/sentinella-data.js:5
+apps/sentinella/index.html:2
+```
+
+Le sette occorrenze sono state lette tutte (non solo contate): tutte e
+sette parlano delle prescrizioni **dell'autorizzazione** (AUA/AIA/VIA) come
+contesto per capire da dove viene una soglia («da verificare sulla norma e
+sulle prescrizioni»), mai di una prescrizione **scritta da un ispettore
+durante una visita**. Nessuna è una falsa negativa da correggere: il
+significato è proprio quello, verificato leggendo le righe 1243, 1315,
+1320, 3192, 4039 di `sentinella-data.js` e 4038, 6032 di `index.html`.
+
+```
+$ grep -ciE "\bverbale\b" apps/sentinella/sentinella-data.js apps/sentinella/index.html
+apps/sentinella/sentinella-data.js:2
+apps/sentinella/index.html:0
+```
+Le due occorrenze (righe 5313, 5445) parlano del verbale del fochino sulla
+volata (dopo-sparo), non di un verbale ricevuto da un ente.
+
+```
+$ grep -ciE "\besame\b|esaminat" apps/sentinella/sentinella-data.js apps/sentinella/index.html
+apps/sentinella/sentinella-data.js:0
+apps/sentinella/index.html:1
+```
+Zero nel modulo dati. L'unica occorrenza nella pagina non riguarda un
+esame ispettivo (verificato aprendo la riga).
+
+```
+$ grep -noE "^export function [A-Za-z]*(([Ii]spe)|([Cc]ontroll)|([Vv]isit))[A-Za-z]*" apps/sentinella/sentinella-data.js
+(nessuna riga)
+```
+Nessuna funzione esportata contiene «ispe», «control» o «visit» nel nome.
+L'unico uso di «ispezione» nel file (9 occorrenze, tutte lette: righe 225,
+237, 4207, 4836, 4857, 4882, 4918, 5361×2, 5375) è il **dopo-volata del
+fochino** — l'ispezione dell'area subito dopo lo sparo per le mancate
+esplosioni (`sopralluogo/anomalie` sulla scheda della volata) — una cosa
+completamente diversa: è un controllo interno della cava sulla propria
+volata, non una visita di un ente esterno.
+
+E il campo «sopralluogo» che l'app conosce già (`statoDiFatto`,
+11/09) è anche lui un'altra cosa: è il rilievo **preventivo** dello stato
+di un edificio prima delle volate, con `chi` = chi ha fatto il
+sopralluogo per conto della cava — non una visita ricevuta.
+
+**Conclusione della verifica**: Sentinella ha tre concetti distinti che
+condividono parole simili nel mondo («ispezione», «verbale», «sopralluogo»)
+— il dopo-sparo del fochino, il sopralluogo preventivo del ricettore, e il
+report periodico per l'ente — ma **nessuno dei tre è «la visita che un
+tecnico ARPA o della polizia mineraria fa in cava»**, con la sua data, chi
+è venuto, che cosa ha guardato, che cosa ha scritto (osservazione,
+prescrizione, nessun rilievo) e — se c'è una prescrizione — il termine per
+regolarizzare e se è stato rispettato. Questo è un evento diverso da un
+reclamo (non parte da un cittadino), diverso da una scadenza di adempimento
+(non è una cosa che la cava deve mandare a una data fissa, è una cosa che
+un ente fa arrivare quando vuole), e diverso dalla taratura (non riguarda
+uno strumento).
+
+### Candidato (formato richiesto)
+
+| Schermata | Che cosa non va | Come si vede | Quanto costa | Come si misura |
+|---|---|---|---|---|
+| **Nuova sezione «Controlli ricevuti» (o dentro Adempimenti/Reclami come terza collezione)** | Non esiste in Sentinella un posto dove registrare che un ente (ARPA, polizia mineraria, Comune) è venuto in cava, che cosa ha guardato, e se ha lasciato una prescrizione con un termine. Oggi l'unico modo per tenerne traccia è una nota fuori dall'app — o infilarla a forza nel campo «azione» di un reclamo che non è nato da un reclamo. | `grep -ciE "prescrizion\|diffida" apps/sentinella/sentinella-data.js apps/sentinella/index.html` → 5 e 2, **tutte e sette lette**: parlano delle prescrizioni dell'autorizzazione (il contesto della soglia), mai di una prescrizione ricevuta durante una visita. `grep -ciE "\besame\b\|esaminat"` → 0 e 1 (la sola occorrenza non è pertinente). Nessuna funzione esportata contiene «ispe/control/visit» nel nome (`grep -noE "^export function [A-Za-z]*(([Ii]spe)\|([Cc]ontroll)\|([Vv]isit))[A-Za-z]*" apps/sentinella/sentinella-data.js` → nessuna riga). | Medio: una collezione nuova `controlli/{id}` con `{data, ente (ARPA/polizia mineraria/Comune/altro), chi (il funzionario, se noto), cosaHaGuardato (testo libero o riferimento ai punti), esito (nessun rilievo / osservazione / prescrizione), prescrizione: {testo, termineGiorni, scadeIl}, riscontroInviato: {data, testo} }`; una funzione pura `statoControllo(c, oggi)` sul modello già usato per gli adempimenti/tarature (in termine, in scadenza, scaduto — mai un giudizio di conformità, solo di **termine**, perché se il riscontro è stato dato o no non lo sa dedurre l'app); una riga nel Quadro quando c'è una prescrizione col termine in scadenza (stesso principio del fondatore: assenza di riscontro registrato non è «riscontro dato»). Il report periodico per l'ente potrebbe elencare i controlli ricevuti nel periodo, sullo schema già usato per «Volate del periodo» — ma questo è un secondo passo, non il primo. |
+
+**Nota sui numeri di legge**: i 30 e i 15 giorni citati sopra (L. 689/1981,
+via fonte secondaria) **non vanno scritti in nessuna schermata** finché non
+si legge il testo primario — è la stessa cautela già applicata a ogni altro
+numero di norma in questo file. Il campo `termineGiorni` andrebbe lasciato
+**libero**, scritto da chi registra il controllo leggendo il termine reale
+indicato nel verbale ricevuto (che può variare per tipo di violazione o per
+prescrizione specifica), non precompilato con un numero di seconda mano.
+
+### Fonti
+
+- https://www.conflavoro.it/ispezione-azienda-diffida-prescrizione/ — contenuto del verbale, diffida, termine di 30 giorni per la regolarizzazione, sanzione ridotta entro ulteriori 15 giorni [seconda mano, generico ispezioni non specifico cave]
+- https://www.cittametropolitana.mi.it/ambiente/guida_autorizzazioni_ambientali/imprese_enti/attivita_estrattiva/Polizia-mineraria — ispezioni senza preavviso, provvedimenti, verbali di violazione, prescrizioni con sanzioni [seconda mano, ente]
+
+**Riassunto** — 1 mancanza **confermata**: Sentinella non ha un concetto di
+«controllo/ispezione ricevuta dall'esterno» distinto dai tre concetti simili
+che già possiede (dopo-sparo del fochino, sopralluogo preventivo del
+ricettore, report periodico programmato). Il delta è verificato per
+meccanismo (nessuna funzione, nessuna collezione, sette occorrenze di
+parole vicine tutte lette e tutte pertinenti a un contesto diverso), non
+dedotto dal nome. Costo stimato medio, non verificato da un'implementazione;
+nessun numero di legge proposto per l'inserimento diretto — solo un campo
+libero, sul principio già adottato in questo file per ogni cifra di seconda
+mano.
+
+---
+
+## Ricerca del 2026-09-19 — taratura degli strumenti: gestione della scadenza retroattiva e incertezza di misura
+
+**Nessuna pagina primaria è stata letta. Le soglie, i criteri e i processi dichiarati qui vengono da risultati di ricerca (`WebSearch`), UNI CEI EN ISO/IEC 17025 citata di seconda mano, e descrizioni commerciali di software. Nel prodotto nulla di quanto segue entra senza la lettura del testo primario (ISO/IEC 17025:2017, norme tecniche UNI 9916).**
+
+### Il mondo: come gestiscono i software di monitoraggio ambientale la taratura
+
+#### 1. Validità retroattiva delle misure quando la taratura scade
+
+**ISO/IEC 17025:2017** [seconda mano, da Quality Magazine, Lab Manager]: richiede ai laboratori accreditati di documentare l'incertezza di misura per ogni calibrazione e di mantenerla entro tolleranze dichiarate. Un certificato di taratura ha una **data di validità** (data inizio: quando lo strumento è stato tarato; data di scadenza: quando la taratura perde validità). Una volta scaduta la taratura, i dati precedenti (misurati mentre lo strumento era tarato) **restano validi nella loro forma storica**: sono stati presi con uno strumento certificato al momento della misura. Ciò che cambia è la **fonte di errore del nuovo dato**: se si continua a usare uno strumento con taratura scaduta per misure nuove, quelle nuove non possono essere dichiarate come "riferibili" finché non si ri-taratura.
+
+**Implicazione pratica** [da pratica di laboratori accreditati citata di seconda mano]: Il report di conformità dichiara separatamente (1) la conformità ai limiti normativi (il dato in sé), e (2) la riferibilità metrologia del dato (chi l'ha misurato e con quale strumento certificato). Le misure vecchie rimangono conformi/non-conformi nel primo senso; nel secondo senso escono una dichiarazione di copertura metrologia: "misurato con strumento tarato" (sì/no), "misura coperta da certificato valido alla data" (sì/no), "prima della prima taratura registrata" (sì/no).
+
+#### 2. Incertezza di misura e confronto con soglia
+
+**ISO/IEC 17025:2017 / GUM (Guide to the Expression of Uncertainty in Measurement)** [seconda mano, da ISOBudgets, Lab Manager]: ogni certificato di taratura riporta una **expanded uncertainty** (U), calcolata applicando un coverage factor (solitamente k=2 per 95% di confidenza). Esempio: un sismografo taraturato ha una expanded uncertainty di ±0,5 mm/s sul valore misurato.
+
+**Test Uncertainty Ratio (TUR)** [seconda mano, da Fluke]: il confronto fra il valore misurato e la soglia normativa deve tenere conto dell'incertezza — il rapporto TUR = (tolleranza della soglia) / (incertezza dello strumento). Se TUR < 4, il margine è stretto e il controllo richiede una revisione; se TUR < 1, il controllo non è affidabile. Esempio: se la soglia è 5 mm/s (tolleranza ±0) e l'incertezza è ±0,5 mm/s, il valore misurato "4,8 mm/s" **potrebbe essere conforme (4,8+0,5=5,3 > 5) o non conforme (4,8-0,5=4,3 < 5)** a seconda di dove cade il valore vero entro la banda di incertezza — il giudizio è "incerto", non "sicuro".
+
+**Pratica in software commerciali** [da descrizioni di Instantel/Blastware, Syscom SCS, Sigicom INFRA]: i sistemi dichiarano la measured value ± uncertainty nel file esportato (es. `4.8 ± 0.5 mm/s`). Il software può colorare il risultato in tre modi: (a) **verde conforme** se anche il limite inferiore (valore - incertezza) è sotto soglia; (b) **rosso non conforme** se anche il limite superiore (valore + incertezza) è sopra soglia; (c) **giallo incerto** se l'intervallo di incertezza attraversa la soglia.
+
+### Che cosa esiste già in Sentinella
+
+#### Validità retroattiva della taratura
+
+✅ **Esiste e è solido**: la funzione `coperturaTaratura(tarature, dataISO)` [riga 1998 di sentinella-data.js] controlla se la data di una singola lettura cade nell'intervallo di validità del certificato (fra `t.data` e `t.scadenza`). I certificati hanno la struttura:
+```
+{ data: "2026-02-10", scadenza: "2027-02-09", ente: "Centro LAT n. 118", certificato: "LAT 118-2026/441", nota: "..." }
+```
+
+La funzione ritorna uno stato fra: **"coperta"** (lettura entro il certificato valido), **"scoperta"** (lettura dopo scadenza / fra due certificati), **"prima-dello-storico"** (lettura prima del primo certificato registrato), **"non-dichiarata"** (nessun certificato registrato).
+
+Il report contiene una sezione «Riferibilità delle misure» che dichiara il conto: coperte, scoperte, non dichiarate — per il report all'ente. `contaCoperture(tarature, letture)` [riga 2059] fa questo conto.
+
+✅ **Gestione della retroattività**: una lettera **non viene invalidata** se il certificato scade dopo che è stata registrata. Il report dichiara il suo stato di copertura al momento della misura (coperta/scoperta). Il dato rimane nel database e nel report — non viene cancellato o marcato come "non confidabile" retroattivamente — ma il suo status metrologia passa da "coperta" a "scoperta" se la taratura scade nel frattempo.
+
+#### Incertezza di misura
+
+❌ **Non esiste**: il certificato di taratura **non contiene un campo per l'incertezza di misura** (expanded uncertainty, coverage factor k). Il CSV di import/export ha colonne: strumento, data, scadenza, ente, certificato, nota — punto. [Grep: `grep -oE "^\s*const \[.*\] = parseCsvLine\(.*taratura" apps/sentinella/sentinella-data.js | head -1` → `const [strumento, dataRaw, scadRaw, ente, certificato, nota] = parseCsvLine(x.testo);` riga 2171 — sei campi, niente incertezza.]
+
+```bash
+grep -oE "incertezza|uncertainty|expanded|coverage\s*factor" apps/sentinella/sentinella-data.js
+```
+→ **0 occorrenze**.
+
+❌ **Nessun confronto fra incertezza e soglia**: non esiste una funzione che dichiari "la soglia è dentro / fuori / incerta rispetto all'incertezza dello strumento". Il report dichiara "conforme / non conforme" senza annotare se il valore è sufficientemente distante dalla soglia per renderlo sicuro o "borderline".
+
+### Il delta concreto (verificato per meccanismo)
+
+| Schermata | Che cosa non va | Come si vede | Quanto costa | Come si misura |
+|---|---|---|---|---|
+| **Import / Anagrafica tarature** | Il certificato di taratura non registra l'incertezza dichiarata nel documento cartaceo o PDF del laboratorio accreditato. Il tecnico ambientale ha davanti il certificato con scritto "Incertezza: ± 0,3 mm/s" ma non ha un posto dove registrarlo nell'app — né come numero, né come nota a testo libero. | CSV import (T1): colonne attuali sono `strumento;data;scadenza;ente;certificato;nota` — niente di incertezza. Anagrafica manuale della taratura: campi `data`, `scadenza`, `ente`, `certificato`, `nota` — niente incertezza. | Piccolo (aggiungere un campo facoltativo al CSV e alla form, riesportare nel CSV di conformità) | (1) Contare i campi del CSV e della form della taratura in sentinella-data.js e index.html. `grep "data.*scadenza.*ente" apps/sentinella/sentinella-data.js` → trovare `parseTaratureCsv` e contare gli elementi di `parseCsvLine(x.testo)`: sei oggi, sette se si aggiunge incertezza. (2) Aggiungere un campo testuale `incertezza` (es. "±0,3 mm/s" come testo, NON come numero — il laboratorio lo dichiara in unità miste) e riesportare con `csvTarature`. |
+| **Report di conformità / Esito borderline** | Una lettura con valore `5,2 mm/s ± 0,3` e soglia `5 mm/s` è tecnicamen‌te "non conforme" (5,2 > 5), ma entro l'incertezza potrebbe essere conforme (5,2 - 0,3 = 4,9 < 5). Il report dichiara "non conforme" senza avvertire che il valore è "borderline" — è una misura che merita revisione del limite o del metodo, non una condanna sicura. | Report per l'ente: una riga dice `Valore: 5,2 mm/s · Soglia: 5 mm/s · Stato: Non conforme`. Non è detto "Incertezza: ± 0,3 mm/s", e se il tecnico che legge il report non ha il certificato in mano non sa che il margine è di 0,2 mm/s (stretto). | Medio (aggiungere una funzione `statoConIncertezza(valore, incertezza, soglia)` che ritorni conforme/incerto/non-conforme; aggiornare il CSV di conformità e il report) | (1) Nel modulo, trovare la funzione che giudica conforme/non-conforme (es. `reportConformita`, riga ~). `grep -n "conforme\|non-conforme" apps/sentinella/sentinella-data.js | head -10` → trovare i punti di giudizio. (2) Aggiungere un caso intermedio "incerto" quando `valore - incertezza < soglia < valore + incertezza` e dichiararlo nel testo del report (non solo nel colore, anche verbale). |
+
+### Note sulla fonte e sulla non-implementazione
+
+**Normative non lette**: ISO/IEC 17025:2017, UNI 9916:2004 (taratura sismografi e scelta della frequenza). La ricerca ha trovato (di seconda mano) che:
+- La norma ISO richiede la dichiarazione di incertezza; 
+- La pratica commerciale (software Instantel, Syscom) include expanded uncertainty negli export;
+- La legge italiana sulla riferibilità metrologia (catena metrologica verso INRIM/NIST) esiste e la usa ARPA nei laboratori LAT, ma il testo normativo non è stato letto qui.
+
+**Decisione**: i campi `incertezza` e `statoConIncertezza` non entrano nel prodotto finché:
+1. Non si legge il testo primario di ISO/IEC 17025 e UNI 9916 per capire se l'incertezza della taratura si applica alle soglie normative (oppure è un dato informativo, o richiede conversione);
+2. Non si decide se il tecnico ambientale ha il certificato scansionato in app per leggerlo, o se scrive manualmente il numero — il CSV potrebbe leggerlo male e la forma libera potrebbe leggere "±0,3 mm/s" come un numero solo.
+3. Non si verifica su un caso reale se un laboratorio accreditato ARPA-convenzionato fornisce il dato di incertezza in forma coerente (tutti dicono "incertezza", "expanded uncertainty", "UMS"? C'è un formato?).
+
+**Fonti (tutte [seconda mano])**
+
+- https://www.labmanager.com/uncertainty-in-measurement-training-program-16756 — ISO/IEC 17025 e incertezza di misura
+- https://www.fluke.com/en-us/learn/blog/calibration-software/uncertainty-analysis — Test Uncertainty Ratio (TUR)
+- https://www.qualitymag.com/articles/98235-how-to-read-and-interpret-iso-iec-17025-calibration-certificates — lettura di certificati accreditati
+- https://www.isobudgets.com/how-to-report-uncertainty-in-measurement/ — extended uncertainty k=2
+- https://www.marposs.com/eng/news/calibration-center-accredited-according-to-uni-cei-en-iso-iec-17025-2018 — accreditamento UNI CEI EN ISO/IEC 17025:2018 (variante italiana)
+
+**Riassunto** — 1 mancanza **confermata**: Sentinella gestisce bene la scadenza della taratura e la validità retroattiva delle misure (ogni lettura sa se era coperta da un certificato valido al suo momento), **ma non registra l'incertezza dichiarata dal certificato, e non la usa per marccare risultati "borderline" fra conforme e non conforme**. Il delta è verificato per meccanismo (`grep` su `parseTaratureCsv`, sul CSV export, su `reportConformita` — nessuna funzione con "incertezza" nel nome) e non dedotto dal nome. I due candidati (aggiungere campo incertezza, aggiungere stato "incerto") hanno costi piccolo e medio; l'implementazione richiede la lettura del testo di ISO/IEC 17025 e un caso reale da testare — non numeri di seconda mano.

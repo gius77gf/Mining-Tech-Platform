@@ -63,6 +63,11 @@ const DIFETTI_PAGINA = [
   // 1 · la riga dello scadenzario tace sul periodo coperto
   ['<div class="ade-per${per.noto ? "" : " ignoto"}">${\n        per.noto ? `copre ${fmtD(per.dal)} → ${fmtD(per.al)}` : "periodo coperto non dichiarato"}</div>',
    '<div class="ade-per">${"" && per}</div>'],
+  // 6 · la provenienza torna alla negazione (15/09, dal delta su PAROLE) —
+  //     quinto in DIFETTI_PAGINA, quindi --difetto=5 lo isola (il "2" di
+  //     DIFETTI_MODULO viene dopo, in coda a TUTTI)
+  [`+ "). Periodo ricavato dalla scadenza del "`,
+   `+ "). Le date non sono state scelte a mano: si ricavano dalla scadenza del "`],
 ];
 /* 2 · il periodo si conta in giorni (la `PERIODICITA` del programma) invece
    che in mesi di calendario: il trimestre comincia il 3 luglio, non il 1°.
@@ -244,7 +249,18 @@ console.log("\n· il bottone porta al Report con le due date già nei campi");
     dice(/Periodo dell'adempimento «Verifica fonometrica semestrale»: dal 01\/04\/2026 al 30\/09\/2026/.test(s.origine),
       "e lo dice per nome, con le date", s.origine);
     dice(/183 giorni/.test(s.origine), "con quanti giorni sono", s.origine);
-    dice(/non sono state scelte a mano/.test(s.origine), "e che non le ha scelte nessuno a mano", s.origine);
+    /* e il DOCUMENTO (05/09), non solo lo schermo: la riga «Redatto per
+       l'adempimento…» sta nel foglio che va all'ente */
+    dice(/Redatto per l'adempimento «Verifica fonometrica semestrale», periodo dal 01\/04\/2026 al 30\/09\/2026, scadenza il 30\/09\/2026\./.test(s.doc),
+      "⛔ e il documento stesso scrive per quale adempimento è redatto, col periodo e la scadenza", (s.doc.match(/.{0,20}Redatto.{0,140}/) || [])[0] || s.doc.slice(0, 120));
+    /* ⛔ (15/09, dal delta della riverifica su PAROLE) la frase era scritta in
+       negativo — «non sono state scelte a mano» — mentre un registro dichiara
+       DA DOVE viene un periodo, non che cosa non è successo: la stessa forma
+       che l'ecosistema usa già altrove (`provenienzaVolume` di Conti,
+       `intestazioneOrigineReport`/`DICHIARAZIONI_PERIODO.ricavato` nello
+       stesso file di Sentinella). Uniformata al positivo. */
+    dice(/[Pp]eriodo ricavato dalla scadenza/.test(s.origine), "e dice DA DOVE viene il periodo, non che non è stato scelto a mano", s.origine);
+    dice(!/scelt[ae] a mano/.test(s.origine), "⛔ nessuna negazione residua nella riga", s.origine);
     dice(s.doc.length > 200, "il documento si è composto davvero", s.doc.slice(0, 120));
 
     // ── 5 · e la riga sparisce appena le date si toccano a mano ────────────

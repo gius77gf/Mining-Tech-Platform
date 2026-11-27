@@ -151,6 +151,84 @@ await test("un ADMIN rimuove un member", async () => {
   expect(await roleOf("tizio") === null, "member ancora presente");
 });
 
+// ⛔ 18/09, dal deep-pass su Deepwork ID (agente ab5116e35adea9d78): la
+// guardia sull'ultimo owner leggeva il conteggio FUORI dalla transazione
+// che poi scriveva — due chiamate concorrenti su due owner diversi
+// potevano superare ENTRAMBE il controllo "<= 1" e lasciare l'org a zero
+// owner attivi, bloccata per sempre. Il test sopra ("l'ULTIMO owner non
+// può auto-declassarsi") non lo prendeva: è sequenziale, non concorrente,
+// e il difetto viveva esattamente nell'intreccio fra due chiamate.
+const countOwners = async () => (await adb.collection("organizations/orgA/members")
+  .where("role", "==", "owner").where("status", "==", "active").get()).size;
+await test("⛔ 18/09: la guardia sull'ultimo owner è ATOMICA — due declassamenti concorrenti sui due unici owner non possono lasciare l'org a zero owner", async () => {
+  await id.loginWithEmail("boss@cava-alfa.it", "password-123");
+  await id.updateMemberRole("amm", "owner");   // ora due owner attivi: boss e amm
+  expect(await roleOf("amm") === "owner", "amm non è diventato owner");
+  expect(await countOwners() === 2, "servono esattamente due owner attivi per misurare la corsa");
+
+  // due chiamate concorrenti, ciascuna declassa un owner DIVERSO: con la
+  // guardia atomica una delle due deve fallire — MAI entrambe possono
+  // riuscire, perché l'org resterebbe senza nessun owner.
+  const esiti = await Promise.allSettled([
+    id.updateMemberRole("boss", "admin"),
+    id.updateMemberRole("amm", "admin"),
+  ]);
+  const riusciti = esiti.filter((e) => e.status === "fulfilled").length;
+  expect(riusciti === 1, `⛔ ERA QUI IL DIFETTO: doveva riuscirne UNA sola, ne sono riuscite ${riusciti}`);
+  const owners = await countOwners();
+  expect(owners === 1, `l'org è rimasta con ${owners} owner attivi invece di 1`);
+
+  // ripristino per le prove successive: boss owner, amm admin
+  if (await roleOf("boss") === "owner") {
+    if (await roleOf("amm") !== "admin") await id.updateMemberRole("amm", "admin");
+  } else {
+    await waitClaim("amm", "orgA", "owner");
+    await id.loginWithEmail("amm@cava-alfa.it", "password-123");
+    await id.updateMemberRole("boss", "owner");
+    await waitClaim("boss", "orgA", "owner");
+    await id.loginWithEmail("boss@cava-alfa.it", "password-123");
+    await id.updateMemberRole("amm", "admin");
+  }
+  expect(await roleOf("boss") === "owner" && await roleOf("amm") === "admin", "stato non ripristinato per le prove successive");
+});
+
+// ⛔ Stesso deep-pass, secondo difetto: né updateMemberRole né removeMember
+// revocavano i refresh token dopo aver tolto/abbassato un ruolo — un
+// membro appena rimosso o declassato poteva continuare a presentare alle
+// security rules un token vecchio, valido fino a un'ora, con un privilegio
+// che non ha più. `tokensValidAfterTime` è il segno che la revoca è
+// avvenuta: `revokeRefreshTokens` lo aggiorna a `now`.
+// ⚠️ MISURATO CONTRO L'EMULATORE PRIMA DI SCRIVERE L'ASSERZIONE:
+// `tokensValidAfterTime` nell'emulatore Auth ha risoluzione al SECONDO
+// (stringa `Date.toUTCString()`, niente millisecondi) — due chiamate a
+// pochi millisecondi di distanza danno lo STESSO valore anche quando la
+// revoca è avvenuta davvero, e un'asserzione scritta senza saperlo
+// sarebbe stata intermittente (falso KO su un fix corretto). Verificato
+// con uno script isolato contro l'emulatore: 0-1ms di distanza → uguali,
+// 1500ms di distanza → diversi. Da qui l'attesa esplicita, USANO PERSONE
+// nuove create apposta (non `amm`, già toccato dalla prova di corsa qui
+// sopra) per non dipendere dal suo stato.
+await test("⛔ 18/09: un declassamento revoca i refresh token del membro; una promozione no", async () => {
+  await id.loginWithEmail("boss@cava-alfa.it", "password-123");
+  await mk("livello", "admin");
+  const prima = (await aauth.getUser("livello")).tokensValidAfterTime;
+  await sleep(1100);
+  await id.updateMemberRole("livello", "member");
+  const dopoDeclassamento = (await aauth.getUser("livello")).tokensValidAfterTime;
+  expect(dopoDeclassamento !== prima, "⛔ ERA QUI IL DIFETTO: un declassamento non revocava la sessione");
+  await id.updateMemberRole("livello", "admin");   // promozione: NON deve revocare di nuovo
+  const dopoPromozione = (await aauth.getUser("livello")).tokensValidAfterTime;
+  expect(dopoPromozione === dopoDeclassamento, "una promozione ha revocato la sessione senza motivo");
+});
+await test("⛔ 18/09: rimuovere un membro revoca la sua sessione", async () => {
+  await mk("uscente", "member");
+  const prima = (await aauth.getUser("uscente")).tokensValidAfterTime;
+  await sleep(1100);   // stessa granularità al secondo, vedi il test sopra
+  await id.removeMember("uscente");
+  const dopo = (await aauth.getUser("uscente")).tokensValidAfterTime;
+  expect(dopo !== prima, "⛔ ERA QUI IL DIFETTO: rimuovere un membro non revocava la sua sessione");
+});
+
 console.log("\n— Inviti: creazione e revoca —");
 await test("owner invita; la revoca funziona una sola volta", async () => {
   await id.loginWithEmail("boss@cava-alfa.it", "password-123");

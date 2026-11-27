@@ -363,3 +363,739 @@ misura**. Nessuna entra in roadmap sulla parola di questa ricerca.
   **prova**, non un verdetto, e le prove che invecchiano rendono non credibile
   la riga giusta che le accompagna.
   ([Wikipedia — DSS](https://it.wikipedia.org/wiki/Documento_di_sicurezza_e_salute) *(non aperta: proxy)*)
+
+---
+
+## Tornata 2 — 15/09/2026 · «Il rapporto di fine turno stampabile: che cosa entra davvero»
+
+**Verificato contro il commit `f17245f5`** (15/09/2026 18:52 UTC).
+**Domanda**: che cosa contiene davvero un rapportino/giornale di cava italiano
+(produzione, mezzi, personale, eventi, consumi), e quali di queste voci
+mancano ancora nella funzione `rapportoGiornata` di `apps/campo/campo-data.js`
+— il documento che l'app genera davvero, non un modello astratto.
+
+### 0 · Lo strumento
+
+`WebSearch` ha funzionato su tutte le query di questa tornata (nessun
+`EGRESS_BLOCKED`). Non è stato necessario `WebFetch`. Nessuna fonte è stata
+letta per intero: quello che segue viene dal testo restituito da `WebSearch`
+(titolo + estratto), con il link accanto a ogni voce — e questo va dichiarato,
+perché un estratto non è il testo primario.
+
+### 1 · Che cosa esiste già in casa (letto prima di proporre)
+
+Letta per intero la **Tornata 1** qui sopra (13/08/2026): ha già censito il
+lato normativo (DSS, denuncia di esercizio, infortuni, silice, esplosivi) e ha
+già scritto, in tabella, che il rapporto di fine turno di Campo è «**C'È, e più
+ricco della prassi**» — ma lì la funzione non era stata letta riga per riga,
+solo citata per intervallo di righe di `index.html`. Questa tornata legge la
+funzione vera (`campo-data.js:3488-3659`, salita dalla pagina il 05/09) e la
+confronta voce per voce, cosa che la Tornata 1 non aveva fatto.
+
+Letto per intero `rapportoGiornata` (righe 3488-3659) e, per contesto,
+`testoConsegnaTurno` (righe 3673 in poi, stessa area del file — è la SECONDA
+funzione che compone un documento di fine turno, quella testuale per il turno
+entrante).
+
+**Le sezioni che `rapportoGiornata` scrive già, verificate a codice**:
+checklist di inizio turno (con le voci senza risposta dichiarate), briefing di
+inizio turno (chi l'ha tenuto, i presenti dell'appello), meteo e condizioni
+del sito per turno, **personale presente** (appello con «non lo so» ≠
+assente, riposo minimo D.Lgs 66/2003 art. 7 con lo stato «non misurabile»,
+orari di entrata/uscita con «non dichiarata» quando manca, ore lavorate),
+obiettivo del turno con lo scostamento, attività (con le anomalie in cima e
+«senza data» dichiarato), **fermi per causale** con i minuti (`paretoFermi`,
+causali non riconosciute contate e nominate invece di sparire in «Altro»),
+**disponibilità del turno** (con l'avviso esplicito che «non è l'OEE»), foto
+delle anomalie, **produzione** per turno e totale (t / m³ / viaggi, mai
+sommate fra loro), rapportini con le squadre senza rapportino elencate,
+chiusura e firme (righe in bianco se nessuno ha chiuso), riaperture del turno
+mai cancellate. È un documento denso e disciplinato sul principio
+dell'assenza dichiarata — conferma quanto scritto nella Tornata 1.
+
+### 2 · IL MONDO — che cosa contiene davvero un rapportino di cava/cantiere
+
+| Voce | Che cosa dice la prassi | Fonte |
+|---|---|---|
+| Contenuto minimo di un rapportino giornaliero | Data, riferimento alla commessa/sito, **lavorazioni eseguite**, **personale presente con ore lavorate**, subappaltatori, **mezzi e attrezzature utilizzati**, materiali impiegati, misure rilevate, spese sostenute, fotografie, note operative, approvazione del responsabile | [PlanRadar](https://www.planradar.com/it/rapportino-giornaliero-cantiere-modello/) · [Infominds](https://infominds.eu/rapportino-di-cantiere/) *(estratti, non testo primario)* |
+| Elementi specifici per turno | Data, cantiere, nominativi e ore dei lavoratori, **mezzi e attrezzature impiegati**, materiali, lavorazioni eseguite, **note su meteo, fermi o imprevisti** | [Geobadge](https://geo-badge.com/blog/rapportini-cantiere-modello-strumenti/) · [Constrack](https://constrack.pro/blog/it/site-work-report-template-download/) |
+| Registro/giornale dei lavori (cantiere, forma affine) | Riporta **operatori e attrezzature** impiegati dall'impresa, con **osservazioni e istruzioni** di direzione lavori/coordinatori/ispettori; le attrezzature (escavatori, mini-escavatori, autocarri) sono elencate col **numero di ore usate per ciascuna** | [MyAedes — giornale lavori](https://www.myaedes.com/blog/giornale-lavori-esempio-modello-pdf-word-app/) *(estratto)* |
+| Fasi operative di cava (esempio da progetto autorizzativo) | Le fasi dichiarano il **numero massimo di mezzi di scavo e trasporto usati contemporaneamente** (es. 2 escavatori e 2 pale gommate) | [Schema di convenzione attività estrattiva](https://atti.comune.parma.it/AttiVisualizzatore/download/allegato/529295?fId=529296) *(estratto)* |
+
+`[dedotto]` La lettura che ne do: nessuna delle fonti trovate è un modulo di
+«rapportino di cava» italiano compilato e pubblicato online (i risultati sono
+per cantieri edili in generale, più affini ma non identici); non ho trovato,
+in questa tornata, un fac-simile specifico di cava di inerti/calcare. Quello
+che è **coerente su tutte le fonti**, cantiere o cava, è che **i mezzi
+impiegati e le loro ore** sono una voce ricorrente quanto le presenze — non
+un dettaglio.
+
+### 3 · IL DELTA — verificato nel codice, non dedotto
+
+**Delta 1 — i mezzi non sono una voce di `rapportoGiornata`, né altrove in
+Campo.**
+
+`$ grep -riE "mezzo|mezzi|gasolio|carburante|consumo" apps/campo/campo-data.js`
+→ **9 righe**, lette una per una: una voce di checklist («Controllo pre-turno
+mezzi»), una causale di fermo («Attesa mezzo»), una nota di commento («in
+mezzo»/«mezzogiorno»/«pavimento in mezzo» — non pertinenti). **Zero righe**
+riguardano *quale* mezzo ha lavorato, *quante ore*, o *quanto ha consumato*.
+`$ grep -n "mezzo" apps/campo/campo-data.js` sulle righe delle attività/rapportini
+di esempio (211-231, 2560-2580) conferma: né `attivita` né `rapportini`
+portano un campo `mezzo`.
+
+Questo dato **esiste**, ma in **Flotta**: `consumoPerMezzo`,
+`costoOfficinaPerMezzo`, `oreContatore`, `azzeramentiDelMezzo` in
+`apps/flotta/flotta-data.js` (confermato leggendo le righe 1387-1944). E
+`$ grep -n "campo\|Campo" shared/dw-ponti.js` → conferma i ponti esistenti:
+Campo↔Terra (volumi), Campo↔Conti (prodotto vs venduto), Campo↔Scudo
+(personale) — **nessun ponte Campo↔Flotta**. Il rapporto di fine turno può
+dire «14 viaggi» ma non sa dire con quale dumper, né per quante ore ha
+lavorato l'escavatore, né quanto gasolio è stato bruciato — dato che il mondo
+tratta come ordinario quanto le presenze, e che oggi vive isolato in un'altra
+app.
+
+**Delta 2 — le volate del giorno entrano nella consegna testuale ma NON nel
+rapporto stampabile: due funzioni-sorelle, un dato in una sola.**
+
+Verificato leggendo tutt'e due le funzioni per intero:
+`$ sed -n '3501,3659p' apps/campo/campo-data.js | grep -niE 'volat|sentinella'`
+→ **0 righe**: dentro `rapportoGiornata` (il documento stampabile, quello
+firmato) non compare mai la parola «volata» né «Sentinella».
+Alla riga 3732-3733, dentro **`testoConsegnaTurno`** (la seconda funzione che
+compone un documento di fine turno, quella in testo semplice per il turno
+entrante), c'è invece:
+```
+txt += "VOLATE DEL GIORNO (registro di Sentinella)\n";
+txt += righeVolateDelGiorno(riassuntoVolateDelGiorno(d.volateSentinella === undefined ? null : d.volateSentinella, OGGI))…
+```
+col commento proprio accanto: *«le due cose che il turno entrante legge per
+prime: i lavori non conclusi e i pericoli segnalati»* — le volate sono
+esplicitamente trattate come informazione di prima lettura in **un** dei due
+documenti. `rapportoGiornata` non riceve nemmeno `d.volateSentinella` in
+ingresso: la destrutturazione in testa alla funzione (`const D = d || {}...`)
+non lo nomina. Non è un «non misurato» dichiarato — è un'assenza silenziosa,
+la stessa famiglia della «copia debole» che CLAUDE.md descrive per le
+funzioni gemelle che compongono un documento: una ha la regola giusta, l'altra
+non la eredita.
+Il mondo conferma solo indirettamente qui (la volata è l'evento di produzione
+per eccellenza di una cava a cielo aperto con abbattimento a fuoco — è la
+premessa di Genesi e di Sentinella stesse, già censita nella Tornata 1 con
+**114 righe** su `esplosiv`), ma il delta è soprattutto una prova di codice:
+il prodotto stesso sa già, in un punto, che questa informazione va data per
+prima, e non lo applica al documento che si stampa e si firma.
+
+**Non-delta, verificato per evitare un «non c'è» falso**: la produzione per
+«viaggi» (`UNITA_PRODUZIONE = ["t", "m³", "viaggi"]`, riga 2560) **esiste
+già** — un rapportino può contare i viaggi di un camion. Quello che manca non
+è la quantità, è **l'identità del mezzo** che l'ha fatta.
+
+### 4 · Le proposte (formato fisso)
+
+1. **Campo → `rapportoGiornata` · Le volate del giorno non compaiono nel
+   documento stampato e firmato, solo nella consegna testuale** · Il turno
+   entrante che legge il PDF/foglio stampato non vede la sezione che il
+   commento del codice stesso chiama «da leggere per prima»; chi legge invece
+   `testoConsegnaTurno` la vede · `sed -n '3501,3659p' campo-data.js | grep -niE
+   'volat|sentinella'` → 0 righe, contro le 2 righe (3732-3733) di
+   `testoConsegnaTurno` · **costo: basso** — una sezione in più in
+   `rapportoGiornata`, costruita con le stesse due funzioni già importate
+   (`riassuntoVolateDelGiorno`, `righeVolateDelGiorno`), passando
+   `d.volateSentinella` che la funzione oggi ignora · **come si misura**: con
+   `d.volateSentinella` popolato, `rapportoGiornata(d,opts).sezioni` deve
+   contenere una sezione «Volate del giorno» con lo stesso testo che
+   `testoConsegnaTurno` produce per lo stesso `d`; controprova: i due
+   documenti generati dallo stesso `d` non devono più poter dire cose diverse
+   su quante volate ci sono state oggi (oggi possono: uno le dice, l'altro
+   tace).
+
+2. **Campo → attività/rapportini · Nessun campo lega un'attività o una riga di
+   produzione a un mezzo, quindi il rapporto di fine turno non può mai dire
+   quali mezzi hanno lavorato né per quante ore** · Il mondo tratta «mezzi e
+   attrezzature impiegati» come voce ordinaria quanto le presenze (vedi §2); da
+   noi il dato per-mezzo esiste ma vive isolato in Flotta · `grep -riE
+   "mezzo|mezzi|gasolio|carburante|consumo" apps/campo/campo-data.js` → 9
+   righe, nessuna sull'identità o le ore di un mezzo; nessun `ponteFlotta` in
+   `shared/dw-ponti.js` (`grep -n "flotta" shared/dw-ponti.js` → righe tutte
+   su Terra/Scudo/Conti, mai Campo) · **costo: medio** — non è un campo solo:
+   serve decidere se il legame nasce sull'attività (`mezzoId` opzionale, come
+   `operatore`) o sul rapportino, e poi un ponte `shared/dw-ponti.js` sul
+   modello di `ponteScudo`/`ponteScudo` per leggere ore e consumi da Flotta
+   senza che Campo costruisca percorsi Firestore suoi · **come si misura**:
+   con un'attività che porta `mezzoId` e Flotta raggiungibile, la sezione
+   «Attività» o «Produzione» del rapporto deve poter mostrare il nome del
+   mezzo; con Flotta **non raggiungibile** deve dire «mezzi non raggiungibili»
+   e non tacere — è la stessa regola già scritta in `dw-ponti.js` per
+   `costiFlotta == null` («flotta-non-raggiungibile» non è flotta a zero).
+   ⚠️ Proposta più grande delle prime: **non è detto che vada fatta subito**,
+   perché tocca uno schema dati oltre a un testo — la scrivo per completezza
+   del delta, non come priorità.
+
+### 5 · Una cosa che non propongo, e perché
+
+- **Un fac-simile di «rapportino di cava»** da copiare voce per voce: non
+  l'ho trovato in questa tornata (§2 lo dichiara), e i modelli di cantiere
+  edile trovati sono **affini ma non identici** — differiscono per assenza di
+  «commessa/cliente» (che in cava non esiste allo stesso modo) e per
+  l'assenza, nei modelli generici, di produzione per volata/abbattimento.
+  Copiare un modello di cantiere edile sarebbe importare vocabolario
+  sbagliato nello stesso modo che CLAUDE.md descrive per i concorrenti
+  internazionali: il documento di Campo è già più specifico di mestiere di
+  quei modelli (fermi per causale, disponibilità, riposo D.Lgs 66/2003) e non
+  va impoverito per somigliargli.
+
+### 6 · Che cosa questa tornata NON ha potuto verificare
+
+- Nessun fac-simile di rapportino di cava (solo di cantiere edile) è stato
+  trovato: resta aperta la domanda se in cava si usi un formato diverso per
+  la sezione mezzi (es. contaore fotografato a inizio/fine turno) rispetto al
+  contaore digitale che Flotta già legge.
+- Non ho letto il testo primario di nessuna fonte (solo estratti di
+  `WebSearch`): dove serve una citazione precisa per un testo di prodotto, va
+  riletta la pagina.
+
+---
+
+## Tornata 3 — 17/09/2026 · «Il libretto d'uso e manutenzione del mezzo: chi decide quando fare un tagliando»
+
+**Verificato contro il commit `1d5399fd`** (17/09/2026 19:52 UTC).
+**Domanda**: che cosa dice davvero la norma sul manuale d'uso e manutenzione di
+una macchina da cava (chi lo deve avere, chi ne segue gli intervalli), e da
+dove viene il ritmo dei tagliandi che `apps/flotta` propone.
+
+### 0 · Lo strumento
+
+`WebSearch` ha funzionato su tutte le query di questa tornata. `WebFetch` non
+è stato riprovato: la Tornata 1 lo ha già misurato **negato dal proxy su dieci
+domini diversi** (`EGRESS_BLOCKED`), ed è la stessa famiglia di rinuncia che
+CLAUDE.md chiama «un 'non si può' che parla dello strumento, non del mondo» —
+qui però la misura esiste già e rifarla non avrebbe aggiunto niente. Nessuna
+pagina è stata letta per intero: quello che segue viene dagli **estratti**
+restituiti da `WebSearch`, con il link accanto a ogni voce.
+
+### 1 · Che cosa esiste già in casa (letto prima di proporre)
+
+Lette per intero le **Tornate 1 e 2** qui sopra. La Tornata 1, tabella §2.1,
+riga «DSS — art. 10, i tredici elementi», cita già l'elemento **e)**:
+«programma di ispezione, manutenzione e collaudo sistematici di attrezzature,
+strumentazione e impianti meccanici/elettrici/elettromeccanici» — ma non
+l'aveva confrontato con `apps/flotta`, che è dove quel programma vive davvero
+nel prodotto. Questa tornata chiude quel confronto.
+
+Letto `apps/flotta/flotta-data.js` per le sezioni L1 (mezzi), F6 (scadenze di
+legge del mezzo) e L3 (piani di manutenzione ricorrenti), e `apps/flotta/index.html`
+per come F6 e L3 arrivano in pagina.
+
+**Quello che c'è, ed è fatto bene:**
+
+- `SCADENZE_MEZZO_PRESET` (righe 467-520): sette scadenze **di legge** —
+  verifica periodica attrezzatura (art. 71 c.11), gru su autocarro, funi e
+  catene, registro di controllo, revisione alla Motorizzazione, noleggio —
+  **ognuna con un campo `norma`** mostrato all'utente (`mostraNorma()`,
+  `index.html:1846-1847`) e una nota che dichiara i propri limiti: «la
+  periodicità cambia da attrezzatura ad attrezzatura: controlla l'Allegato VII
+  per la tua» (riga 471), «i risultati vanno tenuti a disposizione degli
+  organi di vigilanza per 5 anni» (riga 483).
+- `CSV_LIBRETTO_INTESTAZIONE` / `csvLibretto` (righe 1039 e seguenti): il
+  foglio che si consegna a chi compra o noleggia il mezzo, con ogni sezione
+  vuota che dichiara «nessuna registrata» invece di tacere — è la stessa
+  disciplina sull'assenza già lodata nella Tornata 1 per Campo e Scudo.
+- Il commento di riga 513 sa già, in un punto solo, che esiste «il libretto
+  del costruttore» e che chi usa un mezzo in leasing lo deve seguire.
+- `TOLLERANZA_COSTO_PCT` e `TOLLERANZA_FERMI_PCT` (righe 4801-4859) applicano
+  già un principio esplicito: «nessuna fonte […] dà una tolleranza di
+  settore per questo segnale, e **un numero senza fonte non si spaccia per
+  norma**» — è la stessa regola che, come si vede sotto, i quattro tagliandi
+  standard di L3 non rispettano.
+
+**Cioè: la casa distingue già, in un posto, un numero di legge (con `norma`
+mostrata) da un numero indovinato (con l'avviso che è indovinato). L3 è il
+punto in cui quella distinzione manca.**
+
+### 2 · IL MONDO — chi decide il ritmo di un tagliando, e che cosa rischia chi lo ignora
+
+| Voce | Che cosa dice la fonte | Fonte |
+|---|---|---|
+| Contenuto minimo del manuale d'uso | La Direttiva Macchine 2006/42/CE, Allegato I punto 1.7.4.2, elenca il contenuto minimo delle istruzioni: dati del fabbricante, designazione della macchina, dichiarazione CE, disegni e schemi, **descrizioni e spiegazioni necessarie per l'uso, la manutenzione e la riparazione**, descrizione dei posti di lavoro, uso previsto, avvertenze sugli usi scorretti prevedibili | [Quadra Srl](https://quadrasrl.net/cosa-deve-contenere-il-manuale-di-istruzioni-macchina/) *(estratto)* |
+| Obbligo di avere il manuale | Il D.Lgs 81/08 impone a produttori, rivenditori e datori di lavoro che **ogni macchina abbia un manuale d'uso e manutenzione**; venderla o usarla senza è punito con **arresto da 3 a 6 mesi o ammenda da 2.740 a 7.014,40 €** | [Quadra Srl](https://quadrasrl.net/cosa-deve-contenere-il-manuale-di-istruzioni-macchina/) *(estratto — sanzione riportata di seconda mano, da riverificare sul testo prima di citarla in un documento verso terzi)* |
+| Manutenzione secondo il fabbricante | L'art. 71 D.Lgs 81/08 (c.4) chiede che l'attrezzatura sia «oggetto di idonea manutenzione […] ed è corredata, ove necessario, da apposite istruzioni d'uso e libretto di manutenzione»; sulle macchine da **movimento terra** la manutenzione va fatta «a intervalli regolari indicati dal manuale d'uso del costruttore», perché farla a un ritmo diverso porta a **usura eccessiva e difetti prematuri dei componenti e delle strutture** | [Puntosicuro — manutenzione macchine movimento terra](https://www.puntosicuro.it/edilizia-C-10/la-manutenzione-in-sicurezza-delle-macchine-movimento-terra-AR-12189/) |
+| Registro dei controlli interni | L'art. 71 c.8 impone che i risultati dei controlli di manutenzione siano riportati per iscritto e **almeno gli ultimi tre anni conservati e tenuti a disposizione** degli organi di vigilanza — un numero diverso dai «5 anni» che il preset `registro-controllo` di Flotta dichiara (riga 483): nessuna delle due fonti è il testo di legge letto per intero, quindi la discrepanza resta **aperta**, non risolta qui | [Edafos — registro manutenzione attrezzature](https://www.edafos.it/attrezzature-e-macchine/registro-manutenzione-attrezzature-obblighi-controlli/) |
+| Verifica periodica (soggetto esterno) | Distinta dalla manutenzione interna: la fa un soggetto abilitato (INAIL poi ASL/soggetto privato), ha una periodicità propria per tipo di attrezzatura (Allegato VII) — **questa Flotta la copre già** (`verifica-periodica`, `gru-autocarro`) | [InSic](https://www.insic.it/sicurezza-sul-lavoro/prevenzione-infortuni-articoli/attrezzature-di-lavoro-e-verifiche-periodiche-dei-soggetti-abilitati/) |
+
+`[dedotto]` La lettura che ne do: il mondo separa **tre** cose che è facile
+confondere — il manuale del costruttore (che fissa GLI INTERVALLI), il
+registro interno dei controlli (che ne è la PROVA nel tempo) e la verifica
+periodica di un soggetto esterno (che è un controllo DIVERSO, con la sua
+scadenza di legge). Flotta oggi modella bene la terza e ha l'impianto giusto
+per la seconda (`csvLibretto`); la prima — da dove viene il numero delle ore
+fra un tagliando e l'altro — non è collegata a nessun costruttore o modello.
+
+### 3 · IL DELTA — verificato nel codice, non dedotto
+
+`$ grep -rniE "libretto (d.uso|di uso)|manuale (d.uso|di uso)|istruzioni per l.uso" apps/ --include=*.js --include=*.html`
+→ **0 righe** su tutto il repository (non solo Flotta): il concetto di
+«manuale d'uso e manutenzione del costruttore» come oggetto distinto dal
+«libretto di circolazione» (Motorizzazione, riga 451) o dal «registro di
+controllo» (riga 479) non esiste da nessuna parte come termine.
+
+Ma — regola del cercare il meccanismo, non il nome — Flotta **ha già** la
+funzione che fissa il ritmo dei tagliandi: `PIANI_TAGLIANDO`
+(`flotta-data.js:2604-2613`):
+
+```
+export const PIANI_TAGLIANDO = [
+  { chiave: "250",  etichetta: "Tagliando 250 h",  ogniOre: 250,
+    nota: "Olio motore e filtri: il tagliando che torna più spesso." },
+  { chiave: "500",  etichetta: "Tagliando 500 h",  ogniOre: 500,
+    nota: "Filtro aria, gioco valvole, controlli generali." },
+  { chiave: "1000", etichetta: "Tagliando 1000 h", ogniOre: 1000,
+    nota: "Olio trasmissione e impianto idraulico." },
+  { chiave: "2000", etichetta: "Tagliando 2000 h", ogniOre: 2000,
+    nota: "Revisione di pompe e organi principali." },
+];
+```
+
+Il commento sopra la lista (riga 1852-1853 di `index.html`) la introduce come
+«i quattro tagliandi a ore delle **macchine da movimento terra**»: **una lista
+sola per ogni tipo di mezzo**, applicata a un escavatore, una pala, un dumper
+o una perforatrice indifferentemente — verificato: `TIPI_MEZZO` non entra mai
+nella scelta del piano (`$("man-piano").innerHTML` a riga 1854-1856 non
+filtra su `$("mez-tipo")`).
+
+Confronto diretto con `SCADENZE_MEZZO_PRESET`, che tratta un problema
+gemello (un numero di periodicità proposto all'utente):
+`$ grep -n "norma:" apps/flotta/flotta-data.js | grep -c "norma:"` → **7**
+occorrenze, tutte dentro `SCADENZE_MEZZO_PRESET`. Nessuna delle quattro voci
+di `PIANI_TAGLIANDO` ha un campo `norma` o un campo equivalente: **0 su 4**.
+E `$ grep -n "costruttore\|modello:" apps/flotta/flotta-data.js` → **1 sola
+riga** (513, la nota sul leasing): non esiste, sul record di un mezzo, un
+campo strutturato per il modello o il costruttore — solo testo libero dentro
+`nome` (`"Escavatore E1 — CAT 352"`, riga 227), che nessuna funzione legge.
+
+**Cioè**: i quattro tagliandi non sono sbagliati (250/500/1000/2000 ore sono
+intervalli plausibili per un motore diesel da cantiere), ma sono presentati
+allo schermo con la **stessa forma** con cui `SCADENZE_MEZZO_PRESET` presenta
+un obbligo di legge — un menu a tendina, un'etichetta, una nota — mentre la
+fonte è diversa: uno è la norma, l'altro è **una scelta interna senza
+dichiararsi tale**. È esattamente il caso per cui `TOLLERANZA_COSTO_PCT` porta
+il commento «un numero senza fonte non si spaccia per norma» — applicato a un
+numero diverso, nello stesso file, che quel commento non copre.
+
+**Non-delta, verificato per evitare un «non c'è» falso**: la distinzione fra
+manutenzione interna e verifica periodica esterna **c'è già** ed è netta —
+`SCADENZE_MEZZO_PRESET` (esterna, con norma) e `PIANI_TAGLIANDO` +
+`interventi` (interna, storico libero) sono due liste separate, mai
+confuse fra loro nel codice. Il delta non è «Flotta non sa manutenere»: è
+che **una delle due liste non dice da dove viene il suo numero**, e la
+persona che apre l'app non ha modo di distinguere «questo è un obbligo che
+un ispettore verifica» da «questo è un ritmo tipico che qualcuno ha scelto».
+
+### 4 · La proposta (formato fisso)
+
+1. **Flotta → Manutenzione (L3) · I quattro tagliandi standard non
+   dichiarano la propria fonte, e sono uguali per ogni tipo di mezzo** · Il
+   mondo (Puntosicuro, §2) dice che gli intervalli di manutenzione di una
+   macchina da movimento terra vanno seguiti **dal manuale del costruttore**,
+   e farli a un ritmo diverso causa usura anticipata; Flotta invece propone
+   **una lista sola** (250/500/1000/2000 h) a qualunque escavatore, pala,
+   dumper o perforatrice, senza dire che è una stima interna e non il libretto
+   di quella specifica macchina · `grep -n "norma:" apps/flotta/flotta-data.js
+   | grep -c "norma:"` → 7, tutte in `SCADENZE_MEZZO_PRESET`; `PIANI_TAGLIANDO`
+   → 0 · **costo: basso** — un campo `fonte` su ogni piano (valore di default
+   `"generico"`), un piano opzionale `"costruttore"` che l'utente compila una
+   volta per mezzo (numero di ore letto dal manuale, con gli stessi campi che
+   già esistono per le altre scadenze), e una riga di testo nel menu
+   (`propostaTagliando`) sul modello di `SCADENZE_MEZZO_PRESET.nota` — non
+   serve un modulo nuovo, serve estendere quello che c'è · **come si misura**:
+   scegliendo un piano generico, `propostaTagliando(...).testo` deve contenere
+   una frase tipo «ritmo tipico, non il libretto di questa macchina» (assente
+   oggi: nessuna delle quattro note del piano lo dice); con un piano
+   `"costruttore"` impostato la frase non compare più. Controprova: rimossa la
+   distinzione, la stessa frase deve tornare a mancare su **entrambi** i casi
+   — se no la prova non guarda la fonte, guarda solo la presenza di un testo.
+   Fonte:
+   [Puntosicuro — manutenzione macchine movimento terra](https://www.puntosicuro.it/edilizia-C-10/la-manutenzione-in-sicurezza-delle-macchine-movimento-terra-AR-12189/),
+   [Quadra Srl — contenuto del manuale di istruzioni](https://quadrasrl.net/cosa-deve-contenere-il-manuale-di-istruzioni-macchina/)
+
+### 5 · Una cosa che non propongo, e perché
+
+- **Un modulo «Manuale del costruttore» a sé stante**, con upload del PDF e
+  campi per ogni operazione di manutenzione descritta nel libretto. Il
+  delta misurato è più piccolo: manca **la provenienza del numero**, non
+  tutto il contenuto del manuale. Costruire un modulo intero sarebbe la
+  stessa sproporzione già segnalata nella Tornata 1 per il «giornale di
+  cava»: una funzione nuova dove basta **una dichiarazione** su una funzione
+  che già esiste.
+
+### 6 · Che cosa questa tornata NON ha potuto verificare
+
+- **La sanzione penale/amministrativa per macchina senza manuale** (arresto
+  3-6 mesi o ammenda 2.740-7.014,40 €) viene da un solo estratto secondario
+  (Quadra Srl): non è stata incrociata con una seconda fonte né con il testo
+  di legge, e **non va scritta in un'interfaccia rivolta al cliente** senza
+  prima rileggerla sul testo primario — vale la stessa regola già applicata
+  da Scudo alle proprie note normative.
+- **La discrepanza fra «tre anni» (Edafos, sull'art. 71 c.8) e «5 anni»**
+  che il commento di `SCADENZE_MEZZO_PRESET` riga 483 dichiara per il
+  registro di controllo: nessuna delle due fonti di questa ricerca è il
+  testo di legge, e la riga **non va corretta sulla parola di un estratto**
+  — resta segnalata come prova da riverificare, non come un difetto da
+  correggere.
+- Non è stato trovato, in questa tornata, un fac-simile italiano di
+  «piano di manutenzione» specifico per macchine da cava (solo per macchine
+  da cantiere edile in generale): resta aperto se in cava si usino intervalli
+  diversi da quelli standard da movimento terra per via della polvere e
+  dell'abrasività del materiale — nessuna fonte trovata lo conferma o lo
+  smentisce.
+
+---
+
+## Tornata 4 — 18/09/2026 · «I segnali di brillamento: l'avviso PRIMA dello sparo, non solo l'attesa dopo»
+
+**Verificato contro il commit `2036687c`** (18/09/2026 01:20 UTC).
+**Domanda**: che cosa prescrive la norma/prassi italiana sui segnali di
+allarme e sull'accertamento che l'area sia sgombra **prima** di far brillare
+una volata, e se questo meccanismo — distinto da quello del **rientro dopo lo
+sparo**, che il prodotto già modella — esiste da qualche parte in casa.
+
+### 0 · Lo strumento
+
+Solo `WebSearch`, come da mandato. `WebFetch` non è stato riprovato: la
+Tornata 1 lo ha già misurato **negato dal proxy** su dieci domini
+(`EGRESS_BLOCKED`), e rifare la stessa misura non avrebbe aggiunto niente.
+Nessuna pagina è stata letta per intero: quello che segue viene dagli
+**estratti** che `WebSearch` restituisce (spesso una sintesi del motore sulla
+pagina, non il testo copiato), con il link canonico accanto a ogni voce —
+prima di scrivere un riferimento d'articolo in un'interfaccia va riletto sul
+testo primario.
+
+### 1 · Che cosa esiste GIÀ in casa (letto prima di proporre)
+
+Lette per intero le **Tornate 1-3** qui sopra. La Tornata 1 ha già censito il
+lato normativo generale degli esplosivi (registro carico/scarico, verifica
+micce: **A METÀ**) senza guardare la fase «prima dello sparo». Letta per
+intero la funzione `dopoVolata` di `apps/sentinella/sentinella-data.js`
+(righe 4837-4880, commento e corpo) e i record demo di volata in
+`apps/sentinella/sentinella-data.js:227-273` e `apps/campo/campo-data.js:284-286`.
+
+**Quello che c'è, già dichiarato bene**: il **dopo**-volata è un oggetto
+completo — `oraSparo`, `rientroAlle`, `rientroAutorizzatoDa`,
+`attesaDopoSparoMin` (i minuti dell'ordine di servizio, dichiarati
+dall'utente), `mancateEsplosioni` (mancate esplosioni, con `mancateGestite`
+che dice l'azione), `proiezioniOltreArea`/`proiezioniDove`, `kgResi`
+(esplosivo reso) — e uno stato a quattro valori
+(`non-applicabile`/`non-registrato`/`regolare`/`anomalie`) col principio del
+fondatore scritto nel commento: *«una volata eseguita SENZA questi campi non
+è "regolare", è "dopo-volata non registrato"»*. La demo mostra anche il caso
+**anomalo**: rientro alle 11:55 dopo uno sparo alle 11:10, cioè 45 minuti,
+**prima** dei 60 dichiarati nell'ordine di servizio — e il commento di riga
+239 dice esplicitamente che il prodotto lo segnala invece di scrivere
+«rientro alle 11:55» come se bastasse. `attesaDopoSparoMin` nella demo vale
+**60** su tutt'e due i casi, cioè già più prudente del minimo di legge
+trovato in §2 (10 minuti in luogo aperto). **Questo pezzo del mestiere non è
+un delta: è già fatto, e fatto bene.**
+
+Quello che manca è un pezzo diverso, **prima** dello sparo, non dopo:
+$ `grep -rniE "tromba|corno da nebbia|allontanar|sgombra|sgombro|al riparo|riparat" apps/sentinella/sentinella-data.js apps/genesi/genesi-data.js apps/genesi/genesi.html apps/campo/campo-data.js apps/scudo/scudo-data.js`
+→ **1 riga**, e non pertinente: `scudo-data.js:5925`, «i rischi che l'art. 26
+c.3-bis mette **al riparo** dalle esclusioni» (un modo di dire sugli appalti,
+non sull'esplosivo). Zero occorrenze pertinenti su cinque file e quattro app.
+
+### 2 · IL MONDO — l'avviso prima dello sparo
+
+| Voce | Che cosa dice la fonte | Fonte |
+|---|---|---|
+| **I tre segnali acustici** | «Deve essere dato l'allarme con tre diversi segnali acustici, a mezzo di tromba o altro sistema idoneo: il **primo segnale** per avvertire gli operai od altri di **ripararsi**; il **secondo segnale**, dopo l'avvenuto **accertamento che le dette persone si siano riparate**, qualche attimo prima di dar luogo all'accensione delle mine; il **terzo segnale** per avvisare del **cessato pericolo**.» | [testo-unico-sicurezza.com — Procedura di sicurezza uso degli esplosivi in cava](https://www.testo-unico-sicurezza.com/procedura-di-sicurezza-uso-degli-esplosivi-in-cava.html) `[di seconda mano]`, presumibilmente da D.P.R. 302/1956 — l'articolo preciso **non è confermato** da questa ricerca |
+| **L'attesa prima di rientrare** | «Effettuato lo sparo delle mine, il minatore incaricato del brillamento non può consentire l'accesso al cantiere prima che i gas prodotti dall'esplosione si siano diradati ed **in ogni caso non prima di dieci minuti** dall'ultima esplosione.» | stessa fonte `[di seconda mano]`. **Nota**: questo è il meccanismo che `dopoVolata`/`attesaDopoSparoMin` già modella, e la demo (60 min) è più prudente del minimo di legge (10 min) |
+| **Il secondo segnale richiede un ACCERTAMENTO, non solo un tempo** | Il secondo segnale si dà solo «dopo l'avvenuto accertamento che le dette persone si siano riparate» — cioè non basta aspettare, qualcuno deve **verificare** che l'area sia sgombra prima di autorizzare l'accensione | stessa fonte `[di seconda mano]` |
+| **Distanze del circuito elettrico d'innesco** | Il collegamento del circuito elettrico va tenuto ad almeno **30 metri** da linee elettriche, telefoniche, cavi metallici o rotaie; l'accensione elettrica è vietata con temporali in un raggio di **10 km** dal luogo dello sparo | risultato di ricerca su D.P.R. 302/1956 `[di seconda mano, non incrociato con una seconda fonte]` |
+| **Raggio di interdizione a persone e veicoli** | In un'ordinanza comunale per bonifica di un ordigno bellico (caso diverso, non una volata di cava) l'accesso di persone e veicoli non necessari all'operazione è interdetto in un raggio di **250 metri** dal punto di brillamento | [Prefettura di Parma](https://prefettura.interno.gov.it/it/prefetture/parma/comunicati-stampa/operazioni-bonifica-ordigno-bellico-rinvenuto-nel-comune-parma) `[di seconda mano, e il caso non è una volata di cava: il numero non va trasferito senza verifica]` |
+
+`[dedotto]` La lettura che ne do: il mondo distingue **due momenti** attorno
+a una volata — l'avviso e l'accertamento **prima** dello sparo (chi
+controlla che tutti si siano riparati, e con quale segnale lo comunica), e
+l'attesa **dopo** lo sparo prima di rientrare. Il prodotto ne modella solo
+il secondo, con cura. Il primo momento è quello in cui, secondo la
+letteratura sugli infortuni da esplosivo, si concentra il rischio più alto
+(persona non ancora al riparo quando parte l'accensione) — ma questa
+affermazione resta **una lettura mia**, non è nelle fonti di questa tornata,
+e va marcata come tale.
+
+### 3 · IL DELTA — verificato nel codice, non dedotto
+
+**Non-delta, verificato per primo per evitare un «non c'è» falso**: l'attesa
+dopo lo sparo (§2, seconda riga) **C'È** in `dopoVolata` e nella demo, come
+mostrato al §1. Chi cercasse «attesa prima del rientro» col vocabolario del
+mondo (`10 minuti`, `dieci minuti`) avrebbe trovato solo righe di questo
+stesso documento e di `terra-data.js`/`campo-data.js` non pertinenti (vedi
+§1 Tornata precedenti sulla stessa trappola): il termine giusto in casa è
+`attesaDopoSparoMin`, non un numero fisso di minuti scritto a testo.
+
+**Delta — nessun campo rappresenta il momento PRIMA dello sparo**: né il
+segnale d'avviso, né l'accertamento che l'area sia sgombra, né chi lo ha
+fatto.
+
+```
+$ grep -rniE "tromba|corno da nebbia|allontanar|sgombra|sgombro|al riparo|riparat" \
+    apps/sentinella/sentinella-data.js apps/genesi/genesi-data.js \
+    apps/genesi/genesi.html apps/campo/campo-data.js apps/scudo/scudo-data.js
+apps/scudo/scudo-data.js:5925:/* I rischi che l'art. 26 c.3-bis mette al riparo dalle esclusioni: se ci sono,
+```
+1 riga, non pertinente (vedi §1).
+
+```
+$ grep -rniE "area libera|zona libera|tutti al sicuro|verificat[oa].{0,15}present|conferma.{0,15}(sgombr|libera)" \
+    apps/sentinella/sentinella-data.js apps/campo/campo-data.js \
+    apps/genesi/genesi-data.js apps/genesi/genesi.html
+```
+→ **0 righe**.
+
+```
+$ grep -n "prima-volata\|primaVolata\|PRIMA_VOLATA\|preSparo\|pre-sparo" \
+    apps/sentinella/sentinella-data.js apps/genesi/genesi-data.js \
+    apps/genesi/genesi.html apps/campo/campo-data.js
+apps/genesi/genesi-data.js:3439: […] 'verifica pre-sparo.' […]
+```
+1 riga, ed è la nota commerciale sul detonatore elettronico
+(«verifica pre-sparo» = verifica elettrica del circuito, un controllo
+tecnico sull'innesco, non un accertamento sulle persone) — non pertinente
+allo stesso modo del «riparo» di Scudo: due false corrispondenze, per due
+ragioni diverse, sullo stesso file di ricerca. Confermano la regola di
+CLAUDE.md sul cercare il meccanismo: qui il meccanismo **non c'è né col nome
+giusto né con un altro nome** — non è un caso di vocabolario sbagliato, è un
+vuoto vero.
+
+`dopoVolata` (struttura letta per intero al §1) non ha un gemello
+`primaVolata`: l'oggetto volata in Sentinella/Campo porta solo i campi «di
+prima» che servono al **piano** (fronte, fori, carica, orario previsto — non
+riletti qui perché fuori dalla domanda di questa tornata) e i campi «di
+dopo» appena elencati. Il segmento fra i due — l'avviso, l'accertamento, chi
+lo ha dato — non ha una casella, né vuota né compilata: **non esiste come
+domanda che il prodotto pone**.
+
+### 4 · La proposta (formato fisso)
+
+1. **Sentinella → dopo-volata (in realtà: prima-volata) · Manca il gemello
+   di `dopoVolata` per il momento che precede lo sparo** · Il mondo (§2)
+   tratta l'avviso e l'accertamento pre-sparo come **un secondo controllo
+   indipendente** dal tempo di attesa post-sparo — non basta aspettare i
+   minuti giusti dopo, serve anche che qualcuno abbia accertato l'area
+   sgombra **prima**; oggi il prodotto ha solo la seconda metà · `grep -rniE
+   "area libera|zona libera|tutti al sicuro|verificat[oa].{0,15}present"
+   apps/sentinella/sentinella-data.js apps/campo/campo-data.js` → 0 righe ·
+   **costo: basso** — sul modello esatto di `dopoVolata`: due campi
+   dichiarati dall'utente (`areaAccertataSgombraDa` — chi ha accertato,
+   testo libero come `rientroAutorizzatoDa` — e `segnaleDatoAlle` — l'ora del
+   secondo segnale, stesso formato HH:MM di `oraSparo`), **mai dedotti**, con
+   lo stesso principio: silenzio ≠ regolare · **come si misura**: una
+   funzione `primaVolata(v)` sul modello di `dopoVolata(v)` deve rispondere
+   `non-registrato` se `oraSparo` è presente ma
+   `areaAccertataSgombraDa`/`segnaleDatoAlle` non lo sono — oggi una volata
+   con solo `oraSparo` valorizzato non lo dice; controprova: con
+   `dopoVolata` già `registrato: true` (mancate ed proiezioni dichiarate) la
+   nuova funzione deve poter restare `non-registrato` in **parallelo** — è
+   la prova che le due metà sono davvero indipendenti e non la stessa
+   domanda letta due volte. ⚠️ Da confermare sul testo di legge prima di
+   scrivere un riferimento d'articolo in interfaccia: questa tornata non ha
+   trovato l'articolo esatto del D.P.R. 302/1956 (vedi §6). Fonte:
+   [testo-unico-sicurezza.com — Procedura di sicurezza uso degli esplosivi in cava](https://www.testo-unico-sicurezza.com/procedura-di-sicurezza-uso-degli-esplosivi-in-cava.html)
+
+### 5 · Una cosa che non propongo, e perché
+
+- **I 250 metri di interdizione e i 30 metri dalle linee elettriche come
+  valori da mostrare in interfaccia.** Il primo numero viene da un'ordinanza
+  comunale per un ordigno bellico, **non** da una volata di cava — il
+  contesto è diverso e il numero non va trasferito senza una fonte propria
+  del settore estrattivo; il secondo non è incrociato con una seconda fonte.
+  Scriverli oggi sarebbe ripetere l'errore che CLAUDE.md descrive per la
+  sanzione penale trovata di seconda mano nella Tornata 3: un numero
+  riportato una volta sola, in un contesto affine ma non identico, «è
+  peggio di un numero assente».
+
+### 6 · Che cosa questa tornata NON ha potuto verificare
+
+- **L'articolo esatto del D.P.R. 302/1956** che prescrive i tre segnali: le
+  ricerche di questa tornata (query mirate su «tre segnali», «dieci minuti»,
+  articolo) hanno trovato la Sezione 53.3.10 e la Sezione 77.2.20 dello
+  stesso decreto su edizionieuropee.it, ma **non è stato possibile leggerle**
+  (`WebFetch` bloccato) né la sintesi di `WebSearch` ha confermato quale
+  sezione contenga i tre segnali: resta un riferimento **di seconda mano**,
+  non un articolo citabile.
+- **Il numero di 250 metri e quello di 30 metri** vengono da un solo estratto
+  ciascuno, mai incrociati con una seconda fonte né con il testo primario
+  (vedi §5): non vanno usati per costruire un valore di default.
+- Se la prassi italiana chiami questo secondo segnale con un nome di
+  mestiere diverso da «segnale di accensione»/«cessato allarme» (per
+  esempio un termine regionale o di cava specifico) non è stato verificato:
+  le fonti trovate usano un linguaggio da decreto del 1956, non
+  necessariamente quello che un fochino userebbe oggi sul campo.
+
+---
+
+## Tornata 5 — 18/09/2026 · «Il tesserino di riconoscimento del personale in appalto»
+
+**Verificato contro il commit `de4a6cc7`** (18/09/2026 03:48 UTC).
+**Domanda**: che cosa prescrive la norma sul riconoscimento del personale
+esterno (appaltatori/subappaltatori/lavoratori autonomi) presente in cava, e
+se questo meccanismo — distinto dalla **qualifica dell'impresa** (CCIAA,
+DURC, DVR), che il prodotto già tiene — esiste da qualche parte in Scudo.
+
+### 0 · Lo strumento
+
+Solo `WebSearch`, come da mandato — caricato con
+`ToolSearch({query:"select:WebSearch,WebFetch"})` prima di usarlo, come
+CLAUDE.md pretende. `WebFetch` non è stato riprovato: la Tornata 1 lo ha già
+misurato **negato dal proxy** su dieci domini (`EGRESS_BLOCKED`), e rifare la
+stessa misura non avrebbe aggiunto niente. Nessuna pagina è stata letta per
+intero: quello che segue viene dagli **estratti** che `WebSearch` restituisce,
+con il link canonico accanto a ogni voce.
+
+### 1 · Che cosa esiste GIÀ in casa (letto prima di proporre)
+
+Lette per intero le **Tornate 1-4** qui sopra: nessuna delle quattro tratta
+il riconoscimento del personale esterno — la Tornata 1 censisce la denuncia
+di esercizio e il sorvegliante **per turno**, non l'identificazione
+individuale in cantiere.
+
+Letto per intero lo schema delle collezioni di Scudo (righe 1-70) e la parte
+«APPALTATORI, QUALIFICA E DOCUMENTO DI COORDINAMENTO»
+(`apps/scudo/scudo-data.js:5800-6160`, `qualificaAppaltatore`, `duvriDovuto`,
+`docDiAppaltatore`).
+
+**Quello che c'è, ed è fatto bene:**
+
+- `TIPI_DOC_APPALTATORE` (righe 5834-5847): sei documenti **di impresa**
+  (CCIAA, autocertificazione, DURC, DVR, «Elenco lavoratori e idoneità»,
+  polizza RC), ognuno con `fonte` che cita l'articolo esatto — la stessa
+  disciplina già lodata nelle Tornate precedenti per `SCADENZE_MEZZO_PRESET`;
+- `qualificaAppaltatore` applica già il principio del fondatore: un'impresa
+  senza documenti verificati è **NON IDONEA**, non «regolare» (riga 5861:
+  «un appaltatore di cui non si è verificato niente non è idoneo: è NON
+  VERIFICATO»);
+- `duvriDovuto` distingue correttamente **DSS coordinato** (in cava, art. 9
+  D.Lgs 624/96) da **DUVRI** (fuori cava, art. 26 D.Lgs 81/08), con la soglia
+  dei cinque uomini-giorno e le esclusioni del comma 3-bis — un livello di
+  dettaglio normativo che il mondo, in questa tornata, non ha richiesto di
+  migliorare.
+
+**Ma `TIPI_DOC_APPALTATORE` vive tutto a livello di IMPRESA** (`appaltatoreId`
+sui documenti): la voce «Elenco lavoratori e idoneità» è un **unico
+allegato**, non un elenco di record — uno per persona, con una foto — come
+mostrato al §3. Il meccanismo della foto-prova **esiste già** altrove
+(`apps/scudo/scudo-data.js:2003-2069`, «S3b · LA FOTO COME PROVA», usata per
+eventi e voci d'ispezione, con il tetto di 400 KB e il principio che
+l'assenza di una foto non è un dato sfavorevole): è il pezzo tecnico pronto
+per essere riusato, non ancora collegato a una persona.
+
+### 2 · IL MONDO — il tesserino di riconoscimento del personale in appalto
+
+| Voce | Che cosa dice la fonte | Fonte |
+|---|---|---|
+| **L'obbligo, testuale** | «Nell'ambito dello svolgimento di attività in regime di appalto o subappalto, il personale occupato dall'impresa appaltatrice o subappaltatrice deve essere munito di apposita tessera di riconoscimento **corredata di fotografia**, contenente le **generalità del lavoratore** e l'indicazione del **datore di lavoro**» (art. 26 c.8 D.Lgs 81/08) | [Puntosicuro](https://www.puntosicuro.it/edilizia-C-10/tesserino-di-riconoscimento-per-tutti-i-lavori-in-appalto-subappalto-AR-10247/) `[di seconda mano]` |
+| **Chi deve fornirlo, chi deve esibirlo** | Il **datore di lavoro** dell'impresa appaltatrice/subappaltatrice fornisce il tesserino (art. 26 c.8); il **lavoratore** è obbligato a esibirlo (art. 20 c.3). I **lavoratori autonomi** che operano direttamente in cantiere se lo procurano da soli | [Puntosicuro](https://www.puntosicuro.it/edilizia-C-10/tesserino-di-riconoscimento-per-tutti-i-lavori-in-appalto-subappalto-AR-10247/) `[di seconda mano]` |
+| **Ambito** | Vale per «tutti i lavori in appalto e subappalto, nei cantieri, nelle fabbriche, nelle aziende e negli enti pubblici» — non solo l'edilizia | [Puntosicuro](https://www.puntosicuro.it/edilizia-C-10/tesserino-di-riconoscimento-per-tutti-i-lavori-in-appalto-subappalto-AR-10247/) `[di seconda mano]` |
+| **Sanzioni** | Per il datore di lavoro che non fornisce il tesserino: **da 112,85 € a 614,25 € per ogni lavoratore** senza tesserino; per il lavoratore autonomo che non se lo procura: **da 71,19 € a 427,16 €**. Due fonti indipendenti concordano sulla forbice (una dava solo il tetto massimo di 614,25 €, la seconda dà anche il minimo e la cifra per gli autonomi) | [Puntosicuro](https://www.puntosicuro.it/edilizia-C-10/tesserino-di-riconoscimento-per-tutti-i-lavori-in-appalto-subappalto-AR-10247/) · [Investireoggi](https://www.investireoggi.it/tesserino-riconoscimento-sul-cantiere-sanzioni-per-gli-autonomi/) `[di seconda mano, incrociato su due fonti]` |
+| **Evoluzione 2025-2026: verso il badge digitale** | Fonti recenti parlano di un **badge digitale di cantiere** dal 2026, collegato alla notifica preliminare e ai sistemi di controllo accessi — ma questa parte **non è stata verificata oltre il titolo**: `[dedotto, da NON usare per costruire codice]` | [BibLus/ACCA](https://biblus.acca.it/tesserino-di-riconoscimento-in-cantiere/) `[di seconda mano, solo titolo letto]` |
+
+`[dedotto]` La lettura che ne do: il mondo tratta il riconoscimento del
+personale esterno come un controllo **individuale** — una persona, una
+foto, un datore di lavoro — distinto dalla qualifica dell'**impresa** che
+Scudo già modella bene. È anche uno dei controlli più elementari e più
+citati nella prassi ispettiva generale (verificare che chi è in cantiere sia
+chi dice di essere, e per conto di chi): la Tornata 1 §2.2 aveva già
+elencato che cosa chiede un ispettore in generale (DVR, nomine, formazione,
+idoneità, registro DPI) senza includere il tesserino — non perché falso, ma
+perché quella tornata guardava la sequenza dell'81/08 generale, non
+l'appalto specificamente.
+
+### 3 · IL DELTA — verificato nel codice, non dedotto
+
+```
+$ grep -rniE "tesserino|cartellino|badge di riconoscimento|riconoscimento fotografico|generalità del lavoratore|distintivo di riconoscimento" \
+    apps/ --include=*.js --include=*.html
+apps/conti/index.html:4035:    //    cliente: chi la supera ha la barra in allarme e il cartellino
+apps/conti/index.html:4424:         cartellino «€ 0» accanto a quaranta tonnellate consegnate afferma una
+apps/conti/index.html:7437:        /* la provenienza: il cartellino della pesa e il file, per ritrovarlo */
+apps/conti/conti-data.js:5941:   aveva una porta: ogni cartellino si ricopiava a mano. Le colonne si leggono
+apps/conti/conti-data.js:6005:   archivio (stesso numero di cartellino, oppure stessa data + targa + lordo +
+apps/campo/index.html:2445:  // uno strumento che sembra un cartellino di demerito smette di ricevere dati
+apps/campo/campo-data.js:1775:// E NON È UN CARTELLINO DI DEMERITO, come il ponte con Scudo e quello con
+```
+**7 righe, zero pertinenti**: sono tutte il «cartellino della pesa» (il
+buono di pesatura di Conti — termine di mestiere diverso, già proprio di
+quell'app) o il modo di dire «cartellino di demerito» in Campo. Nessuna
+riguarda l'identificazione di una persona. La parola esatta `tesserino` da
+sola dà **0 righe** su tutto `apps/`.
+
+```
+$ grep -rniE "\bfoto.{0,10}badge|badge digitale" apps/ --include=*.js --include=*.html
+```
+→ **0 righe**.
+
+Confermato leggendo lo schema (§1): `lavoratori/{id}` in Scudo è
+`{ nome, ruolo, tel, note, attivo }` — **il personale interno della cava**,
+senza `appaltatoreId` e senza campo foto. I lavoratori delle imprese esterne
+non hanno un record individuale da nessuna parte: esistono solo come
+attributo di un documento aggregato (`TIPI_DOC_APPALTATORE` → chiave
+`"lavoratori"`, «Elenco lavoratori e idoneità», un allegato unico,
+`obbligatorio: false`). Un ispettore che chiedesse «questa persona, di
+quale impresa è, e ha il tesserino?» non troverebbe una risposta strutturata:
+solo, forse, un nome dentro un PDF allegato.
+
+**Non-delta, verificato per evitare un «non c'è» falso**: la qualifica
+dell'**impresa** appaltatrice (CCIAA, DURC, DVR, polizza) **C'È** ed è
+distinta correttamente dal documento di coordinamento (DSS coordinato /
+DUVRI) — vedi §1. Il delta non è «Scudo non sa gestire gli appalti»: è che
+la sua granularità sugli appalti si ferma **all'impresa** e non scende **alla
+persona fisica** che quel giorno è davvero sul fronte di cava.
+
+### 4 · La proposta (formato fisso)
+
+1. **Scudo → Appaltatori · Manca il record individuale del lavoratore
+   esterno, quindi non si può verificare né dichiarare il tesserino di
+   riconoscimento** · L'art. 26 c.8 tratta il riconoscimento come un
+   controllo sulla **persona** (foto + generalità + datore di lavoro), non
+   sull'impresa; oggi Scudo ha solo un allegato aggregato per impresa · `grep
+   -rniE "tesserino|cartellino di riconoscimento|badge di riconoscimento"
+   apps/scudo/` → 0 righe; schema `lavoratori/{id}` senza `appaltatoreId` né
+   `foto` · **costo: medio** — non un modulo nuovo: un tipo di record
+   `personaleEsterno` (`appaltatoreId`, `nome`, `foto?` sul modello già
+   pronto di S3b — stesso tetto 400 KB, stesso principio che l'assenza di
+   foto non è un dato sfavorevole) e uno stato a tre valori
+   (tesserino-dichiarato / tesserino-assente-dichiarato /
+   **non-verificato**) sul modello di `qualificaAppaltatore` · **come si
+   misura**: una funzione `personaleIdentificato(appaltatore, persone)` deve
+   rispondere **«non verificato»**, non «a posto», quando un appalto attivo
+   non ha nessuna persona censita — oggi un appalto con `qualifica: idonea`
+   (impresa a posto) non dice nulla sulle persone che quell'impresa ha
+   mandato in cava; controprova: con l'impresa idonea ma zero persone
+   censite, il verdetto complessivo dell'appalto non deve mai leggersi come
+   «regolare» sul fronte del riconoscimento. ⚠️ Da confermare sul testo di
+   legge prima di scrivere un riferimento d'articolo in interfaccia: questa
+   tornata non ha letto il testo primario (vedi §6). Fonte:
+   [Puntosicuro](https://www.puntosicuro.it/edilizia-C-10/tesserino-di-riconoscimento-per-tutti-i-lavori-in-appalto-subappalto-AR-10247/)
+
+### 5 · Una cosa che non propongo, e perché
+
+- **Il badge digitale 2026** (collegato a notifica preliminare/controllo
+  accessi) come funzione da costruire subito. La fonte che lo cita
+  (§2, riga «Evoluzione») è stata letta **solo nel titolo**: non so se si
+  applica alle cave allo stesso modo dei cantieri edili, né quali dati
+  scambi. Proporlo ora sarebbe costruire su un titolo, non su un
+  meccanismo verificato — esattamente l'errore che CLAUDE.md descrive per
+  chi annuncia una norma citata di seconda mano come se fosse testo letto.
+
+### 6 · Che cosa questa tornata NON ha potuto verificare
+
+- Il **testo primario** dell'art. 26 c.8 e dell'art. 20 c.3 D.Lgs 81/08 non
+  è stato letto (`WebFetch` bloccato dal proxy, stessa misura della Tornata
+  1): la citazione riportata al §2 viene da un unico estratto secondario,
+  non incrociata con una seconda fonte per il testo esatto (solo per
+  l'importo della sanzione, che invece **è** incrociato).
+- Se il tesserino di riconoscimento sia richiesto **anche** per il
+  personale interno della cava (non solo per gli appaltatori) non è stato
+  verificato: le fonti trovate parlano sempre di «appalto e subappalto»,
+  mai del rapporto di lavoro diretto — la domanda resta aperta.
+- Il contenuto e l'applicabilità del **badge digitale 2026** (§2, ultima
+  riga) restano da verificare oltre il titolo: nessuna proposta è stata
+  costruita su questo punto (vedi §5).

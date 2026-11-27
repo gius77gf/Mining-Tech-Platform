@@ -86,7 +86,8 @@ test("scudo: id unici, scadenze→lavoratore risolve, date valide", () => {
   idsOk(S.infortuni, "infortuni");
   for (const x of S.infortuni) {
     ok(isDate(x.data), `infortunio ${x.id}: data non valida ${x.data}`);
-    ok(["infortunio", "near-miss"].includes(x.tipo), `infortunio ${x.id}: tipo «${x.tipo}» sconosciuto`);
+    ok(["infortunio", "near-miss", "osservazione"].includes(x.tipo), `infortunio ${x.id}: tipo «${x.tipo}» sconosciuto`);
+    if (x.tipo === "osservazione") ok(["positiva", "da-correggere"].includes(x.esito), `osservazione ${x.id}: esito «${x.esito}» sconosciuto`);
     /* ⚠️ IL DATO CORROTTO NON È IL DATO ASSENTE, ed è la stessa correzione già
        fatta il 01/08 per la fattura senza scadenza. Questa riga pretendeva un
        numero, quindi la dimostrazione NON POTEVA contenere l'infortunio a
@@ -124,6 +125,9 @@ test("flotta: id unici, date manutenzioni valide, costi numerici", () => {
     ok(!aData || isDate(n.dataPrevista), `manutenzione ${n.id}: data ${n.dataPrevista} non valida`);
   }
   for (const c of F.costi) ok(isNum(c.importo), `costo ${c.id}: importo non numerico`);
+  // il budget dell'anno (05/09): anno intero, importo positivo, voce testo (vuota = tutta la flotta)
+  idsOk(F.budget, "budget");
+  for (const b of F.budget) { ok(Number.isInteger(b.anno) && b.anno > 2000, `budget ${b.id}: anno non valido`); ok(isNum(b.importo) && b.importo > 0, `budget ${b.id}: importo non positivo`); ok(typeof b.voce === "string", `budget ${b.id}: voce non testo`); }
   const mz = new Set(F.mezzi.map(m => m.nome.split(" — ")[0]));
   for (const n of F.manutenzioni)
     ok(n.mezzo == null || mz.has(n.mezzo.split(" — ")[0]), `manutenzione ${n.id}: mezzo «${n.mezzo}» inesistente`);

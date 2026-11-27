@@ -1,0 +1,515 @@
+/* IL FOGLIO HA LA PIANTA E LA TABELLA DI TUTTI I FORI — Genesi, provato premendo il bottone
+   ──────────────────────────────────────────────────────────────────────────────────────
+   Uso:
+     node genesi-foglio-pianta.mjs [--porta=8703]
+     node genesi-foglio-pianta.mjs --controprova   (rimette i difetti uno per volta: ognuno
+                                                    deve far cadere il SUO controllo)
+
+   PERCHÉ ESISTE. Misurato il 27/11 aprendo il report: «img 0, canvas 0, svg 0». Il foglio
+   che si porta in cava era solo testo — la maglia come due numeri, la sequenza come una
+   parola — e i fori uno per uno non c'erano. Adesso il foglio porta il disegno della pianta
+   (`piantaPerFoglio`) e la tabella di tutti i fori (`tabellaForiPerFoglio`), composti dal
+   modulo. `run-kpi` prova le due funzioni; questo banco prova il FOGLIO CHE ESCE, cioè le
+   cose che una funzione pura non può sapere:
+     · che il disegno e la tabella dicono LA STESSA COSA (il foro col numero 7 sta dove la
+       riga 7 dice che sta — e la scala scritta è quella del disegno: si confrontano due
+       distanze diverse, non un campione solo);
+     · che la tabella del foglio dice quello che dice la tabella a schermo;
+     · che il foglio stampa il PROGETTO e non la vista: ingrandire la pianta o nascondere
+       uno strato sullo schermo non deve cambiare una virgola del disegno;
+     · che su un telefono le scritte del disegno restano leggibili e la pagina non scorre
+       di lato (a corpo pieno la tabella chiede 474 px);
+     · che quando i fori sono troppo fitti il disegno non scrive numeri illeggibili, e lo
+       dice;
+     · (27/11) che la frase sulla MIC — quali fori la formano e quando — è VERA sulla
+       tabella dello stesso foglio: i fori nominati stanno entro 8 ms, le loro cariche
+       fanno il numero scritto, e quel numero è il massimo che si ricava ricontando le
+       finestre sulla tabella, qui, a mano. E che la scheda dice la stessa frase;
+     · (27/11) che il disegno «Cariche nel tempo» ha una barra per ogni ritardo distinto
+       della tabella, alta in proporzione ai chili ricontati sulla tabella, con in arancio
+       quelle — e solo quelle — che arrivano alla MIC;
+     · (27/11) che il CSV della scheda volata porta la stessa frase sulla MIC, nella riga
+       «Fori che formano la MIC» (il file si prende premendo il bottone);
+     · (27/11) che sulla pianta del foglio hanno il fondo arancio i fori — e solo quelli —
+       che nella tabella stanno in un gruppo che arriva alla MIC; nessuno se ogni foro
+       parte da solo.
+
+   ⛔ LA CONTROPROVA È UN DIFETTO PER VOLTA (`ATTIVE`), con il controllo che deve cadere
+   scritto accanto (`BERSAGLI`, stesso ordine di `DIFETTI`): rimessi insieme si coprono.
+   Le iniezioni sono PER FILE — metà stanno nel modulo, metà nella pagina — e il server le
+   applica solo al file che nominano.
+
+   ⚠️ Il documento non è un file: esce da `window.open` + `document.write`. Si prende la
+   finestra che si apre. La pagina compone il disegno con la larghezza della finestra che
+   lo CHIEDE: per questo ogni caso apre la pagina alla larghezza che vuole provare. */
+import { createServer } from "node:http";
+import { readFileSync, existsSync, statSync, writeFileSync, unlinkSync } from "node:fs";
+import { join, extname } from "node:path";
+
+const R = process.env.DW_RADICE || "/home/user/Mining-Tech-Platform";
+const CONTROPROVA = process.argv.includes("--controprova");
+const PORTA = Number((process.argv.find((a) => a.startsWith("--porta=")) || "").split("=")[1]) || 8703;
+const TIPI = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript",
+  ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png",
+  ".glb": "model/gltf-binary", ".obj": "text/plain", ".wasm": "application/wasm",
+  ".webmanifest": "application/manifest+json" };
+const MODULO = "apps/genesi/genesi-data.js", PAGINA = "apps/genesi/genesi.html";
+
+const DIFETTI = [
+  /* 1 · il numero scritto nel foro non è più quello della tabella */
+  [MODULO, "font-weight=\"700\" text-anchor=\"middle\" fill=\"#1a1a1a\">' + p.n + '</text>');", "font-weight=\"700\" text-anchor=\"middle\" fill=\"#1a1a1a\">' + (p.n % H.length + 1) + '</text>');"],
+  /* 2 · il segmento di scala è più lungo di quello che dichiara */
+  [MODULO, "by = alta - 34 - inPiu, bx = f1(padX + m * scala);", "by = alta - 34 - inPiu, bx = f1(padX + m * scala * 1.25);"],
+  /* 3 · i fori non seguono più il fronte modellato: la spalla del disegno non è quella della tabella */
+  /* ⏱️ riancorata il 27/11 sul pezzo più corto che sia unico: il fondo arancio ha aggiunto `i` in testa all'oggetto e
+     l'ancora lunga non combaciava più (`iniezioni-fresche` l'ha detto prima del commit) */
+  [MODULO, "y: +h.my + interpProf(prof, +h.mx), n:", "y: +h.my, n:"],
+  /* 4 · il foro con valori suoi non si distingue più sul disegno */
+  [MODULO, "stroke-width=\"' + (p.suo ? 2.6 : 1.2) + '\"/>');", "stroke-width=\"' + (1.2) + '\"/>');"],
+  /* 5 · i valori propri non sono più in grassetto nella tabella */
+  [MODULO, "return '<td>' + (r.propri[c] ? '<b>' + tx + '</b>' : tx) + '</td>'; };", "return '<td>' + tx + '</td>'; };"],
+  /* 6 · il foglio torna a dipendere da come si guarda lo schermo: strato nascosto, niente fori */
+  [PAGINA, "  const _rPianta=piantaPerFoglio(D2, {", "  const _rPianta=piantaPerFoglio(D2.strati.fori.visibile ? D2 : { ...D2, holes:[] }, {"],
+  /* 7 · il disegno torna largo 680 punti comunque: su un telefono le scritte scendono a 5 px */
+  [PAGINA, "  const _rLarga=Math.max(320, Math.min(680, (window.innerWidth||720)-32));", "  const _rLarga=680;"],
+  /* 8 · la tabella non ha più il suo riquadro: su uno schermo stretto scorre tutta la pagina */
+  [PAGINA, "    +'.tfs{overflow-x:auto}@media(max-width:560px){", "    +'@media(max-width:560px){"],
+  /* 9 · il ritardo sotto il foro non è più quello della riga */
+  [MODULO, "text-anchor=\"middle\" fill=\"#555\">' + Math.round(p.t) + '</text>');", "text-anchor=\"middle\" fill=\"#555\">' + Math.round(p.t / 2) + '</text>');"],
+  /* 10 · i numeri si scrivono comunque, anche dove non si leggono */
+  [MODULO, "const r = raggioForoTela(passo), coiNumeri = r >= RAGGIO_MIN_NUMERO,", "const r = raggioForoTela(passo), coiNumeri = true,"],
+  /* 11 · la tabella dei fori non entra più nel foglio */
+  [PAGINA, "    +body\n    +_rTabFori\n", "    +body\n"],
+  /* 12 · la finestra della MIC diventa di 80 ms: i fori nominati non stanno più entro 8 */
+  [MODULO, "export const FINESTRA_MIC_MS = 8;", "export const FINESTRA_MIC_MS = 80;"],
+  /* 13 · i fori della MIC si chiamano col numero sbagliato */
+  [MODULO, "const numero = (j) => (fin(H[j] && H[j].seq) ? +H[j].seq : j) + 1;", "const numero = (j) => (fin(H[j] && H[j].seq) ? +H[j].seq : j) + 2;"],
+  /* 14 · «ogni foro parte da solo» detto perché la finestra massima ha un foro solo */
+  [MODULO, "daSoli: finestre.every((f) => f.dentro.length === 1),", "daSoli: true,"],
+  /* 15 · il foglio non dice più quali fori formano la MIC */
+  [PAGINA, "' kg (finestra 8 ms)'+(_rM.chi?'<br>'+esc(_rM.chi):'')\n", "' kg (finestra 8 ms)'\n"],
+  /* 16 · la scheda non lo dice più (nel ramo di tutti i giorni: soglia e distanza ci sono) */
+  [PAGINA, "' m: oltre, il PPV supera il limite.'+(_m2.chi?' '+_rEsc(_m2.chi):'')});", "' m: oltre, il PPV supera il limite.'});"],
+  /* 17 · le barre delle cariche nel tempo non sono più proporzionali ai chili */
+  [MODULO, "const h = f.kg / mic * altaBarre; if (!(h > 0)) return;", "const h = (f.kg / mic) * (f.kg / mic) * altaBarre; if (!(h > 0)) return;"],
+  /* 18 · nessuna barra in arancio: la MIC non si riconosce più */
+  [MODULO, "'<rect class=\"t-b' + (f.kg === mic ? ' t-max' : '')", "'<rect class=\"t-b' + ('')"],
+  /* 19 · il disegno delle cariche nel tempo resta largo 680 punti anche sul telefono */
+  [PAGINA, "  const _rTempi=diagrammaTempiPerFoglio(D2.holes, D2.kg, { larghezza:_rLarga });", "  const _rTempi=diagrammaTempiPerFoglio(D2.holes, D2.kg);"],
+  /* 20 · il disegno delle cariche nel tempo non entra più nel foglio */
+  [PAGINA, "   +(_rTempi ? '<h2>Cariche nel tempo</h2>'+_rTempi : '')\n", ""],
+  /* 21 · il CSV della scheda volata non dice più chi forma la MIC */
+  [PAGINA, "    ['Fori che formano la MIC', k.micCalcolabile?(k.micChi||''):''],\n", "    ['Fori che formano la MIC', ''],\n"],
+  /* 22 · sulla pianta nessun foro ha più il fondo arancio */
+  [MODULO, "fill=\"' + (nellaMic.has(p.i) ? '#ffd9b8' : '#fff') + '\"", "fill=\"' + ('#fff') + '\""],
+  /* 23 · il fondo arancio anche quando ogni foro parte da solo: tutta la pianta colorata */
+  [MODULO, "  if (finestre.every((f) => f.dentro.length === 1)) return vuoto;\n  let mic = null;", "  let mic = null;"],
+];
+let ATTIVE = DIFETTI;
+
+const colpiti = new Set();
+const srv = createServer((q, s) => {
+  let p = join(R, decodeURIComponent(q.url.split("?")[0]));
+  if (existsSync(p) && statSync(p).isDirectory()) p = join(p, "index.html");
+  if (!existsSync(p)) { s.writeHead(404); return s.end("no"); }
+  let corpo = readFileSync(p);
+  if (CONTROPROVA) {
+    const perQui = ATTIVE.filter(([f]) => p.endsWith(f));
+    if (perQui.length) {
+      let t = corpo.toString("utf8");
+      for (const [, da, a] of perQui) { if (t.includes(da)) { colpiti.add(da); t = t.split(da).join(a); } }
+      corpo = Buffer.from(t, "utf8");
+    }
+  }
+  s.writeHead(200, { "content-type": TIPI[extname(p)] || "application/octet-stream", "cache-control": "no-store" });
+  s.end(corpo);
+});
+await new Promise((r, x) => { srv.once("error", x); srv.listen(PORTA, r); });
+
+/* ⛔ IL CONTRASSEGNO COL PROPRIO PID: un banco che trova la porta occupata e
+   la RIUSA non fallisce, misura la copia di qualcun altro. */
+const SEGNO = join(R, "__genesi-foglio-pianta-" + process.pid);
+writeFileSync(SEGNO, String(process.pid));
+try {
+  const eco = await (await fetch(`http://127.0.0.1:${PORTA}/__genesi-foglio-pianta-${process.pid}`)).text();
+  if (eco.trim() !== String(process.pid)) {
+    console.error(`✗ sulla porta ${PORTA} risponde un ALTRO server: misurerei la sua copia.`);
+    process.exit(2);
+  }
+} finally { try { unlinkSync(SEGNO); } catch (e) {} }
+
+const { chromium } = await import("/opt/node22/lib/node_modules/playwright/index.mjs");
+const b = await chromium.launch({ executablePath: process.env.CHROMIUM || "/opt/pw-browsers/chromium" });
+
+let ok = 0, ko = 0; const nonMisurati = [];
+const caduti = [];
+const dice = (c, t, x) => {
+  if (c) { ok++; console.log(`  ok  ${t}`); }
+  else { ko++; caduti.push(t); console.log(`  KO  ${t}${x !== undefined ? `\n        -> ${JSON.stringify(String(x).slice(0, 360))}` : ""}`); }
+};
+
+console.log(`\n════════ Genesi: il foglio ha la pianta e la tabella di tutti i fori${CONTROPROVA ? " · controprova" : ""} ════════`);
+
+const DESIGN = { B: 3, S: 3.5, diam: 102, prof: 10, kg: 58, stem: 2.2, sub: 0.9, file: 2, perRow: 8,
+  esplosivo: "anfo-standard", innesco: "nonel", roccia: "calcare", frat: "media",
+  bagnato: false, presplit: false, psSpacing: 0.9, psCharge: 0.4, ucs: 100, eMod: 55,
+  sequenza: "diagonale", ritardo: 42, ritardoFila: 84, recNorma: "din-res", recFreq: 25, recDist: 300 };
+/* la maglia più fitta che i campi accettano: 30 fori per fila, 6 file */
+const FITTA = { ...DESIGN, perRow: 30, file: 6 };
+
+async function apri(larghezza, design) {
+  const ctx = await b.newContext({ viewport: { width: larghezza, height: 950 }, hasTouch: larghezza < 600 });
+  /* il foglio chiama `print()` da sé dopo 350 ms: in un banco non deve aprire niente */
+  await ctx.addInitScript(() => { window.print = () => {}; });
+  /* e i file che la pagina fa scaricare (`a.download` + `a.click()`) restano qui, col loro testo */
+  await ctx.addInitScript(() => { window.__usciti = []; const vero = HTMLAnchorElement.prototype.click;
+    HTMLAnchorElement.prototype.click = function () { if (this.download && /^data:/.test(this.href)) window.__usciti.push({ nome: this.download, testo: decodeURIComponent(this.href.replace(/^data:[^,]*,/, "")) }); else return vero.call(this); }; });
+  const pg = await ctx.newPage();
+  const errori = []; pg.on("pageerror", (e) => errori.push(e.message));
+  await pg.addInitScript((dd) => {
+    localStorage.setItem("genesiDisclaimerV1", "1");
+    localStorage.setItem("genesiVolate", JSON.stringify([{ id: "v1", nome: "Fronte Nord", data: "2026-07-12", sintesi: "fori", design: dd }]));
+  }, design);
+  await pg.route("https://www.gstatic.com/**", (r) => r.abort());
+  await pg.goto(`http://127.0.0.1:${PORTA}/apps/genesi/genesi.html`, { waitUntil: "domcontentloaded" });
+  await pg.waitForTimeout(2200);
+  await pg.evaluate(() => {
+    const l = document.getElementById("loginBtn"); if (l) l.click();
+    const c = document.getElementById("consensoOk");
+    if (c) { document.getElementById("disclaimerChk").checked = true; c.classList.remove("disabled"); c.click(); }
+  });
+  await pg.waitForTimeout(500);
+  await pg.evaluate(() => { const it = document.querySelector('.hg-item[data-id="v1"]'); const btn = it && it.querySelector('button[data-act="apri"]'); if (btn) btn.click(); });
+  await pg.waitForTimeout(1400);
+  pg.__errori = errori; pg.__ctx = ctx; pg.__larga = larghezza;
+  return pg;
+}
+const pronta = (pg) => pg.evaluate(() => document.body.className.includes("scr-design") && !!window.__genesi && window.__genesi.D2.holes.length > 0);
+
+/* PREME «REPORT» E LEGGE IL FOGLIO CHE SI APRE: il disegno (cerchi, scritte, fronte, scala)
+   e la tabella, come li ha messi sulla pagina il browser. */
+async function foglio(pg) {
+  const [pop] = await Promise.all([pg.__ctx.waitForEvent("page", { timeout: 8000 }).catch(() => null),
+    pg.evaluate(() => { const e = document.getElementById("btn-report"); e.scrollIntoView({ block: "center" }); e.click(); })]);
+  if (!pop) return null;
+  await pop.waitForLoadState("domcontentloaded").catch(() => {}); await pop.waitForTimeout(450);
+  await pop.setViewportSize({ width: pg.__larga, height: 900 }).catch(() => {});
+  await pop.waitForTimeout(150);
+  const L = await pop.evaluate(() => {
+    const svg = document.querySelector("svg.pianta");
+    const out = { svg: document.querySelectorAll("svg.pianta").length, markup: document.body.innerHTML, sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth,
+      titoli: [...document.querySelectorAll("h2")].map((h) => h.textContent) };
+    if (svg) {
+      const vb = svg.viewBox.baseVal;
+      out.k = svg.getBoundingClientRect().width / vb.width; out.larga = vb.width; out.alta = vb.height; out.disegno = svg.outerHTML;
+      out.fori = [...svg.querySelectorAll("circle.p-foro")].map((c) => ({ x: +c.getAttribute("cx"), y: +c.getAttribute("cy"), r: +c.getAttribute("r"), bordo: +c.getAttribute("stroke-width"), fondo: c.getAttribute("fill") }));
+      out.testi = [...svg.querySelectorAll("text")].map((t) => { const q = t.getBBox(); return { t: t.textContent, cls: t.getAttribute("class") || "", ax: +t.getAttribute("x"), fs: +t.getAttribute("font-size"), x0: q.x, x1: q.x + q.width, y0: q.y, y1: q.y + q.height }; });
+      const fr = svg.querySelector("polyline.p-fronte"); out.fronte = fr ? fr.getAttribute("points").trim().split(/\s+/).map((p) => p.split(",").map(Number)) : [];
+      const sc = svg.querySelector("path.p-scala"); out.scalaD = sc ? sc.getAttribute("d") : "";
+      out.piede = svg.querySelectorAll("polyline.p-piede").length; out.tratti = svg.querySelectorAll("polyline.p-tratto").length;
+    }
+    const st = document.querySelector("svg.tempi");
+    if (st) { const vb = st.viewBox.baseVal;
+      out.tempi = { k: st.getBoundingClientRect().width / vb.width, larga: vb.width, alta: vb.height,
+        barre: [...st.querySelectorAll("rect.t-b")].map((r) => ({ x: +r.getAttribute("x") + +r.getAttribute("width") / 2, w: +r.getAttribute("width"), h: +r.getAttribute("height"), max: r.classList.contains("t-max") })).sort((a, c) => a.x - c.x),
+        testi: [...st.querySelectorAll("text")].map((t) => { const q = t.getBBox(); return { t: t.textContent, fs: +t.getAttribute("font-size"), x0: q.x, x1: q.x + q.width, y0: q.y, y1: q.y + q.height }; }) }; }
+    const tf = document.querySelector("table.tf"), box = document.querySelector(".tfs");
+    if (tf) {
+      out.testa = [...tf.querySelectorAll("thead th")].map((th) => th.textContent);
+      out.righe = [...tf.querySelectorAll("tbody tr")].map((tr) => [...tr.cells].map((td) => ({ t: td.textContent, b: !!td.querySelector("b") })));
+      const rm = [...document.querySelectorAll("tr")].find((tr) => tr.cells.length === 2 && /^MIC/.test(tr.cells[0].textContent));
+      out.mic = rm ? rm.cells[1].innerText.split("\n").map((x) => x.trim()).filter(Boolean) : null;
+      out.tf = { w: tf.getBoundingClientRect().width, box: box ? box.getBoundingClientRect().width : null, scorre: box ? getComputedStyle(box).overflowX : null };
+    }
+    return out;
+  });
+  await pop.close();
+  return L;
+}
+
+/* ───── gli strumenti di lettura ───── */
+const num = (t) => { const m = String(t).replace(/\./g, "").replace(",", ".").match(/-?\d+(?:\.\d+)?/); return m ? +m[0] : null; };
+const COL = { n: 0, x: 1, spalla: 2, tDet: 3, kg: 4, prof: 5, stem: 6, diam: 7, incl: 8 };
+/* la scala che il disegno DICHIARA: quanti px è lungo il segmento, e quanti metri c'è scritto sopra */
+function scalaDichiarata(L) {
+  const m0 = L.scalaD.match(/^M([\d.]+) /), h = L.scalaD.match(/H([\d.]+)/), et = L.testi.find((q) => /^\d+ m$/.test(q.t));
+  if (!m0 || !h || !et) return null;
+  return (+h[1] - +m0[1]) / num(et.t);
+}
+const yFronte = (L, x) => { const f = L.fronte; if (!f.length) return null; if (x <= f[0][0]) return f[0][1]; if (x >= f[f.length - 1][0]) return f[f.length - 1][1];
+  for (let i = 0; i < f.length - 1; i++) if (x >= f[i][0] && x <= f[i + 1][0]) return f[i][1] + (f[i + 1][1] - f[i][1]) * (x - f[i][0]) / ((f[i + 1][0] - f[i][0]) || 1); return null; };
+/* il cerchio di ogni numero: la scritta `p-n` sta sull'asse del suo cerchio */
+function foriPerNumero(L) {
+  const out = new Map();
+  for (const q of L.testi.filter((q) => q.cls === "p-n")) {
+    const c = L.fori.filter((c) => Math.abs(c.x - q.ax) < 0.06).sort((a, b2) => Math.abs((q.y0 + q.y1) / 2 - a.y) - Math.abs((q.y0 + q.y1) / 2 - b2.y))[0];
+    if (c) out.set(+q.t, c);
+  }
+  return out;
+}
+const sovrapposti = (A) => { const fuori = []; for (let i = 0; i < A.length; i++) for (let j = i + 1; j < A.length; j++) { const a = A[i], c = A[j];
+  if (a.x0 < c.x1 - 0.5 && c.x0 < a.x1 - 0.5 && a.y0 < c.y1 - 0.5 && c.y0 < a.y1 - 0.5) fuori.push(`«${a.t}» / «${c.t}»`); } return fuori; };
+
+/* ───── i controlli che valgono per OGNI foglio ───── */
+function comuni(nome, L, nFori) {
+  dice(L.svg === 1 && !!L.righe && L.titoli.includes("Pianta della volata") && L.titoli.includes("Tabella dei fori"), `${nome}: il foglio ha UNA pianta e la tabella dei fori`, JSON.stringify({ svg: L.svg, tabella: !!L.righe, titoli: L.titoli }));
+  if (L.svg !== 1 || !L.righe) { nonMisurati.push(`${nome}: senza pianta o senza tabella il resto non si può guardare`); return false; }
+  const brutti = L.markup.match(/undefined|NaN|\bnull\b|\[object|Infinity/g);
+  dice(!brutti, `${nome}: nel foglio, disegno compreso, nessun «undefined», «NaN», «null»`, brutti && brutti.slice(0, 4));
+  dice(L.fori.length === nFori && L.righe.length === nFori, `${nome}: un cerchio per foro e una riga per foro (${nFori})`, `cerchi ${L.fori.length}, righe ${L.righe.length}, fori ${nFori}`);
+  /* la scala: la distanza fra il foro più a sinistra e il più a destra, in px e in metri */
+  const sD = scalaDichiarata(L), xs = L.righe.map((r) => num(r[COL.x].t)), cx = L.fori.map((c) => c.x);
+  const largaM = Math.max(...xs) - Math.min(...xs), largaPx = Math.max(...cx) - Math.min(...cx);
+  if (largaM > 0 && sD) dice(Math.abs(largaPx / largaM - sD) / sD < 0.012, `${nome}: la scala scritta è quella del disegno (${largaM.toFixed(1)} m fra i fori estremi)`, `disegno ${(largaPx / largaM).toFixed(3)} px/m, segmento ${sD.toFixed(3)} px/m`);
+  else nonMisurati.push(`${nome}: la scala (un foro solo, o segmento non trovato)`);
+  const fuori = L.testi.filter((q) => q.x0 < -0.5 || q.x1 > L.larga + 0.5 || q.y0 < -0.5 || q.y1 > L.alta + 0.5).map((q) => `«${q.t}»`);
+  const sopra = sovrapposti(L.testi);
+  dice(!fuori.length && !sopra.length, `${nome}: nessuna scritta esce dal disegno e nessuna sta sopra un'altra (${L.testi.length} scritte)`, JSON.stringify({ fuori: fuori.slice(0, 4), sopra: sopra.slice(0, 4) }));
+  let tocca = 0; for (let i = 0; i < L.fori.length; i++) for (let j = i + 1; j < L.fori.length; j++) if (Math.hypot(L.fori[i].x - L.fori[j].x, L.fori[i].y - L.fori[j].y) < L.fori[i].r + L.fori[j].r - 0.3) tocca++;
+  const esce = L.fori.filter((c) => c.x - c.r < 0 || c.x + c.r > L.larga || c.y - c.r < 0 || c.y + c.r > L.alta).length;
+  dice(tocca === 0 && esce === 0, `${nome}: nessun foro sopra un altro, tutti dentro il disegno`, `si toccano ${tocca} coppie, fuori ${esce}`);
+  const bassi = L.testi.filter((q) => q.fs * L.k < 6.5).map((q) => `«${q.t}» ${(q.fs * L.k).toFixed(1)}px`);
+  dice(!bassi.length, `${nome}: ogni scritta del disegno è alta almeno 6,5 px sullo schermo che la mostra (la più bassa: ${Math.min(...L.testi.map((q) => q.fs * L.k)).toFixed(1)})`, bassi.slice(0, 5));
+  const Tm = L.tempi;
+  if (!Tm) dice(false, `${nome}: il disegno delle cariche nel tempo c'è, e si legge`, "nel foglio non c'è nessun `svg.tempi`");
+  else { const fuoriT = Tm.testi.filter((q) => q.x0 < -0.5 || q.x1 > Tm.larga + 0.5 || q.y0 < -0.5 || q.y1 > Tm.alta + 0.5).map((q) => `«${q.t}»`), sopraT = sovrapposti(Tm.testi), bassiT = Tm.testi.filter((q) => q.fs * Tm.k < 6.5).map((q) => `«${q.t}» ${(q.fs * Tm.k).toFixed(1)}px`), barreFuori = Tm.barre.filter((q) => q.x - q.w / 2 < 0 || q.x + q.w / 2 > Tm.larga).length;
+    dice(Tm.barre.length > 0 && !fuoriT.length && !sopraT.length && !bassiT.length && !barreFuori, `${nome}: il disegno delle cariche nel tempo c'è, e si legge — nessuna scritta esce, si sovrappone o scende sotto i 6,5 px, ogni barra sta dentro (${Tm.barre.length} barre)`, JSON.stringify({ fuori: fuoriT.slice(0, 3), sopra: sopraT.slice(0, 3), bassi: bassiT.slice(0, 3), barreFuori })); }
+  dice(L.sw <= L.cw + 0.5 && (L.tf.w <= L.tf.box + 0.5 || L.tf.scorre === "auto"), `${nome}: la pagina non scorre di lato, e la tabella sta nel suo riquadro o ci scorre dentro`, JSON.stringify({ pagina: `${L.sw}/${L.cw}`, tabella: `${Math.round(L.tf.w)}/${Math.round(L.tf.box || 0)}`, riquadro: L.tf.scorre }));
+  return true;
+}
+/* il foro col numero n sta dove la riga n dice: lungo la fila (dal primo foro) e a spalla dal fronte */
+function doveDice(nome, L) {
+  const perN = foriPerNumero(L), sD = scalaDichiarata(L);
+  if (perN.size !== L.righe.length || !sD) { dice(false, `${nome}: ogni foro sta dove la sua riga dice — lungo la fila e a spalla dal fronte`, `numeri letti sul disegno ${perN.size} su ${L.righe.length} righe`); return; }
+  const r1 = L.righe[0], c1 = perN.get(num(r1[COL.n].t)), fuori = [];
+  for (const r of L.righe) { const n = num(r[COL.n].t), c = perN.get(n); if (!c) { fuori.push(`foro ${n}: non c'è sul disegno`); continue; }
+    const dxAtteso = (num(r[COL.x].t) - num(r1[COL.x].t)) * sD, dyAtteso = num(r[COL.spalla].t) * sD, dy = c.y - yFronte(L, c.x);
+    if (Math.abs((c.x - c1.x) - dxAtteso) > 1.2 || Math.abs(dy - dyAtteso) > 1.2) fuori.push(`foro ${n}: lungo la fila ${(c.x - c1.x).toFixed(1)} px (attesi ${dxAtteso.toFixed(1)}), dal fronte ${dy.toFixed(1)} px (attesi ${dyAtteso.toFixed(1)})`); }
+  dice(!fuori.length, `${nome}: ogni foro sta dove la sua riga dice — lungo la fila e a spalla dal fronte (${L.righe.length} fori)`, fuori.slice(0, 3).join(" | "));
+}
+function ritardi(nome, L) {
+  const sotto = L.testi.filter((q) => q.cls === "p-t"), leg = L.testi.filter((q) => q.cls === "p-leg").map((q) => q.t).join(" · ");
+  if (!sotto.length) { dice(/ritardi: nella tabella dei fori/.test(leg), `${nome}: i ritardi non ci stanno sotto i fori, e la legenda dice dove trovarli`, leg); return; }
+  const perN = foriPerNumero(L), fuori = [];
+  for (const r of L.righe) { const n = num(r[COL.n].t), c = perN.get(n); if (!c) continue;
+    const q = sotto.find((q) => Math.abs(q.ax - c.x) < 0.06 && q.y0 > c.y && q.y0 < c.y + c.r + 14);
+    if (!q || +q.t !== Math.round(num(r[COL.tDet].t))) fuori.push(`foro ${n}: sotto «${q ? q.t : "niente"}», in tabella «${r[COL.tDet].t}»`); }
+  dice(!fuori.length && /sotto il foro: ritardo in ms/.test(leg), `${nome}: il ritardo scritto sotto ogni foro è quello della sua riga (${sotto.length} ritardi)`, fuori.slice(0, 3).join(" | ") || leg);
+}
+
+/* ───── A · la volata di base, su uno schermo largo ───── */
+async function base() {
+  const pg = await apri(1280, DESIGN);
+  if (!(await pronta(pg))) { nonMisurati.push("base: la pagina non è arrivata al progetto"); await pg.__ctx.close(); return; }
+  const L = await foglio(pg), n = await pg.evaluate(() => window.__genesi.D2.holes.length);
+  if (!L) { nonMisurati.push("base: il foglio non si è aperto"); await pg.__ctx.close(); return; }
+  if (comuni("base", L, n)) { doveDice("base", L); ritardi("base", L); }
+  dice(pg.__errori.length === 0, "base: nessun errore di pagina aprendo il foglio", pg.__errori[0]);
+  await pg.__ctx.close();
+}
+
+/* ───── B · fori con valori loro, fronte modellato, piede, un tratto — e la vista che non conta ───── */
+async function propri() {
+  const pg = await apri(1280, DESIGN);
+  if (!(await pronta(pg))) { nonMisurati.push("valori propri: la pagina non è arrivata al progetto"); await pg.__ctx.close(); return; }
+  await pg.evaluate(() => { const D = window.__genesi.D2;
+    D.profilo = [{ x: 3, y: 0 }, { x: 11, y: 1.6 }, { x: 21, y: -0.8 }];
+    D.piede = [{ x: 0, y: -1.2 }, { x: 12, y: -1.9 }, { x: 24, y: -1.0 }];
+    D.tratti.push({ pts: [{ x: 2, y: 9.5 }, { x: 12, y: 10.5 }, { x: 22, y: 9 }], aperto: false, origine: "dxf" });
+    D.holes[2].kg = 0; D.holes[4].prof = 8.5; D.holes[4].stem = 1.5;
+    window.__genesi.renderScheda2D(); });
+  await pg.waitForTimeout(300);
+  const L = await foglio(pg);
+  if (!L) { nonMisurati.push("valori propri: il foglio non si è aperto"); await pg.__ctx.close(); return; }
+  const stato = await pg.evaluate(() => { const D = window.__genesi.D2; return { n: D.holes.length, scarico: D.holes[2].seq + 1, corto: D.holes[4].seq + 1 }; });
+  if (comuni("valori propri", L, stato.n)) {
+    doveDice("valori propri", L); ritardi("valori propri", L);
+    const grassi = []; L.righe.forEach((r) => r.forEach((c, k) => { if (k > 0 && c.b) grassi.push(num(r[0].t) + ":" + Object.keys(COL)[k]); }));
+    const attesi = [stato.scarico + ":kg", stato.corto + ":prof", stato.corto + ":stem"].sort();
+    dice(JSON.stringify(grassi.sort()) === JSON.stringify(attesi), "valori propri: in grassetto nella tabella i valori che un foro ha di suo, e solo quelli", `in grassetto ${grassi.join(", ") || "nessuno"} · attesi ${attesi.join(", ")}`);
+    const rs = L.righe.find((r) => num(r[0].t) === stato.scarico);
+    dice(!!rs && /^0 \(scarico\)$/.test(rs[COL.kg].t), "valori propri: il foro lasciato scarico è scritto «0 (scarico)»", rs && rs[COL.kg].t);
+    const perN = foriPerNumero(L), spessi = [...perN].filter(([, c]) => c.bordo > 2).map(([k]) => k).sort((a, c) => a - c), leg = L.testi.filter((q) => q.cls === "p-leg").map((q) => q.t).join(" · ");
+    dice(JSON.stringify(spessi) === JSON.stringify([stato.scarico, stato.corto].sort((a, c) => a - c)) && /bordo spesso: foro con valori suoi/.test(leg),
+      "valori propri: sul disegno hanno il bordo spesso i fori con valori suoi, solo quelli, e la legenda lo dice", `bordo spesso: ${spessi.join(", ") || "nessuno"} · attesi ${stato.scarico}, ${stato.corto} · ${leg}`);
+    dice(L.piede === 1 && L.tratti === 1 && /piede/.test(leg) && /tratto/.test(leg) && L.fronte.length > 2, "valori propri: il fronte modellato, il piede e il tratto sono sul disegno, e la legenda li nomina", JSON.stringify({ piede: L.piede, tratti: L.tratti, fronte: L.fronte.length, leg }));
+    /* la tabella del foglio contro quella dello schermo: stessi fori, stessi valori */
+    await pg.evaluate(() => { const a = document.getElementById("ft-apri"); if (a) a.click(); }); await pg.waitForTimeout(450);
+    const schermo = await pg.evaluate(() => [...document.querySelectorAll("#ft-corpo .ft-r")].map((r) => { const i = r.dataset.i, v = (c) => { const e = document.getElementById("ft-" + c + "-" + i); return e ? e.value : null; };
+      return { n: parseInt(r.querySelector(".ft-num").textContent, 10), kg: v("kg"), prof: v("prof"), stem: v("stem"), diam: v("diam"), incl: v("incl") }; }));
+    const diversi = [];
+    for (const s of schermo) { const r = L.righe.find((r) => num(r[0].t) === s.n); if (!r) { diversi.push(`foro ${s.n}: manca sul foglio`); continue; }
+      for (const c of ["kg", "prof", "stem", "diam", "incl"]) if (s[c] === null || num(s[c]) !== num(r[COL[c]].t)) diversi.push(`foro ${s.n} ${c}: schermo «${s[c]}», foglio «${r[COL[c]].t}»`); }
+    dice(schermo.length === stato.n && !diversi.length, `valori propri: la tabella del foglio dice quello che dice la tabella a schermo (${schermo.length} fori × 5 valori)`, diversi.slice(0, 3).join(" | ") || `righe a schermo ${schermo.length}`);
+    /* la vista non conta: pianta ingrandita, due strati nascosti → lo stesso identico disegno */
+    await pg.evaluate(() => { const c = document.getElementById("d2-canvas"); if (c) c.scrollIntoView({ block: "center" }); });
+    for (let k = 0; k < 2; k++) { await pg.evaluate(() => document.getElementById("dvPiu").click()); await pg.waitForTimeout(120); }
+    const quanto = await pg.evaluate(() => { const D = window.__genesi.D2; D.strati.fori.visibile = false; D.strati.piede.visibile = false; window.__genesi.renderScheda2D(); return document.getElementById("dvQuanto").textContent; });
+    const L2 = await foglio(pg);
+    if (!L2 || !/^\d+%$/.test(quanto.trim()) || parseInt(quanto, 10) <= 100) nonMisurati.push(`valori propri: la vista non conta (la pianta a schermo non risulta ingrandita: «${quanto}»)`);
+    else dice(L2.disegno === L.disegno && L2.righe.length === L.righe.length, `valori propri: il foglio stampa il progetto, non la vista — pianta a schermo al ${quanto.trim()} e due strati nascosti, il disegno è identico`, L2.disegno ? `cerchi ${L2.fori.length} contro ${L.fori.length}` : `nessun disegno (svg ${L2.svg})`);
+  }
+  dice(pg.__errori.length === 0, "valori propri: nessun errore di pagina", pg.__errori[0]);
+  await pg.__ctx.close();
+}
+
+/* ───── C · il telefono: 390 e 320 ───── */
+async function telefono(larghezze) {
+  for (const w of larghezze) {
+    const pg = await apri(w, DESIGN);
+    if (!(await pronta(pg))) { nonMisurati.push(`${w}px: la pagina non è arrivata al progetto`); await pg.__ctx.close(); continue; }
+    const L = await foglio(pg), n = await pg.evaluate(() => window.__genesi.D2.holes.length);
+    if (!L) { nonMisurati.push(`${w}px: il foglio non si è aperto`); await pg.__ctx.close(); continue; }
+    if (comuni(`${w}px`, L, n)) { doveDice(`${w}px`, L); ritardi(`${w}px`, L);
+      if (w >= 390) dice(L.tf.w <= L.tf.box + 0.5, `${w}px: la tabella dei fori ci sta tutta, senza scorrere`, `${Math.round(L.tf.w)} px in ${Math.round(L.tf.box)}`); }
+    await pg.__ctx.close();
+  }
+}
+
+/* ───── D · la maglia più fitta che i campi accettano (30 × 6 = 180 fori) ───── */
+async function fitta() {
+  for (const w of [1280, 390]) {
+    const pg = await apri(w, FITTA);
+    if (!(await pronta(pg))) { nonMisurati.push(`fitta ${w}px: la pagina non è arrivata al progetto`); await pg.__ctx.close(); continue; }
+    const L = await foglio(pg), n = await pg.evaluate(() => window.__genesi.D2.holes.length);
+    if (!L) { nonMisurati.push(`fitta ${w}px: il foglio non si è aperto`); await pg.__ctx.close(); continue; }
+    if (comuni(`fitta ${w}px`, L, n)) {
+      const numeri = L.testi.filter((q) => q.cls === "p-n"), leg = L.testi.filter((q) => q.cls === "p-leg").map((q) => q.t).join(" · ");
+      if (w === 1280) { doveDice("fitta 1280px", L); ritardi("fitta 1280px", L); }
+      else dice(numeri.length === 0 && /numeri dei fori: in tabella, con la posizione/.test(leg) && /ritardi: nella tabella dei fori/.test(leg),
+        `fitta ${w}px: con ${n} fori in ${Math.round(L.larga)} px il disegno non scrive numeri illeggibili, e la legenda dice dove ritrovarli`, `numeri scritti ${numeri.length} · ${leg}`);
+    }
+    await pg.__ctx.close();
+  }
+}
+
+/* ───── E · la MIC dice quali fori la formano e quando ───── */
+/* la MIC ricontata QUI sulla tabella del foglio: per ogni riga, i chili delle righe che partono entro 8 ms da lei */
+function micDallaTabella(L) {
+  const r = L.righe.map((q) => ({ n: num(q[COL.n].t), t: num(q[COL.tDet].t), kg: num(q[COL.kg].t) }));
+  let mic = 0, vicini = 0; const perIstante = new Map();
+  for (const a of r) { let s = 0, c = 0; for (const q of r) if (q.t >= a.t && q.t < a.t + 8) { s += q.kg; c++; } if (s > mic) mic = s; if (c > 1) vicini++; perIstante.set(a.t, s); }
+  /* i numeri dei fori che stanno in una finestra che arriva alla MIC (tutti i gruppi alla pari) */
+  const nellaMic = new Set(); for (const a of r) if (Math.abs(perIstante.get(a.t) - mic) < 0.06) for (const q of r) if (q.t >= a.t && q.t < a.t + 8) nellaMic.add(q.n);
+  /* gli istanti distinti in ordine di tempo, coi chili della finestra che si apre lì */
+  return { mic, vicini, r, nellaMic: [...nellaMic].sort((a, c) => a - c), istanti: [...perIstante].map(([t, kg]) => ({ t, kg })).sort((a, c) => a.t - c.t) };
+}
+const colorati = (L) => [...foriPerNumero(L)].filter(([, c]) => c.fondo !== "#fff").map(([k]) => k).sort((a, c) => a - c);
+const voceArancio = (L) => L.testi.some((q) => q.cls === "p-leg" && /fondo arancio: nei gruppi che fanno la MIC/.test(q.t));
+const fraseScheda = (pg) => pg.evaluate(() => { const e = document.querySelector('.sv-row[data-lab="MIC (carica/ritardo)"] .sv-why'); return e ? e.textContent : null; });
+/* preme «Esporta scheda volata (CSV)» e legge, nel file che esce, la riga del parametro chiesto (null se il file o la riga non ci sono) */
+const rigaCsvScheda = (pg, parametro) => pg.evaluate((parametro) => { window.__usciti.length = 0; document.getElementById("btn-scheda-csv").click();
+  const u = window.__usciti.find((q) => q.nome === "genesi_scheda_volata.csv"); if (!u) return null;
+  const r = u.testo.split("\n").find((x) => x.startsWith(parametro + ";")); return r === undefined ? null : r.slice(parametro.length + 1); }, parametro);
+async function mic() {
+  /* E1 — fra le file 100 ms: due fori di file diverse cadono a 5 ms uno dall'altro */
+  let pg = await apri(1280, { ...DESIGN, ritardoFila: 100 });
+  if (!(await pronta(pg))) nonMisurati.push("MIC a gruppi: la pagina non è arrivata al progetto");
+  else {
+    const L = await foglio(pg), scheda = await fraseScheda(pg);
+    if (!L || !L.righe) nonMisurati.push("MIC a gruppi: il foglio non si è aperto, o non ha la tabella");
+    else {
+      const frase = (L.mic || [])[1] || "", m = frase.match(/^La MIC la formano i fori ([\d, e]+), che partono/), T = micDallaTabella(L);
+      const nomi = m ? m[1].split(/, | e /).map(Number) : [], miei = T.r.filter((q) => nomi.includes(q.n)), ts = miei.map((q) => q.t), scritta = num((L.mic || [""])[0]);
+      dice(nomi.length >= 2 && miei.length === nomi.length && Math.max(...ts) - Math.min(...ts) < 8 && Math.abs(miei.reduce((a, q) => a + q.kg, 0) - scritta) < 0.06 && Math.abs(T.mic - scritta) < 0.06,
+        `MIC a gruppi: il foglio dice quali fori formano la MIC — nella tabella quei fori stanno entro 8 ms, le loro cariche fanno i ${scritta} kg scritti, ed è il massimo che si riconta dalla tabella`,
+        JSON.stringify({ frase, nomi, ritardi: ts, somma: miei.reduce((a, q) => a + q.kg, 0), scritta, ricontata: T.mic }));
+      dice(!!frase && !!scheda && scheda.includes(frase), "MIC a gruppi: la scheda dice la stessa frase del foglio", JSON.stringify({ scheda, frase }));
+      dice(colorati(L).length >= 2 && JSON.stringify(colorati(L)) === JSON.stringify(T.nellaMic) && T.nellaMic.length < T.r.length && voceArancio(L),
+        `MIC a gruppi: sulla pianta hanno il fondo arancio i fori — e solo quelli — che nella tabella stanno in un gruppo che arriva alla MIC (${T.nellaMic.length} su ${T.r.length}), e la legenda lo dice`, JSON.stringify({ colorati: colorati(L), dallaTabella: T.nellaMic, legenda: voceArancio(L) }));
+      const nelCsv = await rigaCsvScheda(pg, "Fori che formano la MIC");
+      dice(!!frase && nelCsv === frase, "MIC a gruppi: il CSV della scheda volata dice la stessa frase, nella riga «Fori che formano la MIC»", JSON.stringify({ nelCsv, frase }));
+      /* le cariche nel tempo, contro la tabella dello stesso foglio */
+      const B = L.tempi ? L.tempi.barre : [], ist = T.istanti, alMax = ist.filter((q) => Math.abs(q.kg - T.mic) < 0.06).length;
+      dice(B.length === ist.length && B.filter((q) => q.max).length === alMax && alMax < ist.length,
+        `MIC a gruppi: le cariche nel tempo hanno una barra per ogni ritardo distinto della tabella (${ist.length}), e in arancio quelle — e solo quelle — che arrivano alla MIC (${alMax})`, JSON.stringify({ barre: B.length, arancio: B.filter((q) => q.max).length, istanti: ist.length, alMax }));
+      const hmax = Math.max(...B.map((q) => q.h)), storte = B.length === ist.length ? B.filter((q, i) => Math.abs(q.h / hmax - ist[i].kg / T.mic) > 0.02).length : -1, diversi = new Set(ist.map((q) => q.kg)).size;
+      dice(storte === 0 && diversi >= 2, `MIC a gruppi: le altezze delle barre stanno nel rapporto dei chili ricontati sulla tabella (${diversi} valori diversi fra loro, non un campione solo)`, JSON.stringify({ storte, diversi, altezze: B.slice(0, 6).map((q) => q.h), chili: ist.slice(0, 6).map((q) => q.kg) }));
+    }
+    /* E3 — sullo stesso progetto, un foro da 200 kg: la MIC diventa lui, ma NON è vero che ogni foro parte da solo */
+    await pg.evaluate(() => { const D = window.__genesi.D2; D.holes[0].kg = 200; window.__genesi.renderScheda2D(); }); await pg.waitForTimeout(300);
+    const L3 = await foglio(pg), scheda3 = await fraseScheda(pg), n0 = await pg.evaluate(() => window.__genesi.D2.holes[0].seq + 1);
+    if (!L3 || !L3.righe) nonMisurati.push("MIC con un foro grosso: il foglio non si è aperto");
+    else {
+      const frase = (L3.mic || [])[1] || "", T = micDallaTabella(L3);
+      dice(frase.startsWith(`La MIC la forma il foro ${n0}, che parte da solo.`) && T.vicini > 0 && num((L3.mic || [""])[0]) === 200,
+        `MIC con un foro grosso: il foglio nomina il foro ${n0} e non dice che ogni foro parte da solo (nella tabella ${T.vicini} fori ne hanno un altro entro 8 ms)`, JSON.stringify({ riga: L3.mic, vicini: T.vicini }));
+      dice(!!frase && !!scheda3 && scheda3.includes(frase), "MIC con un foro grosso: la scheda dice la stessa frase del foglio", JSON.stringify({ scheda3, frase }));
+      dice(JSON.stringify(colorati(L3)) === JSON.stringify([n0]), `MIC con un foro grosso: sulla pianta ha il fondo arancio il solo foro ${n0}`, JSON.stringify({ colorati: colorati(L3) }));
+      const nelCsv3 = await rigaCsvScheda(pg, "Fori che formano la MIC");
+      dice(!!frase && nelCsv3 === frase, "MIC con un foro grosso: il CSV della scheda volata dice la stessa frase", JSON.stringify({ nelCsv3, frase }));
+      const B3 = L3.tempi ? L3.tempi.barre : [], t0 = (T.r.find((q) => q.n === n0) || {}).t, dove = T.istanti.findIndex((q) => q.t === t0), arancio = B3.map((q, i) => (q.max ? i : -1)).filter((i) => i >= 0);
+      dice(B3.length === T.istanti.length && arancio.length === 1 && arancio[0] === dove && B3[dove].h === Math.max(...B3.map((q) => q.h)),
+        `MIC con un foro grosso: nelle cariche nel tempo c'è UNA barra in arancio, quella del foro ${n0}, ed è la più alta`, JSON.stringify({ barre: B3.length, istanti: T.istanti.length, arancio, dove }));
+    }
+  }
+  await pg.__ctx.close();
+  /* E2 — una fila sola: nessuno parte insieme a un altro */
+  pg = await apri(1280, { ...DESIGN, file: 1 });
+  if (!(await pronta(pg))) nonMisurati.push("MIC foro per foro: la pagina non è arrivata al progetto");
+  else {
+    const L = await foglio(pg);
+    if (!L || !L.righe) nonMisurati.push("MIC foro per foro: il foglio non si è aperto");
+    else { const T = micDallaTabella(L);
+      dice((L.mic || [])[1] === "Ogni foro parte da solo: nessun altro entro 8 ms." && T.vicini === 0, "MIC foro per foro: il foglio dice «Ogni foro parte da solo», e nella tabella non ci sono due ritardi a meno di 8 ms", JSON.stringify({ riga: L.mic, vicini: T.vicini }));
+      dice(foriPerNumero(L).size === T.r.length && colorati(L).length === 0 && !voceArancio(L), "MIC foro per foro: sulla pianta nessun foro ha il fondo arancio, e la legenda non ne parla", JSON.stringify({ colorati: colorati(L), legenda: voceArancio(L) })); }
+  }
+  await pg.__ctx.close();
+}
+
+const ATTESE = (9 + 2 + 1) + (9 + 2 + 6 + 1) + (2 * (9 + 2) + 1) + (9 + 2) + (9 + 1) + 13;
+let riuscita;
+if (!CONTROPROVA) {
+  await base(); await propri(); await telefono([390, 320]); await fitta(); await mic();
+} else {
+  /* nello stesso ordine di DIFETTI: che cosa rimette, dove guardare, quale controllo deve cadere */
+  const BERSAGLI = [
+    ["il numero nel foro non è più quello della tabella", base, /ogni foro sta dove la sua riga dice/],
+    ["il segmento di scala è più lungo di quello che dichiara", base, /la scala scritta è quella del disegno/],
+    ["i fori non seguono più il fronte modellato", propri, /ogni foro sta dove la sua riga dice/],
+    ["il foro con valori suoi non si distingue più sul disegno", propri, /hanno il bordo spesso/],
+    ["i valori propri non sono più in grassetto", propri, /in grassetto nella tabella/],
+    ["il foglio torna a dipendere da come si guarda lo schermo", propri, /il foglio stampa il progetto, non la vista/],
+    ["il disegno torna largo 680 punti comunque", () => telefono([390]), /alta almeno 6,5 px/],
+    ["la tabella non ha più il suo riquadro", () => telefono([320]), /la pagina non scorre di lato/],
+    ["il ritardo sotto il foro non è più quello della riga", base, /il ritardo scritto sotto ogni foro/],
+    ["i numeri si scrivono comunque, anche dove non si leggono", fitta, /non scrive numeri illeggibili/],
+    ["la tabella dei fori non entra più nel foglio", base, /UNA pianta e la tabella dei fori/],
+    ["la finestra della MIC diventa di 80 ms", mic, /quei fori stanno entro 8 ms/],
+    ["i fori della MIC si chiamano col numero sbagliato", mic, /quei fori stanno entro 8 ms/],
+    ["«ogni foro parte da solo» detto a torto", mic, /non dice che ogni foro parte da solo/],
+    ["il foglio non dice più quali fori formano la MIC", mic, /il foglio dice quali fori formano la MIC/],
+    ["la scheda non lo dice più", mic, /MIC a gruppi: la scheda dice la stessa frase/],
+    ["le barre non sono più proporzionali ai chili", mic, /le altezze delle barre stanno nel rapporto dei chili/],
+    ["nessuna barra in arancio", mic, /in arancio quelle — e solo quelle/],
+    ["le cariche nel tempo restano larghe 680 punti sul telefono", () => telefono([390]), /il disegno delle cariche nel tempo c'è, e si legge/],
+    ["le cariche nel tempo non entrano più nel foglio", base, /il disegno delle cariche nel tempo c'è, e si legge/],
+    ["il CSV della scheda non dice più chi forma la MIC", mic, /il CSV della scheda volata dice la stessa frase/],
+    ["sulla pianta nessun foro ha più il fondo arancio", mic, /sulla pianta hanno il fondo arancio i fori/],
+    ["il fondo arancio anche quando ogni foro parte da solo", mic, /sulla pianta nessun foro ha il fondo arancio/],
+  ];
+  const esiti = [];
+  for (let k = 0; k < DIFETTI.length; k++) {
+    ATTIVE = [DIFETTI[k]];
+    const [nome, guarda, attesa] = BERSAGLI[k], da = caduti.length;
+    console.log(`\n──────── difetto ${k + 1}/${DIFETTI.length}, da solo: ${nome} ────────`);
+    await guarda();
+    const miei = caduti.slice(da);
+    esiti.push({ nome, caduti: miei.length, bersaglio: miei.some((t) => attesa.test(t)) });
+  }
+  console.log(`\n(iniezioni: ${colpiti.size}/${DIFETTI.length} hanno trovato il loro pezzo)`);
+  for (const e of esiti) console.log(`  ${e.bersaglio ? "✔" : "✗"} ${e.nome}: ${e.caduti} controlli caduti${e.bersaglio ? ", fra cui il suo" : " — ma NON quello che lo riguarda"}`);
+  riuscita = colpiti.size === DIFETTI.length && esiti.every((e) => e.bersaglio);
+}
+if (nonMisurati.length) {
+  console.log(`\n⚠️ NON MISURATI (${nonMisurati.length}) — non è «a posto», è «non ho guardato»:`);
+  for (const x of nonMisurati) console.log(`   · ${x}`);
+}
+console.log(`\nRisultato foglio con la pianta di Genesi: ${ok} passati, ${ko} falliti  ·  ${ATTESE} asserzioni attese nel passaggio sano (12 sulla volata di base, 18 coi valori propri, 23 sul telefono, 21 sulla maglia fitta, 13 sulla MIC e le cariche nel tempo)`);
+await b.close();
+srv.close();
+/* una controprova RIUSCITA esce 0: ogni difetto, da solo, ha fatto cadere il controllo che lo
+   riguarda. Sotto controprova un «non misurato» è ammesso: può essere il difetto a renderlo tale. */
+if (!CONTROPROVA) riuscita = ko === 0 && nonMisurati.length === 0 && ok === ATTESE;
+if (CONTROPROVA) console.log(riuscita ? "✔ CONTROPROVA OK: ogni difetto rimesso fa cadere il suo controllo" : "✗ CONTROPROVA FALLITA: un difetto non fa cadere il suo controllo, o un'iniezione non ha trovato il suo pezzo");
+process.exitCode = riuscita ? 0 : 1;

@@ -26,13 +26,18 @@ const DIFETTI = [
   // B · le guardie a valle (zero clic)
   ["genesi.html", "    sd:(es.calcolabile && !senzaDist)?D2.recDist/Math.sqrt(Math.max(1,mic)):null,",
    "    sd:es.calcolabile?D2.recDist/Math.sqrt(Math.max(1,mic)):null,"],
-  ["genesi.html", "  const _ppv=Number.isFinite(_sd2)?_st.K*Math.pow(Math.max(0.1,_sd2),-_st.beta):null;",
+  // ⛔ 12/09 (unità 126): la legge di Devine è salita in `ppvDaSd` (genesi-data.js),
+  // che il null-check lo fa già da sé — l'ancora segue la CHIAMATA al posto
+  // della vecchia formula scritta a mano, e il difetto reintrodotto bypassa
+  // la funzione condivisa invece di corromperla (corromperla avrebbe rotto
+  // anche l'altro punto che la chiama, la scheda validatori).
+  ["genesi.html", "  const _ppv=ppvDaSd(_sd2, _st.K, _st.beta);",
    "  const _ppv=_m2.calcolabile?_st.K*Math.pow(Math.max(0.1,_sd2),-_st.beta):null;"],
   ["genesi-data.js", "  if(ppvSenzaDistanza(dist)) return null;\n  const sd3=Math.max(0.001,+dist)/Math.cbrt(Math.max(0.1,m));",
    "  const sd3=Math.max(0.001,+dist||0)/Math.cbrt(Math.max(0.1,m));"],
   // C · le due righe flyrock e il presplit
-  ["genesi.html", "      cls:_flySd?'sv-warn':(D2.recDist>=Dper?'sv-ok':(D2.recDist>=Dmez?'sv-warn':'sv-bad')),",
-   "      cls:(D2.recDist>=Dper?'sv-ok':(D2.recDist>=Dmez?'sv-warn':'sv-bad')),"],
+  ["genesi.html", "    const _flyCls=_flySd?'sv-warn':(D2.recDist>=Dper?'sv-ok':(D2.recDist>=Dmez?'sv-warn':'sv-bad'));",
+   "    const _flyCls=(D2.recDist>=Dper?'sv-ok':(D2.recDist>=Dmez?'sv-warn':'sv-bad'));"],
   ["genesi.html", "    const _psOkS = _psD>=8 && _psD<=14, _psOkQ = _psQnoto && _psQ>=0.25 && _psQ<=0.9;",
    "    const _psOkS = _psD>=8 && _psD<=14, _psOkQ = D2.psCharge>=0.25 && D2.psCharge<=0.9;"],
   /* ⛔ D · LO STRATO, non una guardia sola. La prima stesura di questa
@@ -96,6 +101,10 @@ async function apriSenza(chiave) {
     localStorage.setItem("genesiDisclaimerV1", "1");
     localStorage.setItem("genesiVolate", JSON.stringify([{ id:"v1", nome:"Fronte Nord", data:"2026-07-12", sintesi:"12 fori", design: dd }]));
   }, d);
+  /* senza rete vera in questo contenitore, l'import da gstatic morirebbe da
+     solo dopo ~13 s PER OGNI pagina aperta (sono quindici): lo si taglia
+     subito, come in `genesi-locale.mjs`. */
+  await pg.route("https://www.gstatic.com/**", (r) => r.abort());
   await pg.goto(`http://127.0.0.1:${PORTA}/apps/genesi/genesi.html`, { waitUntil:"domcontentloaded" });
   await pg.waitForTimeout(2200);
   await pg.evaluate(() => { const l = document.getElementById("loginBtn"); if (l) l.click();

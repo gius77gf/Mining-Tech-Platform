@@ -36,7 +36,7 @@
    due, sotto il centinaio uno, sopra nessuno), e li scrive chiamando `gnum`
    di `genesi-formato.js`. Una sola implementazione, un parametro diverso. */
 
-import { gnum, gseg, gIn } from './genesi-formato.js';
+import { gnum, gseg, gfix, gIn } from './genesi-formato.js';
 /* il lettore dei numeri italiani e quello dei CSV: vivono in `shared/` perché
    servono a tutte e sei le app, e la regola di casa dice che una regola che
    serve a due app non si riscrive. `_riconParseCampo` li usava già così
@@ -50,6 +50,7 @@ import { gnum, gseg, gIn } from './genesi-formato.js';
 /* ⛔ E DAL 06/08 ANCHE `conta`: `_ricPlur` era la sua copia più debole — vedi
    la sua riga, più in giù. */
 import { numIt, leggiCsv, csvCell, dataISOEsiste, conta } from '../../shared/deepwork-id-client/dw-shell.js';
+import { scartoLivello } from '../../shared/dw-ponti.js';
 
 /* ══════════════════════════════════════════════════════════════════════════
    G3 — LA LEGGE DI SITO K/β DAI REFERTI DEL SISMOGRAFO
@@ -81,6 +82,47 @@ import { numIt, leggiCsv, csvCell, dataISOEsiste, conta } from '../../shared/dee
                  di SD la pendenza non è determinabile (divisione per ~0)
     · 'pendenza' β fuori da 0,5–3: i dati non descrivono un'attenuazione
                  fisica (referti di siti diversi mescolati, carica sbagliata…) */
+/* QUANTE RIGHE DI DATO HA UN FILE CHE È APPENA USCITO (27/11) — per i messaggi «esportato: N righe».
+   ⛔ È NATA DA UN DIFETTO MIO, DUE VOLTE NELLA STESSA SERA. Portando nel modulo il CSV della legge
+   di sito e quello del confronto A/B ho traslocato le righe che componevano il file e ho lasciato
+   nella pagina il messaggio di conferma, che contava l'ARRAY da cui il file nasceva (`P.length`,
+   `R.length-1`) — un nome che nella pagina non c'era più.
+    · nel confronto A/B `R` non esisteva: il gestore moriva DOPO aver fatto scaricare il file. L'hanno
+      visto `nomi-liberi` e due banchi («R is not defined»), prima del commit;
+    · nella legge di sito è andata peggio: nella pagina esiste un `P` GLOBALE (i parametri del
+      progetto), quindi nessun errore — il messaggio diceva «esportata: — referti». Un omonimo ha
+      reso muto il difetto, ed è finito in un commit pushato (`32a0b024`) perché nessun controllo
+      legge quel messaggio. Adesso un banco lo legge.
+   La cura non è rimettere il nome: è contare sul FILE. Si rilegge col lettore condiviso (una cella
+   con un a capo dentro non fa due righe) e si toglie l'intestazione. Così il messaggio non può più
+   dire un numero diverso da quello che il file contiene, e non dipende da come il file è nato. */
+export function righeDiDatoCsv(csv){
+  if(typeof csv!=='string' || !csv.trim()) return 0;
+  return Math.max(0, leggiCsv(csv).righe.length-1);
+}
+/* IL CSV DELLA LEGGE DI SITO (27/11, fetta di B3: Genesi continua a uscire dalla pagina).
+   Lo componeva l'`onclick` di `sitoExport`, dove `node` non arriva: era uno dei quattro CSV di
+   Genesi che nessun controllo senza browser poteva aprire. È entrato IDENTICO, carattere per
+   carattere (provato sugli stessi referti contro la riga di prima): stessa intestazione, stessi
+   referti — quelli che anche `sitoFit` sa usare, con la stessa condizione — stessa distanza
+   scalata a due decimali, stesse celle da `csvCell`.
+   Stringa vuota quando non c'è nessun referto da scrivere: chi chiama lo DICE («Nessun referto
+   da esportare») invece di far scaricare un file con la sola intestazione. */
+export function csvLeggeDiSito(punti){
+  const P=(Array.isArray(punti)?punti:[]).filter(p=>p&&p.d>0&&p.w>0&&p.ppv>0);
+  if(!P.length) return '';
+  /* ⛔ QUI (quando stava nella pagina) C'ERA LA SECONDA COPIA PIÙ DEBOLE DI `csvCell`, identica a quella
+     tolta il 03/08 da `csvRiconciliazione`: virgolette su `; " \n` e basta.
+     Misurato aprendo la pagina con un referto chiamato `=SUM(1+1)`: usciva
+     NUDO nel file — e questo è il file che l'azienda manda fuori e che si apre
+     in Excel a casa del cliente. `csvCell` mette l'apostrofo di guardia, e
+     `_sitoParseCsv` (che rilegge questo stesso file) lo toglie perché adesso
+     passa da `leggiCsv`: il giro di andata e ritorno resta chiuso. */
+  /* la colonna «origine» esce insieme ai numeri: così un file riletto (qui o
+     altrove) non perde la provenienza dei referti */
+  return 'data;riferimento;distanza_m;carica_per_ritardo_kg;ppv_mms;distanza_scalata;origine\n'
+    +P.map(p=>[p.ts||'',p.nome||'',p.d,p.w,p.ppv,(p.d/Math.sqrt(p.w)).toFixed(2),p.fonte||''].map(csvCell).join(';')).join('\n')+'\n';
+}
 export function sitoFit(punti){
   const P=(punti||[]).filter(p=>p&&p.d>0&&p.w>0&&p.ppv>0);
   const n=P.length;
@@ -324,6 +366,22 @@ export function airblastDb(dist,mic){
    trasloco, e va chiesta.
    ══════════════════════════════════════════════════════════════════════════ */
 
+/* La legge di Devine/USBM `PPV = K·SD^−β`, in un posto solo (12/09, unità
+   126). Viveva scritta due volte dentro `genesi.html` — sulla scheda
+   validatori e sul riquadro «Manda a Sentinella» — stesso `Math.max(0.1,…)`,
+   stesso commento sul perché (`null/√MIC` dava 0,1 e la legge sputava
+   67.627,4 mm/s), stessa formula: la firma troppo stretta che CLAUDE.md
+   chiede di chiudere appena se ne trova una seconda copia. `sd` è la
+   distanza scalata (`d/√MIC`, già `null` quando le manca un padre — vedi
+   `ppvSenzaDistanza`/`micSenzaConto`); `K`/`beta` vengono da `ppvSite()`
+   (referti del sismografo, o litologia). `null` propaga `null`, non 0,1:
+   l'ha già insegnato il difetto che questa riga chiude. */
+export function ppvDaSd(sd, K, beta){
+  const s = (sd===null||sd===undefined||sd==='')?NaN:+sd;
+  if(!Number.isFinite(s)) return null;
+  return K*Math.pow(Math.max(0.1,s),-beta);
+}
+
 /* La PPV prevista contro la soglia di norma. `null` NON è «sotto soglia»:
    `+null` fa 0 e 0/15 darebbe la fascia più tranquilla di tutte, sul numero
    che decide se una volata si può sparare. Lo ZERO MISURATO invece resta un
@@ -455,6 +513,74 @@ export function _sitoFonteDaTesto(v){
   if(/mano|manual/.test(s)) return 'mano';
   return 'csv';
 }
+/* IL CSV DEI REFERTI DEL SISMOGRAFO — trasloco 12/09 (unità 121, fetta di
+   mezzo di `genesi-estraibili.mjs`, quella «da 3 a 5 variabili»).
+   ⛔ Il censimento la contava fra le funzioni legate allo stato del modulo
+   («legge: n, t, d, g»), ed era un falso allarme: quelle lettere sono
+   parametri di funzioni freccia dentro le regex della pagina
+   (`/\r?\n/`, `/[;\t]|,(?=\s*[^\d\s])/`) e nomi di variabili LOCALI di altre
+   funzioni della pagina dichiarate a poca indentazione — l'euristica del
+   censimento le prende per «variabili del modulo» di proposito, per
+   sbagliare nel verso prudente (il suo stesso commento lo dice). Letta a
+   mano, la funzione non legge nessuno stato: prende `testo`, chiama
+   `leggiCsv` (già condivisa) e torna righe pulite. Trasloco senza
+   riscrittura, parola per parola.
+   Il ripiego sulla virgola resta di casa: è stato provato a portarlo in
+   `shared/` e la misura ha detto di no (nessun file cambia esito, un solo
+   consumatore) — vedi il commento più lungo qui sotto. */
+/* ⛔ IL TAGLIO DELLE RIGHE LO FA `leggiCsv` DI `shared/`, NON PIÙ QUESTA
+   FUNZIONE DI CASA. Era la terza copia di casa del lettore di CSV, e
+   misurandola contro quella condivisa su dieci file sbagliava in tre punti,
+   tutti nel verso peggiore — un dato perso, non un errore dichiarato:
+     · il nostro export riletto qui riportava dentro **l'apostrofo di guardia**
+       che `csvCell` mette davanti a una formula, quindi il nome del referto
+       cambiava a ogni giro di andata e ritorno;
+     · un riferimento con un **punto e virgola dentro** («Fronte Sud; ovest»),
+       pur virgolettato, veniva spezzato: da lì in poi tutte le colonne
+       scalavano di uno, e la distanza finiva a leggere la carica;
+     · una nota **su due righe fra virgolette** faceva sparire la prima metà
+       della riga — è il difetto che in Conti faceva sparire un bonifico da
+       12.300 €, e qui costava la distanza e la carica di un referto.
+   ⚠️ RESTA il taglio di casa quando il file è a VIRGOLE, e non è pigrizia:
+   `leggiCsv` sulla virgola non sa distinguere il separatore dal decimale
+   italiano, e su «120,5,50,9,2» risponde cinque colonne plausibili invece di
+   fermarsi. Misurato: con la sola `leggiCsv` quel file entrava come
+   distanza 120, carica 5, PPV 50 — un numero sbagliato spacciato per certo, su
+   una carica in chili. Il ripiego di casa lo rifiuta, e rifiutare è la
+   risposta giusta. Il delimitatore lo dichiara `leggiCsv` stessa, così la
+   scelta non è una seconda rilevazione scritta a somiglianza. */
+/* ⚠️ IL RIPIEGO SULLE VIRGOLE È STATO PROVATO A PORTARE IN `shared/` E LA
+   MISURA HA DETTO DI NO — scritto qui perché nessuno lo rifaccia alla cieca.
+   L'idea era dare a `leggiCsv` un'opzione `virgolaDecimale`: con il separatore
+   `,`, una virgola seguita da una CIFRA è un decimale e non un separatore.
+   Costruita in scratchpad e misurata su quattro file:
+     · «120,5,50,9,2» → una cella sola tanto di qua quanto di là, quindi la
+       riga viene **scartata** in tutt'e due i casi. Ed è la cosa giusta: quel
+       file è ambiguo per costruzione (cinque interi o tre decimali?), e
+       accettarlo vorrebbe dire leggere la carica al posto della distanza;
+     · «"Volata A, fronte est",120.5,50,9.2» → **scartata da tutt'e due**,
+       perché la virgola prima del `5` di `120.5` resta ambigua comunque.
+   L'unica differenza è la spazzatura intermedia: la regex di casa spezza
+   DENTRO le virgolette e lascia un `"` a metà campo, la condivisa no. Nessun
+   file cambia esito. Cioè il trasloco sposterebbe righe senza cambiare niente
+   per l'utente, e aggiungerebbe a `shared/` un'opzione con **un solo** utente:
+   la regola «una funzione che serve a due app» qui non si applica.
+   ⛔ Quello che resta valido e non va toccato: il **taglio delle righe e delle
+   virgolette** passa da `leggiCsv`, e solo il ripiego sulle virgole è di casa. */
+export function _sitoParseCsv(testo){
+  const L=leggiCsv(testo);
+  const righe = (L.delim !== ',')
+    ? L.righe.map(r=>r.map(c=>String(c==null?'':c).trim())).filter(r=>r.length>=3)
+    : String(testo||'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean)
+        .map(s=>s.split(/[;\t]|,(?=\s*[^\d\s])/).map(c=>c.trim().replace(/^"|"$/g,'')))
+        .filter(r=>r.length>=3);
+  if(!righe.length) return null;
+  const numerica=r=>r.filter(c=>isFinite(parseFloat(String(c).replace(',','.')))).length>=3;
+  let intest=null;
+  if(!numerica(righe[0])){ intest=righe[0]; righe.shift(); }
+  return righe.length?{ righe, intest }:null;
+}
+
 /* intestazione normalizzata: "Distanza_m" e "DISTANZA (m)" devono valere
    uguale, altrimenti il riconoscimento delle colonne è una lotteria */
 export function _sitoNormH(s){
@@ -583,6 +709,16 @@ export function _riconParseCampo(testo){
   const iReale  = haIntestazione ? col('carica_reale_kg','reale','carica_reale') : 4;
   const iSquadra= haIntestazione ? col('squadra') : -1;
   const iOper   = haIntestazione ? col('operatore','fochino','chi') : -1;
+  const iId     = haIntestazione ? col('id_foro','idforo') : 9;   // l'id stabile, in coda dal 05/09
+  /* G52 (19/09, dal delta verificato di docs/RICERCA_CONTINUA_GENESI.md) —
+     l'esito della detonazione, colonna nuova e ancora opzionale: senza
+     intestazione non la si cerca (nessuna posizione fissa esisteva prima
+     di oggi, quindi un ordine posizionale non può contenerla). Il punto
+     del delta era esatto: `carica_reale_kg` da sola non distingue un foro
+     caricato e sparato da uno caricato e MAI sparato — un colpo cieco, il
+     caso più pericoloso, che oggi produce lo stesso scostamento vicino a
+     zero di uno sparato regolarmente. */
+  const iEsito  = haIntestazione ? col('esito') : -1;
   if(haIntestazione && iForo<0)
     return { errore:'Non trovo la colonna «foro»: questo non sembra il consuntivo di carico di Campo.' };
   if(haIntestazione && iReale<0)
@@ -597,13 +733,237 @@ export function _riconParseCampo(testo){
     if(!(foro>0)||!(prog>0)){ scartate++; continue; }
     const grezzo = iReale>=0 ? String(c[iReale]==null?'':c[iReale]).trim() : '';
     const reale = grezzo === '' ? null : numIt(grezzo);
+    /* «sparato»/«misfire» sono i due valori dichiarati; qualunque altra
+       cosa scritta nella colonna (un refuso, un valore vecchio) non si
+       spaccia per uno dei due — resta '' come una cella vuota, perché un
+       valore che non capiamo non è più sicuro di uno assente. */
+    const esitoGrezzo = iEsito>=0 ? String(c[iEsito]==null?'':c[iEsito]).trim().toLowerCase() : '';
+    const esito = (esitoGrezzo==='sparato'||esitoGrezzo==='misfire') ? esitoGrezzo : '';
     righe.push({ foro, prog, reale: (reale!=null&&isFinite(reale)&&reale>=0)?reale:null,
       data: (iData>=0?c[iData]:'')||'', turno:(iTurno>=0?c[iTurno]:'')||'',
-      squadra:(iSquadra>=0?c[iSquadra]:'')||'', operatore:(iOper>=0?c[iOper]:'')||'' });
+      squadra:(iSquadra>=0?c[iSquadra]:'')||'', operatore:(iOper>=0?c[iOper]:'')||'',
+      idForo: iId>=0 ? String(c[iId]==null?'':c[iId]).trim() : '',
+      esito: iEsito>=0 ? esito : null });
   }
   if(!righe.length) return { errore:'Nessuna riga leggibile: servono almeno il numero del foro e la carica di progetto in chili'
     +(scartate?' (ho scartato '+scartate+(scartate===1?' riga':' righe')+').':'.') };
-  return { righe, scartate, colonneDaNome:haIntestazione };
+  return { righe, scartate, colonneDaNome:haIntestazione, colonnaEsito: iEsito>=0 };
+}
+
+/* IL CONFRONTO FORO PER FORO (05/09) — quello che fino a oggi NON c'era:
+   `_riconRiassuntoCampo` fa somme e medie sulla volata intera, e il «foro»
+   del consuntivo era una posizione nella sequenza di sparo, che scivola se un
+   foro si toglie. Qui ogni foro del PROGETTO aperto (`holes`, con `id` e
+   `seq`) cerca la sua riga del consuntivo:
+   · per ID quando tutti i fori e tutte le righe ne hanno uno (piano esportato
+     e consuntivo tornato dal 05/09 in poi);
+   · per NUMERO altrimenti — e lo DICHIARA (`chiave`), perché per numero un
+     foro tolto accoppia ogni riga al foro sbagliato senza nessun errore.
+   Un foro senza riga è «senza-riga», non «ok»; una riga senza foro nel
+   progetto è orfana e si conta; una chiave doppia nel consuntivo si conta.
+   `misurabile` è vero solo se almeno una riga accoppiata porta la carica
+   reale — non esiste uno scostamento piccolo dove nessuno ha pesato. La
+   soglia dello stato è `scartoLivello` di `shared/`, la stessa di Campo. Pura. */
+/* ⏱️ 12/09 (unità 129): L'ABBINAMENTO FORO↔RIGA ERA SCRITTO DENTRO
+   `confrontoPerForo`, e la nuova funzione per il rilievo di deviazione
+   (`burdenVeroDaRilievo`, qui sotto) ha bisogno esattamente dello stesso
+   abbinamento — per ID quando entrambe le parti ce l'hanno, per NUMERO
+   (sequenza+1) altrimenti, con le chiavi doppie e le righe orfane contate.
+   Prima di ricopiarlo (la regola di CLAUDE.md: «una copia nasce quasi
+   sempre da una firma troppo stretta») è stato estratto qui, con due
+   funzioni di lettura passate da chi chiama — perché il consuntivo di
+   carica legge `idForo`/`foro` e il rilievo di deviazione legge gli stessi
+   nomi ma da un oggetto con altri campi (`dx`/`dy` invece di `prog`/`reale`).
+   `confrontoPerForo` sotto è stato riscritto per usarla: le sue prove
+   esistenti (già in `run-kpi.mjs`, scritte per il comportamento, non per il
+   testo del corpo) sono la controprova che l'estrazione non ha cambiato
+   niente. */
+export function abbinaForiRighe(holes, righe, leggiId, leggiNumero){
+  const H = Array.isArray(holes) ? holes.filter(Boolean) : [];
+  const R = Array.isArray(righe) ? righe.filter(Boolean) : [];
+  const tuttiId = H.length>0 && R.length>0 && H.every(h=>h.id) && R.every(r=>leggiId(r));
+  const chiave = tuttiId ? 'id' : 'numero';
+  const numeroDi = (h,i) => Number.isInteger(h.seq) ? h.seq+1 : i+1;
+  const chiaveRiga = (r) => chiave==='id' ? String(leggiId(r)) : String(leggiNumero(r));
+  const perChiave = new Map(); const doppie = [];
+  for (const r of R){ const k = chiaveRiga(r); if (perChiave.has(k)) { if (!doppie.includes(k)) doppie.push(k); } else perChiave.set(k, r); }
+  const usate = new Set();
+  const abbinati = H.map((h,i)=>{
+    const numero = numeroDi(h,i), k = chiave==='id' ? String(h.id) : String(numero);
+    const r = perChiave.get(k) || null; if (r) usate.add(k);
+    return { h, numero, riga: r };
+  });
+  const orfane = R.filter(r => !usate.has(chiaveRiga(r)));
+  return { chiave, abbinati, orfane, doppie };
+}
+export function confrontoPerForo(holes, righe){
+  const { chiave, abbinati, orfane, doppie } = abbinaForiRighe(holes, righe, (r)=>r.idForo, (r)=>r.foro);
+  const out = abbinati.map(({ h, numero, riga: r })=>{
+    const prog = r && Number.isFinite(+r.prog) ? +r.prog : null;
+    const reale = r && r.reale!=null && Number.isFinite(+r.reale) ? +r.reale : null;
+    const scartoKg = reale!=null && prog!=null ? +(reale-prog).toFixed(3) : null;
+    const scartoPct = scartoKg!=null && prog ? +(scartoKg/prog*100).toFixed(2) : null;
+    const stato = !r ? 'senza-riga' : scartoLivello(reale, prog);
+    return { id: h.id||null, numero, mx: h.mx, my: h.my, prog, reale, scartoKg, scartoPct, stato };
+  });
+  const orfaneOut = orfane.map(r => ({ idForo: r.idForo||'', foro: r.foro, prog: r.prog, reale: r.reale!=null?r.reale:null }));
+  return { chiave, righe: out, senzaRiga: out.filter(x=>x.stato==='senza-riga').length,
+           orfane: orfaneOut, doppie, misurabile: out.some(x=>x.reale!=null) };
+}
+
+/* ⏱️ 12/09 (unità 129), il "P1.1 residuo" di `docs/GENESI_ROADMAP_COMPETITOR.md`:
+   Genesi SIMULA la deviazione dei fori (banda d'incertezza Monte-Carlo, sopra
+   in `simulaPerforazione` della pagina) ma non ha mai avuto modo di leggere
+   una deviazione MISURATA — il rilievo che un boretrack produce dopo la
+   perforazione vera. Legge un CSV con la deviazione del PIEDE rispetto al
+   progetto (`dx_m`, `dy_m`, nel piano della pianta) e la abbina ai fori con
+   `abbinaForiRighe` (stesso meccanismo di `confrontoPerForo`, non
+   ricopiato). Senza intestazione, l'ordine posizionale è foro;dx_m;dy_m —
+   lo stesso schema del consuntivo di Campo. */
+export function deviazioneForiDaCsv(testo){
+  const { righe: tutte } = leggiCsv(testo);
+  if (!tutte.length) return { errore: 'Il file è vuoto: non c’è nessuna riga da leggere.' };
+  const testa = tutte[0].map(s => String(s).toLowerCase());
+  const haIntestazione = testa.indexOf('foro') >= 0 || testa.some(c => c.indexOf('dx') >= 0 || c.indexOf('id_foro') >= 0);
+  const dati = haIntestazione ? tutte.slice(1) : tutte;
+  const col = (...nomi) => { for (const n of nomi) { const i = testa.indexOf(n); if (i >= 0) return i; } return -1; };
+  const iForo = haIntestazione ? col('foro') : 0;
+  const iId = haIntestazione ? col('id_foro', 'idforo') : -1;
+  const iDx = haIntestazione ? col('dx_m', 'dx') : 1;
+  const iDy = haIntestazione ? col('dy_m', 'dy') : 2;
+  if (haIntestazione && iForo < 0 && iId < 0)
+    return { errore: 'Non trovo la colonna «foro» né «id_foro»: questo non sembra un rilievo di deviazione fori (boretrack).' };
+  if (haIntestazione && iDx < 0 && iDy < 0)
+    return { errore: 'Non trovo le colonne «dx_m»/«dy_m»: questo non sembra un rilievo di deviazione fori (boretrack).' };
+  if (!dati.length) return { errore: 'Il file ha solo l’intestazione: dentro non c’è nessun foro.' };
+  /* ⛔ 26/11: UN FILE DI COORDINATE NON È UN FILE DI DEVIAZIONI, e senza
+     intestazione questa funzione non aveva modo di accorgersene. Il Boretrak
+     — la sonda di deviazione più documentata — esporta CSV SENZA riga
+     d'intestazione con 5 colonne (`foro, fila, X, Y, Z`, una riga per
+     stazione di misura), 8 o 9 (col progetto del foro): lo scrive il manuale
+     del costruttore, con le righe d'esempio. Letto «per posizione» come
+     foro;dx;dy, la FILA diventava una deviazione di 1 m e la coordinata X
+     una deviazione di 1000 m — misurato sulla riga d'esempio del manuale,
+     `1,1,1000.000,1000.000,1000.000`: accettato, zero righe scartate, e da
+     lì un burden «vero» calcolato a un chilometro dal fronte.
+     Qui non lo si LEGGE (riportare coordinate di cantiere «davanti/dietro il
+     fronte» vuole l'aggancio al cantiere, decisione 32): lo si riconosce
+     dalla forma e lo si rifiuta col suo nome, invece di inventare numeri. */
+  if (!haIntestazione) {
+    const larghezze = new Set(dati.filter(r => r.some(c => String(c == null ? '' : c).trim() !== '')).map(r => r.length));
+    if (larghezze.size === 1 && [5, 8, 9].includes([...larghezze][0]))
+      return { errore: 'Questo file ha ' + [...larghezze][0] + ' colonne e nessuna intestazione: ha la forma di un export di coordinate di una sonda (tipo Boretrak: foro, fila, X, Y, Z…), non di un rilievo di deviazioni. '
+        + 'Genesi per ora legge tre colonne — foro; dx_m; dy_m — cioè di quanto il fondo foro si è spostato lungo il fronte e verso il fronte. Le coordinate per stazione non le legge ancora.' };
+  }
+  const righe = []; let scartate = 0;
+  for (const r of dati) {
+    const c = r;
+    const foro = iForo >= 0 ? numIt(c[iForo]) : NaN;
+    const idForo = iId >= 0 ? String(c[iId] == null ? '' : c[iId]).trim() : '';
+    if (!(foro > 0) && !idForo) { scartate++; continue; }
+    const dx = numIt(c[iDx]), dy = numIt(c[iDy]);
+    if (!Number.isFinite(dx) || !Number.isFinite(dy)) { scartate++; continue; }
+    righe.push({ foro: foro > 0 ? foro : null, idForo, dx, dy });
+  }
+  if (!righe.length) return { errore: 'Nessuna riga leggibile: servono il numero (o l’id) del foro e le due deviazioni dx_m/dy_m'
+    + (scartate ? ` (ho scartato ${scartate} ${scartate === 1 ? 'riga' : 'righe'}).` : '.') };
+  return { righe, scartate, colonneDaNome: haIntestazione };
+}
+
+/* G59 (19/09) — statistica di QC sulla deviazione di perforazione, dalle
+   righe già lette da `deviazioneForiDaCsv`. Segnalato dalla ricerca del
+   19/09 (docs/RICERCA_CONTINUA_GENESI.md, confronto con Blastatistics di
+   JKSimBlast) come mancanza REALE — verificata di persona aprendo questa
+   funzione e il pannello che la mostra (genesi.html, `rilievoDevFile`):
+   la pagina elenca lo scostamento foro per foro ma non ha mai un
+   riepilogo (media, massimo). La ricerca stessa aveva già sbagliato
+   "non c'è" tre volte su sei in questo stesso confronto — verificato
+   qui con `grep -n "deviazioneStatistiche\|scartoMedio\|scarto.*massim"
+   apps/genesi/` prima di scriverla: zero righe, la mancanza è vera.
+
+   Usa DELIBERATAMENTE la distanza radiale `Math.hypot(dx,dy)`, non
+   `dx`/`dy` col segno: quelli dipendono dalla convenzione di assi del
+   rilievo boretrack rispetto agli assi di Genesi, che il blocco sopra
+   `burdenVeroDaRilievo` dichiara ancora NON confermata su un caso reale.
+   Una distanza è invariante per rotazione/riflessione degli assi — è
+   sicura da mostrare anche prima che quella conferma arrivi, perché non
+   inverte niente: dice solo "di quanto il foro è finito fuori posto",
+   non "in quale direzione". */
+export function deviazioneStatistiche(righe){
+  const R = Array.isArray(righe) ? righe : [];
+  if (!R.length) return null;
+  const dist = R.map(r => Math.hypot(r.dx, r.dy));
+  const media = dist.reduce((s, d) => s + d, 0) / dist.length;
+  const massima = Math.max(...dist);
+  return { n: dist.length, media: +media.toFixed(3), massima: +massima.toFixed(3) };
+}
+
+/* Il burden VERO ricalcolato sulle posizioni MISURATE (non simulate): stessa
+   geometria di `simulaPerforazione` (fila per fila, la fila davanti nelle
+   posizioni vere, non di progetto) ma con UNA realizzazione sola — quella
+   che è successa davvero — invece di centinaia di sorteggi. Un foro senza
+   riga di rilievo resta `misurato:false`: non gli si inventa una posizione,
+   si dichiara che non si sa (lo stesso principio di `confrontoPerForo`). */
+export function burdenVeroDaRilievo(holes, profilo, faccia, righe){
+  const H = Array.isArray(holes) ? holes.filter(Boolean) : [];
+  if (!H.length) return null;
+  const { chiave, abbinati, orfane, doppie } = abbinaForiRighe(holes, righe, (r)=>r.idForo, (r)=>r.foro);
+  const file = fileDeiFori(H);
+  const pos = H.map((h, i) => {
+    const r = abbinati[i] && abbinati[i].riga;
+    const misurato = !!(r && Number.isFinite(+r.dx) && Number.isFinite(+r.dy));
+    return { mx: h.mx + (misurato ? +r.dx : 0), my: h.my + (misurato ? +r.dy : 0), misurato };
+  });
+  const out = new Array(H.length);
+  for (let ri = 0; ri < file.length; ri++) {
+    const davanti = ri > 0
+      ? file[ri-1].holes.map(i => [pos[i].mx, pos[i].my + interpProf(profilo, pos[i].mx)]).sort((a,b)=>a[0]-b[0])
+      : (faccia || []);
+    for (const i of file[ri].holes) {
+      const h = H[i], numero = abbinati[i].numero;
+      const burdenProgetto = h.burdenLoc!=null ? h.burdenLoc : null;
+      if (!pos[i].misurato || davanti.length < 2) {
+        out[i] = { id: h.id||null, numero, misurato: false, burdenVero: null, burdenProgetto };
+        continue;
+      }
+      const py = pos[i].my + interpProf(profilo, pos[i].mx);
+      const d = distanzaDaSpezzata(pos[i].mx, py, davanti);
+      out[i] = { id: h.id||null, numero, misurato: true, burdenVero: d!=null?+d.toFixed(2):null, burdenProgetto };
+    }
+  }
+  return { chiave, righe: out, orfane, doppie, misurabile: out.some(x=>x.misurato) };
+}
+
+/* Il numero d'ordine di un foro: la sequenza di sparo se c'è, altrimenti la
+   posizione nell'array. Stessa forma già scritta in `abbinaForiRighe`
+   (sopra), nell'export IREDES e nel disegno 2D — qui è la forma per la prima
+   funzione NUOVA che ne ha bisogno, non un riordino delle copie esistenti. */
+export function numeroForo(h, i){ return Number.isInteger(h.seq) ? h.seq+1 : i+1; }
+
+/* ⏱️ 15/09, dal secondo giro di ricerca su Genesi: manca un pannello che
+   elenchi il burden VERO di TUTTI i fori insieme — a differenza della carica
+   (`confrontoPerForo`) e del rilievo boretrack (`burdenVeroDaRilievo`), che
+   ce l'hanno già. Il dato non serve importarlo: `energiaSuMaglia` (sopra)
+   scrive `h.burdenVero`/`h.burdenLoc` su OGNI foro a ogni rigenerazione della
+   maglia, sempre, dalla ricostruzione automatica del fronte — oggi si vede
+   solo un foro alla volta (l'ispettore, il disegno 2D) o aggregato (min/max
+   nella riga KPI «Energia per foro»). Nessun calcolo nuovo: solo lettura e
+   presentazione di un campo già scritto. Lo stato non si giudica quando manca
+   uno dei due numeri (foro non ancora coperto dalla maglia, prima fila senza
+   una faccia libera dietro): `misurabile:false`, niente inventato — lo stesso
+   principio di `confrontoPerForo`/`burdenVeroDaRilievo`. La soglia (85%) è la
+   stessa già usata nell'avviso «fronte stretto» della riga KPI, qui applicata
+   foro per foro invece che sul solo minimo. */
+export function burdenPerForo(holes){
+  const H = Array.isArray(holes) ? holes.filter(Boolean) : [];
+  return H.map((h, i) => {
+    const burdenProgetto = h.burdenLoc != null ? h.burdenLoc : null;
+    const burdenVero = h.burdenVero != null ? h.burdenVero : null;
+    const misurabile = burdenProgetto != null && burdenVero != null;
+    const scarto = misurabile ? +(burdenVero - burdenProgetto).toFixed(2) : null;
+    const stato = !misurabile ? 'non-misurabile' : (burdenVero < burdenProgetto * 0.85 ? 'oltre' : 'dentro');
+    return { id: h.id || null, numero: numeroForo(h, i), burdenProgetto, burdenVero, scarto, misurabile, stato };
+  });
 }
 
 // Dai fori del file ai numeri della riconciliazione. Tutto qui è SOMMA o
@@ -633,10 +993,22 @@ export function _riconRiassuntoCampo(p, nomeFile){
   const medioKg=misurabile?+(somma(reg,r=>Math.abs(r.reale-r.prog))/reg.length).toFixed(3):null;
   const medioPct=misurabile?+(somma(reg,r=>Math.abs(r.reale-r.prog)/(r.prog||1))/reg.length*100).toFixed(2):null;
   const peggio=reg.slice().sort((a,b)=>Math.abs(b.reale-b.prog)-Math.abs(a.reale-a.prog))[0]||null;
+  /* G52 — l'esito della detonazione non è come i sei numeri sopra: quelli
+     rispondono `null` quando manca la MISURA (nessuna carica reale), questo
+     risponde `null` quando manca la COLONNA (un consuntivo di prima di
+     oggi, o scritto da una Campo che non la esporta ancora). I due «non lo
+     so» sono diversi apposta: un file senza la colonna non deve dire «zero
+     misfire», che si legge come «tutto sparato regolarmente» — esattamente
+     il principio del fondatore, applicato al dato più pericoloso di questa
+     schermata invece che a un chilo. */
+  const misfire = p.colonnaEsito ? p.righe.filter(r=>r.esito==='misfire') : null;
   return { file:nomeFile||'', scartate:p.scartate||0,
     date:uniche(r=>r.data), turni:uniche(r=>r.turno),
     chi:uniche(r=>r.operatore), squadre:uniche(r=>r.squadra),
     foriTot:p.righe.length, foriReg:reg.length, misurabile,
+    colonnaEsito: !!p.colonnaEsito,
+    nMisfire: misfire ? misfire.length : null,
+    foriMisfire: misfire ? misfire.map(r=>r.idForo || ('foro '+r.foro)) : [],
     /* ⛔ E DUE DEI SEI NUMERI ERANO RIMASTI ZERO, per tre anni buoni di lettori.
        Il 03/08 questa funzione ha imparato a rispondere `null` sui quattro
        scostamenti; `kgReale` e `kgProgReg` no, perché sullo SCHERMO la loro
@@ -775,7 +1147,14 @@ export function csvRiconciliazione(st){
               lo schermo non possono scostarsi.
               La colonna si AGGIUNGE IN FONDO, come le otto di Campo: chi
               rilegge un export vecchio trova le altre nello stesso ordine. */
-           'ppv_prev_base'];
+           'ppv_prev_base',
+           /* G52 — vuota quando il consuntivo non porta la colonna «esito»
+              (non lo sappiamo), non zero: la stessa distinzione già scritta
+              sopra per `campo_kg_reali`/`campo_kg_progetto`, applicata al
+              dato più pericoloso invece che a un chilo. Ultima colonna, come
+              tutte le altre aggiunte qui: un export vecchio resta leggibile
+              con le colonne precedenti nello stesso ordine. */
+           'campo_misfire'];
   /* ⛔ QUI C'ERA UNA `cell` DI CASA, ED ERA UNA COPIA PIÙ DEBOLE DI `csvCell`.
      Metteva le virgolette su `; " \n` e basta: quindi `@SUM(1+1)` scritto nel
      nome di una volata usciva **nudo** — e questo è il file che l'azienda
@@ -798,7 +1177,10 @@ export function csvRiconciliazione(st){
       /* una riconciliazione salvata prima che questa colonna esistesse resta
          VALIDA e lascia la cella vuota: non le si attribuisce una base che
          nessuno aveva registrato (è la stessa scelta di `_sitoFonte`). */
-      (r.prev&&r.prev.ppvBase&&r.prev.ppvBase.breve)||''].map(csvCell).join(';');
+      (r.prev&&r.prev.ppvBase&&r.prev.ppvBase.breve)||'',
+      // G52 — vuota se la riconciliazione è di prima di questa colonna, o il
+      // consuntivo non tracciava l'esito: non «zero misfire», «non lo so».
+      (c&&c.colonnaEsito)?c.nMisfire:''].map(csvCell).join(';');
   }).join('\n')+'\n';
   return csv;
 }
@@ -885,7 +1267,20 @@ export function _perc(v,p){ if(!v.length) return null; const a=v.slice().sort((x
    decisione, non un riordino, e va chiesta. Finché non lo è, la ragione sta
    scritta qui invece che in nessun posto.
    ══════════════════════════════════════════════════════════════════════════ */
-function _xmlEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c])); }
+/* ⛔ 27/11 — IL NOSTRO XML LETTO DA UN ALTRO PARSER (quello severo della
+   libreria standard di Python, `tests/campioni/xml-nostro/`). Un nome con un
+   CARATTERE DI CONTROLLO dentro (arriva da un file importato, non da una
+   tastiera) rendeva l'intero piano «non ben formato»: l'XML 1.0 quei
+   caratteri non li ammette nemmeno scritti come entità, e un parser vero si
+   ferma alla prima riga che ne contiene uno — il file che programma i
+   detonatori non si apriva affatto. Escono come uno spazio. E mezzo carattere
+   (un surrogato rimasto solo) esce come il segnaposto U+FFFD: nel browser
+   faceva crollare l'esportazione prima ancora di scrivere il file.
+   ⛔ NEUTRALITÀ: ogni altro nome esce byte per byte com'era. */
+function _xmlEsc(s){ return String(s==null?'':s)
+  .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufffe\uffff]/g,' ')
+  .replace(/[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/g,'\ufffd')
+  .replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c])); }
 
 export function xmlPianoInnesco(p){
   const e=_xmlEsc, inn=(p&&p.innesco)||{};
@@ -930,6 +1325,16 @@ export function xmlPianoInnesco(p){
   xml+='    '+_tag('MeshBurden','m',p.B,2)+'\n';
   xml+='    '+_tag('MeshSpacing','m',p.S,2)+'\n';
   xml+='    '+_tag('HoleDiameter','mm',p.diam)+'\n';
+  /* L'INCLINAZIONE DEI FORI (26/11): gradi dalla verticale, verso la faccia.
+     Fino al 26/11 il piano non la portava affatto: chi perforava da questo
+     file non sapeva se i fori erano verticali o a 20°, e riaprendolo restava
+     l'inclinazione che il progetto aveva per caso. Sta accanto al diametro.
+     ⛔ Un chiamante che NON la dichiara non la vede inventata a zero: la riga
+     non esce (è il piano di ieri) — tranne quando qualche foro ne ha una SUA:
+     lì chi rilegge deve sapere da che cosa quel foro si scosta, e se non si
+     sa lo si dice («non-calcolabile»). */
+  const _inclNota=_num(p&&p.incl)!==null, _inclDeiFori=contaValoriPropri((p&&p.fori)||[]).incl>0;
+  if(_inclNota || _inclDeiFori) xml+='    '+_tag('HoleInclination','deg',p.incl)+'\n';
   xml+='    <Explosive>'+e(p.esplosivo)+'</Explosive>\n';
   xml+='    <Initiation id="'+e(inn.id)+'">'+e(inn.nome)+'</Initiation>\n';
   xml+='    <Sequence>'+e(p.sequenza||'diagonale')+'</Sequence>\n';
@@ -952,15 +1357,41 @@ export function xmlPianoInnesco(p){
   xml+=micOk
     ? '    <MaxInstantCharge unit="kg" window_ms="8">'+e(micV.toFixed(1))+'</MaxInstantCharge>\n'
     : '    <MaxInstantCharge unit="kg" window_ms="8" status="non-calcolabile"/>\n';
+  /* F5 (26/11) — IL FILE DICE LA CARICA DI OGNI FORO, NON QUELLA DEL PROGETTO
+     RIPETUTA. Misurato il 26/11: dato a un foro 0 kg (lasciato scarico), 8,5 m
+     e 1,5 m di borraggio, il suo <Hole> usciva con 58 kg, 10 m e 2,2 m — i
+     valori del progetto, identici per tutti. È il file che legge chi programma
+     i detonatori e chi perfora: un foro scarico dichiarato carico.
+     Adesso ogni <Hole> porta i valori che VALGONO per lui (`valoreDiForo`), e
+     quando almeno un foro ne ha di suoi il file dichiara anche quelli del
+     PROGETTO (DesignDepth / DesignCharge / DesignStemming): chi rilegge deve
+     poter distinguere «questo foro è diverso» da «la volata è tutta così», e
+     senza i tre Design il lettore di casa prendeva per progetto i valori del
+     PRIMO foro — che può essere proprio quello diverso.
+     ⛔ NEUTRALITÀ: senza valori per foro non compare niente di nuovo, e il
+     file esce byte per byte com'era (provato). */
+  const _nPropriXml=contaValoriPropri((p&&p.fori)||[]).fori;
+  if(_nPropriXml){
+    xml+='    '+_tag('DesignDepth','m',p.prof)+'\n';
+    xml+='    '+_tag('DesignCharge','kg',p.kg)+'\n';
+    xml+='    '+_tag('DesignStemming','m',p.stem)+'\n';
+    xml+='    <HolesWithOwnValues>'+_nPropriXml+'</HolesWithOwnValues>\n';
+  }
   xml+='  </PlanData>\n';
   const rows=((p&&p.fori)||[]).slice().sort((a,b)=>(a.tDet||0)-(b.tDet||0));
   xml+='  <Holes count="'+rows.length+'">\n';
   rows.forEach((h,i)=>{
     xml+='    <Hole id="H'+(i+1)+'" seq="'+((h.seq!=null?h.seq:i)+1)+'">\n';
     xml+='      <Position x="'+e((+h.mx||0).toFixed(2))+'" y="'+e((+h.my||0).toFixed(2))+'" unit="m"/>\n';
-    xml+='      '+_tag('Depth','m',p.prof)+'\n';
-    xml+='      '+_tag('Charge','kg',p.kg)+'\n';
-    xml+='      '+_tag('Stemming','m',p.stem)+'\n';
+    xml+='      '+_tag('Depth','m',valoreDiForo(h,'prof',p))+'\n';
+    xml+='      '+_tag('Charge','kg',valoreDiForo(h,'kg',p))+'\n';
+    xml+='      '+_tag('Stemming','m',valoreDiForo(h,'stem',p))+'\n';
+    /* F6 — il diametro del progetto sta già in PlanData (HoleDiameter): dentro
+       il foro compare SOLO quando è suo, così un piano senza diametri per
+       foro esce com'era */
+    if(valoreProprioDiForo(h,'diam')!==null) xml+='      '+_tag('HoleDiameter','mm',valoreProprioDiForo(h,'diam'))+'\n';
+    /* F6b — gradi dalla verticale, verso la faccia; solo quando è del foro */
+    if(valoreProprioDiForo(h,'incl')!==null) xml+='      '+_tag('Inclination','deg',valoreProprioDiForo(h,'incl'))+'\n';
     xml+='      <Delay unit="ms">'+e((+h.tDet||0).toFixed(1))+'</Delay>\n';
     xml+='    </Hole>\n';
   });
@@ -1014,6 +1445,15 @@ export function interpProf(arr, mx) {
   }
   return 0;
 }
+/* B3 (14/09) — trasloco con cambio di firma, stesso schema di
+   `pfNominale`: `pieDev` componeva solo `interpProf`, già pura in
+   questo modulo. La deviazione del PIEDE in un punto x, per la
+   maniglia gialla della modellazione 3D (avanzando il piede la faccia
+   si alza, come nel 2D) — zero se il piede non è ancora disegnato o
+   ha meno di due punti. */
+export function pieDev(D2, x){
+  return (D2.piede && D2.piede.length >= 2) ? interpProf(D2.piede, x) : 0;
+}
 
 /* ══════════════════════════════════════════════════════════════════════════
    G10 — DUE FUNZIONCINE PURE CHE STAVANO FUORI DALLA PORTATA DELLE PROVE
@@ -1042,6 +1482,24 @@ export function _sentNum(n) {
   const v = +n;
   return Number.isFinite(v) ? String(Math.round(v * 1e4) / 1e4) : "";
 }
+
+/* `_sentCell` — cella di TESTO per lo stesso file per Sentinella (trasloco
+   12/09, unità 122, fetta di mezzo di B3). Il censimento la marcava legata a
+   quattro variabili del modulo ("r, n, t, g"): sono lettere dentro la sua
+   regex (`/[\r\n\t]+/g`), lo stesso falso positivo del tokenizzatore già
+   chiuso su `_sitoParseCsv` — letta a mano è pura.
+   ⛔ QUI C'ERA LA TERZA COPIA PIÙ DEBOLE DI `csvCell`: virgolettava `; "` e
+   basta, quindi un fronte chiamato `=cmd|'/c calc'!A1` usciva **nudo** —
+   misurato aprendo la pagina e premendo Esporta. È un file che gira fra due
+   aziende e si apre in Excel. Adesso la cella la fa `csvCell` di `shared/`,
+   che l'apostrofo di guardia lo mette, e `parseCsvLine` — quello che
+   `parseVolateCsv` di Sentinella usa davvero — lo toglie: il giro resta chiuso.
+   ⚠️ LA NORMALIZZAZIONE DEI RITORNI A CAPO RESTA, e non è un doppione di
+   `csvCell`: è un requisito del LETTORE. `parseVolateCsv` fa
+   `split(/\r?\n/)` PRIMA di leggere le celle, quindi un a-capo virgolettato —
+   che `csvCell` da sola conserverebbe, giustamente — gli spaccherebbe la riga
+   in due. Si normalizza per chi legge, poi si protegge con la regola di casa. */
+export function _sentCell(v) { return csvCell(String(v == null ? "" : v).replace(/[\r\n\t]+/g, " ").trim()); }
 
 /* `isoColore` — il colore di un'**isocrona** sul disegno 2D, da `u` ∈ [0,1]
    (0 = il primo fronte d'onda, 1 = l'ultimo). Tre canali che si muovono
@@ -1177,17 +1635,209 @@ export function esitoMic(mic) {
              verdetto:'non calcolabile' };
   return { calcolabile:true, kg:m, classe:'sv-info', stato:'contata', verdetto:'' };
 }
+/* LA DISPERSIONE DELL'INNESCO (lo «scatter»), in millisecondi (04/09, fetta di
+   B3). Nella pagina era scritta TRE volte con lo stesso ternario — sul foro
+   (`f.tDet`), sull'uniformità di Cunningham (`max(rit, lastDet)`) e nel badge
+   e nel rilascio (`scatterMs`) — cioè la copia da firma troppo stretta: le tre
+   differivano solo per il tempo di riferimento, che qui è un argomento.
+   Elettronico 0,1 ms e elettrico 0,5 ms sono fissi; cordtex il 3% e Nonel il
+   2% del tempo di riferimento. L'aritmetica è quella di prima, parola per
+   parola: un tempo assente resta NaN come restava — chi chiama passa un
+   numero. */
+export function scatterInnesco(innesco, tRif) {
+  return (innesco === "elettronico") ? 0.1 : ((innesco === "elettrico") ? 0.5 : ((innesco === "cordtex") ? 0.03 * tRif : 0.02 * tRif));
+}
+/* dispersione dell'innesco (stessa formula del badge "Scatter innesco"): due fori
+   separati da meno di così sparano di fatto insieme e non si liberano a vicenda.
+   Trasloco B3 (14/09): `D2` come primo argomento esplicito, come già per
+   `pfNominale`/`pieDev`/`reliefCls`/`computeEnergia2D`/`isoPasso`. */
+export function scatterMs(D2){
+  const Th=D2.ritardo||42, tmx=Math.max(Th, D2.lastDet||Th);
+  return scatterInnesco(D2.innesco, tmx);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   LA MIC DICE QUALI FORI LA FORMANO, E QUANDO (27/11).
+   ══════════════════════════════════════════════════════════════════════
+   La scheda e il foglio dicevano «MIC 174 kg (finestra 8 ms)» e basta: chi
+   deve abbassarla non sapeva QUALI fori partono insieme, e doveva cercarli
+   a occhio fra i ritardi. Il conto delle finestre c'era già, dentro
+   `micFinestra`, e buttava via tutto tranne il massimo.
+   ⛔ UNA SOLA FUNZIONE CONTA LE FINESTRE (`_finestreDiCarica`): la usano
+   `micFinestra` (il numero) e `finestraDellaMic` (chi e quando). Due conti
+   separati sarebbero stati la copia debole di sempre — e qui il numero
+   decide la PPV. L'aritmetica è quella di prima PAROLA PER PAROLA (`fori ×
+   carica del progetto + scarti`, nello stesso ordine): provato su 4000
+   volate a caso contro la forma vecchia con `Object.is`, zero differenze.
+    · `finestraDellaMic` risponde `null` dove risponde `null` la MIC;
+    · a parità di chili vince la finestra che parte PRIMA, e `altre` dice
+      quanti altri gruppi distinti arrivano alla stessa carica;
+    · `daSoli` è vero solo se in OGNI finestra c'è un foro solo: «ogni foro
+      parte da solo» non si deduce dal fatto che la finestra massima ne ha
+      uno (un foro grosso può battere una coppia: misurato in scratchpad);
+    · `senzaTempo`: quanti fori della finestra non hanno un ritardo
+      leggibile. Per il conto valgono 0 ms — è la scelta prudente, li
+      ammucchia tutti all'inizio — e la frase lo DICE invece di scrivere
+      «partono insieme a 0 ms» come se fosse stato deciso. */
+export const FINESTRA_MIC_MS = 8;
+function _finestreDiCarica(H, kg){
+  const ts = H.map((h) => h.tDet || 0);
+  /* F2 (26/11) — LA FINESTRA SOMMA LE CARICHE VERE DEI FORI. Fino a oggi la
+     MIC era «quanti fori nella finestra» × la carica unica della volata. Un
+     foro può ora portare una carica sua (F1, `valoreProprioDiForo`), e la
+     carica massima per ritardo è per definizione una SOMMA di cariche.
+     ⛔ NON si sommano le cariche una per una: n volte 58,3 sommate non danno
+     gli stessi decimali di n × 58,3, e un progetto di ieri deve restare
+     identico ALLA CIFRA. Per ogni finestra si calcola `fori × carica del
+     progetto` più gli SCARTI dei soli fori che hanno una carica loro: senza
+     cariche proprie lo scarto è zero ed esce esattamente il numero di prima
+     (provato in scratchpad su 4000 volate a caso, confronto con `Object.is`:
+     zero differenze).
+     ⚠️ E con cariche proprie la finestra che vince può NON essere quella con
+     più fori: un foro isolato da 200 kg batte due fori da 58. Per questo si
+     confrontano i chili di ogni finestra, non i conteggi. */
+  const scarti = H.map((h) => { const suo = valoreProprioDiForo(h, 'kg'); return suo === null ? 0 : suo - kg; });
+  const finestre = [];
+  for (const t0 of ts) {
+    let c = 0, s = 0; const dentro = [];
+    for (let j = 0; j < ts.length; j++) if (ts[j] >= t0 && ts[j] < t0 + FINESTRA_MIC_MS) { c++; s += scarti[j]; dentro.push(j); }
+    finestre.push({ t0, kg: c * kg + s, dentro });
+  }
+  return { ts, finestre };
+}
 export function micFinestra(holes, kg) {
   const H = holes;
   if (micSenzaConto(H, kg)) return null;
-  const ts = H.map((h) => h.tDet || 0);
-  let n = 1;
-  for (const t0 of ts) {
-    let c = 0;
-    for (const t of ts) if (t >= t0 && t < t0 + 8) c++;
-    if (c > n) n = c;
-  }
-  return n * kg;
+  let mic = null;
+  for (const f of _finestreDiCarica(H, kg).finestre) if (mic === null || f.kg > mic) mic = f.kg;
+  return mic;
+}
+export function finestraDellaMic(holes, kg){
+  const H = holes;
+  if (micSenzaConto(H, kg)) return null;
+  const { ts, finestre } = _finestreDiCarica(H, kg);
+  let m = null;
+  for (const f of finestre) if (m === null || f.kg > m.kg || (f.kg === m.kg && f.t0 < m.t0)) m = f;
+  const fin = (v) => v !== null && v !== undefined && v !== '' && Number.isFinite(+v);
+  const numero = (j) => (fin(H[j] && H[j].seq) ? +H[j].seq : j) + 1;
+  const pari = new Set(finestre.filter((f) => f.kg === m.kg).map((f) => f.dentro.join(',')));
+  return { kg: m.kg, da: m.t0, a: Math.max(...m.dentro.map((j) => ts[j])), fori: m.dentro.map(numero).sort((a, b) => a - b),
+    altre: pari.size - 1, daSoli: finestre.every((f) => f.dentro.length === 1), senzaTempo: m.dentro.filter((j) => !fin(H[j] && H[j].tDet)).length };
+}
+/* LE RIGHE DEL PIANO DI CARICO (27/11, fetta di B3: Genesi continua a uscire dalla pagina).
+   Il TESTO del file lo scrive `pianoCsvGenesi` di shared/ (lo stesso che Campo ricompone); le RIGHE le
+   preparava l'`onclick` di `btn-piano-csv`, dove `node` non arriva. Sono entrate com'erano, campo per
+   campo (provato sugli stessi fori contro l'espressione di prima: identiche):
+    · nell'ordine dei ritardi, e «foro» è il posto in quell'ordine — lo stesso numero che il foro ha
+      sulla pianta e nella tabella del foglio (`seq + 1`: stesso ordinamento stabile per ritardo);
+    · `null` dove un numero non si legge (la cella esce vuota), mai zero. */
+export function righePianoDiCarico(holes, progetto){
+  const D2 = progetto;
+  return (Array.isArray(holes) ? holes : []).slice().sort((a,b)=>a.tDet-b.tDet).map((h,i)=>({ foro:i+1, x:h.mx, fila:h.my,
+    /* F1 (26/11): profondità, carica e borraggio escono PER FORO — il valore
+       suo se il foro ne ha uno, se no quello del progetto (identico a prima
+       per ogni progetto che valori per foro non ne ha) — e `null` se non lo
+       sa nessuno dei due: è la stessa domanda di `_pc`, fatta a una funzione */
+    prof:valoreDiForo(h,'prof',D2), prog:valoreDiForo(h,'kg',D2), borr:valoreDiForo(h,'stem',D2),
+    rit:h.tDet!=null?h.tDet:null, relief:h.relief!=null?h.relief:null, burden:h.burdenLoc!=null?h.burdenLoc:null,
+    spaz:h.spazLoc!=null?h.spazLoc:null, vol:h.volLoc!=null?h.volLoc:null, pf:h.pfLoc!=null?h.pfLoc:null, idForo:h.id||'' }));
+}
+/* I FORI DA COLORARE SULLA PIANTA DEL FOGLIO (27/11): gli indici dei fori che stanno in una
+   finestra che arriva alla MIC — TUTTI i gruppi alla pari, non solo quello che la frase nomina.
+   Vuoto quando colorarli non direbbe niente, o direbbe il falso:
+    · la MIC non si conta, o è zero (tutti scarichi);
+    · ogni foro parte da solo: li colorerebbe tutti, cioè nessuno;
+    · un foro di quei gruppi non ha un ritardo leggibile: il gruppo esiste solo perché il
+      conto, per prudenza, mette a 0 ms chi il ritardo non ce l'ha — è un artefatto, non una
+      coincidenza del progetto, e sul disegno sembrerebbe un fatto. */
+function _indiciNellaMic(H, kg){
+  const vuoto = new Set();
+  if (!Array.isArray(H) || micSenzaConto(H, kg)) return vuoto;
+  const { finestre } = _finestreDiCarica(H, kg);
+  if (finestre.every((f) => f.dentro.length === 1)) return vuoto;
+  let mic = null;
+  for (const f of finestre) if (mic === null || f.kg > mic) mic = f.kg;
+  if (!(mic > 0)) return vuoto;
+  const out = new Set();
+  for (const f of finestre) if (f.kg === mic) for (const j of f.dentro) out.add(j);
+  for (const j of out) { const t = H[j] && H[j].tDet; if (t === null || t === undefined || t === '' || !Number.isFinite(+t)) return vuoto; }
+  return out;
+}
+/* gli stessi indici, in ordine, per chi sta fuori dal modulo: la tela li cerchia (bottone «MIC»).
+   Una sola regola per il foglio e per lo schermo — che cosa NON si colora lo decide `_indiciNellaMic`. */
+export function foriNellaMic(holes, kg){
+  return [..._indiciNellaMic(holes, kg)].sort((a, b) => a - b);
+}
+/* la frase, una per lo schermo e per il foglio. Sta in piedi da sola (comincia
+   da «La MIC»): viene scritta in coda a testi che parlano anche d'altro. */
+export function fraseFinestraMic(f){
+  if (!f || !Array.isArray(f.fori) || !f.fori.length) return '';
+  const N = f.fori.length;
+  if (N === 1 && f.daSoli) return 'Ogni foro parte da solo: nessun altro entro ' + FINESTRA_MIC_MS + ' ms.';
+  const altre = f.altre > 0 ? ' ' + (f.altre === 1 ? 'Un altro gruppo arriva' : 'Altri ' + gnum(f.altre, 0) + ' gruppi arrivano') + ' alla stessa carica.' : '';
+  if (N === 1) return 'La MIC la forma il foro ' + f.fori[0] + ', che parte da solo.' + altre;
+  const chi = N <= 8 ? f.fori.slice(0, -1).join(', ') + ' e ' + f.fori[N - 1] : f.fori.slice(0, 6).join(', ') + ' e altri ' + (N - 6);
+  const quando = f.senzaTempo === N ? 'non hanno un ritardo assegnato: per il conto partono tutti insieme'
+    : (f.a === f.da ? 'partono insieme a ' + gnum(f.da, 1) + ' ms' : 'partono fra ' + gnum(f.da, 1) + ' e ' + gnum(f.a, 1) + ' ms')
+      + (f.senzaTempo > 0 ? ' (' + (f.senzaTempo === 1 ? 'uno non ha' : f.senzaTempo + ' non hanno') + ' un ritardo assegnato, e per il conto vale 0 ms)' : '');
+  return 'La MIC la formano i fori ' + chi + ', che ' + quando + '.' + altre;
+}
+/* ══════════════════════════════════════════════════════════════════════
+   LE CARICHE NEL TEMPO (27/11) — il disegno della MIC.
+   ══════════════════════════════════════════════════════════════════════
+   La frase dice quali fori formano la MIC; il disegno fa vedere TUTTE le
+   finestre: per ogni istante in cui parte un foro, i chili che partono
+   negli 8 ms da lì. È lo stesso conto di `micFinestra` (stesse finestre,
+   `_finestreDiCarica`): la barra più alta È la MIC, non una sua stima.
+    · `caricheNelTempo`: una voce per ISTANTE distinto, in ordine di tempo
+      (due fori sullo stesso ritardo aprono la stessa finestra: una barra);
+      `null` dove la MIC non si conta;
+    · `diagrammaTempiPerFoglio`: le barre, per la carta. L'altezza è
+      proporzionale ai chili e UNO ZERO SI DISEGNA ZERO (una finestra di
+      soli fori scarichi non ha barra: niente altezza minima «per farla
+      vedere»); in arancio le finestre che arrivano alla MIC; l'asse dei
+      tempi ha tacche tonde. Stringa vuota se non c'è niente da disegnare
+      (MIC non contabile, o tutti i fori scarichi). */
+export function caricheNelTempo(holes, kg){
+  const H = holes;
+  if (micSenzaConto(H, kg)) return null;
+  const visti = new Set(), out = [];
+  for (const f of _finestreDiCarica(H, kg).finestre) if (!visti.has(f.t0)) { visti.add(f.t0); out.push({ da: f.t0, kg: f.kg, fori: f.dentro.length }); }
+  return out.sort((a, b) => a.da - b.da);
+}
+export function diagrammaTempiPerFoglio(holes, kg, opz){
+  const F = Array.isArray(holes) ? caricheNelTempo(holes, kg) : null;
+  if (!F || !F.length) return '';
+  const mic = Math.max(...F.map((f) => f.kg));
+  if (!(mic > 0)) return '';
+  const o = opz || {}, fin = (v) => v !== null && v !== undefined && v !== '' && Number.isFinite(+v);
+  const L = (fin(o.larghezza) && +o.larghezza >= 320) ? +o.larghezza : 680, padL = 36, padR = 36, padTop = 26, altaBarre = 90, base = padTop + altaBarre;
+  const tMax = F[F.length - 1].da, largaT = L - padL - padR, X = (t) => padL + (tMax > 0 ? t / tMax : 0) * largaT;
+  /* la larghezza della barra: sette decimi del passo più stretto fra due istanti, fra 1,5 e 12 px */
+  let passo = largaT; for (let i = 1; i < F.length; i++) passo = Math.min(passo, X(F[i].da) - X(F[i - 1].da));
+  const w = Math.max(1.5, Math.min(12, passo * 0.7));
+  const f1 = (v) => (Math.round(v * 10) / 10).toFixed(1);
+  const leg = ['barra: i chili che partono entro ' + FINESTRA_MIC_MS + ' ms da lì', 'in arancio: la MIC'];
+  const legRighe = righeDiVoci(leg.map((t) => (t.length + 3) * 5), L - padL - padR), alta = base + 34 + legRighe.length * 13;
+  const out = [];
+  out.push('<svg xmlns="http://www.w3.org/2000/svg" class="tempi" viewBox="0 0 ' + L + ' ' + alta + '" width="100%" role="img" aria-label="Cariche nel tempo: ' + gnum(F.length, 0) + (F.length === 1 ? ' istante' : ' istanti') + ' di partenza, carica massima per ritardo ' + gnum(mic, 1) + ' kg" style="max-width:' + L + 'px;display:block;margin:0 auto;font-family:system-ui,Arial,sans-serif">');
+  out.push('<rect x="0.5" y="0.5" width="' + (L - 1) + '" height="' + (alta - 1) + '" fill="#fff" stroke="#d8d8d8"/>');
+  /* la riga della MIC, con il suo numero */
+  out.push('<path class="t-mic" d="M' + padL + ' ' + padTop + 'H' + (L - padR) + '" stroke="#c05a00" stroke-width="1" stroke-dasharray="4 3"/>');
+  out.push('<text class="t-micn" x="' + padL + '" y="' + (padTop - 6) + '" font-size="10" font-weight="700" fill="#a05a00">MIC ' + gnum(mic, 1) + ' kg</text>');
+  F.forEach((f) => { const h = f.kg / mic * altaBarre; if (!(h > 0)) return;
+    out.push('<rect class="t-b' + (f.kg === mic ? ' t-max' : '') + '" x="' + f1(X(f.da) - w / 2) + '" y="' + f1(base - h) + '" width="' + f1(w) + '" height="' + f1(h) + '" fill="' + (f.kg === mic ? '#c05a00' : '#8f8f8f') + '"/>'); });
+  out.push('<path d="M' + padL + ' ' + base + 'H' + (L - padR) + '" stroke="#1a1a1a" stroke-width="1.2"/>');
+  /* le tacche dei tempi: un passo tondo, al più sette tacche; con un istante solo, la sua */
+  const passi = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000], pt = tMax > 0 ? (passi.find((p) => tMax / p <= 6) || 10000) : 0;
+  const tacche = []; if (tMax > 0) for (let t = 0; t <= tMax + 1e-9; t += pt) tacche.push(t); else tacche.push(F[0].da);
+  tacche.forEach((t) => { out.push('<path class="t-tacca" d="M' + f1(X(t)) + ' ' + base + 'v4" stroke="#1a1a1a" stroke-width="1"/>');
+    out.push('<text class="t-ms" x="' + f1(X(t)) + '" y="' + (base + 15) + '" font-size="9.5" text-anchor="middle" fill="#1a1a1a">' + gnum(t, 1) + '</text>'); });
+  /* «ms» sta 17 px oltre la fine dell'asse: l'ultima tacca può cadere proprio lì, e la sua cifra è larga fino a 24 px */
+  out.push('<text class="t-u" x="' + (L - padR + 17) + '" y="' + (base + 15) + '" font-size="9.5" fill="#555">ms</text>');
+  legRighe.forEach((riga, k) => out.push('<text class="t-leg" x="' + padL + '" y="' + (base + 34 + k * 13) + '" font-size="9.5" fill="#555">' + riga.map((i) => leg[i]).join(' · ') + '</text>'));
+  out.push('</svg>');
+  return out.join('');
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -1261,9 +1911,70 @@ export function caricaSenzaConto(nf, kg){
     come: parti.map(p => p.come).join(' ') };
 }
 /* I chili di esplosivo dell'intera volata, o `null` se non si contano. */
-export function caricaTotale(nf, kg){
+/* F2 (26/11) — LO SCARTO DELLE CARICHE PROPRIE. Di quanti chili i fori che
+   hanno una carica LORO si scostano, in tutto, dalla carica del progetto: la
+   somma di (carica propria − carica del progetto). Zero se nessun foro ne ha
+   una; `null` se la carica del progetto non si legge (di quanto ci si scosta
+   da un numero che non c'è non si può dire). È il solo pezzo che serve per
+   passare da «fori × carica» alla carica VERA della volata senza cambiare
+   il conto di chi cariche proprie non ne ha: n × kg + 0 è n × kg, alla cifra.
+   ⚠️ Vale solo dove «i fori» sono quelli DISEGNATI: sulla griglia di progetto
+   (fori per fila × file) questi scarti non hanno un foro a cui appartenere. */
+export function scartoCaricheProprie(holes, kg){
+  const q = (kg === null || kg === undefined || kg === '') ? NaN : +kg;
+  if (!Number.isFinite(q) || q < 0) return null;
+  let s = 0;
+  for (const h of (holes || [])){ const suo = valoreProprioDiForo(h, 'kg'); if (suo !== null) s += suo - q; }
+  return s;
+}
+/* Lo stesso per la PROFONDITÀ (F2, 26/11): di quanti metri, in tutto, i fori
+   con una profondità loro si scostano da quella del progetto. Serve ai metri
+   perforati, che sono fori × (profondità + sottoperforazione): la
+   sottoperforazione resta quella del progetto, quindi lo scarto dei metri è
+   lo scarto delle profondità. Zero se nessun foro ne ha una; `null` se la
+   profondità del progetto non si legge. Due funzioni e non una con un
+   parametro: la carica ammette lo zero (foro scarico), la profondità no, e
+   quella differenza sta già scritta in `valoreProprioDiForo`. */
+export function scartoProfonditaProprie(holes, prof){
+  const p = (prof === null || prof === undefined || prof === '') ? NaN : +prof;
+  if (!Number.isFinite(p) || !(p > 0)) return null;
+  let s = 0;
+  for (const h of (holes || [])){ const sua = valoreProprioDiForo(h, 'prof'); if (sua !== null) s += sua - p; }
+  return s;
+}
+/* F2 (26/11) — IL VERSO INVERSO: da un TOTALE scritto dall'utente alla
+   carica del progetto. Il campo «Esplosivo totale» della pagina è a due
+   versi: mostra la carica della volata e, se ci si scrive un numero, ricalcola
+   la carica per foro. Fino a oggi era `totale / fori`. Con le cariche proprie
+   quel conto farebbe rileggere al campo un totale DIVERSO da quello scritto.
+   La regola discende da F1, non è una scelta nuova: il campo scrive la carica
+   del PROGETTO, e un foro con una carica sua per definizione non la segue.
+   Quindi i fori con una carica propria restano fermi e il totale si
+   distribuisce sugli altri: (totale − somma delle proprie) / fori senza.
+   Senza cariche proprie è `totale / fori`, alla cifra (3000 totali a caso in
+   scratchpad, zero differenze).
+   Risponde `null` se il totale o il numero dei fori non sono positivi. `kg`
+   è `null` quando TUTTI i fori hanno una carica propria (non c'è nessuno su
+   cui distribuire), ed è NEGATIVO quando il totale scritto è meno della somma
+   delle cariche proprie: due casi che la pagina deve dire, non arrotondare. */
+export function caricaProgettoDaTotale(tot, n, holes){
+  const T = (tot === null || tot === undefined || tot === '') ? NaN : +tot;
+  const N = (n === null || n === undefined || n === '') ? NaN : +n;
+  if (!(T > 0) || !(N > 0)) return null;
+  let somma = 0, propri = 0;
+  for (const h of (holes || [])){ const suo = valoreProprioDiForo(h, 'kg'); if (suo !== null){ somma += suo; propri++; } }
+  if (propri === 0) return { kg: T / N, propri: 0, liberi: N, sommaProprie: 0 };
+  const liberi = N - propri;
+  if (!(liberi > 0)) return { kg: null, propri, liberi: 0, sommaProprie: somma };
+  return { kg: (T - somma) / liberi, propri, liberi, sommaProprie: somma };
+}
+/* `scarto` (facoltativo, da `scartoCaricheProprie`): assente, zero o
+   illeggibile lascia il conto ESATTAMENTE com'era — fori × carica. */
+export function caricaTotale(nf, kg, scarto){
   if (caricaSenzaConto(nf, kg)) return null;
-  return +nf * +kg;
+  const base = +nf * +kg;
+  const s = (scarto === null || scarto === undefined || scarto === '') ? NaN : +scarto;
+  return (Number.isFinite(s) && s !== 0) ? base + s : base;
 }
 
 export const COSTO_SENZA_CONTO = {
@@ -1290,7 +2001,8 @@ export function costoVolata(v){
   const num = (x) => (x === null || x === undefined || x === '') ? NaN : +x;
   const prezzo = (x) => { const p = num(x); return (Number.isFinite(p) && p >= 0) ? p : 0; };
   const nf = num(o.nf), mPerf = num(o.mPerf), vol = num(o.vol), ton = num(o.ton), vm = num(o.valMat);
-  const qtot = caricaTotale(o.nf, o.kg), perche = caricaSenzaConto(o.nf, o.kg);
+  /* `o.scartoKg` (F2, 26/11): lo scarto delle cariche proprie dei fori disegnati — lo passa solo chi conta i fori DISEGNATI */
+  const qtot = caricaTotale(o.nf, o.kg, o.scartoKg), perche = caricaSenzaConto(o.nf, o.kg);
   const senzaMetri = !Number.isFinite(mPerf) || mPerf < 0;
   const senzaFori  = !Number.isFinite(nf) || nf < 0;
   const perf    = senzaMetri ? null : mPerf * prezzo(o.cPerf);
@@ -1417,6 +2129,30 @@ export function consumoSpecifico(kg, vol){
   if (!Number.isFinite(q) || q < 0 || !Number.isFinite(v) || v <= 0) return null;
   return q / v;
 }
+/* B3 (14/09) — trasloco con cambio di firma: `pfNominale` viveva nella
+   pagina come funzione di un argomento solo (nessuno, leggeva `D2` dalla
+   chiusura), qui prende `D2` come parametro — stesso schema già usato per
+   ogni altra funzione "legame di una riga" di questa fascia. Il consumo
+   specifico DI PROGETTO: quanti kg di esplosivo per m³ di roccia, dalla
+   maglia nominale (non dal foro reale, che ha `pfLoc` — vedi il commento
+   di `consumoSpecifico` su Kuz-Ram). */
+export function pfNominale(D2){
+  return consumoSpecifico(D2.kg, volumeForo(D2.B, D2.S, D2.prof));
+}
+/* Il RWS effettivo (12/09, unità 126): l'energia relativa dell'esplosivo,
+   ridotta se il foro è bagnato — l'acqua penalizza l'esplosivo tanto meno
+   quanto più è resistente all'acqua (`Nulla` 70%, `Eccellente` 0%). Viveva
+   scritta una volta sola dentro `genesi.html` (`renderScheda2D`, che la
+   chiede per `fragKuzRam`); esce ora perché il nuovo obiettivo di pezzatura
+   (sotto) la chiede anche lui, e la regola di casa è che una formula che
+   serve a due punti si scrive una volta, non due — è la stessa lezione già
+   pagata su `computeMIC`/`ppvDaSd`. Il pavimento (8) è quello che c'era già. */
+export const PENALITA_ACQUA = { Nulla:0.70, Bassa:0.40, Media:0.18, Buona:0.05, Eccellente:0 };
+export function rwsEffettiva(rwsBase, bagnato, acquaClasse){
+  const base = Number.isFinite(+rwsBase) ? +rwsBase : 100;
+  const pen = bagnato ? (PENALITA_ACQUA[acquaClasse] ?? 0) : 0;
+  return Math.max(8, base * (1 - pen));
+}
 /* Il consumo specifico (kg/m³) e la pezzatura mediana prevista (cm), o `null`
    per quello dei due che non si può contare — e sono DUE domande diverse: il
    consumo specifico è un numero vero anche quando il fattore roccia non c'è.
@@ -1438,6 +2174,157 @@ export function fragKuzRam(v){
             * Math.pow(Math.max(1, n(o.kg)), 1/6) * Math.pow(115 / n(o.RWS), 19/30);
   return { pf, x50, calcolabile:true, carica:false, volume:false, modello:false, che:'', come:'' };
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   G32 · LA CARICA PER CENTRARE UN OBIETTIVO DI PEZZATURA (12/09, unità 126)
+   ══════════════════════════════════════════════════════════════════════════
+   `fragKuzRam` risponde a «con questa carica, che pezzatura viene?». Qui si fa
+   la domanda al contrario — «per questa pezzatura, quanta carica serve?» —
+   invertendo la STESSA formula, senza toccarla: la roccia, l'esplosivo e la
+   maglia (volume per foro) restano quelli del progetto, e si risolve per il
+   solo `kg` che li farebbe tornare all'obiettivo.
+
+   Algebra (da `fragKuzRam`, con `pf = kg/vol`):
+     x50 = A · pf^−0.8 · kg^(1/6) · (115/RWS)^(19/30)
+         = A · (kg/vol)^−0.8 · kg^(1/6) · (115/RWS)^(19/30)
+         = [A · vol^0.8 · (115/RWS)^(19/30)] · kg^(−0.8+1/6)
+   e −0.8+1/6 = −19/30, quindi, chiamato C il fattore fra parentesi quadre:
+     x50 = C · kg^(−19/30)  →  kg = (C / x50)^(30/19)
+   Verificato PAROLA PER PAROLA — non a occhio — con 50.000 obiettivi generati
+   a caso: `fragKuzRam(kg_ricavato).x50` torna l'obiettivo con un errore
+   relativo peggiore di 8·10⁻¹⁶ (rumore binario, non un difetto), su ogni
+   caso che non tocca i due CLAMP di `fragKuzRam` (vedi sotto).
+
+   ⛔ E I DUE CLAMP DI `fragKuzRam` SONO IL DOMINIO IN CUI QUESTA INVERSIONE
+   NON SI PUÒ FIDARE, NON UN DETTAGLIO. `fragKuzRam` tiene `pf` sopra 0,05 e
+   `kg` sopra 1 per non far esplodere il conto su un dato vero ma estremo:
+   sotto quelle soglie la funzione diretta smette di distinguere un kg da un
+   altro (schiaccia tutto sulla soglia), quindi la sua inversa — che quella
+   soglia non la conosce — calcolerebbe un numero preciso per un'equazione
+   che, dall'altra parte, non è più quella. Misurato: senza questa guardia,
+   50.000 obiettivi generati a caso ne restituivano 11.752 (23%) con un
+   risultato che RIAPPLICATO in avanti non tornava affatto all'obiettivo —
+   silenziosamente sbagliato, non solo impreciso. La regola è la stessa di
+   `contrasto.mjs` su un righello che non sa quanto sbaglia: si dichiara
+   incerto, non si stampa un numero che sembra preciso e non lo è.
+   `fuoriDominio` è vero quando il kg calcolato cade in quella zona (kg<1 o
+   pf<0.05): il chiamante lo mostra come «obiettivo troppo grossolano per
+   questo modello», non come un kg qualunque. */
+export const CARICA_TARGET_SENZA_CONTO = {
+  obiettivo: { che:'la pezzatura obiettivo non è un numero leggibile, o non è maggiore di zero',
+               come:'Scrivi un obiettivo di pezzatura mediana (x50), in centimetri, maggiore di zero.' },
+};
+export function caricaTargetSenzaConto(x50Target, vol, A, RWS){
+  const n = (x) => (x === null || x === undefined || x === '') ? NaN : +x;
+  const xt = n(x50Target);
+  const senzaObiettivo = !Number.isFinite(xt) || xt <= 0;
+  const perche = fragSenzaConto(1, vol, A, RWS);  // `kg` finto: qui serve solo il verdetto su volume/modello
+  if (!senzaObiettivo && !perche) return null;
+  const parti = [];
+  if (senzaObiettivo) parti.push(CARICA_TARGET_SENZA_CONTO.obiettivo);
+  if (perche && perche.volume) parti.push(FRAG_SENZA_CONTO.volume);
+  if (perche && perche.modello) parti.push(FRAG_SENZA_CONTO.modello);
+  return { obiettivo:senzaObiettivo, volume:!!(perche&&perche.volume), modello:!!(perche&&perche.modello),
+    che: parti.map(p=>p.che).join('; e '), come: parti.map(p=>p.come).join(' ') };
+}
+/* ⛔ 17/09, dal terzo giro di deep-pass: SENZA `capacitaForo` QUESTA FUNZIONE
+   PUÒ PROPORRE UNA CARICA CHE NON ENTRA NEL FORO, SENZA NESSUN AVVISO.
+   `fuoriDominio` dice solo se il modello Kuz-Ram è ancora affidabile
+   (1-100 cm, o i clamp bassi): un obiettivo di pezzatura dentro quel dominio
+   può comunque chiedere una carica per foro superiore a quanto la geometria
+   del foro (diametro, profondità, sottoperforazione, borraggio, densità
+   dell'esplosivo — la stessa che calcola `caricaForoDaGeometria`) può
+   fisicamente contenere: misurato sul progetto demo, un obiettivo x50=5cm
+   propone 880 kg/foro contro un massimo fisico di 58 kg (15,2×), con
+   `fuoriDominio:false` e nessun segnale se non un avviso sulla vibrazione
+   proiettata — che parla d'altro. `capacitaForo` è OPZIONALE apposta:
+   quando il chiamante non la passa (o il foro non è ancora definito),
+   `superaCapacitaForo` resta `null` — «non verificato», non «va bene» —
+   perché l'assenza di un dato non è un dato favorevole. */
+export function caricaDaX50Target(x50Target, vol, A, RWS, capacitaForo){
+  const perche = caricaTargetSenzaConto(x50Target, vol, A, RWS);
+  const cf = (capacitaForo === null || capacitaForo === undefined) ? NaN : +capacitaForo;
+  const capacitaNota = Number.isFinite(cf) && cf > 0;
+  if (perche) return { kg:null, pf:null, calcolabile:false, fuoriDominio:false,
+    troppoFine:false, troppoGrossolano:false,
+    obiettivo:perche.obiettivo, volume:perche.volume, modello:perche.modello,
+    che:perche.che, come:perche.come,
+    capacitaForo:capacitaNota?cf:null, superaCapacitaForo:null };
+  const xt = +x50Target, v = +vol, a = +A, r = +RWS;
+  /* ⏱️ 12/09 (unità 126): il lato BASSO di `fuoriDominio` (kg<1 o pf<0.05)
+     prende dove i clamp di `fragKuzRam` rendono l'inversione ambigua.
+     ⏱️ 12/09 (unità 127, dalla ricerca in docs/RICERCA_CONTINUA_GENESI.md,
+     sezione 2026-09-12): mancava il lato ALTO, ed era un buco diverso, non lo
+     stesso. `fragKuzRam` non ha un clamp gemello in alto, quindi un obiettivo
+     assurdamente fine restituiva un kg matematicamente corretto ma enorme,
+     senza nessun avviso — non ambiguità, estrapolazione. La ricerca (solo
+     risultati WebSearch, marcata di seconda mano, nessuna fonte legge un
+     tetto sul consumo specifico) trova però un vincolo reale: la curva di
+     Rosin-Rammler su cui il Kuz-Ram poggia è dichiarata precisa fra 10 e
+     1000 mm (1-100 cm) — e il vincolo è SIMMETRICO, non solo sul fine: un
+     target grossolano oltre 100 cm è fuori dominio quanto uno sotto 1 cm,
+     e non è detto che ci arrivi passando per `kg<1` (dipende dalla maglia:
+     misurato un caso reale in cui xt=150 cm dà ancora kg>1 e pf>0.05). Né
+     l'uno né l'altro sono un numero di powder factor inventato: è il
+     limite dimensionale che la letteratura dichiara per il modello stesso. */
+  const troppoFine = xt < 1, troppoGrossolano = xt > 100;
+  const C = a * Math.pow(v, 0.8) * Math.pow(115/r, 19/30);
+  const kg = Math.pow(C/xt, 30/19);
+  const pf = kg/v;
+  return { kg, pf, calcolabile:true,
+    fuoriDominio:(kg<1||pf<0.05||troppoFine||troppoGrossolano), troppoFine, troppoGrossolano,
+    obiettivo:false, volume:false, modello:false, che:'', come:'',
+    capacitaForo:capacitaNota?cf:null, superaCapacitaForo:capacitaNota?(kg>cf):null };
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   G38 · LA PRIMA FETTA DI G7 (ottimizzatore di volata), 14/09
+   ══════════════════════════════════════════════════════════════════════════
+   Scomposto prima di scrivere codice (vedi vault/ROADMAP_SETTIMANA.md, voce
+   G7): un ottimizzatore vero tocca anche la vibrazione, e la sequenza che
+   decide la MIC vive in `computeSeq2D`, nella PAGINA — costruirla qui
+   sarebbe la TERZA copia della stessa domanda (la firma troppo stretta che
+   CLAUDE.md avverte di non ricopiare). Questa prima fetta resta dentro il
+   dominio già coperto da funzioni pure ESISTENTI: dato un intervallo di
+   burden e una frammentazione TARGET fissa, quanta carica servirebbe per
+   ogni burden della griglia? Nessuna soglia di sicurezza, nessuna vibrazione,
+   nessuna sequenza — solo `volumeForo` + `caricaDaX50Target`, già in questo
+   modulo, chiamate una per riga.
+   Il rapporto S/B è un parametro: la funzione non lo assume mai 1 o 1,15
+   (quel numero di mestiere non è suo — chi chiama lo decide, come fa già
+   `genMaglia2D` con `D2.stagger`). */
+export function curvaBurdenCarica(opz){
+  const o = opz || {};
+  const n = (x) => (x === null || x === undefined || x === '') ? NaN : +x;
+  const bMin = n(o.bMin), bMax = n(o.bMax), passo = n(o.passo), rapportoSB = n(o.rapportoSB);
+  const H = n(o.prof), A = n(o.A), RWS = n(o.RWS), x50Target = n(o.x50Target);
+  /* opzionale, come in `caricaDaX50Target`: il foro non cambia da una riga
+     all'altra della curva (solo B/S variano), quindi lo si calcola una
+     volta sola fuori dal ciclo e lo si passa a ogni riga. */
+  const capacitaForo = n(o.capacitaForo);
+  if (!Number.isFinite(bMin) || bMin <= 0 || !Number.isFinite(bMax) || bMax < bMin
+      || !Number.isFinite(passo) || passo <= 0 || !Number.isFinite(rapportoSB) || rapportoSB <= 0)
+    return [];
+  /* tetto difensivo, non un limite d'uso (la stessa forma della griglia dei
+     4 mm di `drawDesign2D`): un passo scritto a mano fuori misura non deve
+     produrre un array senza fine */
+  const righe = [];
+  for (let i = 0; i * passo <= (bMax - bMin) + 1e-9 && righe.length < 200; i++) {
+    const B = +(bMin + i * passo).toFixed(3);
+    const S = +(B * rapportoSB).toFixed(3);
+    const vol = volumeForo(B, S, H);
+    const t = caricaDaX50Target(x50Target, vol, A, RWS, capacitaForo);
+    righe.push({ B, S,
+      kg: t.kg === null ? null : +t.kg.toFixed(2),
+      pf: t.pf === null ? null : +t.pf.toFixed(3),
+      calcolabile: t.calcolabile, fuoriDominio: t.fuoriDominio,
+      troppoFine: t.troppoFine, troppoGrossolano: t.troppoGrossolano,
+      che: t.che, come: t.come,
+      superaCapacitaForo: t.superaCapacitaForo });
+  }
+  return righe;
+}
+
 /* La curva Rosin-Rammler intorno a una pezzatura mediana: dimensione
    caratteristica e i due passanti che la pagina mostra. `null` su tutt'e tre
    quando manca `x50` o l'indice di uniformità — un x20 inventato è la stessa
@@ -1683,7 +2570,7 @@ export function confinamentoColletto(v){
   }
   const Dm = d / 1000;
   const rho = (Number.isFinite(r) && r > 0) ? r : 0.82;
-  const qLin = rho * 1000 * Math.PI * Dm * Dm / 4;
+  const qLin = caricaLineare(d, rho);   // G31: la stessa formula di `caricaForoDaGeometria`, scritta una volta
   const wTop = Math.min(q, qLin * 10 * Dm);
   const sdob = (s + 5 * Dm) / Math.pow(Math.max(0.1, wTop), 1 / 3);
   return { sdob, wTop, qLin, calcolabile:true,
@@ -1839,6 +2726,662 @@ export function gittataSenzaSpalla(lff, altri, tetto) {
    `null` se uno dei due non è un numero leggibile e positivo.
    ⚠️ Zero fori per fila non è una griglia più piccola, è l'assenza di una
    griglia: il campo della pagina parte da 3. */
+/* L'ID STABILE DEL FORO (05/09). Fino a oggi un foro del progetto 2D era la
+   sua POSIZIONE nell'array: cancellarne uno rinumerava tutti quelli dopo, e il
+   piano di carico che esce per Campo scriveva la posizione nella sequenza di
+   sparo, ricalcolata a ogni `computeSeq2D`. Nessun confronto foro per foro
+   può reggere su un nome che cambia sotto i piedi. L'id nasce con il foro e
+   non cambia più: nella maglia è «fila-colonna» (f2-5: seconda fila, quinto
+   foro), che si legge sulla carta; un foro aggiunto a mano sulla tela è
+   m1, m2… — il primo numero libero, così cancellare m2 e aggiungerne uno
+   non ne fa due con lo stesso nome. Pure. */
+export function idForoMaglia(fila, colonna){
+  const f = +fila, c = +colonna;
+  if (!(Number.isInteger(f) && f >= 1 && Number.isInteger(c) && c >= 1)) return null;
+  return 'f' + f + '-' + c;
+}
+export function idForoNuovo(holes){
+  const presi = new Set((holes || []).map(h => h && h.id).filter(Boolean));
+  let n = 1; while (presi.has('m' + n)) n++;
+  return 'm' + n;
+}
+
+/* I FORI SALVATI COL PROGETTO (05/09). Fino a oggi «Salva» in Home scriveva i
+   parametri della maglia e NON i fori: alla riapertura la maglia veniva
+   rigenerata, quindi un foro aggiunto sulla tela spariva, un foro tolto
+   RICOMPARIVA, e un ritardo messo a mano (`tMano`) tornava a quello dello
+   schema — un dato perso, e nella direzione che non si vede. Adesso il
+   design porta `holes` e questa funzione li rilegge: `null` se il design non
+   li ha (una volata salvata prima: si rigenera la maglia, com'è sempre
+   stato); altrimenti i fori con mx/my leggibili, l'id se c'è (se manca ne
+   prende uno da foro a mano, senza doppioni), il ritardo a mano solo se è un
+   numero. Quelli illeggibili si CONTANO in `scartati`: non spariscono in
+   silenzio. Pura. */
+/* ══════════════════════════════════════════════════════════════════════════
+   F1 · IL FORO PUÒ PORTARE VALORI SUOI (26/11) — la fondazione del progetto
+   «foro per foro», e nient'altro.
+   ══════════════════════════════════════════════════════════════════════════
+   Fino a oggi carica, profondità e borraggio erano UNO per tutta la volata
+   (`D2.kg`, `D2.prof`, `D2.stem`): in ogni programma concorrente ogni foro ha
+   i suoi (piano in docs/GENESI_ROADMAP_COMPETITOR.md, sezione 26/11, sei
+   fette). Questa è la prima: un foro PUÒ portare `kg`, `prof`, `stem` suoi, e
+   c'è UN posto solo che risponde alla domanda «quanto vale per questo foro?».
+   ⛔ NESSUN CALCOLO LEGGE ANCORA DI QUI: MIC, carica totale, consumo
+   specifico, costo, piano di carico e scena 3D usano i valori del progetto,
+   come ieri. Li si porta qui una fetta alla volta (F2…F5), ognuna con la
+   prova che un progetto senza valori per foro dà gli stessi numeri di prima.
+   LE TRE REGOLE, provate in scratchpad prima di scriverle qui:
+    · un foro senza valore suo usa quello del progetto — così ogni progetto
+      salvato fino a oggi resta identico;
+    · uno ZERO dichiarato sul foro resta zero: un foro lasciato SCARICO
+      (0 kg) o non borrato (0 m) è una scelta, non un buco. Solo la
+      profondità zero non è un foro;
+    · se non lo sa né il foro né il progetto la risposta è `null`, mai zero.
+   Un campo che NON è in elenco, chiesto qui, risponde `null` e non il valore
+   del progetto di nascosto — un campo che sembra «per foro» e non lo è
+   sarebbe peggio di un campo che manca. (Diametro e inclinazione sono
+   entrati con F6 e F6b, più sotto.) */
+/* F6 (26/11) — il DIAMETRO è il quarto campo per foro (fori di contorno o di
+   presplit più piccoli, un foro riperforato più largo). È in fondo
+   all'elenco di proposito: chi scorre i campi trova prima i tre di sempre.
+   Lo leggono per foro i CONTI e i FILE (capienza del foro, cerchio nel DXF,
+   piano d'innesco, file di scambio); le PREVISIONI sulla volata (pezzatura,
+   proiezioni, confinamento del colletto, rapporti geometrici) restano sul
+   diametro del progetto, come per la carica (decisione 33).
+   F6b (26/11) — l'INCLINAZIONE è il quinto, e l'ultimo: gradi dalla
+   verticale, verso la faccia, come quella del progetto (un foro di contorno
+   più inclinato, uno raddrizzato perché il fronte lì è rientrato). È
+   GEOMETRIA: sposta il piede del foro in pianta e ruota il foro nella scena
+   3D; la legge chi disegna e chi scrive i file. Nessun conto di carica la
+   usa (nemmeno quello del progetto), e le PREVISIONI — la gittata — restano
+   sull'inclinazione del progetto, come per carica e diametro (decisione 33).
+   Zero è un valore: un foro verticale in una volata inclinata è una scelta. */
+const _REGOLE_PER_FORO = { kg: (v) => v >= 0, prof: (v) => v > 0, stem: (v) => v >= 0, diam: (v) => v > 0, incl: (v) => v >= 0 };
+export const CAMPI_PER_FORO = Object.keys(_REGOLE_PER_FORO);
+const _numForo = (x) => (x === null || x === undefined || x === '') ? NaN : +x;
+export function valoreProprioDiForo(h, campo){
+  const regola = _REGOLE_PER_FORO[campo];
+  if (!regola) return null;
+  const v = _numForo(h && h[campo]);
+  return (Number.isFinite(v) && regola(v)) ? v : null;
+}
+export function valoreDiForo(h, campo, progetto){
+  if (!_REGOLE_PER_FORO[campo]) return null;
+  const suo = valoreProprioDiForo(h, campo);
+  if (suo !== null) return suo;
+  const p = _numForo(progetto && progetto[campo]);
+  return Number.isFinite(p) ? p : null;
+}
+/* F6b — DOVE STA IL PIEDE DEL FORO, in pianta, rispetto al colletto: un foro
+   lungo L e inclinato di θ dalla verticale ha il piede L·sin θ più avanti,
+   verso la faccia. Lunghezza e inclinazione sono quelle che VALGONO per quel
+   foro. ⛔ Fino al 26/11 la pianta lo disegnava con la profondità del
+   PROGETTO per tutti: un foro accorciato a 6 m in una volata da 10 mostrava
+   il piede dove sarebbe arrivato a 10. `null` se una delle due non si sa
+   (non zero: «non lo so» non è «verticale»); zero se il foro è verticale. */
+export function scostamentoPiedeForo(h, progetto){
+  const L = valoreDiForo(h, 'prof', progetto), a = valoreDiForo(h, 'incl', progetto);
+  if (L === null || a === null) return null;
+  return L * Math.sin(a * Math.PI / 180);
+}
+/* ciò che di un foro va nel file salvato OLTRE a id/posizione/ritardo: solo i
+   valori suoi validi. Un foro senza valori suoi non guadagna chiavi — il
+   `.volata.json` di un progetto di ieri esce byte per byte com'era. */
+export function valoriPropriDiForo(h){
+  const out = {};
+  for (const c of CAMPI_PER_FORO){ const v = valoreProprioDiForo(h, c); if (v !== null) out[c] = v; }
+  return out;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   F3 (26/11) — DARE A UNO O PIÙ FORI UN VALORE LORO, dalla tastiera.
+   ══════════════════════════════════════════════════════════════════════
+   Fino a qui un foro poteva PORTARE un valore suo (F1) e i conti lo
+   leggevano (F2), ma l'unico modo di scriverlo era aprire un file salvato.
+   Queste sono le regole del comando; la pagina le chiama dalla scheda del
+   foro e non ne tiene una copia.
+   I LIMITI. In alto sono gli stessi del progetto (200 kg, 18 m, 6 m): un
+   secondo modo di scrivere la stessa grandezza non può essere più largo del
+   primo, e lì il limite serve a fermare l'«85» battuto per «8,5». In BASSO
+   sono più larghi di proposito, ed è la ragione per cui il foro per foro
+   esiste: 0 kg è un foro lasciato scarico, 0 m di borraggio un foro non
+   borrato, 2 m di profondità un foro franato. Solo la profondità zero non è
+   un foro (la stessa regola di F1, `_REGOLE_PER_FORO`).
+   LE QUATTRO REGOLE, provate in scratchpad prima di scriverle qui:
+    · un valore UGUALE a quello del progetto non diventa un valore proprio:
+      il foro torna a seguire il progetto (e lo si dice). Se no ogni foro
+      «toccato» resterebbe segnato sulla pianta per un numero che non lo
+      distingue da niente, e il file salvato guadagnerebbe chiavi;
+    · `null` toglie il valore proprio;
+    · il BORRAGGIO NON PUÒ ESSERE PIÙ LUNGO DEL FORO, e si guarda su ogni
+      foro scelto col valore che avrebbe DOPO: vale anche quando il valore
+      «dopo» è quello del progetto. Togliere il solo borraggio proprio a un
+      foro di 2 m lo lascerebbe con i 2,2 m del progetto — trovato dal
+      prototipo, non pensato prima. Per questo «torna ai valori del
+      progetto» è un'operazione sola (`foriSenzaValoriPropri`), non tre;
+    · tutto o niente: se un foro scelto non regge, non si scrive su nessuno.
+   Non si tocca l'array ricevuto né i suoi fori (l'annulla della pagina
+   tiene le fotografie di prima): i fori cambiati sono oggetti nuovi, gli
+   altri gli stessi di prima; se non cambia niente torna lo STESSO array. */
+export const LIMITI_PER_FORO = {
+  kg:   { min: 0, max: 200, unita: 'kg', nome: 'la carica del foro' },
+  prof: { positivo: true, max: 18, unita: 'm', nome: 'la profondità del foro' },
+  stem: { min: 0, max: 6, unita: 'm', nome: 'il borraggio del foro' },
+  /* gli stessi del campo di progetto (50–160 mm, intero): un diametro è la
+     misura di un utensile, non si sceglie al decimo di millimetro */
+  diam: { min: 50, max: 160, unita: 'mm', nome: 'il diametro del foro', intero: true },
+  /* gli stessi del campo di progetto: da 0 (verticale) a 30° dalla verticale */
+  incl: { min: 0, max: 30, unita: '°', nome: "l'inclinazione del foro" },
+};
+/* «questo numero può essere il valore di un foro?»: una domanda, due posti che
+   la fanno (il comando dalla tastiera e il piano riletto da un file) */
+const _dentroLimitiForo = (campo, v) => { const L = LIMITI_PER_FORO[campo];
+  return !!L && Number.isFinite(v) && (L.positivo ? v > 0 : v >= L.min) && v <= L.max && (!L.intero || Number.isInteger(v)); };
+const _indiciDiFori = (H, indici) => [...new Set((Array.isArray(indici) ? indici : []).filter((i) => Number.isInteger(i) && i >= 0 && i < H.length))];
+/* quanti dei fori `scelti` resterebbero col borraggio più lungo del foro, se diventassero `dopo(h)` */
+const _foriTroppoCorti = (H, scelti, dopo, progetto) => scelti.filter((i) => {
+  const d = dopo(H[i]);
+  const pr = valoreDiForo(d, 'prof', progetto), st = valoreDiForo(d, 'stem', progetto);
+  return pr !== null && st !== null && st > pr;
+}).length;
+export function foriConValoreProprio(holes, indici, campo, valore, progetto){
+  const H = Array.isArray(holes) ? holes : [];
+  const fermo = (motivo, extra) => ({ fori: H, toccati: 0, tornati: 0, valore: null, segueProgetto: false, motivo, ...(extra || {}) });
+  const L = LIMITI_PER_FORO[campo];
+  if (!L) return fermo('campo-non-per-foro');
+  const scelti = _indiciDiFori(H, indici);
+  if (!scelti.length) return fermo('nessun-foro');
+  let v = null;
+  if (valore !== null && valore !== undefined && valore !== ''){
+    v = +valore;
+    if (!_dentroLimitiForo(campo, v)) return fermo('fuori-limiti');
+    const p = _numForo(progetto && progetto[campo]);
+    if (Number.isFinite(p) && v === p) v = null;
+  }
+  const dopo = (h) => { const n = { ...h }; if (v === null) delete n[campo]; else n[campo] = v; return n; };
+  if (campo === 'stem' || campo === 'prof'){
+    const corti = _foriTroppoCorti(H, scelti, dopo, progetto);
+    if (corti) return fermo('borraggio-oltre-il-foro', { corti });
+  }
+  let toccati = 0, tornati = 0;
+  const set = new Set(scelti);
+  const fori = H.map((h, i) => {
+    if (!set.has(i)) return h;
+    const prima = valoreProprioDiForo(h, campo);
+    if (v === null ? !(h && campo in h) : prima === v) return h;
+    toccati++; if (v === null && prima !== null) tornati++;
+    return dopo(h);
+  });
+  return { fori: toccati ? fori : H, toccati, tornati, valore: v, segueProgetto: v === null, motivo: null };
+}
+/* «torna ai valori del progetto»: via TUTTI i valori propri dei fori scelti, in un colpo */
+export function foriSenzaValoriPropri(holes, indici, progetto){
+  const H = Array.isArray(holes) ? holes : [];
+  const scelti = _indiciDiFori(H, indici);
+  if (!scelti.length) return { fori: H, toccati: 0, motivo: 'nessun-foro' };
+  const dopo = (h) => { const n = { ...h }; for (const c of CAMPI_PER_FORO) delete n[c]; return n; };
+  const corti = _foriTroppoCorti(H, scelti, dopo, progetto);
+  if (corti) return { fori: H, toccati: 0, motivo: 'borraggio-oltre-il-foro', corti };
+  let toccati = 0;
+  const set = new Set(scelti);
+  const fori = H.map((h, i) => {
+    if (!set.has(i) || !CAMPI_PER_FORO.some((c) => h && c in h)) return h;
+    toccati++; return dopo(h);
+  });
+  return { fori: toccati ? fori : H, toccati, motivo: null };
+}
+/* che cosa scrivere nel campo quando i fori scelti sono più d'uno: il valore
+   se è lo stesso per tutti, `null` + `diversi` se no (il campo resta vuoto e
+   lo dice — una media non è il valore di nessuno di loro) */
+export function valoreComuneDiFori(holes, indici, campo, progetto){
+  const H = Array.isArray(holes) ? holes : [];
+  const scelti = _indiciDiFori(H, indici);
+  if (!LIMITI_PER_FORO[campo] || !scelti.length) return { n: 0, valore: null, diversi: false, propri: 0 };
+  const vals = scelti.map((i) => valoreDiForo(H[i], campo, progetto));
+  const uguali = vals.every((x) => x === vals[0]);
+  return { n: scelti.length, valore: uguali ? vals[0] : null, diversi: !uguali,
+    propri: scelti.filter((i) => valoreProprioDiForo(H[i], campo) !== null).length };
+}
+/* F5 (26/11) — RILEGGERE UN PIANO CHE PORTA VALORI PER FORO. Il lettore del
+   piano d'innesco non ricostruisce i fori dal file: rilegge i parametri e
+   RIGENERA la maglia. Quindi i valori per foro vanno riportati sui fori
+   rigenerati, e l'unico aggancio onesto è la POSIZIONE (alla stessa
+   precisione con cui il file la scrive, due decimali): il numero d'ordine no,
+   nel file i fori sono in ordine di sparo.
+    · un foro del file che non trova il suo posto nella maglia NON si riporta
+      su un altro: si CONTA (`nonRiportati`) — chi rilegge deve saperlo;
+    · un valore fuori dai limiti o un borraggio più lungo del foro si scarta
+      e si conta (`scartati`): un file si può scrivere anche a mano;
+    · un valore uguale a quello del progetto non è un valore proprio. */
+export function valoriPerForoDaPiano(foriFile, holes, progetto){
+  const H = Array.isArray(holes) ? holes : [];
+  const F = Array.isArray(foriFile) ? foriFile : [];
+  const chiave = (x, y) => (+x).toFixed(2) + '|' + (+y).toFixed(2);
+  const posto = new Map();
+  H.forEach((h, i) => { if (h && Number.isFinite(+h.mx) && Number.isFinite(+h.my)) posto.set(chiave(h.mx, h.my), i); });
+  const fori = H.slice();
+  let riportati = 0, nonRiportati = 0, scartati = 0;
+  for (const f of F){
+    const suoi = {};
+    for (const c of CAMPI_PER_FORO){
+      const v = _numForo(f && f[c]);
+      if (!Number.isFinite(v)) continue;
+      const pr = _numForo(progetto && progetto[c]);
+      if (Number.isFinite(pr) && v === pr) continue;
+      if (!_dentroLimitiForo(c, v)){ scartati++; continue; }
+      suoi[c] = v;
+    }
+    if (!Object.keys(suoi).length) continue;
+    const i = (f && Number.isFinite(+f.x) && Number.isFinite(+f.y)) ? posto.get(chiave(f.x, f.y)) : undefined;
+    if (i === undefined){ nonRiportati++; continue; }
+    const dopo = { ...fori[i], ...suoi };
+    const pr = valoreDiForo(dopo, 'prof', progetto), st = valoreDiForo(dopo, 'stem', progetto);
+    if (pr !== null && st !== null && st > pr){ scartati++; continue; }
+    fori[i] = dopo; riportati++;
+  }
+  return { fori: riportati ? fori : H, riportati, nonRiportati, scartati };
+}
+/* quanti fori hanno un valore loro, in tutto e campo per campo: lo chiedono
+   l'avviso accanto alle previsioni e quello della maglia rigenerata */
+export function contaValoriPropri(holes){
+  const out = { fori: 0 };
+  for (const c of CAMPI_PER_FORO) out[c] = 0;
+  for (const h of (Array.isArray(holes) ? holes : [])){
+    let qualcuno = false;
+    for (const c of CAMPI_PER_FORO) if (valoreProprioDiForo(h, c) !== null){ out[c]++; qualcuno = true; }
+    if (qualcuno) out.fori++;
+  }
+  return out;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   LA CARICA CHE NON ENTRA NEL FORO (26/11) — foro per foro.
+   ══════════════════════════════════════════════════════════════════════
+   Da quando un foro può avere carica, profondità e borraggio suoi (F3, F4)
+   si può scrivere un foro impossibile senza accorgersene, in due modi:
+    · dare a un foro una carica più grande di quella che la sua colonna
+      può contenere;
+    · ACCORCIARE un foro (o allungargli il borraggio) lasciandogli la carica
+      del progetto — il caso più facile da non vedere, perché la carica non
+      l'ha toccata nessuno.
+   La capienza è quella che il prodotto usa già altrove (`caricaForoDaGeometria`:
+   carica lineare dal diametro e dalla densità dell'esplosivo × colonna
+   caricabile `prof + sottoperforazione − borraggio`), calcolata coi valori
+   che valgono PER QUEL FORO. Diametro, sottoperforazione ed esplosivo sono
+   del progetto (per foro è F6).
+   ⛔ È UN AVVISO, NON UN RIFIUTO, e la soglia è dichiarata. La capienza è
+   una STIMA: densità di caricamento, fori più larghi del nominale e cariche
+   spezzate la spostano. Quindi due gradini: sopra la capienza il foro è
+   `alLimite`; sopra il 110% è `nonEntra`. Il 10% non è una norma: è il
+   margine entro cui la stima può sbagliare, scritto qui per essere cambiato
+   con una misura e non a sentimento.
+   ⛔ «NON LO SO» NON È «ENTRA»: un foro di cui manca la carica, la
+   profondità, il borraggio — o il diametro e la densità del progetto — è
+   `nonVerificabili`, e non entra nel conto dei fori a posto. */
+export const MARGINE_CAPIENZA_FORO = 1.10;
+export function capienzaFori(holes, progetto){
+  const H = Array.isArray(holes) ? holes : [];
+  const p = progetto || {};
+  const out = { fori: H.length, verificati: 0, nonVerificabili: 0, alLimite: [], nonEntra: [], piuPieno: null };
+  H.forEach((h, i) => {
+    const kg = valoreDiForo(h, 'kg', p), prof = valoreDiForo(h, 'prof', p), stem = valoreDiForo(h, 'stem', p), diam = valoreDiForo(h, 'diam', p);
+    const capienza = (prof === null || stem === null) ? null
+      : caricaForoDaGeometria({ diam, prof, sub: p.sub, stem, densita: p.densita });
+    if (kg === null || capienza === null){ out.nonVerificabili++; return; }
+    out.verificati++;
+    const rapporto = kg / capienza;
+    const riga = { i, kg, capienza, rapporto, prof, stem, diam };
+    if (out.piuPieno === null || rapporto > out.piuPieno.rapporto) out.piuPieno = riga;
+    if (rapporto > MARGINE_CAPIENZA_FORO) out.nonEntra.push(riga);
+    else if (kg > capienza) out.alLimite.push(riga);
+  });
+  return out;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   F4 (26/11) — LA TABELLA DEI FORI: una riga per foro, tutti insieme.
+   ══════════════════════════════════════════════════════════════════════
+   La scheda del foro (F3) ne mostra uno; chi progetta vuole vederli TUTTI
+   in fila, coi diversi dal progetto riconoscibili, e ordinarli. Questa
+   funzione prepara le righe; la pagina le disegna e non decide niente.
+    · ogni riga porta `i`, l'indice del foro in `holes`: l'ORDINE È DELLA
+      VISTA. Ordinare la tabella non sposta un foro, e chi scrive in una
+      cella scrive sul foro `i`, non sulla riga che si vede in quel punto;
+    · carica, profondità e borraggio sono quelli che VALGONO per il foro
+      (`valoreDiForo`: il suo, se no il progetto, se no `null`), e `propri`
+      dice quali dei tre sono suoi;
+    · un valore che non c'è resta `null` e va IN FONDO in tutti e due i
+      versi: «non lo so» non è il più piccolo né il più grande;
+    · a parità si tiene l'ordine dei fori (ordinamento stabile, scritto e
+      non sperato: due righe uguali non si scambiano di posto a ogni clic);
+    · una colonna che non esiste ordina per numero del foro: una tabella
+      in un ordine a caso sarebbe peggio di una nell'ordine di sparo. */
+export const COLONNE_TABELLA_FORI = ['n', 'x', 'spalla', 'tDet', 'kg', 'prof', 'stem', 'diam', 'incl'];
+export function tabellaFori(holes, progetto, ordine){
+  const H = Array.isArray(holes) ? holes : [];
+  const fin = (v) => (v === null || v === undefined || v === '' || !Number.isFinite(+v)) ? null : +v;
+  const righe = H.map((h, i) => {
+    const suoi = valoriPropriDiForo(h);
+    const seq = fin(h && h.seq);
+    return { i, n: (seq === null ? i : seq) + 1, id: (h && h.id) || null,
+      x: fin(h && h.mx), spalla: fin(h && h.my), tDet: fin(h && h.tDet), aMano: !!(h && h.tMano != null),
+      kg: valoreDiForo(h, 'kg', progetto), prof: valoreDiForo(h, 'prof', progetto), stem: valoreDiForo(h, 'stem', progetto), diam: valoreDiForo(h, 'diam', progetto), incl: valoreDiForo(h, 'incl', progetto),
+      propri: { kg: 'kg' in suoi, prof: 'prof' in suoi, stem: 'stem' in suoi, diam: 'diam' in suoi, incl: 'incl' in suoi } };
+  });
+  const campo = (ordine && COLONNE_TABELLA_FORI.includes(ordine.campo)) ? ordine.campo : 'n';
+  const verso = (ordine && ordine.verso === 'giu') ? -1 : 1;
+  return righe.map((r, k) => [r, k]).sort((A, B) => {
+    const a = A[0][campo], b = B[0][campo];
+    if (a === null || b === null) return (a === null && b === null) ? A[1] - B[1] : (a === null ? 1 : -1);
+    return a === b ? A[1] - B[1] : (a < b ? -1 : 1) * verso;
+  }).map((c) => c[0]);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   LE PREVISIONI SUL FORO TIPO: CHI RESTA FUORI, DETTO (26/11).
+   ══════════════════════════════════════════════════════════════════════
+   Pezzatura e gittata si calcolano coi valori del PROGETTO (quali debbano
+   usare è la decisione 33, del fondatore). Finché è così, un foro con valori
+   suoi è un foro per cui quella previsione NON è stata fatta — e per la
+   gittata non è una sfumatura. Misurato il 26/11: un solo foro con 1,5 m di
+   borraggio in una volata progettata a 2,2 lascia la gittata a 101 m e lo
+   sgombero persone a 404 m; la STESSA formula, con quel borraggio, dà 193 m
+   e 772 m. Il numero stampato vale per il foro tipo, e lo si deve leggere
+   accanto al numero: sullo schermo, sul foglio, nel file.
+   ⛔ Qui NON si decide quale foro usa la previsione e non si tocca nessuna
+   formula né soglia: si CONTA chi resta fuori e si compone UNA frase, la
+   stessa per tutti i posti che la scrivono.
+    · `campi`: i campi che quella previsione legge. Un foro che ha di suo
+      solo un campo che la previsione non usa non è «fuori»;
+    · la frase dice «non è calcolata» e non «è maggiore» o «è minore»: da
+      che parte sbagli non lo si sa senza rifare il conto foro per foro. */
+export const CAMPI_DELLA_GITTATA = ['kg', 'stem', 'diam', 'incl'];
+export const CAMPI_DELLA_PEZZATURA = ['kg', 'prof', 'stem', 'diam'];
+const _NOMI_CAMPI_FORO = { kg: 'carica', prof: 'profondità', stem: 'borraggio', diam: 'diametro', incl: 'inclinazione' };
+export function foriFuoriDalForoTipo(holes, campi){
+  const C = CAMPI_PER_FORO.filter((c) => !Array.isArray(campi) || campi.includes(c));
+  const perCampo = {}; for (const c of C) perCampo[c] = 0;
+  let fori = 0;
+  for (const h of (Array.isArray(holes) ? holes : [])){
+    let fuori = false;
+    for (const c of C) if (valoreProprioDiForo(h, c) !== null){ perCampo[c]++; fuori = true; }
+    if (fuori) fori++;
+  }
+  return { fori, perCampo, campi: C.filter((c) => perCampo[c] > 0) };
+}
+export function avvisoForoTipo(holes, campi, soggetto){
+  const q = foriFuoriDalForoTipo(holes, campi);
+  if (!q.fori) return '';
+  const nomi = q.campi.map((c) => _NOMI_CAMPI_FORO[c]);
+  const elenco = nomi.length > 1 ? nomi.slice(0, -1).join(', ') + ' o ' + nomi[nomi.length - 1] : nomi[0];
+  return q.fori + ' ' + (q.fori === 1 ? 'foro ha' : 'fori hanno') + ' un valore proprio di ' + elenco + ': '
+    + (soggetto || 'questa previsione') + ' è calcolata sul FORO TIPO del progetto, e per '
+    + (q.fori === 1 ? 'quel foro' : 'quei fori') + ' non è calcolata.';
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   IL CONFRONTO A/B E I FORI CON VALORI LORO (26/11).
+   ══════════════════════════════════════════════════════════════════════
+   Il confronto mette accanto due SCATTI, e fino al 26/11 uno scatto non
+   sapeva quanti fori avessero valori loro: due progetti con la stessa gittata
+   «sul foro tipo» si leggevano uguali anche se in uno c'era un foro col
+   borraggio corto, per il quale quella gittata NON è calcolata — e la colonna
+   con la gittata minore si dipingeva di verde.
+   Lo scatto adesso porta tre NUMERI (`foriPropri`, `flyTipo`, `fragTipo`: lo
+   scatto è un dato, le frasi le compone chi lo legge). Questa funzione li
+   legge come li legge il resto del confronto:
+   ⛔ uno scatto salvato PRIMA non li ha, e «non c'è» non è «zero»: `noto` è
+   falso, le celle dicono «non noto», e `gittataSuTutti` — la sola cosa che
+   permette il verde sulla gittata — è vera SOLO quando lo zero è registrato.
+   Quali valori usi la previsione resta la decisione 33: qui non si calcola
+   niente, si dichiara per quanti fori il numero non vale. */
+export function cmpForiPropri(kpi){
+  const n = _cmpNum(kpi && kpi.foriPropri), fly = _cmpNum(kpi && kpi.flyTipo), frag = _cmpNum(kpi && kpi.fragTipo);
+  const quanti = (v) => v === null ? 'non noto' : (v === 0 ? 'nessuno' : v + (v === 1 ? ' foro' : ' fori'));
+  return { noto: n !== null, fori: n, fuoriGittata: fly, fuoriPezzatura: frag,
+    cella: quanti(n), cellaGittata: quanti(fly), cellaPezzatura: quanti(frag),
+    gittataSuTutti: fly === 0 };
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   LA RIGA CHE RESTA NELLO STORICO (27/11).
+   ══════════════════════════════════════════════════════════════════════
+   Chi salva una volata lascia in Home UNA riga — «12 fori · 600 kg · X50 34
+   cm» — che si rilegge mesi dopo: è un documento. Fino al 27/11 la componeva
+   la pagina, e nessuna prova la guardava; e da quando un foro può avere
+   valori suoi quella riga non diceva che la volata ne aveva. Due volate con
+   la stessa maglia e cariche diverse foro per foro si leggevano uguali, e la
+   X50 scritta lì è quella del FORO TIPO (decisione 33).
+   La carica totale è già quella vera (la somma dei fori). Qui si aggiunge
+   quanti fori hanno valori loro, e accanto alla X50 «foro tipo» quando per
+   qualcuno non è calcolata. ⛔ Neutralità: senza valori per foro la riga è
+   quella di sempre, carattere per carattere. Un conto che non c'è (un
+   oggetto di numeri composto prima) non aggiunge niente: non si inventa un
+   «nessuno». */
+export function sintesiVolata(k){
+  if (!k || typeof k !== 'object') return '';
+  const propri = _cmpNum(k.foriPropri), tipo = _cmpNum(k.fragTipo);
+  return conta(k.nf, 'foro', 'fori')
+    + (propri > 0 ? ' · ' + gnum(propri, 0) + ' con valori propri' : '')
+    + ' · ' + (_cmpNum(k.qtot) === null ? 'carica totale non calcolabile' : gnum(k.qtot, 0) + ' kg')
+    + ' · ' + (k.fragCalcolabile ? 'X50 ' + gnum(k.x50, 0) + ' cm' + (tipo > 0 ? ' (foro tipo)' : '') : 'X50 non calcolabile');
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   IL VALORE DEL PROGETTO, RILEGGENDO UN FILE DI SCAMBIO (26/11).
+   ══════════════════════════════════════════════════════════════════════
+   Chi riapre un `.volata.json` deve ricavare la carica e la profondità DEL
+   PROGETTO. Fino al 26/11 lo faceva con la media dei fori del file, e finché
+   i fori erano tutti uguali la media era il progetto. Da quando il file
+   porta i valori veri di ogni foro (F5b) non lo è più — misurato: undici
+   fori a 58 kg e uno lasciato scarico rientravano come «53,17 kg per foro»,
+   una carica che non è di nessun foro, e la simulazione ripartiva da lì
+   senza dirlo.
+    · se il file DICHIARA il valore del progetto, vale quello (`dichiarato`);
+    · se no (un file di ieri) resta la media dei fori che il dato ce l'hanno
+      — e quando sono tutti uguali è quel valore ESATTO, non una somma
+      divisa (2,2 sommato dodici volte e diviso per dodici non fa 2,2);
+    · `senza`: quanti fori il dato non ce l'hanno; `diversi`: quanti ne hanno
+      uno diverso dal valore scelto. Sono le due cose che chi importa deve
+      sentirsi dire: la prima c'era già, la seconda mancava;
+    · nessun dato da nessuna parte: `valore: null`, non zero. */
+export function valoreProgettoDaFile(dichiarato, valoriDeiFori){
+  const n = (x) => (x === null || x === undefined || x === '') ? NaN : +x;
+  const V = (Array.isArray(valoriDeiFori) ? valoriDeiFori : []).map(n);
+  const letti = V.filter(Number.isFinite), senza = V.length - letti.length;
+  const d = n(dichiarato);
+  let valore = null, fonte = null;
+  if (Number.isFinite(d)){ valore = d; fonte = 'dichiarato'; }
+  else if (letti.length){ valore = letti.every((x) => x === letti[0]) ? letti[0] : letti.reduce((s, x) => s + x, 0) / letti.length; fonte = 'media'; }
+  return { valore, fonte, senza, diversi: valore === null ? 0 : letti.filter((x) => x !== valore).length };
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   IL FOGLIO DICE I FORI DIVERSI (26/11).
+   ══════════════════════════════════════════════════════════════════════
+   Il report di volata — il foglio che si stampa e si porta in cava — scriveva
+   diametro, profondità, borraggio, inclinazione e «carica per foro» DEL
+   PROGETTO, e da nessuna parte i fori che ne hanno di loro: un foro lasciato
+   scarico o accorciato, su quel foglio, non esisteva (i totali sì: erano già
+   quelli veri). Questa funzione prepara ciò che il foglio deve dire; la
+   pagina lo stampa e non decide niente.
+    · `righe`: SOLO i fori con almeno un valore loro, nell'ordine del loro
+      numero; per ciascuno i valori che VALGONO (suo o del progetto) e quali
+      sono suoi;
+    · `campi`: i soli campi in cui almeno un foro si scosta, nell'ordine di
+      sempre — una colonna in cui tutti seguono il progetto non si stampa;
+    · `quanti[campo]`: quanti fori hanno quel valore loro (per la nota
+      accanto alla riga del progetto: «2 fori ne hanno una loro»);
+    · senza valori per foro tutto è vuoto, e il foglio resta com'era. */
+export function foriPropriPerFoglio(holes, progetto){
+  const quanti = contaValoriPropri(holes);
+  const righe = tabellaFori(holes, progetto, { campo: 'n' })
+    .filter((r) => CAMPI_PER_FORO.some((c) => r.propri[c]))
+    .map((r) => { const riga = { n: r.n, id: r.id, propri: r.propri }; for (const c of CAMPI_PER_FORO) riga[c] = r[c]; return riga; });
+  return { fori: Array.isArray(holes) ? holes.length : 0, conPropri: righe.length,
+    campi: CAMPI_PER_FORO.filter((c) => quanti[c] > 0), quanti, righe };
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   IL FOGLIO HA LA PIANTA E LA TABELLA DI TUTTI I FORI (27/11).
+   ══════════════════════════════════════════════════════════════════════
+   Misurato il 27/11 aprendo il report: «img 0, canvas 0, svg 0». Il foglio
+   che si porta in cava era solo testo — la maglia come due numeri, la
+   sequenza come una parola — e la frase «il numero è quello scritto dentro
+   il foro sulla pianta» rimandava a un disegno che sul foglio non c'era.
+   Queste due funzioni lo compongono, pure: il foglio non dipende dalla tela
+   (né dal suo ingrandimento, né dagli strati nascosti sullo schermo: quelli
+   sono un modo di GUARDARE, il foglio stampa il progetto).
+    · `piantaPerFoglio`: un disegno vettoriale (SVG) in bianco e nero più
+      tre tinte, pensato per la carta. I fori stanno dove li mette la tela
+      (`my + interpProf`), il numero dentro è l'ordine di sparo — lo stesso
+      di `tabellaFori` — e il ritardo sta sotto il foro finché c'è posto;
+      quando la maglia è troppo fitta il disegno lo DICE nella legenda e
+      rimanda alla tabella (dove ogni foro ha la sua posizione), invece di
+      scrivere numeri illeggibili;
+    · la scala non supera 40 px per metro (tre fori non diventano un
+      manifesto) e il segmento di scala ha una lunghezza tonda;
+    · senza nessun foro collocabile la risposta è la stringa vuota: il
+      foglio resta com'era, non stampa una cornice vuota;
+    · `tabellaForiPerFoglio`: una riga per foro nell'ordine di sparo, coi
+      valori che VALGONO per quel foro (li decide `tabellaFori`, la stessa
+      della tabella a schermo). Un valore che non c'è si scrive «non noto»,
+      un ritardo che non c'è «non assegnato»: su un foglio un trattino si
+      legge come una cella dimenticata. La tabella sta in un riquadro suo
+      (`.tfs`): su uno schermo più stretto delle sue nove colonne scorre lei,
+      non la pagina. */
+export function piantaPerFoglio(d, opz){
+  const o = opz || {}, fin = (v) => v !== null && v !== undefined && v !== '' && Number.isFinite(+v);
+  const punti = (a) => Array.isArray(a) ? a.filter((p) => p && fin(p.x) && fin(p.y)).map((p) => ({ x: +p.x, y: +p.y })) : [];
+  const prof = punti(d && d.profilo), piede = punti(d && d.piede).sort((a, b) => a.x - b.x);
+  const tratti = (Array.isArray(d && d.tratti) ? d.tratti : []).map((t) => ({ importato: !!(t && t.origine === 'dxf'), pts: punti(t && t.pts) })).filter((t) => t.pts.length >= 2);
+  const H = (Array.isArray(d && d.holes) ? d.holes : []).map((h, i) => ({ h, i })).filter(({ h }) => h && fin(h.mx) && fin(h.my))
+    .map(({ h, i }) => ({ i, x: +h.mx, y: +h.my + interpProf(prof, +h.mx), n: (fin(h.seq) ? +h.seq : i) + 1, t: fin(h.tDet) ? +h.tDet : null, suo: Object.keys(valoriPropriDiForo(h)).length > 0 }));
+  if (!H.length) return '';
+  /* i fori dei gruppi che arrivano alla MIC hanno il fondo arancio: lo stesso arancio delle barre
+     di «Cariche nel tempo». Si riconoscono per INDICE, non per numero: due fori possono avere lo
+     stesso numero (uno senza sequenza), e colorare l'omonimo sarebbe un'accusa falsa. */
+  const nellaMic = _indiciNellaMic(d && d.holes, d && d.kg);
+  const L = (fin(o.larghezza) && +o.larghezza >= 320) ? +o.larghezza : 680, padX = 36, padTop = 52, padBot = 84, OLTRE = 1.5, SCALA_MAX = 40, ALTEZZA_MAX = 460, RAGGIO_MIN_NUMERO = 6.2;   // sotto i 6,2 px di raggio il numero sarebbe più basso di 6,5 px: non si scrive
+  const tp = tratti.flatMap((t) => t.pts);
+  /* il fronte si disegna un metro e mezzo oltre il primo e l'ultimo foro: quel tratto fa parte
+     del disegno, quindi entra nei limiti (se no, con un foro solo, usciva dal foglio) */
+  const xs = H.map((p) => p.x).concat(tp.map((p) => p.x)), minx = Math.min(...xs) - OLTRE, maxx = Math.max(...xs) + OLTRE;
+  const fx = [minx].concat(prof.map((p) => p.x).filter((x) => x > minx && x < maxx).sort((a, b) => a - b), [maxx]);
+  const ys = H.map((p) => p.y).concat(fx.map((x) => interpProf(prof, x)), piede.map((p) => p.y), tp.map((p) => p.y));
+  const miny = Math.min(0, ...ys), maxy = Math.max(...ys);
+  const Wd = Math.max(2, maxx - minx), Hd = Math.max(2, maxy - miny);
+  const scala = Math.min((L - 2 * padX) / Wd, ALTEZZA_MAX / Hd, SCALA_MAX);
+  const X = (x) => padX + ((L - 2 * padX) - Wd * scala) / 2 + (x - minx) * scala, Y = (y) => padTop + (y - miny) * scala;
+  const S = d && d.S, B = d && d.B, bf = d && d.bf;
+  const passo = (fin(S) && fin(B) && +S > 0 && +B > 0) ? Math.min(+S, (fin(bf) && +bf > 0) ? +bf : +B) * scala : null;
+  const r = raggioForoTela(passo), coiNumeri = r >= RAGGIO_MIN_NUMERO, haRitardi = H.some((p) => p.t !== null), coiRitardi = passo !== null && passo >= 26 && haRitardi;
+  const leg = [coiNumeri ? 'nel foro: numero d\'ordine di sparo' : 'numeri dei fori: in tabella, con la posizione',
+    coiRitardi ? 'sotto il foro: ritardo in ms' : (haRitardi ? 'ritardi: nella tabella dei fori' : null),
+    H.some((p) => p.suo) ? 'bordo spesso: foro con valori suoi' : null,
+    H.some((p) => nellaMic.has(p.i)) ? 'fondo arancio: nei gruppi che fanno la MIC' : null,
+    piede.length >= 2 ? 'tratteggio ocra: piede' : null,
+    tratti.length ? 'linea blu: tratto' + (tratti.some((t) => t.importato) ? ' (tratteggiata se importato)' : '') : null].filter(Boolean);
+  /* la legenda va a capo: le voci si dispongono per larghezza stimata (5 px a carattere, a corpo 9,5).
+     ⚠️ Ogni voce da sola deve stare nel disegno più stretto (320 − 72 = 248 px, cioè 46 caratteri):
+     la prima stesura della voce sui fori fitti ne aveva 91 e usciva dal foglio proprio sul telefono. */
+  const legRighe = righeDiVoci(leg.map((t) => (t.length + 3) * 5), L - 2 * padX), inPiu = Math.max(0, legRighe.length - 1) * 13;
+  const alta = Math.round(padTop + Hd * scala + padBot + inPiu);
+  const f1 = (v) => (Math.round(v * 10) / 10).toFixed(1), pl = (pts) => pts.map((p) => f1(X(p.x)) + ',' + f1(Y(p.y))).join(' ');
+  const out = [];
+  out.push('<svg xmlns="http://www.w3.org/2000/svg" class="pianta" viewBox="0 0 ' + L + ' ' + alta + '" width="100%" role="img" aria-label="Pianta della volata: ' + H.length + (H.length === 1 ? ' foro' : ' fori') + '" style="max-width:' + L + 'px;display:block;margin:0 auto;font-family:system-ui,Arial,sans-serif">');
+  out.push('<rect x="0.5" y="0.5" width="' + (L - 1) + '" height="' + (alta - 1) + '" fill="#fff" stroke="#d8d8d8"/>');
+  /* il fronte: la faccia libera, col suo profilo se è stato modellato */
+  out.push('<polyline class="p-fronte" fill="none" stroke="#c05a00" stroke-width="2.5" points="' + pl(fx.map((x) => ({ x, y: interpProf(prof, x) }))) + '"/>');
+  if (piede.length >= 2) out.push('<polyline class="p-piede" fill="none" stroke="#8a6d00" stroke-width="1.5" stroke-dasharray="6 4" points="' + pl(piede) + '"/>');
+  tratti.forEach((t) => out.push('<polyline class="p-tratto" fill="none" stroke="#3f6f8f" stroke-width="1.4"' + (t.importato ? ' stroke-dasharray="5 4"' : '') + ' points="' + pl(t.pts) + '"/>'));
+  /* la scritta del fronte DOPO le linee, con un alone bianco: resta leggibile anche se il piede le passa sotto */
+  out.push('<text x="' + f1(X(minx)) + '" y="' + f1(Y(interpProf(prof, minx)) - 8) + '" font-size="11" font-weight="700" fill="#a05a00" stroke="#fff" stroke-width="3.5" paint-order="stroke" stroke-linejoin="round">FRONTE — faccia libera</text>');
+  H.forEach((p) => { const cx = f1(X(p.x));
+    out.push('<circle class="p-foro" cx="' + cx + '" cy="' + f1(Y(p.y)) + '" r="' + f1(r) + '" fill="' + (nellaMic.has(p.i) ? '#ffd9b8' : '#fff') + '" stroke="#1a1a1a" stroke-width="' + (p.suo ? 2.6 : 1.2) + '"/>');
+    if (coiNumeri) out.push('<text class="p-n" x="' + cx + '" y="' + f1(Y(p.y) + r * 0.36) + '" font-size="' + f1(r * 1.05) + '" font-weight="700" text-anchor="middle" fill="#1a1a1a">' + p.n + '</text>');
+    if (coiRitardi && p.t !== null) out.push('<text class="p-t" x="' + cx + '" y="' + f1(Y(p.y) + r + 10) + '" font-size="8.5" text-anchor="middle" fill="#555">' + Math.round(p.t) + '</text>');
+  });
+  /* la scala: un segmento di lunghezza tonda, mai più lungo di un terzo del disegno */
+  const m = [1, 2, 5, 10, 20, 50, 100, 200, 500].filter((v) => v * scala <= (L - 2 * padX) * 0.3).pop() || 1, by = alta - 34 - inPiu, bx = f1(padX + m * scala);
+  out.push('<path class="p-scala" d="M' + padX + ' ' + (by - 4) + 'V' + (by + 4) + 'M' + padX + ' ' + by + 'H' + bx + 'M' + bx + ' ' + (by - 4) + 'V' + (by + 4) + '" stroke="#1a1a1a" stroke-width="1.2" fill="none"/>');
+  out.push('<text x="' + f1(padX + m * scala / 2) + '" y="' + (by - 7) + '" font-size="10" text-anchor="middle" fill="#1a1a1a">' + m + ' m</text>');
+  /* il verso della sequenza: la stessa freccia della tela, dalla stessa parte */
+  const dx = (d && d.dir) === 'dx', ax0 = dx ? L - padX : padX, ax1 = dx ? L - padX - 90 : padX + 90, s = dx ? 1 : -1;
+  out.push('<path d="M' + ax0 + ' 18H' + ax1 + '" stroke="#2e7d32" stroke-width="1.8"/><path class="p-verso" d="M' + ax1 + ' 18l' + (s * 8) + ' -4v8z" fill="#2e7d32"/>');
+  out.push('<text x="' + (dx ? ax1 - 6 : ax1 + 6) + '" y="22" font-size="10.5" text-anchor="' + (dx ? 'end' : 'start') + '" fill="#2e7d32">sequenza di sparo</text>');
+  legRighe.forEach((riga, k) => out.push('<text class="p-leg" x="' + padX + '" y="' + (alta - 12 - (legRighe.length - 1 - k) * 13) + '" font-size="9.5" fill="#555">' + riga.map((i) => leg[i]).join(' · ') + '</text>'));
+  out.push('</svg>');
+  return out.join('');
+}
+const _NOMI_COLONNE_FOGLIO = { kg: 'Carica', prof: 'Profondità', stem: 'Borraggio', diam: 'Diametro', incl: 'Inclinazione' };
+export function tabellaForiPerFoglio(holes, progetto){
+  const righe = tabellaFori(holes, progetto, { campo: 'n' });
+  if (!righe.length) return '';
+  const suoi = righe.some((r) => CAMPI_PER_FORO.some((c) => r.propri[c])), aMano = righe.some((r) => r.aMano);
+  const val = (r, c) => { const tx = r[c] === null ? 'non noto' : gnum(r[c], 2) + ((c === 'kg' && r[c] === 0) ? ' (scarico)' : ''); return '<td>' + (r.propri[c] ? '<b>' + tx + '</b>' : tx) + '</td>'; };
+  const segni = [suoi ? 'in <b>grassetto</b> i valori che un foro ha di suo, diversi da quelli del progetto' : null, aMano ? '✎ ritardo messo a mano' : null].filter(Boolean);
+  return '<h2>Tabella dei fori</h2>'
+    + '<p class="fpi">' + gnum(righe.length, 0) + (righe.length === 1 ? ' foro' : ' fori') + ', nell\'ordine di sparo: il numero è quello del foro sulla pianta. «Lungo la fila» è la posizione del foro lungo la fila, «spalla» la sua distanza dal fronte.' + (segni.length ? ' Segni: ' + segni.join('; ') + '.' : '') + '</p>'
+    + '<div class="tfs"><table class="tf"><thead><tr><th>Foro</th><th>Lungo la fila (m)</th><th>Spalla (m)</th><th>Ritardo (ms)</th>'
+    + CAMPI_PER_FORO.map((c) => '<th>' + _NOMI_COLONNE_FOGLIO[c] + ' (' + LIMITI_PER_FORO[c].unita + ')</th>').join('') + '</tr></thead><tbody>'
+    + righe.map((r) => '<tr><td>' + gnum(r.n, 0) + '</td><td>' + (r.x === null ? 'non noto' : gfix(r.x, 2)) + '</td><td>' + (r.spalla === null ? 'non noto' : gfix(r.spalla, 2)) + '</td><td>'
+        + (r.tDet === null ? 'non assegnato' : gnum(r.tDet, 1)) + (r.aMano ? ' ✎' : '') + '</td>' + CAMPI_PER_FORO.map((c) => val(r, c)).join('') + '</tr>').join('')
+    + '</tbody></table></div>';
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   LA FIRMA DELLA MAGLIA (26/11) — quando i fori «non sono più quelli».
+   ══════════════════════════════════════════════════════════════════════════
+   Misurato il 26/11 nel browser, cercando perché il campo «Esplosivo totale»
+   perdeva le cariche proprie: `applyDesign` chiamava `genMaglia2D()` SEMPRE,
+   a ogni parametro toccato. Cambiando SOLO il borraggio: il foro spostato a
+   mano tornava al suo posto, il foro aggiunto sulla tela spariva, il ritardo
+   messo a mano e la carica propria si perdevano (13 fori → 12, primo foro da
+   0,7 a 0) — e per i primi due senza nemmeno un avviso. Il commento di
+   `genMaglia2D` dice «rigenerare butta via i ritardi a mano, ed è giusto: i
+   fori non sono più quelli»: vero quando cambia la GEOMETRIA della maglia,
+   falso quando cambia il borraggio.
+   I cinque numeri da cui `generaMaglia` costruisce le coordinate sono
+   spalla, interasse, numero di file, fori per fila e sfalsamento: finché
+   quelli non cambiano i fori sono gli stessi, e si tengono. La firma si
+   prende quando la maglia NASCE (o quando un progetto salvato rimette i
+   suoi fori) e si confronta con quella dei parametri di adesso. */
+export function firmaMaglia(d){
+  const o = d || {};
+  return [o.B, o.S, o.file, o.perRow, o.stagger].map((x) => (x === null || x === undefined) ? '' : String(x)).join('|');
+}
+export function foriDaDesign(design){
+  const d = design || {};
+  if (!Array.isArray(d.holes)) return null;
+  const n = (x) => (x === null || x === undefined || x === '') ? NaN : +x;
+  const fori = [];
+  let scartati = 0, valoriScartati = 0;
+  for (const h of d.holes){
+    const mx = n(h && h.mx), my = n(h && h.my);
+    if (!(Number.isFinite(mx) && Number.isFinite(my))) { scartati++; continue; }
+    const id = (h.id !== null && h.id !== undefined && String(h.id).trim() !== '') ? String(h.id).trim() : null;
+    const tm = n(h.tMano);
+    const f = { id, mx, my };
+    if (Number.isFinite(tm)) f.tMano = tm;
+    /* F1 (26/11): i valori propri del foro rientrano solo se VALIDI. Uno
+       scritto e illeggibile («abc», una carica negativa) non diventa in
+       silenzio il valore del progetto: il foro resta, quel valore no, e si
+       CONTA — è un dato perso, e chi riapre deve poterlo sapere. */
+    for (const c of CAMPI_PER_FORO){
+      if (h[c] === null || h[c] === undefined || h[c] === '') continue;
+      const v = valoreProprioDiForo(h, c);
+      if (v === null) valoriScartati++; else f[c] = v;
+    }
+    fori.push(f);
+  }
+  /* gli id mancanti si assegnano DOPO aver letto tutti quelli dichiarati:
+     misurato prima di scrivere — assegnando strada facendo, un «m1» dichiarato
+     più avanti nel file diventava il doppione di un «m1» appena inventato */
+  for (const f of fori) if (!f.id) f.id = idForoNuovo(fori);
+  return { fori, scartati, valoriScartati };
+}
+
 export function foriDiProgetto(perRow, file){
   const n = (x) => (x === null || x === undefined || x === '') ? NaN : +x;
   const c = n(perRow), r = n(file);
@@ -1851,7 +3394,7 @@ export function foriDiProgetto(perRow, file){
    sottoperforazione) — e `null` se non si contano.
    `nf` sono i fori (di progetto o disegnati, lo decide il chiamante: è
    l'unica differenza fra i tre, come per `costoVolata`). */
-export function metriPerforati(nf, prof, sub){
+export function metriPerforati(nf, prof, sub, scarto){
   const n = (x) => (x === null || x === undefined || x === '') ? NaN : +x;
   const f = n(nf), h = n(prof);
   if (!(Number.isFinite(f) && f >= 0)) return null;
@@ -1861,5 +3404,2521 @@ export function metriPerforati(nf, prof, sub){
     s = n(sub);
     if (!(Number.isFinite(s) && s >= 0)) return null;
   }
-  return f * (h + s);
+  /* `scarto` (F2, 26/11, da `scartoProfonditaProprie`): i metri in più o in
+     meno dei fori con una profondità loro. Assente, zero o illeggibile lascia
+     il conto esattamente com'era. */
+  const base = f * (h + s), sc = n(scarto);
+  return (Number.isFinite(sc) && sc !== 0) ? base + sc : base;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   G8 · I DATI DI GENESI DIETRO UNA PORTA SOLA (02/09, unità 1 di
+   `docs/GENESI_FUORI_DAL_BROWSER.md` §5)
+   ────────────────────────────────────────────────────────────────────────
+   Genesi è l'unica app che NON esce dal browser: cinque chiavi di
+   `localStorage` lette e scritte da otto funzioni sparse nella pagina
+   (`_lsGet/_lsSet`, `sitoStore/sitoSalva`, `cmpSave/_cmpLoad`,
+   `riconStorico`, e la scrittura di `nuvola-poc.html`). Finché è così nessun
+   ponte di DATI verso Genesi è possibile, e la mappa lo dichiara.
+   Questa è la prima unità del piano, e per scelta NON CAMBIA NIENTE per chi
+   usa Genesi oggi: `genesiData()` è una porta con la stessa forma delle porte
+   di Terra e Conti (`db.volate()`, `db.aggiungi(nome, doc)`, …) costruita
+   SOPRA LE STESSE CHIAVI, con gli stessi nomi, le stesse forme e gli stessi
+   tetti (50 volate, 30 lavorazioni della nuvola). Un dato scritto da qui lo
+   rilegge la pagina di oggi, e viceversa. La pagina non la chiama ancora:
+   sono le unità 2 e 3 a portarcela, sette punti alla volta, con un banco che
+   guarda la chiave prima e dopo.
+   ⚠️ Lo storage si INIETTA (`{getItem, setItem, removeItem}`): in `node` non
+   c'è `localStorage`, e la prova lo passa da una `Map`. Con niente, si usa
+   `globalThis.localStorage` se esiste, se no una memoria che dura quanto la
+   pagina — è la scelta di Terra e Conti in modalità non-live.
+   ⚠️ La forma è ASINCRONA come nelle altre app, anche se oggi sotto c'è una
+   memoria sincrona: è l'unica forma che regge quando sotto ci sarà
+   l'organizzazione (unità 4), e una porta con due forme è la copia debole in
+   agguato.
+   Le collezioni e le chiavi, una a una (§3c del documento):
+     volate          ← `genesiVolate`   elenco, tetto 50, `id` per riga
+     confronti       ← `genesiCmpA/B`   uno scatto per slot, `slot` per riga
+     riconciliazioni ← `genesiRicon`    elenco senza tetto
+     sito            ← `genesiSito`     UN documento `{punti, usa}`
+     nuvole          ← `genesiNuvole`   elenco, tetto 30 (lo scrive nuvola-poc)
+   Un JSON corrotto risponde vuoto — `[]`, `null` per lo scatto, il sito
+   vuoto — esattamente come le otto funzioni di oggi: non è una scelta nuova,
+   è la loro, tenuta uguale di proposito e messa sotto prova.
+   ══════════════════════════════════════════════════════════════════════ */
+const GENESI_CHIAVI = Object.freeze({
+  volate: { chiave: "genesiVolate", tetto: 50 },
+  riconciliazioni: { chiave: "genesiRicon", tetto: 0 },
+  nuvole: { chiave: "genesiNuvole", tetto: 30 },
+  /* il ponte 3e (05/09): le volate «per Sentinella», scritte dal bottone che
+     prima produceva solo il file — forma di `previstaDaGenesi` in shared/ */
+  previste: { chiave: "genesiPreviste", tetto: 50 },
+  /* il piano di carico «per Campo» (05/09, notte): un documento per export,
+     forma di `pianoDaGenesi` in shared/; Campo lo legge dall'organizzazione */
+  piani: { chiave: "genesiPiani", tetto: 20 },
+});
+const GENESI_SLOT = Object.freeze(["A", "B"]);
+const GENESI_SITO_VUOTO = () => ({ punti: [], usa: false });
+export const GENESI_COLLEZIONI = Object.freeze(["volate", "confronti", "riconciliazioni", "sito", "nuvole", "previste", "piani"]);
+
+function _memoriaStorage() {
+  const m = new Map();
+  return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => { m.set(k, String(v)); }, removeItem: (k) => { m.delete(k); } };
+}
+function _leggiJson(st, chiave, vuoto) {
+  try { const v = st.getItem(chiave); return v == null || v === "" ? vuoto : JSON.parse(v); } catch (e) { return vuoto; }
+}
+function _scriviJson(st, chiave, valore) {
+  try { st.setItem(chiave, JSON.stringify(valore)); return true; } catch (e) { return false; }
+}
+function _nuovoId(prefisso) { return prefisso + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+
+/* LA MODALITÀ LIVE (unità 4, 02/09). Stessa forma di `terraData`: si prova
+   l'SDK in un try/catch, e si è `live` SOLO se c'è un utente membro di
+   un'organizzazione; in ogni altro caso — SDK che non si carica (senza rete
+   l'import da gstatic fallisce, e il service worker di Genesi non lo mette in
+   cache), tour, nessun login, errore qualunque — si resta `locale`, cioè sulle
+   chiavi del browser di sempre. ⛔ NON «demo in memoria»: Genesi senza
+   organizzazione è un'app che funziona da sola sul dispositivo, e i dati di
+   chi la usa oggi restano dove sono.
+   Le cinque collezioni nascono sotto `organizations/{org}/apps/genesi/…`, il
+   percorso lo costruisce `orgCollection` (mai a mano): l'isolamento fra
+   organizzazioni è quello delle regole già scritte per `apps/{appId}/**`, e
+   la prova negativa sta in `tests/run.mjs` sotto l'emulatore.
+   Forme dei documenti, decise qui e dichiarate:
+     volate / riconciliazioni / nuvole → un documento per riga, id di Firestore;
+     confronti → UN documento per slot, id = "A" | "B" (per organizzazione: la
+       scelta «per persona» è aperta, §3c del piano, e non si decide qui);
+     sito → UN documento, id = "unico" (la legge di sito è della cava).
+   I tetti (50 volate, 30 lavorazioni) valgono per il browser; nell'org NON si
+   applicano — «per organizzazione o per persona» è la decisione aperta del
+   §3c, e tagliare in silenzio dati condivisi sarebbe peggio di non tagliare.
+   `opzioni.live === false` salta l'SDK del tutto (le prove in node). */
+export async function genesiData(opzioni) {
+  const o = opzioni || {};
+  if (o.live !== false) {
+    try {
+      const { DeepworkID } = await import("../../shared/deepwork-id-client/index.js");
+      const id = await DeepworkID.init({ appId: "genesi" });
+      if (id && id.user && id.authState() === "member") {
+        const { getDocs, getDoc, addDoc, setDoc, updateDoc, deleteDoc, doc } =
+          await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+        const read = async (nome) => (await getDocs(id.orgCollection(nome))).docs.map((d) => ({ id: d.id, ...d.data() }));
+        const slotDi = (x) => { const s = String((x && x.slot) || x || "").toUpperCase(); return GENESI_SLOT.includes(s) ? s : null; };
+        const db = {
+          mode: "live",
+          // chi sta lavorando: serve a firmare ciò che si porta nell'organizzazione
+          utente: { uid: id.user.uid, email: id.user.email || null },
+          volate: () => read("volate"),
+          riconciliazioni: () => read("riconciliazioni"),
+          nuvole: () => read("nuvole"),
+          previste: () => read("previste"),
+          piani: () => read("piani"),
+          confronti: async () => (await read("confronti")).filter((c) => GENESI_SLOT.includes(c.id)).map((c) => ({ ...c, slot: c.id })),
+          sito: async () => {
+            const s = await getDoc(doc(id.orgCollection("sito"), "unico"));
+            const v = s.exists() ? s.data() : null;
+            return v && Array.isArray(v.punti) ? { punti: v.punti, usa: !!v.usa } : GENESI_SITO_VUOTO();
+          },
+          aggiungi: async (nome, dati) => {
+            if (nome === "confronti") {
+              const slot = slotDi(dati); if (!slot) throw new Error("uno scatto di confronto vuole lo slot A o B");
+              const { slot: _s, id: _i, ...resto } = dati || {};
+              await setDoc(doc(id.orgCollection("confronti"), slot), resto); return { id: slot };
+            }
+            if (nome === "sito") {
+              const s = dati && Array.isArray(dati.punti) ? { punti: dati.punti, usa: !!dati.usa } : GENESI_SITO_VUOTO();
+              await setDoc(doc(id.orgCollection("sito"), "unico"), s); return { id: "unico" };
+            }
+            if (!GENESI_CHIAVI[nome]) throw new Error("collezione sconosciuta: " + nome);
+            const { id: _i, ...resto } = dati || {};
+            const r = await addDoc(id.orgCollection(nome), resto); return { id: r.id };
+          },
+          aggiorna: async (nome, docId, dati) => {
+            if (nome === "confronti" || nome === "sito") return db.aggiungi(nome, nome === "confronti" ? { ...(dati || {}), slot: docId } : dati);
+            if (!GENESI_CHIAVI[nome]) throw new Error("collezione sconosciuta: " + nome);
+            await updateDoc(doc(id.orgCollection(nome), docId), dati || {}); return true;
+          },
+          rimuovi: async (nome, docId) => {
+            if (nome === "confronti") { const slot = slotDi(docId); if (!slot) return false; await deleteDoc(doc(id.orgCollection("confronti"), slot)); return true; }
+            if (nome === "sito") { await deleteDoc(doc(id.orgCollection("sito"), "unico")); return true; }
+            if (!GENESI_CHIAVI[nome]) throw new Error("collezione sconosciuta: " + nome);
+            await deleteDoc(doc(id.orgCollection(nome), docId)); return true;
+          },
+          logout: () => id.logout(),
+        };
+        /* IL CONSUNTIVO DI CARICO DALL'ORGANIZZAZIONE (ponte Campo→Genesi come
+           dato, 05/09 notte): il piano di carico di Campo (`pianocarico`, una
+           riga per foro, con la carica reale registrata dal fochino) letto con
+           una seconda istanza dell'SDK sull'appId di Campo — pigra, sola
+           lettura, forma di `nuvoleGenesi` in Terra. `null` = Campo non
+           leggibile, che la pagina distingue da «nessun foro registrato». */
+        let idCampo;
+        db.pianoCampo = async () => {
+          if (idCampo === undefined) {
+            try { idCampo = await DeepworkID.init({ appId: "campo" }); } catch (e) { idCampo = null; }
+          }
+          if (!idCampo) return null;
+          try { return (await getDocs(idCampo.orgCollection("pianocarico"))).docs.map((d) => ({ id: d.id, ...d.data() })); }
+          catch (e) { return null; }
+        };
+        return db;
+      }
+    } catch (e) { /* SDK assente, senza rete, o nessun membro: si resta locale */ }
+  }
+  const st = o.storage || (typeof globalThis !== "undefined" && globalThis.localStorage) || _memoriaStorage();
+  const elenco = (nome) => { const v = _leggiJson(st, GENESI_CHIAVI[nome].chiave, []); return Array.isArray(v) ? v : []; };
+  const scriviElenco = (nome, arr) => {
+    const t = GENESI_CHIAVI[nome].tetto; const a = arr.slice();
+    if (t > 0) while (a.length > t) a.shift();
+    _scriviJson(st, GENESI_CHIAVI[nome].chiave, a); return a;
+  };
+  const scatto = (slot) => { const v = _leggiJson(st, "genesiCmp" + slot, null); return v && typeof v === "object" ? { ...v, slot } : null; };
+  const sito = () => { const s = _leggiJson(st, "genesiSito", null); return s && Array.isArray(s.punti) ? { punti: s.punti, usa: !!s.usa } : GENESI_SITO_VUOTO(); };
+  const slotDi = (x) => { const s = String((x && x.slot) || x || "").toUpperCase(); return GENESI_SLOT.includes(s) ? s : null; };
+  const db = {
+    mode: "locale",
+    utente: null,   // da solo sul dispositivo non c'è nessuno da firmare
+    volate: async () => elenco("volate"),
+    riconciliazioni: async () => elenco("riconciliazioni"),
+    nuvole: async () => elenco("nuvole"),
+    previste: async () => elenco("previste"),
+    piani: async () => elenco("piani"),
+    confronti: async () => GENESI_SLOT.map(scatto).filter(Boolean),
+    sito: async () => sito(),
+    /* da soli sul dispositivo Campo non si legge: `null`, e la pagina lascia il file */
+    pianoCampo: async () => null,
+    aggiungi: async (nome, doc) => {
+      if (nome === "confronti") {
+        const slot = slotDi(doc); if (!slot) throw new Error("uno scatto di confronto vuole lo slot A o B");
+        const { slot: _s, ...resto } = doc || {};
+        _scriviJson(st, "genesiCmp" + slot, resto); return { id: slot };
+      }
+      if (nome === "sito") {
+        const s = doc && Array.isArray(doc.punti) ? { punti: doc.punti, usa: !!doc.usa } : GENESI_SITO_VUOTO();
+        _scriviJson(st, "genesiSito", s); return { id: "sito" };
+      }
+      if (!GENESI_CHIAVI[nome]) throw new Error("collezione sconosciuta: " + nome);
+      const d = { ...(doc || {}) }; if (d.id == null || d.id === "") d.id = _nuovoId(nome === "volate" ? "v" : "g");
+      scriviElenco(nome, [...elenco(nome), d]); return { id: d.id };
+    },
+    aggiorna: async (nome, id, doc) => {
+      if (nome === "confronti" || nome === "sito") return db.aggiungi(nome, nome === "confronti" ? { ...(doc || {}), slot: id } : doc);
+      if (!GENESI_CHIAVI[nome]) throw new Error("collezione sconosciuta: " + nome);
+      const a = elenco(nome); const i = a.findIndex((x) => x && x.id === id);
+      if (i < 0) return false;
+      a[i] = { ...a[i], ...(doc || {}), id }; scriviElenco(nome, a); return true;
+    },
+    rimuovi: async (nome, id) => {
+      if (nome === "confronti") { const slot = slotDi(id); if (!slot) return false; const c = scatto(slot) !== null; try { st.removeItem("genesiCmp" + slot); } catch (e) {} return c; }
+      if (nome === "sito") { try { st.removeItem("genesiSito"); } catch (e) {} return true; }
+      if (!GENESI_CHIAVI[nome]) throw new Error("collezione sconosciuta: " + nome);
+      const a = elenco(nome); const n = a.length; const r = a.filter((x) => !(x && x.id === id));
+      if (r.length === n) return false;
+      scriviElenco(nome, r); return true;
+    },
+    logout: async () => {},
+  };
+  return db;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   G9 · «PORTA LE TUE VOLATE NELL'ORGANIZZAZIONE» (02/09, unità 5 del piano)
+   ────────────────────────────────────────────────────────────────────────
+   Chi ha usato Genesi da solo ha volate, scatti A/B, riconciliazioni, la legge
+   di sito e le lavorazioni della nuvola nelle chiavi del browser. Al primo
+   accesso con un'organizzazione, questa funzione le COPIA nelle collezioni
+   dell'organizzazione — una volta sola per browser, e senza cancellare niente
+   dal browser: le chiavi restano com'erano, perché sono il ripiego di chi
+   lavora senza rete e perché un dato si copia prima di fidarsi della copia.
+   ⛔ UNA VOLTA SOLA vuol dire un CONTRASSEGNO nel browser (`genesiMigratoV1`,
+   con la data e i conti): la seconda chiamata risponde `gia: true` e scrive
+   ZERO. Il contrassegno è per browser, non per persona: chi porta le stesse
+   volate da due computer le troverà due volte nell'organizzazione — è un
+   limite dichiarato (§5 del piano), e la funzione lo mette nel risultato
+   (`origine: 'browser'`, `autore`, `creatoIl` su ogni riga) perché si possa
+   vedere da dove viene ogni cosa invece di nasconderlo.
+   Pura rispetto alle porte: `daLocale` e `aOrg` sono due `genesiData` (o due
+   finti con la stessa forma), `contrassegno` è un `{getItem, setItem}` — così
+   la prova gira in node con due Map. */
+export const GENESI_CONTRASSEGNO_MIGRAZIONE = "genesiMigratoV1";
+export async function portaNellOrganizzazione(daLocale, aOrg, contrassegno, opzioni) {
+  const o = opzioni || {};
+  const st = contrassegno || { getItem: () => null, setItem: () => {} };
+  const vuoto = { volate: 0, confronti: 0, riconciliazioni: 0, sito: 0, nuvole: 0 };
+  let gia = null;
+  try { gia = JSON.parse(st.getItem(GENESI_CONTRASSEGNO_MIGRAZIONE) || "null"); } catch (e) { gia = null; }
+  if (gia && typeof gia === "object") return { gia: true, quando: gia.quando || null, scritte: { ...vuoto }, totale: 0, giaScritte: gia.scritte || null };
+  if (!daLocale || !aOrg) return { gia: false, scritte: { ...vuoto }, totale: 0, errore: "mancano le due porte" };
+  if (aOrg.mode !== "live" && !o.ancheSeNonLive) return { gia: false, scritte: { ...vuoto }, totale: 0, errore: "la destinazione non è un'organizzazione" };
+  const quando = o.quando || new Date().toISOString();
+  const marchia = (r) => {
+    const { id: _i, ...resto } = r || {};
+    return { ...resto, origine: "browser", autore: o.autore || null, creatoIl: (resto && resto.creatoIl) || quando };
+  };
+  const scritte = { ...vuoto };
+  for (const nome of ["volate", "riconciliazioni", "nuvole"]) {
+    const righe = await daLocale[nome]();
+    for (const r of Array.isArray(righe) ? righe : []) { if (!r) continue; await aOrg.aggiungi(nome, marchia(r)); scritte[nome]++; }
+  }
+  for (const c of await daLocale.confronti()) { if (!c || !c.slot) continue; await aOrg.aggiungi("confronti", { ...marchia(c), slot: c.slot }); scritte.confronti++; }
+  const sito = await daLocale.sito();
+  if (sito && Array.isArray(sito.punti) && sito.punti.length) { await aOrg.aggiungi("sito", { punti: sito.punti, usa: !!sito.usa }); scritte.sito = 1; }
+  const totale = Object.values(scritte).reduce((a, b) => a + b, 0);
+  try { st.setItem(GENESI_CONTRASSEGNO_MIGRAZIONE, JSON.stringify({ quando, scritte, autore: o.autore || null })); } catch (e) {}
+  return { gia: false, quando, scritte, totale };
+}
+
+/* ⛔ E L'ALTRA METÀ DELL'APERTURA (02/09, unità 7 del piano «Genesi fuori dal
+   browser»): i campi del design che NON sono numeri. `volataSenzaValori` nomina
+   i 21 numerici illeggibili; questi 11 — esplosivo, innesco, roccia,
+   fratturazione, sequenza, norma del recettore, tre bandiere, due profili —
+   arrivavano dalla porta senza nessuno che li guardasse, e il difetto è più
+   silenzioso di uno zero: `selEsplosivo()` e `selRoccia()` RIPIEGANO SUL
+   DEFAULT quando l'id non è nel catalogo, quindi una volata salvata con un
+   esplosivo che questa versione non conosce (o da un altro browser
+   dell'organizzazione, con un catalogo diverso) si apre con un altro
+   esplosivo e nessuna parola. La pagina passa i suoi cataloghi (vivono lì:
+   ESPL, INNESCHI, ROCCE, le tendine, NORME_PPV) e qui si dice che cosa non si
+   riconosce, con la stessa forma di `volataSenzaValori`: `che` e `come`.
+   Un campo ASSENTE non si segnala (volata salvata prima che esistesse); un
+   valore presente e sconosciuto sì. Le bandiere devono essere booleane, i
+   profili elenchi. */
+export const CAMPI_SCELTA = {
+  esplosivo: 'esplosivo', innesco: 'innesco', roccia: 'roccia',
+  frat: 'fratturazione', sequenza: 'sequenza di sparo', recNorma: 'norma del recettore',
+};
+export const CAMPI_BANDIERA = { kgAuto: 'carica automatica', bagnato: 'foro bagnato', presplit: 'presplit' };
+export const CAMPI_PROFILO = { profilo: 'profilo del fronte', piede: 'piede del fronte' };
+export function designSconosciuti(design, cataloghi) {
+  const d = design && typeof design === 'object' ? design : {};
+  const c = cataloghi && typeof cataloghi === 'object' ? cataloghi : {};
+  const campi = [];
+  const ha = (k) => Object.prototype.hasOwnProperty.call(d, k) && d[k] !== undefined;
+  for (const k of Object.keys(CAMPI_SCELTA)) {
+    if (!ha(k)) continue;
+    const ids = Array.isArray(c[k]) ? c[k].map(String) : null;
+    if (!ids) continue;                       // la pagina non ha passato quel catalogo: non si giudica
+    /* ⛔ LA NORMA DEL RECETTORE NON SI SOSTITUISCE (03/09, passata di verifica).
+       Un esplosivo al posto di un altro si vede nella tendina; un codice di
+       norma che non si riconosce, rimpiazzato con «DIN residenziale», produce
+       un LIMITE (15 mm/s) e un VERDETTO («ampiamente sotto soglia») su una
+       norma che nessuno ha scelto — misurato: nove KO in tre banchi (scheda
+       CSV, report stampabile, file per Sentinella), tutti «limite 15,0, DIN
+       residenziale» dove dal 08/08 usciva «non confrontabile». È il principio
+       del fondatore: l'assenza di un dato non è un dato favorevole. Quindi il
+       codice resta com'è scritto — `ppvSenzaSoglia` lo vede, `normaPpvLab` lo
+       ripete — e il campo porta `sostituisci:false`, che la pagina legge. */
+    if (!ids.includes(String(d[k]))) campi.push({ chiave: k, nome: CAMPI_SCELTA[k], valore: d[k] === null ? '' : String(d[k]), sostituisci: k !== 'recNorma' });
+  }
+  for (const k of Object.keys(CAMPI_BANDIERA)) if (ha(k) && typeof d[k] !== 'boolean') campi.push({ chiave: k, nome: CAMPI_BANDIERA[k], valore: String(d[k]), sostituisci: true });
+  for (const k of Object.keys(CAMPI_PROFILO)) if (ha(k) && !Array.isArray(d[k])) campi.push({ chiave: k, nome: CAMPI_PROFILO[k], valore: String(d[k]), sostituisci: true });
+  if (!campi.length) return null;
+  const nomi = campi.map((x) => x.nome + (x.valore ? ' («' + x.valore + '»)' : ' (vuoto)'));
+  const sost = campi.filter((x) => x.sostituisci), tenuti = campi.filter((x) => !x.sostituisci);
+  const come = [];
+  if (sost.length) come.push(sost.length === 1
+    ? 'Al suo posto è entrato il valore di partenza: controllalo nei parametri prima di fidarti dei numeri.'
+    : 'Al loro posto sono entrati i valori di partenza: controllali nei parametri prima di fidarti dei numeri.');
+  if (tenuti.length) come.push('Per la norma del recettore non entra nessun valore di partenza: resta com\'è scritta e il limite PPV non si calcola finché non ne scegli una nei parametri.');
+  return { campi,
+    che: (nomi.length === 1 ? 'una scelta non si riconosce: ' : nomi.length + ' scelte non si riconoscono: ') + nomi.join(', '),
+    come: come.join(' ') };
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   I PONTI DI GENESI, IN HOME (05/09, notte). Il pannello «Ponte Deepwork» della
+   Home diceva che lo scambio passa «tramite file .volata.json»: vero per il
+   core, e dal 05/09 FALSO per le altre app — le volate previste vanno a
+   Sentinella, il piano di carico va a Campo e il consuntivo torna, le nuvole
+   vanno a Terra, tutti come dati. Un testo che invecchia in una schermata è un
+   «non c'è» scaduto letto dal fondatore. Qui il riepilogo è calcolato: quanti
+   record ha scritto ogni ponte e quando l'ultimo, `null` = non leggibile (che
+   non è zero), e lo stato vuoto dice come si produce il primo. Pura. */
+export function riepilogoPontiGenesi(dati) {
+  const d = dati || {};
+  const lista = (x) => (Array.isArray(x) ? x : null);
+  const dove = d.mode === "live" ? "nell'organizzazione" : "su questo computer";
+  const ultimoDi = (arr, campo) => {
+    let u = "";
+    for (const r of arr || []) { const v = String((r && campo(r)) || ""); if (v > u) u = v; }
+    return u;
+  };
+  const uno = (app, cosa, arr, campo, vuoto, plurali) => {
+    if (!arr) return { app, cosa, n: null, ultimo: "", leggibile: false,
+      testo: cosa + " " + (d.mode === "live" ? "non leggibili adesso: riprova più tardi" : "non leggibili") };
+    const n = arr.length, ultimo = ultimoDi(arr, campo);
+    if (!n) return { app, cosa, n: 0, ultimo: "", leggibile: true, testo: vuoto };
+    /* la data dell'ultimo resta ISO in `ultimo`: la scrive la pagina, con il
+       suo formattatore — un ISO dentro una frase è un numero nel vestito
+       sbagliato, e un formattatore riscritto qui è la copia debole */
+    return { app, cosa, n, ultimo, leggibile: true,
+      testo: (n === 1 ? plurali[0] : n + " " + plurali[1]) + " " + dove, codaUltimo: n === 1 ? "del" : "l'ultimo del" };
+  };
+  return {
+    dove,
+    righe: [
+      uno("Sentinella", "le volate previste", lista(d.previste), (r) => r.data,
+        "Nessuna volata prevista scritta ancora: dalla scheda volata, «per Sentinella» la manda al registro (non solo al file).",
+        ["una volata prevista scritta", "volate previste scritte"]),
+      uno("Campo", "i piani di carico", lista(d.piani), (r) => String(r.quando || "").slice(0, 10),
+        "Nessun piano di carico scritto ancora: «Esporta piano di carico» lo manda a Campo (non solo al file).",
+        ["un piano di carico scritto", "piani di carico scritti"]),
+      uno("Terra", "le lavorazioni della nuvola", lista(d.nuvole), (r) => String(r.data || "").slice(0, 10),
+        "Nessuna lavorazione della nuvola: dal visore, ogni ritaglio con un volume arriva a Terra da solo.",
+        ["una lavorazione scritta", "lavorazioni scritte"]),
+    ],
+  };
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   G22 · IL FATTORE ROCCIA DI LILLY/CUNNINGHAM E L'x50 MISURATO SUL CUMULO —
+   la testa e la coda della catena della frammentazione, salite dalla pagina
+   il 10/09 (cantiere B3, quarta fetta).
+   ═══════════════════════════════════════════════════════════════════════════
+   La catena è `A → x50 di Kuz-Ram (fragKuzRam) → curva Rosin-Rammler →
+   confronto con l'x50 misurato sul cumulo`: i due anelli di mezzo erano già
+   qui (blocchi G12-G13), i due estremi stavano in `genesi.html` e nessuna
+   prova poteva chiamarli. Sbagliare A non produce un difetto grafico: sposta
+   la pezzatura prevista di TUTTE le volate di quella roccia, e da lì il
+   consumo specifico consigliato, il rigonfiamento del cumulo (SF, che la
+   pagina ricava da A) e il verdetto «coerente / non coerente» del confronto
+   con la misura al cumulo.
+
+   `fattoreRoccia(roccia, scelte)` — l'indice di brillabilità di Lilly,
+   A = 0,06·(RMD + JF + RDI + HF), come Cunningham lo usa nel modello di
+   Kuz-Ram: RMD dalla scheda della litologia, JF = jcf·(jps·mul + jpa) dove
+   `mul` è la fratturazione scelta a schermo (fessurata 0,55 · media 1 ·
+   compatta 1,35), RDI = 0,025·ρ − 50 con ρ in kg/m³, HF = E/3 sotto i 50 GPa
+   e UCS/5 sopra. UCS ed E si possono ridire a schermo (`scelte.ucs`,
+   `scelte.eMod`): uno zero o un vuoto valgono «quello della litologia», che
+   è il comportamento di sempre. A è tenuto fra 1 e 16 come nel modello.
+   Entrata IDENTICA, riga per riga: la pagina la chiama con `selRoccia()` e
+   `D2`, e `rockFactorA` resta come legame, come `computeMIC` per
+   `micFinestra`. Provato parola per parola: la vecchia funzione estratta dal
+   file e messa accanto a questa su 6 litologie × UCS, E, fratturazione
+   (compresi vuoti, zeri e valori fuori scala) → 0 divergenze.
+   ⚠️ Quello che NON fa, e resta com'era: una litologia senza `ucs` né `eMod`
+   e senza i due valori a schermo risponde `A: NaN` — nelle sei schede
+   catalogate non succede, e inventare qui un valore sarebbe il numero
+   tranquillo che questo repository combatte. Chi aggiunge una litologia le
+   dà UCS ed E.
+
+   `x50DaMisure(misure)` — la pezzatura mediana del CUMULO da un campione di
+   pezzi misurati (cm): ogni pezzo pesa per il suo volume (d³), la curva
+   passante cumulata si legge su quei pesi e l'x50 si interpola fra i due
+   pezzi che stanno a cavallo del 50%. È il confronto qualitativo con la
+   previsione di Kuz-Ram, e la pagina lo scrive: non sostituisce un'analisi
+   granulometrica strumentale. Sotto due misure positive risponde `null` —
+   con un pezzo solo non c'è una distribuzione, e uno «x50» da un pezzo
+   sarebbe il pezzo. Anche questa è entrata identica. */
+export function fattoreRoccia(roccia, scelte){
+  const r=roccia||{}, D2=scelte||{};
+  const rho=(r.rho||2.6)*1000, ucs=D2.ucs||r.ucs, E=D2.eMod||r.eMod;
+  const mul={fessurata:0.55,media:1,compatta:1.35}[D2.frat]||1;
+  const RDI=0.025*rho-50, HF=E<50?E/3:ucs/5, JF=(r.jcf||1)*((r.jps||50)*mul+(r.jpa||30));
+  const A=Math.max(1,Math.min(16, 0.06*((r.rmd||20)+JF+RDI+HF)));
+  return { A:+A.toFixed(1), BI:Math.round(A/0.06), RDI:Math.round(RDI), HF:Math.round(HF), JF:Math.round(JF) };
+}
+export function x50DaMisure(misure){
+  const v=(misure||[]).filter(x=>x>0).sort((a,b)=>a-b);
+  if(v.length<2) return null;
+  const w=v.map(d=>d*d*d), tot=w.reduce((a,b)=>a+b,0);
+  let c=0; const pts=[];
+  for(let i=0;i<v.length;i++){ c+=w[i]; pts.push([v[i], c/tot]); }
+  let x50=v[v.length-1];
+  for(let i=0;i<pts.length;i++){ if(pts[i][1]>=0.5){
+    if(i===0) x50=pts[0][0];
+    else { const [x0,p0]=pts[i-1], [x1,p1]=pts[i]; x50 = x0 + (0.5-p0)/(p1-p0)*(x1-x0); }
+    break; } }
+  return { pts, x50, n:v.length };
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   G23 · LA FIRMA DEL FORO SINGOLO E LA SOMMA RITARDATA — il PPV composito
+   esce dalla pagina (10/09, cantiere B3, quinta fetta).
+   ═══════════════════════════════════════════════════════════════════════════
+   Il metodo è quello dell'analisi della «signature hole»: si registra col
+   sismografo l'onda di UN foro sparato da solo, e la si somma a sé stessa
+   spostata sui tempi di detonazione del piano di tiro. Il massimo della somma
+   è il PPV composito che la volata intera produrrà in quel punto — e che la
+   pagina mostra accanto al limite di norma. Tre funzioni, tre anelli:
+
+   `ondaDaCsv(testo)` — la registrazione letta dal file del sismografo
+   (`tempo_ms;ampiezza`, il separatore è quello del file): `{t, a, dt}` con
+   il passo di campionamento medio (mai sotto 0,05 ms), `null` sotto tre
+   campioni. ⛔ NON è entrata identica, ed è l'unica delle tre: la
+   `_sigParse` della pagina spezzava OGNI riga su `;` `,` e TAB insieme e
+   poi sostituiva la virgola col punto — cioè una registrazione scritta
+   all'italiana, «0,5;1,23», diventava tempo 0 e ampiezza 5, e il composito
+   si calcolava su un'onda che non è mai esistita, senza un errore. Adesso il
+   file lo legge `leggiCsv` di `shared/` (un separatore per file, le
+   virgolette, il BOM) e le celle `numIt` (la virgola italiana E il punto):
+   sui file scritti col punto — quelli che escono da Genesi stessa e dai
+   sismografi in inglese — la risposta è identica a prima, provato su 20.000
+   file generati; sui file all'italiana è quella giusta.
+
+   `tempiDetonazione(design)` — i tempi su cui sommare: quelli dei fori
+   DISEGNATI se ci sono, altrimenti la griglia di progetto (`foriDiProgetto`,
+   che sa dire `null` quando la griglia non si legge: la storia del «18 fori
+   a 25 ms» è nel blocco G21 e nel commento della pagina). Il ripiego a `[0]`
+   in fondo non è la stessa cosa: evita un vettore vuoto alla somma
+   (`Math.max([])` fa -Infinity) e ci si arriva solo con una griglia
+   leggibile che non produce nessun tempo. Entrata identica: la pagina la
+   chiama con `D2` e `_sigDetTimes` resta come legame.
+
+   `sommaRitardata(onda, tempi)` — la somma vera: l'onda ricopiata a ogni
+   tempo di detonazione (arrotondato al passo) e sommata campione per
+   campione, con un tetto di 80.000 passi; risponde il composito, il PPV
+   (massimo del valore assoluto della somma) e `singolo` (il massimo
+   dell'onda da sola), così la pagina può dire di quanto la volata amplifica
+   il foro singolo. Entrata identica, provata su 20.000 casi. */
+export function ondaDaCsv(testo){
+  const rows=leggiCsv(testo).righe
+    .filter(p=>p.length>=2)
+    .map(p=>[numIt(p[0]), numIt(p[1])])
+    .filter(p=>isFinite(p[0])&&isFinite(p[1]));
+  if(rows.length<3) return null;
+  const t=rows.map(r=>r[0]), a=rows.map(r=>r[1]);
+  /* ⛔ 26/11: LA PRIMA COLONNA DEVE ESSERE UN TEMPO, E UN TEMPO NON TORNA
+     INDIETRO. I sismografi da volata esportano la forma d'onda come tabella
+     di CANALI (`Tran  Vert  Long  MicL`) senza colonna del tempo — il tempo
+     sta nella frequenza di campionamento dell'intestazione (così la leggono
+     i due lettori pubblici di quei file, `gmsp` e BlastingPy: vedi
+     reports/Genesi formati di scambio cava.md). Su una tabella così questa
+     funzione prendeva il canale trasversale per il TEMPO e il verticale per
+     l'ampiezza, e restituiva un'onda: misurato su 40 campioni, «tempi»
+     0 · 0,654 · 1,237 · 1,683 …, cioè una sinusoide spacciata per orologio,
+     e nessun avviso. È il numero plausibile dove non è stato letto niente.
+     La guardia non conosce nessun formato: chiede solo che il tempo non
+     scenda mai e che dall'inizio alla fine sia andato avanti. */
+  for(let i=1;i<t.length;i++) if(t[i]<t[i-1]) return null;
+  if(!(t[t.length-1]>t[0])) return null;
+  const dt=Math.max(0.05,(t[t.length-1]-t[0])/(t.length-1));
+  return {t,a,dt};
+}
+/* Perché `ondaDaCsv` ha detto di no, con le parole per chi ha il file in
+   mano. Stringa vuota se l'onda si legge. Non è un secondo lettore: chiama
+   quello, e solo se rifiuta guarda la forma del testo per dire quale dei
+   tre casi è. */
+export function ondaPercheNo(testo){
+  if(ondaDaCsv(testo)) return '';
+  const s=String(testo==null?'':testo);
+  if(/\bTran\b[^A-Za-z\n]+Vert\b[^A-Za-z\n]+Long\b/i.test(s))
+    return 'Questo è l’export di un sismografo a canali (Tran / Vert / Long) senza la colonna del tempo: Genesi per ora legge due colonne, tempo in ms e ampiezza. Esporta un solo canale col suo tempo, oppure aggiungi la colonna del tempo in un foglio di calcolo.';
+  const rows=leggiCsv(s).righe.filter(p=>p.length>=2).map(p=>[numIt(p[0]), numIt(p[1])]).filter(p=>isFinite(p[0])&&isFinite(p[1]));
+  if(rows.length>=3)
+    return 'La prima colonna non è un tempo: non cresce dall’inizio alla fine. Servono due colonne, tempo in ms e ampiezza (tempo_ms;ampiezza).';
+  return 'CSV non valido: servono almeno tre righe con due colonne, tempo in ms e ampiezza (tempo_ms;ampiezza).';
+}
+export function tempiDetonazione(design){
+  const D2=design||{};
+  const H=D2.holes;
+  if(H&&H.length) return H.map(h=>+h.tDet||0);
+  const n=foriDiProgetto(D2.perRow, D2.file);
+  /* ⛔ 10/09 (G25): un ritardo VUOTO non è un ritardo di zero. `+null` e `+""`
+     fanno 0, e uno zero è legittimo (tutti simultanei), quindi fino a qui un
+     campo mai scritto produceva N tempi a 0 ms — il composito più alto
+     possibile, su un piano di tiro che nessuno ha scritto. È la stessa
+     famiglia del «18 fori a 25 ms» di G21, un ripiego più in là: adesso
+     null/"" rispondono `null`, come la griglia illeggibile. Lo zero scritto
+     resta uno zero. */
+  const v=(x)=>(x===null||x===undefined||x==='')?NaN:+x;
+  const ri=v(D2.ritardo), rf=v(D2.ritardoFila);
+  if(n===null || !Number.isFinite(ri) || ri<0 || !Number.isFinite(rf) || rf<0) return null;
+  const nc=Math.max(1,+D2.perRow), nr=Math.max(1,+D2.file), out=[];
+  for(let r=0;r<nr;r++) for(let c=0;c<nc;c++) out.push(c*ri+r*rf);
+  return out.length?out:[0];   // mai vuoto: evita Math.max([]) = -Infinity nella somma
+}
+export function sommaRitardata(sig,times){
+  const dt=sig.dt, n=sig.a.length, dur=sig.t[n-1]-sig.t[0];
+  const tmax=Math.max.apply(null,times)+dur, steps=Math.min(80000,Math.ceil(tmax/dt)+2);
+  const comp=new Float64Array(steps);
+  for(const td of times){ const off=Math.round(td/dt); for(let i=0;i<n;i++){ const k=off+i; if(k>=0&&k<steps) comp[k]+=sig.a[i]; } }
+  let ppv=0,singolo=0; for(let i=0;i<n;i++) singolo=Math.max(singolo,Math.abs(sig.a[i]));
+  for(let i=0;i<steps;i++){ const v=Math.abs(comp[i]); if(v>ppv) ppv=v; }
+  return {comp,dt,ppv,singolo,steps};
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   G24 · LA GEOMETRIA DELLA PIANTA — la cresta importata, il burden vero, la
+   spaziatura tipica, il campo dei tempi e il passo delle isocrone (10/09,
+   cantiere B3, sesta fetta).
+   ═══════════════════════════════════════════════════════════════════════════
+   Cinque funzioni che la pianta 2D e la scena 3D chiamano per leggere la
+   forma della volata, tutte entrate IDENTICHE (vecchie funzioni estratte da
+   HEAD accanto alle nuove, 0 divergenze; i conti sono nel commit).
+
+   `quotaCresta(profilo, x)` — l'offset z della faccia lungo x dal profilo
+   della cresta importato (spezzata di `{x, z}`): fuori dagli estremi vale
+   l'estremo, in mezzo si interpola, senza profilo vale 0 (fronte dritto), e
+   il risultato è tenuto fra −6 e +10 m (il clamp di sicurezza della pagina).
+   La pagina la chiama con `P.profilo` e `crestZ` resta come legame.
+
+   `distanzaDaSpezzata(px, py, punti)` — la distanza minima da un punto a
+   una spezzata di `[x, y]`: è il BURDEN VERO, cioè la distanza PERPENDICOLARE
+   alla faccia libera, che su un fronte storto si accorcia dove la roccia
+   sporge (è lì che nascono le proiezioni) anche se il foro sta alla distanza
+   di progetto — una cosa diversa dal volume servito. `null` se la spezzata
+   non ha nemmeno un segmento.
+
+   `spaziaturaTipica(fori, ripiego)` — la mediana delle distanze al foro più
+   vicino: con meno di due fori risponde il `ripiego`, che la pagina calcola
+   da progetto (`max(S, B)`) e passa — così questa funzione non legge lo
+   stato. Decide il raggio con cui si cercano i fori ADIACENTI e la larghezza
+   del campo dei tempi.
+
+   `tempoInPunto(px, py, fori, h2)` — il tempo di sparo in un punto della
+   pianta ricostruito DAI `tDet` dei fori vicini: minimi quadrati mobili di un
+   piano t = a + b·dx + c·dy con pesi gaussiani (`h2` è il quadrato della
+   larghezza), regolarizzato su b e c perché regga anche una fila sola.
+   Risponde `{t, dmin}`: `t` null se nessun foro pesa, e `dmin` è la distanza
+   dal foro più vicino con cui chi disegna decide dove NON estrapolare.
+
+   `passoIsocrone(passoScelto, ultimaDetonazione)` — il passo in ms fra due
+   curve: quello scelto a schermo se c'è, se no il primo della scala
+   `ISO_PASSI` che dà al massimo dieci curve sull'ultima detonazione (sei-
+   dieci curve si leggono senza affollare). `isoPasso` resta come legame. */
+export const ISO_PASSI=[1,2,5,10,20,25,50,100,200,250,500,1000];
+export function quotaCresta(profilo, x){
+  const pr = profilo;
+  if(!pr || pr.length<1) return 0;
+  let z;
+  if(x<=pr[0].x) z = pr[0].z;
+  else if(x>=pr[pr.length-1].x) z = pr[pr.length-1].z;
+  else { z = pr[pr.length-1].z; for(let i=1;i<pr.length;i++){ if(x<=pr[i].x){ const a=pr[i-1], b=pr[i]; const t=(x-a.x)/((b.x-a.x)||1); z = a.z+(b.z-a.z)*t; break; } } }
+  return Math.max(-6, Math.min(10, z));   // clamp di sicurezza
+}
+export function distanzaDaSpezzata(px,py,pts){
+  let best=Infinity;
+  for(let i=0;i<pts.length-1;i++){
+    const ax=pts[i][0], ay=pts[i][1], bx=pts[i+1][0], by=pts[i+1][1];
+    const vx=bx-ax, vy=by-ay, L2=vx*vx+vy*vy;
+    let t = L2>1e-9 ? ((px-ax)*vx+(py-ay)*vy)/L2 : 0;
+    t=Math.max(0,Math.min(1,t));
+    const dx=px-(ax+t*vx), dy=py-(ay+t*vy), d=Math.hypot(dx,dy);
+    if(d<best) best=d;
+  }
+  return isFinite(best)?best:null;
+}
+export function spaziaturaTipica(H, ripiego){
+  if(!H||H.length<2) return ripiego;
+  const dd=[];
+  for(let i=0;i<H.length;i++){ let m=Infinity;
+    for(let j=0;j<H.length;j++){ if(j===i) continue; const d=Math.hypot(H[j].mx-H[i].mx,H[j].my-H[i].my); if(d<m)m=d; }
+    if(isFinite(m)) dd.push(m); }
+  dd.sort((a,b)=>a-b);
+  return dd.length? dd[Math.floor(dd.length/2)] : ripiego;
+}
+/* Trasloco B3 (14/09): il legame di una riga sul ripiego di progetto è
+   uscito anche lui — `D2` come primo argomento esplicito, come già per
+   `pfNominale`/`pieDev`/`reliefCls`/`computeEnergia2D`/`isoPasso`/`scatterMs`. */
+export function _spazTipico(D2, H){ return spaziaturaTipica(H, Math.max(D2.S||3.5, D2.B||3)); }
+export function tempoInPunto(px,py,H,h2){
+  let W=0,Sx=0,Sy=0,Sxx=0,Sxy=0,Syy=0,St=0,Stx=0,Sty=0,dmin=Infinity;
+  for(let i=0;i<H.length;i++){
+    const dx=H[i].mx-px, dy=H[i].my-py, d2=dx*dx+dy*dy;
+    if(d2<dmin) dmin=d2;
+    if(d2>9*h2) continue;                                    // peso trascurabile: si salta
+    const w=Math.exp(-d2/h2), t=H[i].tDet||0;
+    W+=w; Sx+=w*dx; Sy+=w*dy; Sxx+=w*dx*dx; Sxy+=w*dx*dy; Syy+=w*dy*dy;
+    St+=w*t; Stx+=w*dx*t; Sty+=w*dy*t;
+  }
+  const dm=Math.sqrt(dmin);
+  if(W<=0) return {t:null, dmin:dm};
+  const lam=1e-3*W*h2;                                       // regolarizzazione su b,c: regge i fori allineati
+  const a11=W,a12=Sx,a13=Sy, a22=Sxx+lam,a23=Sxy, a33=Syy+lam;
+  const det=a11*(a22*a33-a23*a23) - a12*(a12*a33-a23*a13) + a13*(a12*a23-a22*a13);
+  if(!isFinite(det) || Math.abs(det)<1e-12) return {t:St/W, dmin:dm};
+  const d0=St*(a22*a33-a23*a23) - a12*(Stx*a33-a23*Sty) + a13*(Stx*a23-a22*Sty);
+  const t=d0/det;
+  return {t:isFinite(t)?t:St/W, dmin:dm};
+}
+export function passoIsocrone(passoScelto, ultimaDetonazione){
+  if(passoScelto>0) return passoScelto;
+  const T=Math.max(1,ultimaDetonazione||0);
+  for(let i=0;i<ISO_PASSI.length;i++) if(T/ISO_PASSI[i]<=10) return ISO_PASSI[i];   // ~6-10 curve: leggibili senza affollare
+  return ISO_PASSI[ISO_PASSI.length-1];
+}
+export function isoPasso(D2){ return passoIsocrone(D2.isoStep, D2.lastDet); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   G25 · LE FILE DEI FORI, I TAGLI DEI RACCORDI E LE CELLE DEL CONFRONTO A/B
+   (10/09, cantiere B3, settima fetta).
+   ═══════════════════════════════════════════════════════════════════════════
+   `fileDeiFori(fori)` — i fori disegnati raggruppati in FILE per distanza
+   dalla faccia (`my`), con una tolleranza di 0,45 m perché una fila
+   trascinata a mano non è mai perfettamente dritta; ogni fila porta gli
+   indici dei suoi fori e la loro distanza media, e le file escono già
+   ordinate dalla faccia verso l'interno. È il primo passo della mappa
+   dell'energia (G5: il burden vero di ogni fila verso quella davanti) e
+   della scheda dei fori. Entrata identica.
+
+   `INN_TAGLI` e `taglioRealizzabile(dt, innesco, tagli)` — i raccordi di
+   superficie di uso comune (9, 17, 25, 42, 65, 100, 109, 176, 200 ms) e la
+   regola «un ritardo di raccordo è realizzabile se esiste il taglio, a ±1 ms,
+   oppure se l'innesco è elettronico (che programma qualunque millisecondo)»;
+   un `dt` assente è realizzabile per definizione (non c'è un raccordo da
+   trovare). La pagina la chiama con `D2.innesco` e `innTaglioOk` resta come
+   legame. Entrata identica.
+
+   `_cmpNum`, `_cmpKg`, `_cmpEur`, `_cmpPf`, `_cmpCm`, `_cmpFly` — le celle
+   del confronto A/B fra due scatti di una volata: si giudica dal NUMERO
+   (`null`, vuoto o illeggibile → «non calcolabile» in giallo, mai uno zero
+   né un trattino che accanto a una gittata si legge «nessuno sgombero»), e
+   la bandiera `fragCalcolabile`/`flyCalcolabile`, quando c'è, vale in più —
+   così uno scatto salvato prima che la bandiera esistesse non fa sparire
+   una riga sana. Entrate identiche, coi loro nomi: sono le celle di un
+   documento che la pagina compone, e da qui `node` le legge. */
+export function fileDeiFori(H){
+  /* i fori si raggruppano in file per distanza dalla faccia; la tolleranza
+     serve perché una fila trascinata a mano non è mai perfettamente dritta */
+  const idx=H.map((h,i)=>i).sort((a,b)=>H[a].my-H[b].my);
+  const file=[]; let cur=null;
+  for(const i of idx){
+    const my=H[i].my;
+    if(!cur || my-cur.myMax>0.45){ cur={ myMax:my, holes:[i] }; file.push(cur); }
+    else { cur.holes.push(i); cur.myMax=Math.max(cur.myMax,my); }
+  }
+  file.forEach(f=>{ f.my=f.holes.reduce((s,i)=>s+H[i].my,0)/f.holes.length; });
+  return file;                                               // già ordinate dalla faccia verso l'interno
+}
+export const INN_TAGLI=[9,17,25,42,65,100,109,176,200];           // raccordi di superficie di uso comune
+export function taglioRealizzabile(dt, innesco, tagli){
+  if(dt==null) return true;
+  if((innesco||'')==='elettronico') return true;
+  return (tagli||INN_TAGLI).some(v=>Math.abs(v-dt)<=1.0);
+}
+/* un ritardo è realizzabile se esiste il raccordo (o se si usa l'elettronico).
+   Trasloco B3 (14/09): il legame con l'innesco scelto è uscito anche lui —
+   `D2` come primo argomento esplicito, stesso schema delle altre fette. */
+export function innTaglioOk(D2, dt){ return taglioRealizzabile(dt, D2.innesco, INN_TAGLI); }
+/* IL CSV DEL CONFRONTO A/B (27/11, fetta di B3: Genesi continua a uscire dalla pagina).
+   Lo componeva l'`onclick` di `cmpExport`. È entrato com'era, riga per riga e commento per commento
+   (provato sugli stessi due scatti contro il corpo di prima: identico carattere per carattere): non
+   toccava niente della pagina — solo i due scatti e tre funzioni che erano già qui.
+   `A` e `B` sono gli scatti (`{ ts, kpi }`): chi chiama controlla che ci siano tutt'e due. */
+export function csvConfrontoAB(A, B){
+  /* ⛔ QUESTO ERA L'ULTIMO DEI QUATTRO FILE DI GENESI SENZA `csvCell`: la
+     passata del 03/08 aveva ripulito la scheda volata, la legge di sito e il
+     file per Sentinella, e si era fermata prima di qui. Le celle le compone
+     `csvCell` di `shared/` come tutte le altre — un `join(';')` nudo non mette
+     l'apostrofo davanti a una formula né protegge un `;` dentro un nome.
+     ⛔ E la base della PPV esce ACCANTO ai due numeri: senza, un file che
+     dice «6,4 contro 2,8» racconta un progetto migliorato dove è cambiata
+     solo la calibrazione. Stessa ragione per cui la norma esce accanto alla
+     sua soglia nel CSV della scheda volata. */
+  /* i fori con valori LORO (26/11): `null` (scatto salvato prima) esce cella VUOTA, e la
+     riga «registrati nello scatto» dice che quel vuoto è un «non lo so», non un conto */
+  const _fpA=cmpForiPropri(A.kpi), _fpB=cmpForiPropri(B.kpi);
+  const _fpNoto=(c)=> c.noto ? 'si' : 'no — scatto salvato prima che il dato esistesse';
+  const _base=(S)=> (S.kpi.ppvBase&&S.kpi.ppvBase.testo)
+    ? S.kpi.ppvBase.testo+(S.kpi.ppvBase.provvisoria?' — legge provvisoria':'')
+    : 'base non registrata';
+  const R=[['KPI','A ('+A.ts+')','B ('+B.ts+')'],
+    ['Maglia',A.kpi.maglia,B.kpi.maglia],
+    ['Esplosivo',A.kpi.setup,B.kpi.setup],
+    ['Fori',A.kpi.nf,B.kpi.nf],
+    ['Fori con valori propri',_fpA.fori,_fpB.fori],
+    ['Fori con valori propri registrati nello scatto',_fpNoto(_fpA),_fpNoto(_fpB)],
+    ['Carica totale (kg)',A.kpi.qtot,B.kpi.qtot],
+    ['Powder factor',A.kpi.pf,B.kpi.pf],
+    ['X20 (cm)',A.kpi.x20,B.kpi.x20],['X50 (cm)',A.kpi.x50,B.kpi.x50],['X80 (cm)',A.kpi.x80,B.kpi.x80],
+    ['Fori fuori dal foro tipo (pezzatura)',_fpA.fuoriPezzatura,_fpB.fuoriPezzatura],
+    ['PPV (mm/s)',A.kpi.ppv,B.kpi.ppv],['Limite PPV (mm/s)',A.kpi.lim,B.kpi.lim],
+    ['Norma PPV',A.kpi.norma,B.kpi.norma],
+    ['Base della previsione PPV',_base(A),_base(B)],
+    ['Stessa legge per le due PPV',stessaBasePpv(A.kpi.ppvBase,B.kpi.ppvBase)?'si':'no — le due PPV non sono confrontabili',''],
+    ['Gittata flyrock (m)',A.kpi.fly,B.kpi.fly],
+    ['Fori fuori dal foro tipo (gittata)',_fpA.fuoriGittata,_fpB.fuoriGittata],
+    ['Presplit',A.kpi.presplit?'si':'no',B.kpi.presplit?'si':'no'],
+    ['Costo totale stima (EUR)',A.kpi.cost,B.kpi.cost],
+    /* le due celle sopra possono essere VUOTE (carica per foro illeggibile →
+       l'addendo dell'esplosivo non si conta): questa riga dice che è una
+       non-misurabilità e non una dimenticanza, per ciascuna delle due colonne */
+    ['Esito costo', _cmpNum(A.kpi.cost)===null?'non calcolabile: '+(A.kpi.costChe||''):'contato',
+                    _cmpNum(B.kpi.cost)===null?'non calcolabile: '+(B.kpi.costChe||''):'contato'],
+    ['Carica totale non calcolabile',
+      _cmpNum(A.kpi.qtot)===null?'si':'no', _cmpNum(B.kpi.qtot)===null?'si':'no'],
+    /* stessa forma per le quattro celle della frammentazione, che con la
+       carica illeggibile uscivano «0» e «97/173» invece che vuote */
+    ['Esito frammentazione', _cmpNum(A.kpi.pf)===null?'non calcolabile: '+(A.kpi.fragChe||''):'calcolata',
+                             _cmpNum(B.kpi.pf)===null?'non calcolabile: '+(B.kpi.fragChe||''):'calcolata']];
+  /* `null` non si scrive in un file (il limite manca quando la normativa non è
+     riconosciuta): cella VUOTA, come già fa la scheda volata */
+  const csv=R.map(r=>r.map(v=>csvCell(v===null||v===undefined?'':v)).join(';')).join('\n')+'\n';
+  return csv;
+}
+export function _cmpNum(v){ return (v===null||v===undefined||v==='')?null:(isFinite(+v)?+v:null); }
+export function _cmpKg(k){ const v=_cmpNum(k&&k.qtot); return v===null?'<i style="color:#ffca28">non calcolabile</i>':gnum(v,0)+' kg'; }
+export function _cmpEur(k){ const v=_cmpNum(k&&k.cost); return v===null?'<i style="color:#ffca28">non calcolabile</i>':'€'+gnum(v,0); }
+export function _cmpPf(k){ const v=_cmpNum(k&&k.pf); return (v===null||(k&&k.fragCalcolabile===false))?'<i style="color:#ffca28">non calcolabile</i>':gfix(v,2)+' kg/m³'; }
+export function _cmpCm(k,campo){ const v=_cmpNum(k&&k[campo]); return (v===null||(k&&k.fragCalcolabile===false))?'<i style="color:#ffca28">non calcolabile</i>':gnum(v,1)+' cm'; }
+export function _cmpFly(k){ const v=_cmpNum(k&&k.fly); return (v===null||(k&&k.flyCalcolabile===false))?'<i style="color:#ffca28">non calcolabile</i>':gnum(v,0)+' m'; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   G26 · LE CLASSI DELL'ENERGIA E DEL RELIEF, E IL CODICE DELLA VOLATA
+   (10/09, cantiere B3, ottava fetta).
+   ═══════════════════════════════════════════════════════════════════════════
+   `pfCls(rapporto)` con `ENECOL` e `ENELAB` — la classe di un foro dal
+   RAPPORTO fra il suo consumo specifico locale e quello di progetto (una cava
+   a 0,25 kg/m³ e una a 0,7 hanno entrambe diritto alla loro media: conta
+   quanto un foro se ne discosta): sotto il 75% «carica molto diluita», sotto
+   il 90% «diluita», fino al 115% «in linea», fino al 140% «energia
+   concentrata», oltre «molto concentrata». ⚠️ Di un rapporto non finito
+   risponde `'ok'`, com'era: sono i CHIAMANTI a non chiederlo quando manca un
+   pezzo (le due guardie pinnate in `run-kpi`, blocco G15), perché un verde
+   su un confronto impossibile è il numero tranquillo. Le due mappe portano
+   il colore e la frase di ogni classe: la prova pretende che coprano tutte
+   le classi che la funzione sa dire (regola 18).
+
+   `classeRelief(relief, relLo, relHi)` con `RELCOL` — la classe del relief di
+   un foro (ms/m verso il vicino che ha già sparato) rispetto alla finestra
+   scelta a schermo: sotto il 60% del minimo «bad», sotto il minimo «warn»,
+   dentro «ok», sopra il massimo «hi»; `null` è «none» (il primo della sua
+   zona spara sulla faccia già aperta). Il massimo sta sempre almeno mezzo
+   ms/m sopra il minimo, e senza finestra valgono 5 e 15. La pagina la chiama
+   con `D2.relLo`/`D2.relHi` e `reliefCls` resta come legame. ⚠️ La mappa
+   `RELSV` (le classi CSS) NON è entrata: nella pagina non la leggeva nessuno
+   (`grep -c RELSV` → 1, la sola dichiarazione), ed è stata tolta.
+
+   `codiceVolataGenesi(dati, data, fronte)` — il CODICE della volata che esce
+   verso Sentinella: deterministico, ricavato dal progetto (data, fronte,
+   fori, chili, MIC, distanza), `GEN-<data senza trattini>-<impronta in base
+   36>`. Serve a Sentinella per riconoscere i doppioni (`firmaVolata`) anche
+   DOPO che la volata è stata confermata correggendo fori e chili: un codice
+   casuale a ogni export non servirebbe a niente. Tutte entrate identiche. */
+export const ENECOL={ moltoBassa:'#5c8dd6', bassa:'#86b0d8', ok:'#66bb6a', alta:'#ffb300', moltoAlta:'#ef5350' };
+export const ENELAB={ moltoBassa:'carica molto diluita', bassa:'carica diluita', ok:'in linea col progetto', alta:'energia concentrata', moltoAlta:'energia molto concentrata' };
+/* LE SOGLIE DEL RAPPORTO COL PROGETTO, scritte una volta (G30, 11/09): le
+   legge `pfCls` e le scrive la legenda del disegno dell'energia, che prima le
+   ripeteva a mano nella pagina («< 75%», «75–90%»…) — due copie degli stessi
+   quattro numeri, una nel verdetto e una nel suo cartello. */
+export const SOGLIE_PF={ moltoBassa:0.75, bassa:0.90, ok:1.15, alta:1.40 };
+export function pfCls(r){
+  if(r==null||!isFinite(r)) return 'ok';
+  if(r<SOGLIE_PF.moltoBassa) return 'moltoBassa';
+  if(r<SOGLIE_PF.bassa) return 'bassa';
+  if(r<=SOGLIE_PF.ok) return 'ok';
+  if(r<=SOGLIE_PF.alta) return 'alta';
+  return 'moltoAlta';
+}
+// la legenda: [classe, etichetta in percentuale], derivata dalle soglie
+// (identica, carattere per carattere, al letterale che la pagina teneva)
+const _p=(v)=>Math.round(v*100);
+export const LEGENDA_ENERGIA=[
+  ['moltoBassa','< '+_p(SOGLIE_PF.moltoBassa)+'%'],
+  ['bassa',_p(SOGLIE_PF.moltoBassa)+'–'+_p(SOGLIE_PF.bassa)+'%'],
+  ['ok',_p(SOGLIE_PF.bassa)+'–'+_p(SOGLIE_PF.ok)+'% in linea'],
+  ['alta',_p(SOGLIE_PF.ok)+'–'+_p(SOGLIE_PF.alta)+'%'],
+  ['moltoAlta','> '+_p(SOGLIE_PF.alta)+'%'],
+];
+/* G56c (19/09) — `noneGap` accanto a `none`: stesso `relief=null`, causa
+   diversa. `none` è il vero primo della zona (tranquillo, colore neutro);
+   `noneGap` è un vicino che ha già sparato ma è oltre la distanza di
+   adiacenza — quasi sempre un foro mancante nel mezzo — e usa il colore di
+   `warn` perché è la stessa famiglia di rischio (confinamento non
+   verificabile), non un'informazione mancante qualunque. */
+export const RELCOL={bad:'#ef5350', warn:'#ffb300', ok:'#66bb6a', hi:'#86b0d8', none:'#9b8a60', noneGap:'#ffb300'};
+export function classeRelief(r, relLo, relHi, fuoriFascia){
+  if(r==null) return fuoriFascia ? 'noneGap' : 'none';
+  const lo=relLo||5, hi=Math.max((relLo||5)+0.5, relHi||15);
+  if(r<lo*0.6) return 'bad';                                 // molto sotto finestra
+  if(r<lo) return 'warn';                                    // sotto finestra
+  if(r<=hi) return 'ok';                                     // in finestra
+  return 'hi';                                               // relief eccessivo
+}
+export function reliefCls(D2, r, fuoriFascia){ return classeRelief(r, D2.relLo, D2.relHi, fuoriFascia); }
+export function codiceVolataGenesi(d,data,fronte){
+  const base=[data,String(fronte||'').trim().toLowerCase(),d.nFori,d.kgTotali,d.mic,d.dist].join('|');
+  let h=0; for(let i=0;i<base.length;i++) h=(Math.imul(h,31)+base.charCodeAt(i))|0;
+  return 'GEN-'+String(data||'').replace(/-/g,'')+'-'+(h>>>0).toString(36);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   G39 · LA RETE DI COLLEGAMENTO DELL'INNESCO (14/09, cantiere B3).
+   ═══════════════════════════════════════════════════════════════════════════
+   `computeInnesco2D` era marcata nel censimento come legata a «più di dieci»
+   variabili del modulo — falso, per la STESSA famiglia di falso positivo già
+   presa quattro volte su questo file (unità 121, 122, 124, e ancora): la sua
+   dipendenza vera è UNA sola, `D2`, e le altre lettere («si», «ci», «sotto»,
+   «L», «r»…) sono nomi locali di ALTRE funzioni della pagina, scritti con
+   un'indentazione bassa che l'euristica del censimento (dichiarata e accettata
+   come prudente) scambia per variabili del modulo. Letta a mano: pura, chiama
+   solo `spaziaturaTipica` — già in questo file — per la stessa soglia che
+   `_spazTipico` calcolava nella pagina.
+   Per ogni foro, cerca fra quelli che sparano PRIMA di lui quello che arriva
+   con il ritardo più piccolo (il raccordo più economico, quello che si vede
+   tirare in cava): è la rete che `drawInnesco2D` disegna sopra i fori. Entrata
+   identica, `H` mutato sul posto come faceva la pagina (`innFrom`, `innDt` su
+   ogni foro) — non è stata cambiata la forma dei dati, solo dove vive il
+   calcolo. */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   G40 · IL BURDEN RELIEF FORO PER FORO (14/09, cantiere B3).
+   ═══════════════════════════════════════════════════════════════════════════
+   Il ms/m dei badge è una media di progetto: qui diventa un valore del
+   singolo foro, che è dove nascono blocchi, picchi di vibrazione e
+   proiezioni. Per ogni foro: quanti millisecondi passano dal foro che gli ha
+   già aperto lo spazio, diviso la distanza da quel foro. Fra tutti i vicini
+   già sparati vince il PIÙ VINCOLANTE (rapporto più basso): è quello che
+   decide se la roccia davanti ha fatto in tempo a muoversi.
+   Stessa famiglia di falso positivo di `innescoSuMaglia` qui sopra (G39):
+   `computeRelief2D` era marcata dal censimento come dipendente da più di
+   dieci variabili del modulo; letta a mano, la sua dipendenza vera è `D2`
+   (per `S`/`B`, la soglia di distanza) più `dtMin`, che nella pagina viene
+   dalla dispersione dell'innesco (`scatterMs()`, un altro legame di una
+   riga su `scatterInnesco`, già in questo modulo) — passato qui come
+   parametro invece di ricalcolato, perché richiede altri tre campi di `D2`
+   (`ritardo`, `lastDet`, `innesco`) che non servono a nient'altro in questa
+   funzione. Entrata identica, `H` mutato sul posto.
+
+   ⛔ G56c (19/09) — `relief=null` NASCONDEVA DUE CAUSE DIVERSE SOTTO LA
+   STESSA FACCIA TRANQUILLA. Misurato togliendo un foro dalla maglia
+   (drag+Canc, gesto reale: un operatore scarta un foro perché intasato o
+   fuori posto): il foro rimasto senza il suo vicino più vicino non diceva
+   «attenzione, manca un vicino entro la distanza di adiacenza» — diceva
+   ESATTAMENTE la stessa cosa del vero primo foro della volata, «primo
+   della sua zona: spara sulla faccia già aperta» (il testo in genesi.html),
+   perché `best` restava `null` sia quando NESSUN vicino aveva ancora
+   sparato sia quando un vicino AVEVA sparato ma era finito fuori da `dMax`
+   a causa del buco lasciato dal foro tolto. La seconda causa è quella che
+   il relief foro-per-foro esiste apposta per segnalare (G40, sopra: «è
+   quello che decide se la roccia davanti ha fatto in tempo a muoversi»),
+   e finiva scartata in silenzio anche dalla sintesi del Validatore
+   (`filter(v=>v!=null)`, genesi.html), che poteva scrivere «tutti i fori
+   sono dentro la finestra impostata» ignorando proprio il foro col
+   problema. Le due cause si dichiarano separate con `h.relFuoriFascia`. */
+export function reliefSuMaglia(H, S, B, dtMin){
+  if(!H||!H.length) return;
+  const dMax=1.5*Math.max(S||3.5, B||3.0, spaziaturaTipica(H, Math.max(S||3.5, B||3)));   // solo i fori ADIACENTI: oltre, la roccia in mezzo e di un altro foro
+  const soglia=Math.max(1, dtMin);                             // sotto la dispersione dell'innesco i due fori sono un istante solo
+  for(let i=0;i<H.length;i++){
+    const h=H[i]; let best=null, fuoriFascia=false;
+    for(let j=0;j<H.length;j++){
+      if(j===i) continue;
+      const dt=(h.tDet||0)-(H[j].tDet||0);
+      if(dt<soglia) continue;                                 // solo fori che hanno gia sparato, e non "insieme" a questo
+      const d=Math.hypot(H[j].mx-h.mx, H[j].my-h.my);
+      if(d<0.05) continue;
+      if(d>dMax){ fuoriFascia=true; continue; }               // un vicino ha già sparato, ma il buco fra i due è troppo largo per dirsi adiacente
+      const r=dt/d;                                          // ms/m disponibili verso QUEL foro
+      if(!best || r<best.r) best={r:r,j:j,d:d,dt:dt};        // vince il vincolo piu stretto
+    }
+    h.relief = best? +best.r.toFixed(2) : null;              // null = nessun vicino adiacente ha gia sparato
+    h.relFrom = best? best.j : -1;
+    h.relD = best? +best.d.toFixed(2) : null;
+    h.relDt = best? +best.dt.toFixed(1) : null;
+    h.relFuoriFascia = !best && fuoriFascia;                 // il vicino c'è, ma è oltre dMax: quasi sempre un foro mancante nel mezzo
+  }
+}
+/* Trasloco B3 (14/09): con `scatterMs` uscita anche lei (D2 esplicito), il
+   legame di pagina che componeva `dtMin` da tre campi di D2 non serve più —
+   `computeRelief2D` diventa una composizione diretta, senza wrapper, come
+   già `computeEnergia2D`/`isoPasso`. */
+export function computeRelief2D(D2){ reliefSuMaglia(D2.holes, D2.S, D2.B, scatterMs(D2)); }
+/* ⛔ G56d (19/09) — STESSA CAUSA DI G56c, IN UN POSTO PIÙ PERICOLOSO: un
+   `innFrom=-1` diceva sia «è il primo della volata, non serve un raccordo»
+   sia «un foro ha già sparato prima di lui, ma è troppo lontano per tirarci
+   un raccordo» — e il Validatore («Rete di innesco», genesi.html) filtra
+   proprio su `innFrom>=0`, quindi un foro nel secondo caso SPARISCE dal
+   conteggio dei collegamenti senza che nessuna riga lo dica: il piano può
+   dichiararsi «collegabile con quello che si compra» mentre un foro reale
+   non ha nessun raccordo che lo raggiunga. Misurato togliendo due fori
+   adiacenti dalla maglia di demo (drag+Canc): il foro rimasto col buco di
+   10,5 m attorno (soglia `dMax`=7,7 m) usciva identico al vero primo foro
+   della volata. Stessa cura di `reliefSuMaglia`: si dichiara la causa. */
+export function innescoSuMaglia(H, S, B){
+  if(!H||!H.length) return;
+  const dMax=2.2*Math.max(S||3.5, B||3.0, spaziaturaTipica(H, Math.max(S||3.5, B||3)));
+  for(let i=0;i<H.length;i++){
+    const h=H[i]; h.innFrom=-1; h.innDt=null;
+    let best=null, fuoriFascia=false;
+    for(let j=0;j<H.length;j++){
+      if(j===i) continue;
+      const dt=+(h.tDet-H[j].tDet).toFixed(1);
+      if(dt<=0) continue;                                  // solo fori che sparano PRIMA: da lì può arrivare l'accensione
+      const d=Math.hypot(H[j].mx-h.mx, H[j].my-h.my);
+      if(d<0.05) continue;
+      if(d>dMax){ fuoriFascia=true; continue; }            // un foro ha già sparato, ma troppo lontano: nessuno tira un raccordo così
+      /* il fuoco arriva da chi ha sparato POCO PRIMA, non da chi sta più
+         vicino: si sceglie il ritardo più piccolo, e a parità il foro più
+         vicino. È anche il collegamento più economico — meno raccordi lunghi
+         — ed è quello che si vede tirare in cava. */
+      if(!best || dt<best.dt-0.05 || (Math.abs(dt-best.dt)<=0.05 && d<best.d)) best={j:j,d:d,dt:dt};
+    }
+    if(best){ h.innFrom=best.j; h.innDt=best.dt; }
+    h.innFuoriFascia = !best && fuoriFascia;               // un foro ha già sparato prima di lui, ma nessun raccordo lo raggiunge
+  }
+}
+/* Trasloco B3 (15/09): il G39 del 14/09 aveva estratto `innescoSuMaglia` ma
+   lasciato in pagina il legame `computeInnesco2D()` a zero argomenti — stessa
+   forma di `computeEnergia2D`/`computeRelief2D` prima di loro, stesso unico
+   punto di chiamata (dentro `computeSeq2D`, già con `D2` in scope). Nessuna
+   ragione strutturale per fermarsi un passo prima delle sue due sorelle. */
+export function computeInnesco2D(D2){ innescoSuMaglia(D2.holes, D2.S, D2.B); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   G41 · LA MAPPA DELL'ENERGIA FORO PER FORO (14/09, cantiere B3).
+   ═══════════════════════════════════════════════════════════════════════════
+   Sesta volta sulla stessa famiglia di falso positivo di `genesi-estraibili.mjs`
+   già diagnosticata per G39/G40: `computeEnergia2D` era marcata «più di dieci
+   variabili del modulo» per l'incrocio fra parole interne (`file`, `faccia`,
+   `davanti`, `ord`…) e `const` omonimi dichiarati altrove nel file a bassa
+   indentazione. Letta a mano: la dipendenza vera è `D2.holes`, `D2.prof`,
+   `D2.S`, `D2.kg` e `D2.profilo` (quest'ultimo passato esplicitamente, perché
+   `interpFronte(mx)` nella pagina è un wrapper di una riga che legge
+   `D2.profilo` e delega a `interpProf` — già pura, sopra in questo stesso
+   file — sostituito qui dalla chiamata diretta `interpProf(profilo, mx)`).
+   Nessuna riga di logica cambiata: trasloco parola per parola, firma nuova
+   `energiaSuMaglia(H, prof, S, kg, profilo)`. */
+export function energiaSuMaglia(H, prof, S, kg, profilo){
+  if(!H||!H.length) return;
+  const file=fileDeiFori(H), Hb=Math.max(0.5,prof||10), Snom=Math.max(0.5,S||3.5);
+  const xs=H.map(h=>h.mx), x0=Math.min(...xs)-Snom, x1=Math.max(...xs)+Snom;
+  const passo=Math.max(.15,(x1-x0)/240), faccia=[];
+  for(let x=x0;x<=x1+1e-9;x+=passo) faccia.push([x, interpProf(profilo,x)]);
+  for(let r=0;r<file.length;r++){
+    const f=file[r];
+    const ord=f.holes.slice().sort((a,b)=>H[a].mx-H[b].mx);
+    const davanti = r>0
+      ? file[r-1].holes.slice().sort((a,b)=>H[a].mx-H[b].mx).map(i=>[H[i].mx, H[i].my+interpProf(profilo,H[i].mx)])
+      : faccia;
+    for(let k=0;k<ord.length;k++){
+      const h=H[ord[k]];
+      const sx = k>0 ? (h.mx-H[ord[k-1]].mx)/2 : Snom/2;
+      const dx = k<ord.length-1 ? (H[ord[k+1]].mx-h.mx)/2 : Snom/2;
+      const py=h.my+interpProf(profilo,h.mx);
+      const yPrec = r>0 ? file[r-1].my : 0;
+      const b=Math.max(.2, h.my-yPrec);
+      const dPerp = (davanti.length>1) ? distanzaDaSpezzata(h.mx,py,davanti) : null;
+      h.burdenVero = dPerp!=null ? +dPerp.toFixed(2) : null;
+      /* F2 (26/11): il volume servito e il consumo specifico di QUESTO foro
+         usano la SUA profondità e la SUA carica, se ne ha (`valoreProprioDiForo`);
+         se no quelle della volata, e allora il conto è quello di prima, alla
+         cifra — stesse variabili, stessa formula. */
+      const _profSua=valoreProprioDiForo(h,'prof'), _kgSua=valoreProprioDiForo(h,'kg');
+      const _Hb=_profSua===null ? Hb : Math.max(0.5,_profSua), _kg=_kgSua===null ? kg : _kgSua;
+      const s=Math.max(.2, sx+dx), vol=b*s*_Hb;
+      h.burdenLoc=+b.toFixed(2); h.spazLoc=+s.toFixed(2);
+      h.volLoc=+vol.toFixed(1); { const _p=consumoSpecifico(_kg, vol); h.pfLoc = _p===null?null:+_p.toFixed(3); }
+      h.enX0=h.mx-sx; h.enX1=h.mx+dx; h.enY0=yPrec; h.enY1=h.my; h.enFila=r;
+    }
+  }
+}
+export function computeEnergia2D(D2){ energiaSuMaglia(D2.holes, D2.prof, D2.S, D2.kg, D2.profilo); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   G42 · LA SEQUENZA DI SPARO FORO PER FORO (14/09, cantiere B3, ULTIMA
+   fetta del gruppo diagnosticato con `computeInnesco2D`/G39,
+   `computeRelief2D`/G40, `computeEnergia2D`/G41).
+   ═══════════════════════════════════════════════════════════════════════════
+   Ottava volta sulla stessa famiglia di falso positivo di `genesi-estraibili.mjs`.
+   Letta a mano: la dipendenza vera è `D2.holes`, `D2.ritardo`,
+   `D2.ritardoFila`, `D2.S`, `D2.dir`, `D2.sequenza` (`h.tMano` è una
+   proprietà per foro, non un campo di `D2`).
+   ⚠️ SCELTA ARCHITETTURALE (dichiarata, non presa di default): questa
+   funzione pura fa SOLO il calcolo di `tCalc`/`tDet`/`seq` e ritorna il
+   `lastDet` (il tempo più tardo). NON chiama `reliefSuMaglia`/
+   `energiaSuMaglia`/`innescoSuMaglia` al suo interno, anche se sono ormai
+   tutte pure e nello stesso modulo: comporle è una decisione di
+   ORCHESTRAZIONE (in che ordine si ricalcola la pagina dopo un cambio di
+   sequenza), non di calcolo, e resta nel wrapper di pagina — lo stesso
+   principio per cui `shared/dw-ponti.js` tiene la logica FRA le app e non
+   la duplica, applicato qui alla logica FRA le fasi del progetto. Il
+   trasloco resta "parola per parola" sul calcolo, non un rifacimento. */
+export function sequenzaSuMaglia(H, tHole, tRowRaw, S, dir, sequenza){
+  if(!H||!H.length) return 0;
+  const tRow=tRowRaw||tHole*2, Snom=S||3.5;
+  const mxs=H.map(h=>h.mx), minMx=Math.min(...mxs), maxMx=Math.max(...mxs), cxMx=(minMx+maxMx)/2;
+  const rys=[...new Set(H.map(h=>Math.round(h.my*10)))].sort((a,b)=>a-b);
+  const nRow=rys.length, centerRow=(nRow-1)/2, seq=sequenza||'diagonale';
+  H.forEach(h=>{
+    const rowI=rys.indexOf(Math.round(h.my*10));
+    const cd=(dir==='sx'?(h.mx-minMx):(maxMx-h.mx))/Snom;
+    const cc=Math.abs(h.mx-cxMx)/Snom;
+    let t;
+    if(seq==='vcut') t=rowI*tRow + cc*tHole;
+    else if(seq==='box') t=Math.abs(rowI-centerRow)*tRow + cc*tHole;
+    else if(seq==='riga') t=rowI*tRow + cd*1.5;
+    else t=rowI*tRow + cd*tHole;
+    h.tCalc=+t.toFixed(1);
+    h.tDet = (h.tMano!=null && isFinite(h.tMano)) ? +(+h.tMano).toFixed(1) : h.tCalc;
+  });
+  H.map((h,i)=>i).sort((a,b)=>H[a].tDet-H[b].tDet).forEach((i,k)=>{ H[i].seq=k; });
+  return Math.max(...H.map(h=>h.tDet));
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   G43 · LA GENERAZIONE DELLA MAGLIA (14/09, cantiere B3 — nuova estrazione,
+   non un falso positivo del censimento: `genMaglia2D` cade davvero nel
+   bucket "11+" perché la sua funzione vera è mutare `D2` (assegna
+   `D2.holes`/`D2.sel`/`D2.selPrev`/`D2.bf`/`D2.magliaAssente`, avvisa con
+   un toast se rigenerando perde ritardi messi a mano, e orchestra
+   `computeSeq2D`), non calcolare. Qui esce SOLO il calcolo delle
+   coordinate — righe e colonne, sfalsamento a file alterne — che è la
+   parte riusabile: la stessa griglia serve a un ottimizzatore che vuole
+   provare un burden diverso SENZA toccare il progetto disegnato a
+   schermo. Il resto (guardia su B/S assenti, mutazione di D2, il toast,
+   l'orchestrazione della sequenza) resta nel wrapper di pagina — è la
+   stessa distinzione calcolo/orchestrazione di G42. */
+export function generaMaglia(B, S, nFile, perRow, bf, stagger){
+  const holes=[];
+  for(let r=0;r<nFile;r++){
+    const my = B + r*bf;
+    const off = (stagger && r%2===1) ? S/2 : 0;
+    for(let c=0;c<perRow;c++) holes.push({ id:idForoMaglia(r+1,c+1), mx:+(c*S+off).toFixed(3), my:+my.toFixed(3) });
+  }
+  return holes;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   G44 · LA VIBRAZIONE PER OGNI BURDEN CANDIDATO — la seconda fetta di G7
+   (14/09, cantiere B3), resa possibile da G39-G43 (sequenza e maglia ora
+   pure). Risponde alla domanda che il bottone "Confronta burden" dichiarava
+   esplicitamente di NON rispondere ("Non ricalcola vibrazione né
+   sequenza... farla qui sarebbe una terza copia della stessa domanda"):
+   per ogni burden candidato già uscito da `curvaBurdenCarica` (stessa
+   pezzatura obiettivo, stesso rapporto spalla/interasse), genera una
+   maglia di PROVA con la stessa forma del progetto disegnato (file, fori
+   per fila, sfalsamento), la sequenzia con le stesse impostazioni di oggi
+   (ritardo, direzione, schema), e stima MIC e PPV al recettore con le
+   STESSE funzioni pure che la Scheda volata usa per il progetto reale
+   (`micFinestra`, `ppvDaSd`, `esitoPpv`) — non una terza copia della
+   formula, la stessa, con input diversi.
+   ⚠️ Il burden fra file (`bf`) è sempre uguale al burden candidato
+   (`r.B`), la stessa convenzione di `genMaglia2D` (`D2.bf=D2.B`): il
+   progetto disegnato può avere un `bf` diverso da `B` se qualcuno l'ha
+   editato a mano, ma qui si genera una maglia NUOVA, non si tocca quella
+   disegnata — quindi la convenzione di partenza (bf=B) è quella giusta,
+   non un'approssimazione.
+   ⚠️ La carica per foro è quella che la riga già dichiara (target di
+   frammentazione), assunta UNIFORME su tutti i fori — la stessa
+   assunzione di `computeMIC`/`micFinestra` sul progetto reale (`D2.kg`
+   unico, non per-foro).
+   Righe non calcolabili (`kg===null`) restano tali: non si inventa una
+   vibrazione su una carica che non si conosce. */
+export function vibrazionePerBurden(righe, geom, seqOpz, sito){
+  const nFile=geom.nFile, perRow=geom.perRow, stagger=geom.stagger;
+  const tHole=seqOpz.tHole, tRowRaw=seqOpz.tRowRaw, dir=seqOpz.dir, sequenza=seqOpz.sequenza;
+  const recDist=sito.recDist, K=sito.K, beta=sito.beta, limite=sito.limite;
+  return righe.map(r=>{
+    if(!r.calcolabile || r.kg===null) return { ...r, mic:null, ppv:null, esitoV:null };
+    const H=generaMaglia(r.B, r.S, nFile, perRow, r.B, stagger);
+    sequenzaSuMaglia(H, tHole, tRowRaw, r.S, dir, sequenza);
+    const mic=micFinestra(H, r.kg);
+    const sd=(mic!=null && ppvSenzaDistanza(recDist)===null) ? recDist/Math.sqrt(Math.max(1,mic)) : null;
+    const ppv=sd!=null ? ppvDaSd(sd, K, beta) : null;
+    const esitoV=ppv!=null ? esitoPpv(ppv, limite) : null;
+    return { ...r, mic: mic===null?null:+mic.toFixed(1), ppv: ppv===null?null:+ppv.toFixed(2), esitoV };
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   G27 · TRE PEZZI DI DOCUMENTO CHE LA PAGINA COMPONEVA IN CASA — la miniatura
+   del composito, la base della previsione PPV, la tinta della roccia
+   (10/09, cantiere B3, nona fetta).
+   ═══════════════════════════════════════════════════════════════════════════
+   `_sigSpark(comp, steps)` — la miniatura SVG dell'onda composita (G23): il
+   tracciato campionato a 240 punti al massimo, normalizzato sul picco (mai
+   diviso per zero: il picco parte da 1e-9), con la linea dello zero. È il
+   disegno che sta sotto il PPV composito nella modale della firma.
+
+   `_ppvBaseHtml(pv)` — la «base della previsione PPV» scritta per il foglio
+   stampabile e per la scheda: il testo di `provenienzaPpv` e, se ci sono, gli
+   avvisi uno per riga col grassetto sul CAPO dell'avviso (prima dei due
+   punti) e non su tutta la frase — sullo scatto a 390 px sei righe intere in
+   grassetto smettono di segnalare qualcosa. Tutto passa da `_rEsc`.
+
+   `shade(colore, fattore)` — il colore della roccia derivato dal litotipo
+   (un fronte di basalto non è un fronte di arenaria): ogni canale RGB del
+   colore intero scalato per il fattore, con il tetto a 255. Lo usano dieci
+   materiali della scena 3D.
+   Tutte e tre entrate identiche (vecchie estratte da HEAD accanto alle
+   nuove, 20.000 casi ciascuna → 0 divergenze). `fmtT`, il quarto pezzo di
+   questa fetta, è salito in `genesi-formato.js` perché scrive un numero. */
+export function _sigSpark(comp,steps){
+  const W=560,Hh=90,st=Math.max(1,Math.floor(steps/240));
+  let mx=1e-9; for(let i=0;i<steps;i++){ const v=Math.abs(comp[i]); if(v>mx) mx=v; }
+  let d='',j=0;
+  for(let i=0;i<steps;i+=st){ const x=(i/steps)*W, y=Hh/2-(comp[i]/mx)*(Hh/2-4); d+=(j++?'L':'M')+x.toFixed(1)+' '+y.toFixed(1); }
+  return '<svg viewBox="0 0 '+W+' '+Hh+'" style="width:100%;height:80px;background:rgba(0,0,0,.25);border-radius:8px"><line x1="0" y1="'+(Hh/2)+'" x2="'+W+'" y2="'+(Hh/2)+'" stroke="rgba(255,255,255,.15)"/><path d="'+d+'" fill="none" stroke="#ffd54f" stroke-width="1.2"/></svg>';
+}
+export function _ppvBaseHtml(pv){
+  return _rEsc(pv.testo) + (pv.avvisi.length
+    ? '<br>'+pv.avvisi.map(a=>{ const i=a.indexOf(':');
+        return i<0 ? '<b>'+_rEsc(a)+'</b>' : '<b>'+_rEsc(a.slice(0,i))+'</b>'+_rEsc(a.slice(i)); }).join('<br>')
+    : '');
+}
+export function shade(c,f){ const r=Math.min(255,Math.round(((c>>16)&255)*f)), g=Math.min(255,Math.round(((c>>8)&255)*f)), b=Math.min(255,Math.round((c&255)*f)); return (r<<16)|(g<<8)|b; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   G28 · I CATALOGHI DEL MESTIERE — gli inneschi e le litologie — E LA REGOLA
+   CON CUI LA PAGINA SCEGLIE UNA VOCE (11/09, cantiere B3, decima fetta).
+   ═══════════════════════════════════════════════════════════════════════════
+   `INNESCHI` — i quattro sistemi d'innesco (Nonel, elettronico, elettrico,
+   miccia detonante) con la loro dispersione, i ritardi disponibili, la tenuta
+   all'acqua, pro e contro: sono gli `id` che `scatterInnesco` (G11) conosce.
+   `ROCCE` — le sei litologie: A = rock factor di Kuz-Ram (Cunningham/Lilly),
+   rho in g/cc, vp velocità sonica in m/s (Z = rho·1000·vp è l'impedenza),
+   UCS ed E che `fattoreRoccia` (G22) legge, i parametri dei giunti, la tinta
+   della scena 3D. ⚠️ I loro A «storici» sono un'ETICHETTA: il prodotto usa
+   sempre l'A che `fattoreRoccia` ricava dai parametri, e la prova pinna lo
+   scarto fra i due per ogni litologia — cinque entro 0,3, il basalto a 0,8
+   (12 scritto, 12,8 dai parametri) — così una scheda ritoccata si vede.
+   Entrati IDENTICI, riga per riga, dal letterale della pagina. Gli esplosivi
+   NO: stanno in `esplosivi.json` (la pagina lo carica e tiene il catalogo
+   inline come ripiego), e un file che si scarica non si copia in un modulo.
+
+   `scegliDaCatalogo(catalogo, id, indiceRipiego)` — la regola con cui la
+   pagina sceglie la voce del progetto: quella con l'`id` scelto, se no quella
+   marcata `default`, se no la voce all'indice di ripiego (0 per inneschi ed
+   esplosivi, 2 — il calcare — per le rocce). Era scritta TRE volte nella
+   pagina (`selEsplosivo`, `selInnesco`, `selRoccia`), una copia per catalogo
+   con l'indice diverso: la firma troppo stretta di CLAUDE.md. I tre legami
+   restano nella pagina e passano di qui. */
+export const INNESCHI=[
+  {id:'nonel',short:'Nonel',nome:'Nonel (tubo d\'urto)',tipo:'Non elettrico + connettori MS di superficie',scatter:'~1% del ritardo (cresce col periodo)',ritardi:'17/25/42/65/100 ms',acqua:'Eccellente',pro:'Immune a correnti vaganti/RF, economico, sicuro.',contro:'Ritardi a step, niente verifica continuità, scatter maggiore.',default:true},
+  {id:'elettronico',short:'Elettr.',nome:'Detonatore elettronico',tipo:'Programmabile al ms',scatter:'~0,01–0,05% (molto preciso)',ritardi:'1–10000 ms liberi',acqua:'Eccellente',pro:'Precisione massima: X50 più fine, PPV fino a −50%, verifica pre-sparo.',contro:'Costo elevato, serve logger/blaster dedicato.',default:false},
+  {id:'elettrico',short:'Elettrico',nome:'Detonatore elettrico',tipo:'A ponte resistivo',scatter:'medio',ritardi:'serie MS/LP',acqua:'Buona',pro:'Verifica continuità con ohmetro, economico.',contro:'Sensibile a correnti vaganti/fulmini/RF: rischio sicurezza.',default:false},
+  {id:'cordtex',short:'Cordtex',nome:'Miccia detonante (cordtex)',tipo:'Trunkline + relay di ritardo',scatter:'dipende dai relay',ritardi:'da connettori MS',acqua:'Buona',pro:'Robusta e semplice, innesca tutta la colonna.',contro:'Airblast/rumore in superficie, meno precisa.',default:false},
+];
+/* litologie: A = rock factor Kuz-Ram (Cunningham/Lilly); rho g/cc; vp velocita sonica m/s; Z = rho*1000*vp (impedenza) */
+export const ROCCE=[
+  {id:'marna',nome:'Marna / scisto',cls:'tenera',A:4,rho:2.4,vp:3000,car:'heave',ucs:30,eMod:12,rmd:20,jps:10,jpa:10,jcf:1.5,tint:0x9aa08a,strat:true},
+  {id:'arenaria',nome:'Arenaria',cls:'media-tenera',A:5,rho:2.3,vp:2600,car:'heave',ucs:70,eMod:25,rmd:20,jps:20,jpa:30,jcf:1,tint:0xc9a878,strat:true},
+  {id:'calcare',nome:'Calcare',cls:'medio',A:8,rho:2.6,vp:4500,car:'misto',default:true,ucs:100,eMod:55,rmd:20,jps:50,jpa:30,jcf:1,tint:0xbfb6a2,strat:true},
+  {id:'dolomia',nome:'Dolomia',cls:'dura',A:9,rho:2.8,vp:5000,car:'shock',ucs:150,eMod:65,rmd:20,jps:50,jpa:30,jcf:1,tint:0xb8b0a6,strat:true},
+  {id:'granito',nome:'Granito',cls:'dura',A:10,rho:2.65,vp:5500,car:'shock',ucs:180,eMod:60,rmd:20,jps:50,jpa:40,jcf:1,tint:0xa89c93,strat:false},
+  {id:'basalto',nome:'Basalto / diabase',cls:'molto dura',A:12,rho:2.95,vp:6000,car:'shock',ucs:250,eMod:80,rmd:20,jps:80,jpa:40,jcf:1,tint:0x6f6b65,strat:false},
+];
+export function scegliDaCatalogo(catalogo, id, indiceRipiego){
+  const c=catalogo||[];
+  return c.find(e=>e.id===id) || c.find(e=>e.default) || c[indiceRipiego||0];
+}
+
+/* `esplCardHtml` / `innCardHtml` — la scheda di approfondimento di un
+   esplosivo o di un innesco, dai dati di catalogo scelti da
+   `scegliDaCatalogo` sopra. Trasloco 12/09 (unità 124, fascia 6-10 e 11+ di
+   B3): il censimento le marcava legate a dieci-più variabili del modulo
+   ("g, cc, a, m, per, k, RWS, es, nome, ok" per `esplCardHtml`), ed erano
+   tutti falsi positivi della STESSA famiglia già chiusa su `_sitoParseCsv` e
+   `_sentCell`, ma nella veste che quelle due non avevano ancora mostrato: qui
+   le lettere non vengono da una regex, vengono da CONTENUTO DI STRINGHE —
+   `'ritardi '`, `"es-nome"`, `"es"` — che il tokenizzatore dello strumento
+   spezza sui trattini e sugli apici e legge come nomi di variabile. Lette a
+   mano sono pure: prendono un oggetto di catalogo `e` e tornano solo HTML,
+   nessuno stato del progetto. */
+export function esplCardHtml(e){ const specs=[];
+  if(e.densita_gcc!=null) specs.push(gfix(e.densita_gcc,2)+' g/cc');   // 03/09: «0.82 g/cc» accanto a «3,8k m/s» — la virgola la scrive gfix, come per la VOD
+  if(e.vod_ms!=null) specs.push(gfix(e.vod_ms/1000,1)+'k m/s VOD');
+  if(e.rws_pct!=null) specs.push('RWS '+e.rws_pct);
+  if(e.rbs_pct!=null) specs.push('RBS '+e.rbs_pct);
+  specs.push('Acqua: '+e.acqua);
+  return '<div class="es-card"><div class="es-nome">'+e.nome+'</div><div class="es-tipo">'+e.tipo+'</div><div class="es-specs">'+specs.map(s=>'<span>'+s+'</span>').join('')+'</div><div class="es-app">'+(e.applicazione||'')+'</div><div class="es-pc"><span class="ok">+</span> '+e.pro+'</div><div class="es-pc"><span class="no">-</span> '+e.contro+'</div><div class="es-foot"><span class="es-costo">'+(e.costo||'')+'</span></div></div>';
+}
+export function innCardHtml(e){ const specs=['scatter '+e.scatter,'ritardi '+e.ritardi,'Acqua: '+e.acqua];
+  return '<div class="es-card"><div class="es-nome">'+e.nome+'</div><div class="es-tipo">'+e.tipo+'</div><div class="es-specs">'+specs.map(s=>'<span>'+s+'</span>').join('')+'</div><div class="es-pc"><span class="ok">+</span> '+e.pro+'</div><div class="es-pc"><span class="no">-</span> '+e.contro+'</div></div>';
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   G29 · LA RAMPA DELLE QUOTE, IL VERDETTO DI UN VALIDATORE, IL PUNTO PIÙ
+   VICINO SULLA TELA (11/09, cantiere B3, undicesima fetta).
+   ═══════════════════════════════════════════════════════════════════════
+   `QUOTA_RAMPA` / `quotaColore(u, rampa)` — la rampa topografica tenue con cui
+   la scena 3D tinge i vertici per quota (dal blu dell'impluvio all'avorio
+   delle creste, passando per l'ambra di casa): un `u` fra 0 e 1 interpolato
+   linearmente fra le fermate, con `u` fuori intervallo bloccato agli estremi.
+   Entrata identica dal letterale della pagina; la rampa è un parametro con
+   quella di casa come ripiego, così una tavola diversa non chiede una copia.
+
+   `verdettoValidatore(x, lo, hi, wlo, whi)` — la regola con cui la scheda dei
+   validatori colora un rapporto: dentro [lo, hi] è a posto; sotto `lo` è un
+   avviso e sotto `wlo` un difetto; sopra `hi` e sopra `whi` lo stesso. Era
+   dentro `badge`, chiusa in una funzione che la pagina non può provare.
+   ⛔ E aveva un buco della famiglia «l'assenza non è un dato favorevole»: con
+   `x` NaN (una divisione fra due zeri — `rit/S` con S=0) nessun confronto
+   scattava e il rapporto usciva VERDE con la spiegazione del caso a posto.
+   Qui un `x` che non è un numero risponde «non calcolabile», e la pagina lo
+   scrive; la prova lo pinna nei due versi.
+
+   `puntoTela(m, x, y)` / `indicePiuVicino(punti, px, py, raggioPx)` — la
+   proiezione di un punto del modello sulla tela del disegno 2D
+   (`startX + x·scale`, `faceY + y·scale`, la trasformazione che `drawDesign2D`
+   salva in `D2._m`) e la ricerca del punto più vicino a un tocco entro un
+   raggio, con il pari merito al primo. Era scritta due volte nella pagina,
+   una per i fori e una per i punti del profilo (`d2HitTest`, `d2HitTestPt`):
+   i due legami restano e passano di qui. Un tocco senza coordinate leggibili
+   risponde −1, come un tocco lontano. */
+export const QUOTA_RAMPA = [                                  // rampa topografica tenue, dal basso all'alto
+  { t:0.00, c:[0.16,0.34,0.42] },                      // impluvio / quote basse
+  { t:0.28, c:[0.25,0.48,0.35] },                      // verde profondo
+  { t:0.52, c:[0.72,0.68,0.34] },                      // ocra
+  { t:0.76, c:[0.92,0.60,0.22] },                      // ambra (colore di casa)
+  { t:1.00, c:[1.00,0.92,0.78] } ];                    // creste
+export function quotaColore(u, rampa){
+  const R = (rampa && rampa.length) ? rampa : QUOTA_RAMPA;
+  const x=Math.max(0, Math.min(1, +u || 0));
+  for(let i=1;i<R.length;i++){
+    const a=R[i-1], b=R[i];
+    if(x<=b.t){ const k=(x-a.t)/Math.max(1e-6,(b.t-a.t));
+      return [a.c[0]+(b.c[0]-a.c[0])*k, a.c[1]+(b.c[1]-a.c[1])*k, a.c[2]+(b.c[2]-a.c[2])*k]; }
+  }
+  return R[R.length-1].c;
+}
+export function verdettoValidatore(x, lo, hi, wlo, whi){
+  if(!Number.isFinite(+x) || x === null || x === "") return { cls:'sv-warn', quale:'non-calcolabile' };
+  if(x<lo) return { cls:(x<wlo?'sv-bad':'sv-warn'), quale:'basso' };
+  if(x>hi) return { cls:(x>whi?'sv-bad':'sv-warn'), quale:'alto' };
+  return { cls:'sv-ok', quale:'ok' };
+}
+export function puntoTela(m, x, y){
+  if(!m) return null;
+  return { cx:m.startX + (+x)*m.scale, cy:m.faceY + (+y)*m.scale };
+}
+export function indicePiuVicino(punti, px, py, raggioPx){
+  const r = Number.isFinite(+raggioPx) && +raggioPx > 0 ? +raggioPx : 18;
+  if(!Number.isFinite(+px) || !Number.isFinite(+py)) return -1;
+  let best=-1, bd=r*r;
+  (punti||[]).forEach((q, i) => {
+    if(!q) return;
+    const d=(q.cx-px)*(q.cx-px)+(q.cy-py)*(q.cy-py);
+    if(d<bd){ bd=d; best=i; }
+  });
+  return best;
+}
+/* Trasloco B3 (14/09): tre "legami" del picking sull'editor 2D, usciti
+   insieme perché `d2HitTest`/`d2HitTestPt` compongono `puntoTela`/
+   `indicePiuVicino` qui sopra e `activeProf`. `D2` come primo argomento
+   esplicito, come già per le fette precedenti. `interpFronte(mx)` (wrapper
+   di pagina, resta lì: sedici altri punti di chiamata) diventa qui
+   `interpProf(D2.profilo, mx)` diretto, come già fatto per G41. */
+export function activeProf(D2){ return D2.tool==='piede'?D2.piede:D2.profilo; }
+export function d2HitTest(D2, px, py, raggioPx){ if(!D2._m) return -1; return indicePiuVicino(D2.holes.map(h=>puntoTela(D2._m, h.mx, h.my+interpProf(D2.profilo, h.mx))), px, py, raggioPx); }
+export function d2HitTestPt(D2, px, py, raggioPx){ if(!D2._m) return -1; return indicePiuVicino(activeProf(D2).map(q=>puntoTela(D2._m, q.x, q.y)), px, py, raggioPx); }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LA PIANTA SI MISURA IN PIXEL DI SCHERMO (27/11)
+   ═══════════════════════════════════════════════════════════════════════
+   La tela della pianta ha 960 punti di larghezza e il foglio la mostra a
+   `width:100%` (al massimo 560 px). Fino a oggi TUTTO era scritto in punti
+   di tela: su un telefono da 320 la tela è larga 292 px, quindi il numero
+   di un foro (corpo 9) usciva alto 2,7 px, le quote 3,3 px, e — misurato
+   premendo — il raggio con cui si prende un foro (18 punti) valeva 5,5 px:
+   un tocco a 6 px dal centro NON selezionava il foro, ne CREAVA uno nuovo.
+   Sul computer la tela è mostrata a 560 px: gli stessi testi erano 5-7 px.
+   Adesso il disegno usa come unità il pixel di schermo (la tela tiene i suoi
+   960 punti per la NITIDEZZA: `scalaTestoTela` è il rapporto fra le due
+   cose), e queste tre funzioni decidono le misure che dipendono da quanto
+   sono fitti i fori e da che cosa li tocca. */
+/* Il raggio del pallino di un foro, in px di schermo: 9 quando c'è posto,
+   più piccolo quando i fori sono fitti (mai meno di 4: sotto non è più un
+   pallino). `passoPx` è la distanza a schermo fra due fori vicini. Un passo
+   non leggibile non rimpicciolisce niente. */
+export function raggioForoTela(passoPx){
+  const p = +passoPx;
+  if(!Number.isFinite(p) || !(p > 0)) return 9;
+  return Math.max(4, Math.min(9, 0.4 * p));
+}
+/* Il raggio entro cui un tocco PRENDE un foro invece di crearne uno nuovo,
+   in px di schermo. Col dito 22 (un bersaglio da 44 px), col mouse o la
+   penna 14; ma mai più di metà del passo fra i fori — se no fra due fori
+   vicini non resterebbe un punto in cui metterne uno nuovo — e mai meno di
+   8. Un puntatore che non si dichiara è trattato come il mouse. */
+export function raggioPresaTela(tipoPuntatore, passoPx){
+  const base = tipoPuntatore === 'touch' ? 22 : 14;
+  const p = +passoPx;
+  if(!Number.isFinite(p) || !(p > 0)) return base;
+  return Math.max(8, Math.min(base, 0.5 * p));
+}
+/* ═══════════════════════════════════════════════════════════════════════
+   LA VISTA DELLA PIANTA: INGRANDIMENTO E SPOSTAMENTO (27/11)
+   ═══════════════════════════════════════════════════════════════════════
+   La pianta mostrava sempre TUTTA la maglia a misura fissa: su un telefono,
+   con 20 fori per fila, i pallini si stringono a 4 px e i numeri non si
+   scrivono più (misurato). La vista dice di quanto la pianta è ingrandita
+   (`z`, da 1 a `VISTA_ZOOM_MAX`) e di quanto è spostata (`px`, `py`, in px di
+   schermo). NON è un dato del progetto: non si salva, e a `z = 1` è ferma —
+   la pianta «adattata» non si può trascinare via per sbaglio.
+   · `vistaLimitata` tiene la vista nei suoi limiti: l'ingrandimento fra 1 e
+     il tetto, lo spostamento mai oltre il bordo di ciò che l'ingrandimento
+     ha portato fuori dalla tela. Un valore non leggibile è «ferma».
+   · `vistaApplica` porta la mappatura di base (metri → px) nella vista,
+     attorno a un perno (`ox`, `oy`): chi disegna e chi tocca usano la STESSA
+     mappatura, quindi un foro ingrandito si prende dove lo si vede.
+   · `vistaZoomAttorno` ingrandisce tenendo fermo il punto (`cx`, `cy`): il
+     metro che sta sotto le dita resta sotto le dita.
+   · `gestoDueDita` legge un gesto a due dita: di quanto si sono allontanate
+     (il fattore) e di quanto si è spostato il punto di mezzo. Dita posate
+     nello stesso punto non inventano un fattore. */
+export const VISTA_ZOOM_MAX = 6;
+const VISTA_FERMA = Object.freeze({ z: 1, px: 0, py: 0 });
+export function vistaLimitata(v, larga, alta){
+  const z0 = v && Number.isFinite(+v.z) ? +v.z : 1;
+  const z = Math.max(1, Math.min(VISTA_ZOOM_MAX, z0));
+  const L = Number.isFinite(+larga) && +larga > 0 ? +larga : 0, A = Number.isFinite(+alta) && +alta > 0 ? +alta : 0;
+  const mx = (z - 1) * L / 2, my = (z - 1) * A / 2;
+  const px = v && Number.isFinite(+v.px) ? Math.max(-mx, Math.min(mx, +v.px)) : 0;
+  const py = v && Number.isFinite(+v.py) ? Math.max(-my, Math.min(my, +v.py)) : 0;
+  return { z, px: px || 0, py: py || 0 };
+}
+export function vistaApplica(m, v, ox, oy){
+  if(!m) return null;
+  const w = v || VISTA_FERMA, z = Number.isFinite(+w.z) && +w.z > 0 ? +w.z : 1;
+  return { scale: m.scale * z, startX: (m.startX - ox) * z + ox + (+w.px || 0), faceY: (m.faceY - oy) * z + oy + (+w.py || 0) };
+}
+export function vistaZoomAttorno(v, fattore, cx, cy, ox, oy, larga, alta){
+  const a = vistaLimitata(v, larga, alta), f = Number.isFinite(+fattore) && +fattore > 0 ? +fattore : 1;
+  const z = Math.max(1, Math.min(VISTA_ZOOM_MAX, a.z * f)), r = z / a.z;
+  const X = Number.isFinite(+cx) ? +cx : ox, Y = Number.isFinite(+cy) ? +cy : oy;
+  return vistaLimitata({ z, px: X - ox - (X - ox - a.px) * r, py: Y - oy - (Y - oy - a.py) * r }, larga, alta);
+}
+export function gestoDueDita(a0, b0, a1, b1){
+  const ok = [a0, b0, a1, b1].every((p) => p && Number.isFinite(+p.x) && Number.isFinite(+p.y));
+  if(!ok) return null;
+  const d0 = Math.hypot(b0.x - a0.x, b0.y - a0.y), d1 = Math.hypot(b1.x - a1.x, b1.y - a1.y);
+  const m0 = { x: (a0.x + b0.x) / 2, y: (a0.y + b0.y) / 2 }, m1 = { x: (a1.x + b1.x) / 2, y: (a1.y + b1.y) / 2 };
+  return { fattore: d0 > 1 ? d1 / d0 : 1, cx: m0.x, cy: m0.y, dx: m1.x - m0.x, dy: m1.y - m0.y };
+}
+/* Un tocco è un TOCCO, o è l'inizio di una passata? Lo decide quanto si è
+   mosso il dito fra quando si posa e quando si alza: meno di `sogliaPx` (10 px
+   di schermo, se non detto) è un tocco. Serve alla pianta: col dito un foro
+   nuovo nasce quando il dito SI ALZA senza essersi mosso, non quando si posa —
+   se no una passata per scorrere la pagina ne creava uno (misurato). Coordinate
+   non leggibili non sono un tocco: nel dubbio non si crea niente. */
+export function eUnTocco(x0, y0, x1, y1, sogliaPx){
+  const s = Number.isFinite(+sogliaPx) && +sogliaPx > 0 ? +sogliaPx : 10;
+  const dx = +x1 - +x0, dy = +y1 - +y0;
+  if(!Number.isFinite(dx) || !Number.isFinite(dy)) return false;
+  return Math.hypot(dx, dy) < s;
+}
+/* Le voci di una legenda disposte su più righe: `larghezze` sono le
+   larghezze a schermo delle voci (già col loro spazio), `larghezzaMax` è
+   quanto è larga la riga. Va a capo quando la voce non ci sta; una voce più
+   larga della riga resta sola sulla sua. Restituisce gli INDICI, riga per
+   riga: chi disegna sa già che cosa sono. */
+export function righeDiVoci(larghezze, larghezzaMax){
+  const max = +larghezzaMax, righe = []; let riga = [], x = 0;
+  (Array.isArray(larghezze) ? larghezze : []).forEach((w, i) => {
+    const ww = +w; if(!Number.isFinite(ww) || ww < 0) return;
+    if(riga.length && Number.isFinite(max) && max > 0 && x + ww > max){ righe.push(riga); riga = []; x = 0; }
+    riga.push(i); x += ww;
+  });
+  if(riga.length) righe.push(riga);
+  return righe;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   G30 · LO SCATTO DEI PROFILI E LE ALTEZZE DEI FORI DAL PIEDE (11/09,
+   cantiere B3, dodicesima fetta) — più le soglie e la legenda dell'energia,
+   scritte sopra accanto a `pfCls`.
+   ═══════════════════════════════════════════════════════════════════════
+   `scattoProfili(profilo, piede)` — la copia con cui annulla/ripristina
+   salvano INSIEME cresta e piede (una modellazione sbagliata non è mai
+   definitiva, e i due profili si annullano insieme, senza sorprese). Copia
+   profonda dei soli campi che contano: `x,z` sulla cresta, `x,y` sul piede.
+
+   `altezzeForiDaPiede(nFori, interasse, prof, piede)` — il piede modellato
+   riscrive l'altezza della faccia foro per foro: al centro di ogni foro
+   (`i·interasse + interasse/2`) l'altezza è la profondità meno la deviazione
+   del piede in quel punto, bloccata fra 5 e 20 m (stessa regola del 2D).
+   Risponde `null` senza un piede con almeno due punti (la pagina allora
+   AZZERA le altezze) e `[]` senza fori (la pagina allora NON tocca niente):
+   sono due «niente» diversi, ed erano già diversi nella pagina — il legame
+   li tiene distinti. */
+export function scattoProfili(profilo, piede){
+  return { cresta:(profilo||[]).map(p=>({ x:p.x, z:p.z })),
+           piede:(piede||[]).map(p=>({ x:p.x, y:p.y })) };
+}
+/* ⚠️ La stessa regola era scritta DUE volte nella pagina — qui e nella
+   sincronizzazione 2D→3D, che senza piede modellato riempiva comunque le
+   altezze con la profondità bloccata (un fronte dritto). È la firma troppo
+   stretta di CLAUDE.md: la copia sparisce con un argomento, `pianoSenzaPiede`,
+   che dice che cosa fare quando il piede non c'è — `null` per chi azzera
+   (la modellazione), il piano a profondità piena per chi ricostruisce il 3D. */
+export function altezzeForiDaPiede(nFori, interasse, prof, piede, opts){
+  const conPiede = !!(piede && piede.length>=2);
+  if(!conPiede && !(opts && opts.pianoSenzaPiede)) return null;
+  const n=Math.max(0, Math.round(+nFori||0));
+  const out=[];
+  for(let i=0;i<n;i++){
+    const x=i*interasse + interasse/2;
+    const dv = conPiede ? interpProf(piede, x) : 0;
+    out.push(Math.max(5, Math.min(20, prof - dv)));
+  }
+  return out;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   G31 · LA CARICA DI UN FORO DALLA SUA GEOMETRIA, E LE COSTANTI PPV DALLA
+   LITOLOGIA (11/09, B3 tredicesima fetta).
+   `caricaLineare(diamMm, densitaGcc)` — i kg per metro di colonna: era
+   scritta due volte, in `deriveCharge` della pagina e in
+   `confinamentoColletto` qui sotto (la firma troppo stretta di CLAUDE.md).
+   `caricaForoDaGeometria({diam, prof, sub, stem, densita})` — la carica per
+   foro che la pagina deriva quando `kgAuto` è acceso: colonna caricata
+   `Lc = max(0,5; prof + sub − stem)`, chili = carica lineare × Lc,
+   arrotondati e mai sotto 2 kg. Risponde `null` — non un numero — se manca
+   uno dei quattro ingressi che contano (diametro, profondità, borraggio,
+   densità dell'esplosivo): è il blocco G17 della pagina, portato qui con
+   la sua ragione (la densità che il catalogo dichiara di non avere non
+   diventa 0,82). La sottoperforazione assente vale zero: «non perforo sotto
+   il piano» è il caso normale, non un dato mancante.
+   `costantiPpvLitologia(vp)` — K e β stimati dalla velocità delle onde P
+   quando non c'è una legge di sito: K conservativo (upper-bound, non media),
+   roccia dura attenua meno. STIMA, da calibrare col monitoraggio reale; `vp`
+   assente → 4500 m/s come sempre. Nessuna soglia toccata. */
+export function caricaLineare(diamMm, densitaGcc){
+  const d = +diamMm, r = +densitaGcc;
+  if(!(d > 0) || !(r > 0)) return null;
+  const Dm = d / 1000;
+  return r * 1000 * Math.PI * Dm * Dm / 4;
+}
+export function caricaForoDaGeometria(g){
+  const o = g || {};
+  // ⛔ 17/09, dal deep-pass che ha trovato G21 incompleta: `+o.stem > 0`
+  // trattava un borraggio di ESATTAMENTE ZERO come dato mancante, mentre
+  // `confinamentoColletto` (stessa geometria, poco più su) lo accetta di
+  // proposito — «un colletto non borrato è un progetto pessimo, non un dato
+  // mancante» (commento G17). Con «carica automatica» accesa, un borraggio a
+  // zero azzerava l'intera scheda KPI invece di calcolare la colonna piena.
+  // ⚠️ E `null`/`undefined`/`''` vanno esclusi PRIMA di convertire: `+null`
+  // fa 0 e passerebbe il «>= 0» come se fosse un borraggio vero — lo stesso
+  // `+null === 0` già costato due volte in questo progetto.
+  const stem = (o.stem === null || o.stem === undefined || o.stem === "") ? NaN : +o.stem;
+  if(!(+o.diam > 0) || !(+o.prof > 0) || !(Number.isFinite(stem) && stem >= 0) || !(+o.densita > 0)) return null;
+  const Lc = Math.max(0.5, +o.prof + (+o.sub || 0) - stem);
+  return Math.max(2, Math.round(caricaLineare(o.diam, o.densita) * Lc));
+}
+export function costantiPpvLitologia(vp){
+  const v = (+vp > 0) ? +vp : 4500;
+  const t = Math.max(0, Math.min(1, (v - 2600) / (6000 - 2600)));
+  return { K: Math.round(2800 - 1600 * t), beta: +(1.75 - 0.35 * t).toFixed(2), fonte: 'litologia' };
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   G33 · IL PIANO CHE APRE UN CAD VERO (13/09, su richiesta diretta del
+   fondatore: "potremmo rendere Genesi più simile a un CAD?")
+   ══════════════════════════════════════════════════════════════════════════
+   Genesi non sapeva parlare con AutoCAD/LibreCAD/QGIS né con i programmi che
+   un topografo o un ufficio tecnico di cava usano già: era un "non c'è"
+   confermato con la ricerca (docs/GENESI_EVOLUZIONE_STRATEGICA.md), non
+   dedotto. Il DXF è il formato che tutti quei programmi sanno aprire.
+
+   Questa è SOLO ESPORTAZIONE, e di proposito: i numeri che escono (mx, my
+   dei fori, i punti del profilo del fronte) sono quelli che Genesi ha GIÀ
+   calcolato e mostra a schermo — nessun calcolo nuovo, nessuna soglia di
+   sicurezza toccata. È l'opposto del rischio già segnalato sull'IMPORT del
+   rilievo boretrack (dove un numero ESTERNO entra e la sua convenzione di
+   assi non è verificata): qui i numeri restano nella convenzione di Genesi
+   dall'inizio alla fine, escono soltanto in un contenitore che altri
+   programmi sanno leggere.
+
+   Formato scelto: DXF versione R12 (AC1009) — la più vecchia e compatibile,
+   letta da qualunque programma CAD esistente, anche quelli di vent'anni fa.
+   Struttura minima valida: una sola SECTION di ENTITIES (niente HEADER né
+   TABLES, che servono solo a dichiarare stili non necessari qui). Verificata
+   con un lettore DXF vero (`ezdxf`, libreria Python installata apposta per
+   questo controllo — non a occhio sul testo): la prima stesura usava
+   `LWPOLYLINE` ed era invalida (vedi il commento sopra `_dxfPolilinea`), la
+   correzione è stata riverificata con lo stesso lettore dopo il fix.
+
+   Due livelli (layer), così chi apre il file può accendere/spegnere:
+   "FORI" (un cerchio per foro, raggio dal diametro di progetto, più
+   un'etichetta col numero/id del foro) e "FRONTE" (la linea spezzata del
+   profilo, se è stato disegnato/importato — mai inventata: se `profilo` è
+   vuoto o ha meno di due punti, il livello FRONTE semplicemente non esce,
+   non si disegna una linea a caso). */
+function _dxfNum(x){ const v=+x; return Number.isFinite(v) ? v.toFixed(3) : '0.000'; }
+function _dxfCerchio(layer, x, y, raggio){
+  return '0\nCIRCLE\n8\n'+layer+'\n10\n'+_dxfNum(x)+'\n20\n'+_dxfNum(y)+'\n30\n0.0\n40\n'+_dxfNum(raggio)+'\n';
+}
+/* ⛔ 27/11 — IL NOSTRO DXF LETTO DA UN ALTRO PROGRAMMA (`ezdxf`), e due cose
+   che l'andata e ritorno di casa non poteva vedere, perché il nostro lettore i
+   testi non li legge:
+   1. UN NOME CON UN ACCENTO ARRIVAVA STORPIATO. Il file esce in UTF-8, ma un
+      DXF di questa forma (R12, senza intestazione) non dichiara la codifica e
+      un CAD lo legge come Windows-1252: «Foro n°1 (àèì)» si apriva «Foro
+      nÂ°1 (Ã\xa0Ã¨Ã¬)». La forma che il DXF prevede per questo, e che ogni CAD
+      rilegge, è `\U+XXXX`: così il file resta ASCII puro e non dipende dalla
+      codifica di chi lo apre. I caratteri fuori dal piano di base (che
+      `\U+` a quattro cifre non sa dire) escono «?»; i caratteri di controllo
+      uno spazio. E l'accento circonflesso, che in un testo DXF annuncia un
+      carattere di controllo («a^b» si apriva «a» più un carattere invisibile),
+      esce come il DXF scrive un circonflesso vero: seguito da uno spazio.
+      ⚠️ Dichiarato e NON curato: un nome che contiene due percento di fila
+      seguiti da una lettera (c, d, p…) in CAD diventa un simbolo — è il modo
+      del DXF di scrivere ø, ° e ±, e un nome di foro così non si è mai visto.
+   2. UN FORO SENZA NOME LASCIAVA UN TESTO VUOTO: un oggetto che in CAD non si
+      vede e non si seleziona, e che le pulizie del disegno segnalano. Senza
+      nome non si scrive nessun testo: il cerchio c'è lo stesso.
+   ⛔ NEUTRALITÀ: con nomi ASCII e non vuoti (quelli che Genesi dà ai fori) il
+   file è byte per byte quello di prima. */
+function _dxfTesto(layer, x, y, altezza, testo){
+  const t = String(testo==null?'':testo).replace(/[\u0000-\u001f\u007f]/g,' ')
+    .replace(/[\ud800-\udbff][\udc00-\udfff]/g,'?')
+    .replace(/[^\x20-\x7e]/g, (c)=>'\\U+'+c.charCodeAt(0).toString(16).toUpperCase().padStart(4,'0'))
+    .replace(/\^/g,'^ ');
+  if(!t.trim()) return '';
+  return '0\nTEXT\n8\n'+layer+'\n10\n'+_dxfNum(x)+'\n20\n'+_dxfNum(y)+'\n30\n0.0\n40\n'+_dxfNum(altezza)+'\n1\n'+t+'\n';
+}
+/* ⛔ 13/09: QUI STAVA `LWPOLYLINE` — e un DXF R12 senza HEADER/TABLES
+   (la forma minima scelta per la compatibilità più larga possibile) NON HA
+   i marcatori di sottoclasse (`AcDbPolyline`) che `LWPOLYLINE` pretende dal
+   DXF R14 in poi: aperto con un lettore vero (`ezdxf`, non letto a occhio
+   sul testo) dava `DXFStructureError: missing 'AcDbPolyline' subclass`. La
+   forma che regge dal DXF più vecchio in poi è quella classica a tre pezzi
+   — `POLYLINE` d'apertura, un `VERTEX` per punto, `SEQEND` di chiusura —
+   verificata di nuovo con lo stesso lettore dopo la correzione. */
+function _dxfPolilinea(layer, punti){
+  if(!Array.isArray(punti) || punti.length<2) return '';
+  let s='0\nPOLYLINE\n8\n'+layer+'\n66\n1\n70\n0\n';
+  for(const p of punti) s+='0\nVERTEX\n8\n'+layer+'\n10\n'+_dxfNum(p.x)+'\n20\n'+_dxfNum(p.y)+'\n30\n0.0\n';
+  s+='0\nSEQEND\n';
+  return s;
+}
+/* G47d (14/09) — import DXF in SOLA LETTURA, ultima fetta di "Genesi
+   simile a un CAD" (il fondatore ha risposto "tutto"). Legge LINE,
+   POLYLINE (col suo VERTEX/SEQEND, la stessa forma che `_dxfPolilinea`
+   scrive) e LWPOLYLINE (aggiunta il 19/09: è l'entità polilinea di
+   DEFAULT di AutoCAD dal R14/1997, LibreCAD e QCAD — senza di lei un file
+   scritto da uno di questi tre programmi dava "nessun tratto leggibile"
+   anche quando la geometria c'era) e li porta dentro come TRATTI
+   (D2.tratti), MAI come fori, fronte o piede.
+
+   È la scelta di sicurezza che chiude la ricerca del 13/09
+   (docs/RICERCA_CONTINUA_GENESI.md, "import CAD/DXF: come i software
+   commerciali evitano l'errore di convenzione degli assi"): un file
+   esterno può avere una convenzione di assi diversa dalla nostra, e la
+   ricerca non ha trovato nessun software del settore che validi
+   esplicitamente la convenzione prima di fidarsi della geometria per un
+   calcolo di burden/sicurezza — solo difese indirette (associazione al
+   più vicino, tolleranze). Qui il rischio non si valida: si TOGLIE alla
+   radice. Un tratto non entra in NESSUN calcolo (relief, energia,
+   burden, flyrock) — è un riferimento visivo sulla pianta, esattamente
+   come i tratti disegnati a mano da G47c-2. Un orientamento sbagliato si
+   VEDE (la pagina lo dice: "verifica l'orientamento") e si annulla con
+   un Ctrl+Z, non produce un numero sbagliato — è la stessa differenza
+   fra "protegge da un errore" e "un errore qui non può fare danno". */
+/* ══════════════════════════════════════════════════════════════════════════
+   26/11 — IL LETTORE RIMISURATO CONTRO UN CAD VERO, NON CONTRO SÉ STESSO.
+   ══════════════════════════════════════════════════════════════════════════
+   Fino a oggi le prove di questo lettore erano andata-e-ritorno col NOSTRO
+   export, o stringhe DXF scritte a mano da chi aveva scritto il lettore: le
+   due metà potevano sbagliare insieme. Il 26/11 gli sono stati dati 23 file
+   scritti da `ezdxf` (la libreria di riferimento, la stessa già usata il
+   13/09 per l'export) nelle forme che AutoCAD/LibreCAD/QCAD producono
+   davvero: **9 su 23 letti male**, e nessuno con un errore — tutti con una
+   geometria plausibile e sbagliata. In ordine di danno:
+    · le linee di un BLOCCO (un simbolo: la freccia del nord, il cartiglio)
+      comparivano attorno all'origine anche se il blocco non era mai stato
+      inserito nel disegno — geometria che nel disegno NON C'È;
+    · le linee dello SPAZIO CARTA (la squadratura del foglio, 420×297)
+      entravano come se fossero terreno;
+    · una polilinea CHIUSA (un confine, il perimetro di un fabbricato)
+      perdeva il lato di chiusura: il contorno arrivava aperto;
+    · una superficie a maglia (il TIN di un rilievo) diventava UNA polilinea
+      che passava per tutti i suoi vertici e per (0,0);
+    · una polilinea specchiata (estrusione 0,0,-1) arrivava con la X negata;
+    · un DXF binario rispondeva «non contiene linee», che è falso.
+   La regola che li tiene insieme è quella già scritta sopra: un tratto
+   importato è un riferimento VISIVO, quindi deve essere quello che il CAD
+   mostra — né di più (blocchi, cartiglio) né di meno (il lato che chiude).
+   E ciò che NON si legge si CONTA e si dichiara (`nonLette`), invece di
+   sparire: 1 linea letta su 6 entità non è «1 tratto importato».
+   ⚠️ COSA RESTA FUORI, DICHIARATO: testi, retini, quote, e le spline
+   scritte coi soli punti di passaggio. Archi, cerchi, ellissi, spline e
+   tratti ad arco delle polilinee (`bulge`) dal 26/11 ENTRANO, come
+   spezzate (vedi «GLI ARCHI DEL DXF», «L'ELLISSE DEL DXF» e «LA SPLINE DEL
+   DXF» più sotto), e si contano in `archiSpezzati`; e dal 26/11 entra anche il contenuto dei blocchi
+   INSERITI (vedi «I BLOCCHI INSERITI»), contati in `blocchiEspansi`.
+   ⚠️ LE UNITÀ NON SI CONVERTONO DA SOLE, e non per pigrizia: il modello
+   metrico di AutoCAD (`acadiso.dwt`) dichiara `$INSUNITS = 4` (millimetri),
+   e un topografo che ci disegna in metri consegna un file che «dichiara
+   millimetri» con coordinate in metri. Convertire sulla parola del file
+   rimpicciolirebbe di mille volte un disegno giusto. Si riporta l'unità
+   dichiarata insieme all'INGOMBRO letto, e decide chi guarda la pianta
+   (c'è già «⤢ Scala tratti»). */
+const _DXF_UNITA = {
+  1:{nome:'pollici',inMetri:0.0254}, 2:{nome:'piedi',inMetri:0.3048}, 4:{nome:'millimetri',inMetri:0.001},
+  5:{nome:'centimetri',inMetri:0.01}, 6:{nome:'metri',inMetri:1}, 7:{nome:'chilometri',inMetri:1000},
+  10:{nome:'iarde',inMetri:0.9144}, 14:{nome:'decimetri',inMetri:0.1}, 21:{nome:'piedi topografici USA',inMetri:1200/3937}
+};
+function _dxfStruttura(testo){
+  const t = String(testo||'');
+  const st = { binario:false, haSezioni:false, insunits:null, entita:[], blocchi:Object.create(null) };
+  if(t.slice(0,18)==='AutoCAD Binary DXF'){ st.binario=true; return st; }
+  const righe = t.split(/\r\n|\r|\n/);
+  let sezione=null, attesaNome=false, cur=null, varHeader=null, blocco=null;
+  const definiti=[];
+  for(let i=0; i+1<righe.length; i+=2){
+    const codice = righe[i].trim(), valore = righe[i+1];
+    if(codice==='0'){
+      const tipo = valore.trim(); cur = null;
+      if(tipo==='SECTION'){ st.haSezioni=true; attesaNome=true; sezione=null; }
+      else if(tipo==='ENDSEC'){ sezione=null; blocco=null; }
+      else if(tipo==='EOF'){ break; }
+      /* BLOCKS contiene le DEFINIZIONI dei blocchi, ognuna fra un BLOCK e il
+         suo ENDBLK, in coordinate proprie (attorno al punto base). Non sono
+         disegno: lo diventano solo dove un INSERT le richiama, e allora
+         `dxfLeggi` le legge col suo stesso ciclo, spostate. Qui si mettono da
+         parte per nome. (Dal R2000 anche i fogli di stampa non attivi stanno
+         qui, come blocchi `*Paper_Space…` che nessuno inserisce.) */
+      else if(sezione==='BLOCKS'){
+        if(tipo==='BLOCK'){ blocco={campi:{}, entita:[]}; definiti.push(blocco); cur={tipo, campi:blocco.campi, verts:[]}; }
+        else if(tipo==='ENDBLK'){ blocco=null; }
+        else if(blocco){ cur={tipo, campi:{}, verts:[]}; blocco.entita.push(cur); }
+      }
+      /* SOLO la sezione ENTITIES è il disegno (tabelle e oggetti non lo
+         sono). Un file senza nessuna sezione (un frammento, o le prove
+         storiche scritte a mano) si legge tutto: lì non c'è niente da cui
+         distinguere. */
+      else if(sezione==='ENTITIES' || !st.haSezioni){ cur={tipo, campi:{}, verts:[]}; st.entita.push(cur); }
+    } else if(attesaNome && codice==='2'){ sezione=valore.trim(); attesaNome=false; }
+    else if(sezione==='HEADER'){
+      if(codice==='9') varHeader=valore.trim();
+      else if(varHeader==='$INSUNITS' && codice==='70'){ const u=parseInt(valore,10); if(Number.isFinite(u)) st.insunits=u; varHeader=null; }
+    } else if(cur){
+      /* LWPOLYLINE (dal 19/09) porta i suoi vertici DENTRO la stessa entità,
+         come coppie di codici 10/20 RIPETUTE una volta per vertice — a
+         differenza di LINE/VERTEX, dove ogni codice compare una volta sola
+         e `campi[codice]=valore` (l'ultimo vince) basta. Un oggetto con
+         chiave "10" terrebbe solo l'ULTIMO vertice: si accumula invece un
+         array, un vertice per ogni "10" incontrato (l'ordine del formato
+         DXF garantisce che il gruppo 10 di un vertice precede sempre il
+         suo 20, e il suo eventuale 42 — la curvatura — li segue). */
+      if(cur.tipo==='LWPOLYLINE' && codice==='10') cur.verts.push({x:+valore, y:NaN, bulge:0});
+      else if(cur.tipo==='LWPOLYLINE' && codice==='20' && cur.verts.length) cur.verts[cur.verts.length-1].y = +valore;
+      else if(cur.tipo==='LWPOLYLINE' && codice==='42' && cur.verts.length){ const b=+valore; if(Number.isFinite(b)) cur.verts[cur.verts.length-1].bulge = b; }
+      /* SPLINE: anche lei porta tutto DENTRO l'entità, a codici ripetuti —
+         i punti di controllo (10/20), i nodi (40), i pesi (41), e a volte i
+         punti di passaggio (11/21), che qui si contano soltanto. */
+      else if(cur.tipo==='SPLINE' && codice==='10') cur.verts.push({x:+valore, y:NaN});
+      else if(cur.tipo==='SPLINE' && codice==='20' && cur.verts.length) cur.verts[cur.verts.length-1].y = +valore;
+      else if(cur.tipo==='SPLINE' && codice==='40') (cur.nodi || (cur.nodi=[])).push(+valore);
+      else if(cur.tipo==='SPLINE' && codice==='41') (cur.pesi || (cur.pesi=[])).push(+valore);
+      else if(cur.tipo==='SPLINE' && codice==='11') cur.passaggi = (cur.passaggi||0)+1;
+      else cur.campi[codice]=valore;
+    }
+  }
+  /* i nomi dei blocchi non distinguono maiuscole e minuscole; di due
+     definizioni con lo stesso nome vale la prima. 70 = 4 o 8: il blocco è un
+     RIFERIMENTO ESTERNO, cioè il suo contenuto sta in un altro file. */
+  for(const b of definiti){
+    const nome=String(b.campi['2']||'').trim().toUpperCase(), f=parseInt(b.campi['70'],10)||0;
+    if(nome && !st.blocchi[nome]) st.blocchi[nome]={ bx:+b.campi['10']||0, by:+b.campi['20']||0, esterno:!!(f&(4|8)), entita:b.entita };
+  }
+  return st;
+}
+/* Le entità PIANE (LWPOLYLINE, POLYLINE 2D) scrivono i vertici nel sistema
+   dell'OGGETTO (OCS), non in quello del mondo: i due coincidono finché il
+   vettore di estrusione (210/220/230) è (0,0,1), cioè quasi sempre — e
+   divergono quando il disegno è stato specchiato, dove diventa (0,0,-1) e la
+   X del mondo è l'opposto di quella scritta. La regola è l'«algoritmo
+   dell'asse arbitrario» della specifica DXF. LINE e le polilinee 3D sono già
+   in coordinate mondo e non passano di qui. */
+function _dxfOcs(campi, quota){
+  let nx=+campi['210'], ny=+campi['220'], nz=+campi['230'];
+  if(!Number.isFinite(nx)) nx=0; if(!Number.isFinite(ny)) ny=0; if(!Number.isFinite(nz)) nz=1;
+  const m=Math.hypot(nx,ny,nz);
+  if(!(m>0) || (Math.abs(nx/m)<1e-9 && Math.abs(ny/m)<1e-9 && nz>0)) return null;   // estrusione normale: OCS = mondo
+  nx/=m; ny/=m; nz/=m;
+  let ax, ay, az;
+  if(Math.abs(nx)<1/64 && Math.abs(ny)<1/64){ ax=nz; ay=0; az=-nx; } else { ax=-ny; ay=nx; az=0; }
+  const ma=Math.hypot(ax,ay,az); ax/=ma; ay/=ma; az/=ma;
+  const bx=ny*az-nz*ay, by=nz*ax-nx*az;
+  const q=Number.isFinite(+quota) ? +quota : 0;
+  return (p)=>({ x:p.x*ax+p.y*bx+q*nx, y:p.x*ay+p.y*by+q*ny });
+}
+/* ══════════════════════════════════════════════════════════════════════
+   GLI ARCHI DEL DXF (26/11) — letti, non più solo dichiarati.
+   ══════════════════════════════════════════════════════════════════════
+   Fino al 26/11 un ARC e un CIRCLE finivano fra le entità «non lette» e un
+   tratto ad arco di una polilinea (`bulge`) entrava come CORDA dritta fra i
+   suoi estremi, dichiarata. Onesto, ma una curva di livello, un raccordo di
+   pista o il bordo tondo di un piazzale arrivavano mozzi: un semicerchio di
+   5 m di raggio diventava un segmento di 10 m, cioè 5 m di terreno spariti.
+   Adesso un arco entra come SPEZZATA che non si scosta dalla curva vera più
+   di `DXF_FRECCIA_ARCO_M` (2 cm: sotto la precisione con cui si traccia un
+   foro), e si conta in `archiSpezzati` — la pagina dice quanti e con che
+   scarto, perché una spezzata non è l'arco.
+    · il numero di lati viene dalla FRECCIA, non da un passo fisso: un arco
+      di 100 m di raggio e uno di 1 m con lo stesso passo angolare
+      sbaglierebbero di cento volte tanto; mai meno di un lato ogni 30°
+      (un cerchio piccolo non deve diventare un triangolo);
+    · gli estremi sono ESATTI (quelli del file), i punti in mezzo stanno
+      sulla circonferenza;
+    · `bulge` = tangente di un quarto dell'angolo al centro, positivo in
+      senso antiorario da un vertice al successivo;
+    · si lavora nel sistema dell'oggetto e l'estrusione si applica DOPO, a
+      ogni punto: un arco specchiato esce specchiato senza un caso a parte.
+   (Ellissi e spline hanno il loro conto più sotto.) */
+export const DXF_FRECCIA_ARCO_M = 0.02;
+function _dxfLati(r, ampiezza, scala){
+  const t = Math.min(DXF_FRECCIA_ARCO_M/(scala>0 ? scala : 1), r);
+  const passoMax = Math.min(Math.PI/6, 2*Math.acos(1 - t/r));
+  return Math.max(1, Math.min(1440, Math.ceil(ampiezza/passoMax - 1e-9)));
+}
+/* un codice ASSENTE vale il suo predefinito (scala 1, angolo 0, ellisse intera); uno presente e illeggibile no */
+function _dxfOpz(campi, codice, predefinito){ const v=campi[codice]; return (v==null || String(v).trim()==='') ? predefinito : +v; }
+/* ══════════════════════════════════════════════════════════════════════
+   L'ELLISSE DEL DXF (26/11) — letta, non più solo dichiarata.
+   ══════════════════════════════════════════════════════════════════════
+   Un'ELLIPSE è scritta in coordinate MONDO (a differenza di ARC e CIRCLE):
+   centro, ESTREMO del semiasse maggiore relativo al centro, rapporto fra
+   i semiassi, parametro iniziale e finale (radianti, antiorario attorno
+   all'estrusione; 0 e 2π = ellisse intera). Il punto al parametro t è
+     centro + M·cos t + m·sin t      con m = estrusione × M × rapporto
+   — l'estrusione qui non sposta niente: dice solo da che parte sta m, cioè
+   in che verso gira (un'ellisse specchiata ha estrusione (0,0,-1)).
+   I lati si contano come per un CERCHIO di raggio pari al semiasse più
+   lungo, a passi uguali di parametro: l'ellisse è quel cerchio schiacciato
+   lungo una direzione, e schiacciando una spezzata non la si allontana
+   dalla sua curva. Quindi la freccia dichiarata (`DXF_FRECCIA_ARCO_M`) vale
+   anche qui, senza un conto a parte. Restituisce null se non è un'ellisse. */
+function _dxfEllisse(campi, scala){
+  const cx=+campi['10'], cy=+campi['20'], Mx=+campi['11'], My=+campi['21'], k=+campi['40'];
+  const Mz=_dxfOpz(campi,'31',0), t0=_dxfOpz(campi,'41',0), t1=_dxfOpz(campi,'42',2*Math.PI);
+  let nx=_dxfOpz(campi,'210',0), ny=_dxfOpz(campi,'220',0), nz=_dxfOpz(campi,'230',1);
+  if(![cx,cy,Mx,My,Mz,k,t0,t1,nx,ny,nz].every(Number.isFinite) || !(k>0)) return null;
+  const nn=Math.hypot(nx,ny,nz); if(!(nn>0)) return null;
+  const mx=(ny*Mz-nz*My)/nn*k, my=(nz*Mx-nx*Mz)/nn*k;
+  /* il semiasse più lungo della curva COM'È SULLA PIANTA (se l'ellisse è
+     inclinata, M e m proiettati non sono più perpendicolari) */
+  const qM=Mx*Mx+My*My, qm=mx*mx+my*my, pm=Mx*mx+My*my;
+  const a=Math.sqrt(((qM+qm)+Math.sqrt((qM-qm)*(qM-qm)+4*pm*pm))/2);
+  if(!(a>0)) return null;
+  const TAU=2*Math.PI;
+  let amp=((t1-t0)%TAU+TAU)%TAU; const intera = amp<1e-9 || TAU-amp<1e-9; if(intera) amp=TAU;
+  const n=_dxfLati(a, amp, scala), pts=[];
+  for(let j=0;j<=n;j++){ const t=t0+amp*j/n; pts.push({x:cx+Mx*Math.cos(t)+mx*Math.sin(t), y:cy+My*Math.cos(t)+my*Math.sin(t)}); }
+  if(intera) pts[n]={x:pts[0].x, y:pts[0].y};
+  return pts;
+}
+/* ══════════════════════════════════════════════════════════════════════
+   LA SPLINE DEL DXF (26/11) — letta dove il file dice che curva è.
+   ══════════════════════════════════════════════════════════════════════
+   Una SPLINE è una curva B-spline (NURBS se ha i pesi): grado, NODI, PUNTI
+   DI CONTROLLO. Con quei tre la curva è definita esattamente, e si calcola
+   con l'algoritmo di de Boor — è così che la scrive AutoCAD, sempre.
+   ⚠️ C'è però una seconda forma: la spline che porta SOLO i punti di
+   passaggio (i «punti di adattamento» di AutoCAD), senza nodi né punti di
+   controllo. Lì la curva non è nel
+   file: ogni programma la ricostruisce a modo suo, e due CAD disegnano due
+   curve diverse per gli stessi punti. Unire i punti con segmenti dritti
+   sarebbe inventarne una terza: quella forma resta fra le non lette,
+   dichiarata COL SUO NOME («spline definita solo dai punti di
+   adattamento»), perché chi importa sappia che basta riesportarla. Così anche una spline coi conti che non tornano (nodi ≠ punti
+   di controllo + grado + 1, nodi che tornano indietro, pesi non positivi).
+   I lati non si contano con una formula (la curvatura di una spline cambia
+   lungo la curva): ogni tratto fra due nodi si DIMEZZA finché la curva, a un
+   quarto, a metà e a tre quarti del lato, non sta entro METÀ della freccia
+   dichiarata dalla corda — metà, perché tre punti non sono tutta la curva.
+   Coordinate MONDO, come l'ellisse: l'estrusione non sposta niente.
+   Restituisce null se la curva non è nel file. */
+const _DXF_SPLINE_MAX_PUNTI = 20000;
+function _dxfSpline(e, scala){
+  const grado = Math.round(_dxfOpz(e.campi,'71',3)), flag = parseInt(e.campi['70'],10)||0;
+  const P = e.verts, U = e.nodi||[], n = P.length-1;
+  if(!(grado>=1 && grado<=11) || n<grado || U.length!==n+grado+2) return null;
+  if(!P.every(q=>Number.isFinite(q.x) && Number.isFinite(q.y)) || !U.every(Number.isFinite)) return null;
+  for(let i=1;i<U.length;i++) if(U[i]<U[i-1]) return null;
+  let W = null;
+  if(e.pesi && e.pesi.length){ if(e.pesi.length!==P.length || !e.pesi.every(w=>Number.isFinite(w) && w>0)) return null; W=e.pesi; }
+  const u0=U[grado], u1=U[n+1];
+  /* de Boor, in coordinate omogenee (x·w, y·w, w): con tutti i pesi a 1 è la B-spline semplice */
+  const punto = (u)=>{
+    let k=grado; while(k<n && u>=U[k+1]) k++;
+    const d=[];
+    for(let j=0;j<=grado;j++){ const q=P[k-grado+j], w=W ? W[k-grado+j] : 1; d.push([q.x*w, q.y*w, w]); }
+    for(let r=1;r<=grado;r++) for(let j=grado;j>=r;j--){
+      const i=k-grado+j, den=U[i+grado-r+1]-U[i], a=den>0 ? (u-U[i])/den : 0;
+      d[j]=[(1-a)*d[j-1][0]+a*d[j][0], (1-a)*d[j-1][1]+a*d[j][1], (1-a)*d[j-1][2]+a*d[j][2]];
+    }
+    return {x:d[grado][0]/d[grado][2], y:d[grado][1]/d[grado][2]};
+  };
+  const tol = 0.5*DXF_FRECCIA_ARCO_M/(scala>0 ? scala : 1);
+  const dalSegmento = (q, a, b)=>{ const dx=b.x-a.x, dy=b.y-a.y, L=dx*dx+dy*dy; let t=L ? ((q.x-a.x)*dx+(q.y-a.y)*dy)/L : 0; t=Math.max(0, Math.min(1, t)); return Math.hypot(q.x-a.x-t*dx, q.y-a.y-t*dy); };
+  const pts=[punto(u0)];
+  const tratto = (ua, pa, ub, pb, prof)=>{
+    if(pts.length>=_DXF_SPLINE_MAX_PUNTI) return;
+    const um=(ua+ub)/2, pm=punto(um);
+    if(prof<18){
+      const pq=punto((ua+um)/2), pr=punto((um+ub)/2);
+      if(Math.max(dalSegmento(pm,pa,pb), dalSegmento(pq,pa,pb), dalSegmento(pr,pa,pb))>tol){ tratto(ua, pa, um, pm, prof+1); tratto(um, pm, ub, pb, prof+1); return; }
+    }
+    pts.push(pb);
+  };
+  for(let k=grado;k<=n;k++){
+    const ua=Math.max(U[k], u0), ub=Math.min(U[k+1], u1);
+    if(ub>ua) tratto(ua, punto(ua), ub, punto(ub), 0);
+  }
+  /* nodi tutti uguali: nessun tratto ha una lunghezza, la curva è un punto solo */
+  if(pts.length<2) return null;
+  /* 70 = 1: curva chiusa. Se gli estremi coincidono a meno dell'aritmetica, l'ultimo punto È il primo */
+  if((flag&1) && Math.hypot(pts[0].x-pts[pts.length-1].x, pts[0].y-pts[pts.length-1].y)<1e-9) pts[pts.length-1]={x:pts[0].x, y:pts[0].y};
+  return pts;
+}
+/* arco di centro (cx,cy) e raggio r, dall'angolo a0 per `ampiezza` radianti
+   (positiva = antiorario): i punti, estremi compresi */
+function _dxfArco(cx, cy, r, a0, ampiezza, scala){
+  const n=_dxfLati(r, Math.abs(ampiezza), scala), pts=[];
+  for(let k=0;k<=n;k++){ const a=a0+ampiezza*k/n; pts.push({x:cx+r*Math.cos(a), y:cy+r*Math.sin(a)}); }
+  return pts;
+}
+/* i punti IN MEZZO del tratto ad arco fra p1 e p2 (gli estremi restano quelli del file) */
+function _dxfBulge(p1, p2, bulge, scala){
+  const dx=p2.x-p1.x, dy=p2.y-p1.y, c=Math.hypot(dx,dy);
+  if(!(c>0) || !Number.isFinite(bulge) || bulge===0) return [];
+  const amp=4*Math.atan(bulge), r=c/(2*Math.sin(Math.abs(amp)/2)), h=(c/2)/Math.tan(amp/2);
+  const cx=(p1.x+p2.x)/2 - h*dy/c, cy=(p1.y+p2.y)/2 + h*dx/c;
+  return _dxfArco(cx, cy, r, Math.atan2(p1.y-cy, p1.x-cx), amp, scala).slice(1, -1);
+}
+/* una polilinea coi suoi tratti ad arco resi a spezzata. La curvatura
+   sull'ULTIMO vertice vale solo se la polilinea è chiusa (descrive il tratto
+   che torna al primo): su una aperta non disegna niente. */
+function _dxfPoliConArchi(verts, chiusa, scala){
+  const pts=[]; let archi=0;
+  for(let i=0;i<verts.length;i++){
+    const a=verts[i], ultimo=(i===verts.length-1);
+    pts.push({x:a.x, y:a.y});
+    if(ultimo && !chiusa) break;
+    const z=ultimo ? verts[0] : verts[i+1];
+    if(a.bulge && (a.x!==z.x || a.y!==z.y)){ archi++; for(const q of _dxfBulge(a, z, a.bulge, scala)) pts.push(q); }
+  }
+  if(chiusa && pts.length>=3){ const a=pts[0], z=pts[pts.length-1]; if(a.x!==z.x || a.y!==z.y) pts.push({x:a.x, y:a.y}); }
+  return { pts, archi };
+}
+/* ══════════════════════════════════════════════════════════════════════
+   I BLOCCHI INSERITI (26/11) — espansi, non più solo contati.
+   ══════════════════════════════════════════════════════════════════════
+   Un CAD disegna una volta un simbolo, un mezzo, una sezione tipo — il
+   BLOCCO — e poi lo «inserisce» dove serve, spostato, ruotato, scalato,
+   specchiato. In un rilievo vero i blocchi non sono decorazione: spesso è un
+   blocco l'intera planimetria ricevuta da un altro studio. Fino al 26/11 si
+   contavano («3 blocchi inseriti») e il loro contenuto restava fuori.
+   Adesso il contenuto entra dov'è nel disegno:
+     mondo = inserimento + Rot(angolo) · ( Scala · (p − base) + passo di schiera )
+   e poi l'estrusione dell'INSERT, come per ogni entità piana.
+    · il contenuto si legge con lo STESSO ciclo delle entità del disegno
+      (non una copia): ciò che là non si legge (testi, retini, spline) qui si
+      conta allo stesso modo, una volta per ogni inserimento;
+    · un blocco dentro un blocco si espande a sua volta, fino a
+      `_DXF_PROFONDITA_BLOCCHI` livelli; un blocco che richiama sé stesso
+      (file guasto) si ferma al primo giro. Ciò che non si espande — nome
+      sconosciuto, scala nulla, troppo profondo, oltre `_DXF_MAX_ESPANSIONI`
+      copie — resta fra le non lette come «blocco inserito»;
+    · un RIFERIMENTO ESTERNO (xref) non ha contenuto in questo file: si
+      dichiara col suo nome, perché chi importa deve chiedere l'altro file;
+    · gli ATTRIBUTI visibili di un blocco espanso (il numero del punto, la
+      quota scritta accanto) sono testi: si contano fra i testi non entrati;
+    · la freccia degli archi vale NEL MONDO: un cerchio di raggio 1 dentro
+      un blocco inserito a scala 50 è un cerchio di 50 m, e i lati si
+      contano su quello (la scala più grande delle due, se sono diverse:
+      l'arco diventa un tratto d'ellisse e la spezzata gli resta addosso);
+    · la schiera (righe × colonne dello stesso INSERT) si espande copia per
+      copia, col passo ruotato insieme al blocco e non scalato. */
+const _DXF_PROFONDITA_BLOCCHI = 8;
+const _DXF_MAX_ESPANSIONI = 20000;
+export function dxfLeggi(testo){
+  const st = _dxfStruttura(testo);
+  const esito = { tratti:[], nonLette:{}, nNonLette:0, spazioCarta:0, archiSpezzati:0, blocchiEspansi:0, binario:st.binario, unita:null, ingombro:null };
+  if(st.insunits!=null && _DXF_UNITA[st.insunits]) esito.unita = { codice:st.insunits, nome:_DXF_UNITA[st.insunits].nome, inMetri:_DXF_UNITA[st.insunits].inMetri };
+  const nonLetta = (tipo)=>{ esito.nonLette[tipo]=(esito.nonLette[tipo]||0)+1; esito.nNonLette++; };
+  let espansioni = 0;
+  /* `T` porta un punto dal sistema del blocco al mondo (null: siamo già nel
+     mondo); `scala` è di quanto T ingrandisce al più; `catena` i blocchi
+     dentro cui si sta leggendo. */
+  const leggi = (lista, T, scala, catena)=>{
+    let poli = null;        // la POLYLINE in corso (i suoi VERTEX arrivano come entità a sé, fino a SEQEND)
+    let appesa = 0;         // dopo un INSERT con attributi: 1 = blocco non espanso (i suoi ATTRIB restano con lui), 2 = espanso (i suoi ATTRIB sono testi non entrati)
+    const metti = (pts)=>{ esito.tratti.push({pts: T ? pts.map(T) : pts}); };
+    for(const e of lista){
+      if(e.tipo==='VERTEX'){
+        if(!poli) continue;
+        const fv=parseInt(e.campi['70'],10)||0;
+        if((fv&128) && !(fv&64)) continue;                         // record-faccia di una mesh: non è un punto
+        let p={x:+e.campi['10'], y:+e.campi['20']};
+        if(!Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
+        const bv=+e.campi['42'];
+        poli.verts.push({x:p.x, y:p.y, bulge:(poli.piana && Number.isFinite(bv)) ? bv : 0});
+        continue;
+      }
+      if(e.tipo==='SEQEND'){
+        if(poli && poli.verts.length>=2){
+          const r=_dxfPoliConArchi(poli.verts, poli.chiusa, scala);
+          esito.archiSpezzati += r.archi;
+          metti(poli.ocs ? r.pts.map(q=>poli.ocs(q)) : r.pts);
+        }
+        poli=null; appesa=0; continue;
+      }
+      if(e.tipo==='ATTRIB' && appesa){
+        /* 70 = 1: attributo invisibile, sul disegno non c'è */
+        if(appesa===2 && !((parseInt(e.campi['70'],10)||0)&1)) nonLetta('ATTRIB');
+        continue;
+      }
+      poli=null; appesa=0;
+      /* codice 67 = 1: l'entità sta nello SPAZIO CARTA (il foglio di stampa
+         col suo cartiglio), non nel modello. Non è geometria del sito. */
+      if(String(e.campi['67']||'').trim()==='1'){ esito.spazioCarta++; continue; }
+      if(e.tipo==='LINE'){
+        const a={x:+e.campi['10'], y:+e.campi['20']}, b={x:+e.campi['11'], y:+e.campi['21']};
+        if([a.x,a.y,b.x,b.y].every(Number.isFinite) && (a.x!==b.x || a.y!==b.y)) metti([a,b]);
+      } else if(e.tipo==='POLYLINE'){
+        const f=parseInt(e.campi['70'],10)||0;
+        /* 16 = maglia di poligoni, 64 = mesh a facce (il TIN di un rilievo):
+           i loro VERTEX sono nodi di una SUPERFICIE, non i punti di una linea.
+           Unirli in fila disegnerebbe uno scarabocchio che nel file non c'è. */
+        if(f&(16|64)){ nonLetta('POLYLINE (superficie)'); continue; }
+        /* 8 = polilinea 3D: i suoi vertici sono già nel mondo e la curvatura non ha senso */
+        poli={ verts:[], chiusa:!!(f&1), piana:!(f&8), ocs:(f&8)?null:_dxfOcs(e.campi, e.campi['30']) };
+      } else if(e.tipo==='LWPOLYLINE'){
+        /* ⛔ 19/09, dal quarto giro di deep-pass QA: LWPOLYLINE è l'entità
+           polilinea di DEFAULT scritta da AutoCAD (dal R14/1997), LibreCAD e
+           QCAD — cioè i tre programmi che il tooltip del bottone nomina come
+           interoperabilità. Senza questo ramo un file con SOLO LWPOLYLINE (il
+           caso comune) dava tratti:[] e la pagina diceva "il file non contiene
+           LINE o POLYLINE leggibili": falso, il file la geometria ce l'aveva. */
+        const f=parseInt(e.campi['70'],10)||0, chiusa=!!(f&1), ocs=_dxfOcs(e.campi, e.campi['38']);
+        const buoni=e.verts.filter(p=>Number.isFinite(p.x) && Number.isFinite(p.y));
+        if(buoni.length>=2){
+          const r=_dxfPoliConArchi(buoni, chiusa, scala);
+          esito.archiSpezzati += r.archi;
+          metti(ocs ? r.pts.map(q=>ocs(q)) : r.pts);
+        }
+      } else if(e.tipo==='ARC' || e.tipo==='CIRCLE'){
+        const cx=+e.campi['10'], cy=+e.campi['20'], r=+e.campi['40'];
+        /* un arco senza centro o senza raggio non è un arco: si conta fra le non lette, non si inventa */
+        if(![cx,cy,r].every(Number.isFinite) || !(r>0)){ nonLetta(e.tipo); continue; }
+        let pts;
+        if(e.tipo==='CIRCLE'){ pts=_dxfArco(cx, cy, r, 0, 2*Math.PI, scala); pts[pts.length-1]={x:pts[0].x, y:pts[0].y}; }
+        else {
+          const a0=+e.campi['50'], a1=+e.campi['51'];
+          if(!Number.isFinite(a0) || !Number.isFinite(a1)){ nonLetta('ARC'); continue; }
+          /* un ARC va SEMPRE in senso antiorario dall'angolo iniziale a quello finale (in gradi) */
+          let amp=((a1-a0)%360+360)%360; if(amp===0) amp=360;
+          pts=_dxfArco(cx, cy, r, a0*Math.PI/180, amp*Math.PI/180, scala);
+        }
+        const ocs=_dxfOcs(e.campi, e.campi['30']);
+        metti(ocs ? pts.map(q=>ocs(q)) : pts);
+        esito.archiSpezzati++;
+      } else if(e.tipo==='ELLIPSE'){
+        /* un'ellisse senza semiasse o senza rapporto non è un'ellisse: si conta fra le non lette */
+        const ell=_dxfEllisse(e.campi, scala);
+        if(!ell){ nonLetta('ELLIPSE'); continue; }
+        metti(ell);
+        esito.archiSpezzati++;
+      } else if(e.tipo==='SPLINE'){
+        /* la spline di soli punti di passaggio non ha la sua curva nel file: si dichiara, non si inventa */
+        const spl=_dxfSpline(e, scala);
+        if(!spl){ nonLetta(!e.verts.length && e.passaggi ? 'SPLINE (punti di adattamento)' : 'SPLINE'); continue; }
+        metti(spl);
+        esito.archiSpezzati++;
+      } else if(e.tipo==='INSERT'){
+        const conAttributi = String(e.campi['66']||'').trim()==='1';
+        const nome = String(e.campi['2']||'').trim().toUpperCase(), b = st.blocchi[nome];
+        const num = (codice, predefinito)=>_dxfOpz(e.campi, codice, predefinito);
+        const ix=num('10',0), iy=num('20',0), sx=num('41',1), sy=num('42',1), rot=num('50',0)*Math.PI/180;
+        const passoC=num('44',0), passoR=num('45',0);
+        /* una schiera a passo nullo mette tutte le copie nello stesso posto: è una copia sola */
+        const colonne = passoC ? Math.max(1, parseInt(e.campi['70'],10)||1) : 1, righe = passoR ? Math.max(1, parseInt(e.campi['71'],10)||1) : 1;
+        let fuori = null;
+        if(b && b.esterno) fuori='INSERT (riferimento esterno)';
+        else if(!b || ![ix,iy,sx,sy,rot,passoC,passoR].every(Number.isFinite) || sx===0 || sy===0) fuori='INSERT';
+        else if(catena.includes(nome) || catena.length>=_DXF_PROFONDITA_BLOCCHI) fuori='INSERT';
+        else if(espansioni + colonne*righe > _DXF_MAX_ESPANSIONI) fuori='INSERT';
+        if(fuori){ if(conAttributi) appesa=1; nonLetta(fuori); continue; }
+        if(conAttributi) appesa=2;
+        if(!catena.length) esito.blocchiEspansi++;
+        espansioni += colonne*righe;
+        const co=Math.cos(rot), si=Math.sin(rot), ocs=_dxfOcs(e.campi, e.campi['30']);
+        const dentro=catena.concat(nome), ingrandisce=scala*Math.max(Math.abs(sx), Math.abs(sy));
+        for(let j=0;j<righe;j++) for(let k=0;k<colonne;k++){
+          const ox=k*passoC, oy=j*passoR;
+          leggi(b.entita, (p)=>{
+            const u=(p.x-b.bx)*sx + ox, v=(p.y-b.by)*sy + oy;
+            let q={x:ix+u*co-v*si, y:iy+u*si+v*co};
+            if(ocs) q=ocs(q);
+            return T ? T(q) : q;
+          }, ingrandisce, dentro);
+        }
+      } else if(e.tipo==='ATTDEF' && catena.length){
+        /* la DEFINIZIONE di un attributo dentro un blocco non si disegna: al
+           suo posto c'è l'ATTRIB di ogni inserimento (contato là). Fa
+           eccezione l'attributo COSTANTE (70 = 2), che si vede com'è scritto. */
+        const fa=parseInt(e.campi['70'],10)||0;
+        if((fa&2) && !(fa&1)) nonLetta('ATTDEF');
+      } else {
+        nonLetta(e.tipo);
+      }
+    }
+  };
+  leggi(st.entita, null, 1, []);
+  if(esito.tratti.length){
+    let x0=Infinity, x1=-Infinity, y0=Infinity, y1=-Infinity;
+    for(const t of esito.tratti) for(const p of t.pts){ if(p.x<x0) x0=p.x; if(p.x>x1) x1=p.x; if(p.y<y0) y0=p.y; if(p.y>y1) y1=p.y; }
+    esito.ingombro = { larghezza:x1-x0, altezza:y1-y0 };
+  }
+  return esito;
+}
+/* ⚠️ `dxfInTratti` (il nome del 14/09) non esiste più: restituiva i soli
+   tratti, e la pagina adesso ha bisogno anche di ciò che NON è entrato. Un
+   alias tenuto per le prove sarebbe stato una funzione esportata che il
+   prodotto non chiama — chi cerca il vecchio nome trova `dxfLeggi(x).tratti`. */
+/* Che cosa c'era nel file e NON è entrato, con le parole di chi disegna e non
+   coi nomi del formato: «2 archi, 1 cerchio, 3 blocchi inseriti». Stringa
+   vuota se è entrato tutto. I tipi che non hanno un nome italiano escono col
+   loro (un nome sconosciuto si mostra, non si nasconde sotto «altro»). */
+const _DXF_NOMI = {
+  ARC:['arco','archi'], CIRCLE:['cerchio','cerchi'], TEXT:['testo','testi'], MTEXT:['testo','testi'],
+  INSERT:['blocco inserito','blocchi inseriti'], SPLINE:['curva spline','curve spline'], ELLIPSE:['ellisse','ellissi'],
+  POINT:['punto','punti'], HATCH:['retino','retini'], DIMENSION:['quota','quote'], '3DFACE':['faccia 3D','facce 3D'],
+  SOLID:['campitura','campiture'], 'POLYLINE (superficie)':['superficie a maglia','superfici a maglia'],
+  'SPLINE (punti di adattamento)':['spline definita solo dai punti di adattamento','spline definite solo dai punti di adattamento'],
+  ATTRIB:['testo','testi'], ATTDEF:['testo','testi'], 'INSERT (riferimento esterno)':['riferimento a un altro file','riferimenti ad altri file']
+};
+export function dxfFraseNonLette(nonLette){
+  const somma = {};
+  for(const [tipo, n] of Object.entries(nonLette||{})){
+    if(!(n>0)) continue;
+    const nomi = _DXF_NOMI[tipo] || [tipo, tipo];
+    const chiave = nomi[1];
+    if(!somma[chiave]) somma[chiave] = { n:0, nomi };
+    somma[chiave].n += n;
+  }
+  return Object.values(somma).sort((a,b)=>b.n-a.n || (a.nomi[1]<b.nomi[1]?-1:1))
+    .map(v=> v.n+' '+(v.n===1 ? v.nomi[0] : v.nomi[1])).join(', ');
+}
+/* IL PIEDE DEI FORI INCLINATI (26/11): il quarto argomento, `progetto`, è
+   facoltativo e serve a UNA cosa — sapere quanto è lungo e quanto è inclinato
+   ogni foro (`scostamentoPiedeForo`: i valori del foro, se no quelli del
+   progetto). Un foro inclinato ha il piede più avanti del boccaforo, verso la
+   faccia (y più piccola: la faccia è a y = 0), ed è il punto che chi traccia e
+   chi controlla il fronte in CAD vuole vedere: esce come una linea
+   boccaforo→piede su un livello suo, `PIEDI`, così si accende e si spegne.
+   ⛔ NEUTRALITÀ: senza `progetto`, o con fori verticali, o dove lunghezza o
+   inclinazione non si sanno, non esce niente di nuovo — il file di una volata
+   a fori verticali è byte per byte quello di prima (provato). */
+export function dxfPianoFori(fori, diamMm, profilo, progetto){
+  const H = Array.isArray(fori) ? fori.filter(h=>h && Number.isFinite(+h.mx) && Number.isFinite(+h.my)) : [];
+  const raggio = (Number.isFinite(+diamMm) && +diamMm>0) ? (+diamMm/2000) : 0.05; // 50mm di default, mai zero: un cerchio a raggio 0 non si vede e sembra un foro mancante
+  let ent = '';
+  for(const h of H){
+    /* F6 (26/11) — un foro con un diametro SUO si disegna col suo: il cerchio
+       è l'unico posto in cui questo file dice quanto è largo un foro. Senza
+       diametri per foro ogni cerchio ha il raggio del progetto, com'era. */
+    const suo = valoreProprioDiForo(h, 'diam'), r = suo === null ? raggio : suo/2000;
+    ent += _dxfCerchio('FORI', h.mx, h.my, r);
+    ent += _dxfTesto('FORI', h.mx+r*1.3, h.my, Math.max(0.15, r*0.9), h.id!=null ? String(h.id) : '');
+  }
+  if(progetto) for(const h of H){
+    const avanti = scostamentoPiedeForo(h, progetto);
+    if(avanti !== null && avanti > 0) ent += _dxfPolilinea('PIEDI', [{x:+h.mx, y:+h.my}, {x:+h.mx, y:+h.my - avanti}]);
+  }
+  const P = Array.isArray(profilo) ? profilo.filter(p=>p && Number.isFinite(+p.x) && Number.isFinite(+p.y)) : [];
+  ent += _dxfPolilinea('FRONTE', P.map(p=>({x:p.x, y:p.y})));
+  return '0\nSECTION\n2\nENTITIES\n'+ent+'0\nENDSEC\n0\nEOF\n';
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   G34 · L'AGGANCIO ALLA GRIGLIA (13/09, secondo pezzo di "tutte e tre le
+   alternative": dopo l'interoperabilità DXF, il disegno di precisione).
+   ══════════════════════════════════════════════════════════════════════════
+   Un CAD vero non lascia che un trascinamento a mano libera sposti un punto
+   di 3 cm senza che chi disegna se ne accorga: aggancia la posizione al passo
+   scelto. È un aiuto OPZIONALE (si accende e si spegne dalla pagina, spento
+   di default): un progetto salvato prima di questa unità continua a
+   disegnare esattamente gli stessi punti, perché niente qui viene applicato
+   da solo — la pagina chiama questa funzione solo mentre l'utente sta
+   posizionando un punto col mouse/dito, mai sui dati già salvati. */
+export function snapAGriglia(v, passo){
+  const x = +v;
+  if(!Number.isFinite(x)) return x;                      // un valore già illeggibile resta illeggibile: non è questa funzione a doverlo dichiarare
+  const p = +passo;
+  if(!Number.isFinite(p) || p<=0) return x;               // passo non valido: nessun aggancio, si passa il valore invariato
+  return Math.round(x/p)*p;
+}
+/* Trasloco B3 (14/09): il legame di una riga con l'aggancio opzionale è
+   uscito anche lui — `D2` come primo argomento esplicito, come già per le
+   fette precedenti. Dieci punti di chiamata nella pagina, tutti dentro gli
+   event handler del mouse dell'editor 2D. */
+export function _snapXY(D2, v){ return D2.snap ? snapAGriglia(v, D2.snapPasso) : v; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   G48 · SNAP A UN ESTREMO GIÀ DISEGNATO (19/09, dal delta verificato del
+   censimento CAD chiesto dal fondatore — vedi la correzione in
+   docs/RICERCA_GENESI_CAD.md: lo snap a OGGETTI, non solo a griglia, era
+   l'unico dei quattro assi del 13/09 rimasto scoperto).
+   ══════════════════════════════════════════════════════════════════════════
+   G34 aggancia alla griglia; questo aggancia a un vertice che esiste GIÀ
+   sulla pianta — un punto del fronte, del piede, o di un tratto libero
+   (disegnato a mano o importato da DXF, stessa struttura da G47c-2/G47d).
+   Serve a chiudere una polilinea esattamente sul suo punto di partenza, o a
+   far ripartire un tratto nuovo esattamente dalla fine di uno vecchio,
+   senza indovinare a occhio — quello che un CAD chiama "endpoint snap".
+   Ogni vertice di una polilinea è un candidato valido (non solo i due
+   estremi): in un rilievo importato il punto utile è spesso un vertice
+   intermedio, non la fine della linea.
+   La tolleranza è passata già convertita in METRI dalla pagina (pixel /
+   scala corrente): a uno zoom stretto un aggancio in metri sarebbe enorme
+   sullo schermo, a uno zoom largo invisibile — la stessa ragione per cui
+   G34 lavora in unità di griglia e non in pixel. */
+export function estremiDisegno(profilo, piede, tratti){
+  const pts = [];
+  for(const p of (profilo||[])) if(p && Number.isFinite(+p.x) && Number.isFinite(+p.y)) pts.push({x:+p.x, y:+p.y});
+  for(const p of (piede||[])) if(p && Number.isFinite(+p.x) && Number.isFinite(+p.y)) pts.push({x:+p.x, y:+p.y});
+  for(const t of (tratti||[])) for(const p of (t&&t.pts)||[]) if(p && Number.isFinite(+p.x) && Number.isFinite(+p.y)) pts.push({x:+p.x, y:+p.y});
+  return pts;
+}
+export function puntoSnapEstremo(candidati, mx, my, tolleranza){
+  const x=+mx, y=+my, tol=+tolleranza;
+  if(!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(tol) || tol<=0) return null;
+  let migliore=null, distMin=Infinity;
+  for(const p of (candidati||[])){
+    if(!p || !Number.isFinite(+p.x) || !Number.isFinite(+p.y)) continue;
+    const d=Math.hypot(+p.x-x, +p.y-y);
+    if(d<distMin){ distMin=d; migliore=p; }
+  }
+  return (migliore && distMin<=tol) ? {x:+migliore.x, y:+migliore.y} : null;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   G49 · SELEZIONE MULTIPLA DEI FORI — LA PRIMA FETTA (19/09, secondo asse
+   CAD confermato dal censimento dopo G48: window/crossing selection è il
+   passo pieno, questo è "Maiusc+clic per aggiungere/togliere" — un
+   modificatore che non tocca il gesto esistente su un click singolo.
+   ══════════════════════════════════════════════════════════════════════════
+   La selezione multipla vive come array di ID (`D2.selMulti`, in
+   genesi.html), non di indici: `splice` sposta tutti gli indici dopo quello
+   tolto, la stessa lezione già scritta per `D2.selPrev`. Questa funzione
+   è la sola parte pura dell'eliminazione batch — filtrare l'array dei fori
+   togliendo quelli il cui id è nella selezione — e vive qui per la stessa
+   ragione di `estremiDisegno`: testabile sotto `node`, la pagina resta un
+   chiamante come un altro. */
+export function foriSenzaId(holes, idsSelezionati){
+  const via=new Set(idsSelezionati||[]);
+  return (holes||[]).filter(h=>h && !via.has(h.id));
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   G50 · RIFLETTI LA SELEZIONE — LA PRIMA TRASFORMAZIONE (19/09, terzo asse
+   CAD confermato dal censimento: rotate/scale/mirror completi con pivot
+   scelto a mano sono "costo medio-grande" — vedi
+   docs/RICERCA_GENESI_CAD.md, sezione 3 — e restano il passo pieno.
+   Questo è il mirror più stretto possibile: nessun pivot da scegliere
+   (il centro è il centroide della selezione stessa, calcolato, non
+   chiesto), nessun angolo (l'asse è sempre verticale — la fila resta
+   una fila, si specchia solo lungo di lei, la direzione in cui un
+   pattern di fori è quasi sempre simmetrico in cava). Un mirror ad
+   asse scelto liberamente è un'estensione della stessa idea, non una
+   riscrittura, quando servirà davvero.
+   ══════════════════════════════════════════════════════════════════════════
+   La spalla (`my`, la distanza dal fronte) non si tocca: specchiare la
+   PROFONDITÀ di un foro non ha significato fisico in questo dominio,
+   solo la sua posizione lungo la fila (`mx`) — a differenza di un CAD
+   generico, dove "verticale" e "orizzontale" sono simmetrici fra loro. */
+export function foriRiflessi(holes, idsSelezionati){
+  const via=new Set(idsSelezionati||[]);
+  const selezionati=(holes||[]).filter(h=>h && via.has(h.id));
+  if(!selezionati.length) return (holes||[]).slice();
+  const cx=selezionati.reduce((s,h)=>s+ +h.mx, 0)/selezionati.length;
+  return (holes||[]).map(h=>(h && via.has(h.id)) ? {...h, mx:+(2*cx - h.mx).toFixed(2)} : h);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   G57 · RUOTA I TRATTI (19/09) — LA TRASFORMAZIONE CHE MANCAVA, MA SOLO
+   DOVE HA SENSO FISICO FARLA.
+   ══════════════════════════════════════════════════════════════════════════
+   docs/RICERCA_GENESI_CAD.md, sezione 3, la classifica come «costo
+   medio-grande» per via del pivot e dell'angolo da chiedere — e per i FORI
+   è vero: `mx`/`my` non sono coordinate cartesiane qualunque, sono
+   burden/spaziatura rispetto alla faccia (lo stesso principio già scritto
+   sopra `foriRiflessi`: la spalla non si specchia perché non ha un
+   equivalente fisico). Ruotare un foro di un angolo qualunque mescolerebbe
+   le due grandezze e romperebbe quel significato per l'intera selezione.
+   I TRATTI no: sono geometria di riferimento importata (un rilievo DXF,
+   un profilo disegnato a mano), mai un dato che entra nei calcoli — lo
+   stesso motivo per cui l'import DXF li tiene "in sola lettura, mai come
+   fori/fronte/piede" (G47d). Ed è proprio lì che la rotazione risolve un
+   problema reale, già scritto nel messaggio di quell'import: «un file DXF
+   esterno può avere una convenzione di assi diversa... verifica
+   l'orientamento» — finora l'unico rimedio a un'importazione storta era
+   annullare e reimportare. Ruotare i tratti lascia correggere l'orientamento
+   sul posto, senza toccare fori/fronte/piede.
+   Pivot: il centroide di TUTTI i punti di TUTTI i tratti (nessun pivot da
+   scegliere, stessa scelta minima di `foriRiflessi`). Angolo: l'unico
+   pezzo che un mirror non ha e una rotazione non può fare a meno di avere
+   — digitato, non trascinato (un handle di rotazione sulla tela è
+   un'estensione futura, non necessaria per correggere un asse invertito o
+   ruotato di 90°/180°, il caso reale che questa unità risolve). */
+export function trattiRuotati(tratti, gradi){
+  const T=tratti||[];
+  if(!T.length || !gradi) return T.slice();
+  const tutti=T.flatMap(t=>t&&t.pts||[]);
+  if(!tutti.length) return T.slice();
+  const cx=tutti.reduce((s,p)=>s+ +p.x,0)/tutti.length, cy=tutti.reduce((s,p)=>s+ +p.y,0)/tutti.length;
+  const rad=gradi*Math.PI/180, co=Math.cos(rad), si=Math.sin(rad);
+  return T.map(t=>({...t, pts:(t&&t.pts||[]).map(p=>{
+    const dx=p.x-cx, dy=p.y-cy;
+    return { x:+(cx+dx*co-dy*si).toFixed(2), y:+(cy+dx*si+dy*co).toFixed(2) };
+  })}));
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   G58 · SCALA I TRATTI (19/09) — LA TERZA TRASFORMAZIONE, PER UN CASO
+   REALE CHE NÉ IL CENSIMENTO NÉ G57 AVEVANO NOMINATO.
+   ══════════════════════════════════════════════════════════════════════════
+   `dxfInTratti` (sopra) legge `10`/`20`/`11`/`21` — i numeri grezzi del
+   file — e non tocca `$INSUNITS`, la variabile del DXF che dichiara in che
+   unità è disegnato. Genesi lavora in METRI ovunque (`D2.B`, `D2.S`, `mx`,
+   `my`): un rilievo esportato da un programma che scrive in MILLIMETRI
+   (default comune di molti CAD) arriva 1000 volte più grande — non storto
+   come nel caso di G57, ILLEGGIBILE: o invisibile fuori scala sulla pianta,
+   o talmente enorme da rendere lo zoom automatico inutile. Non è un caso
+   ipotizzato: è la stessa famiglia dell'avviso già scritto per l'import DXF
+   («verifica l'orientamento»), sull'altro asse possibile — la SCALA invece
+   della rotazione — e nessuna riga di questo file lo copriva.
+   ⛔ E QUI LA COPIA DA G57 ERA SBAGLIATA, PRESA PRIMA DI SCRIVERLA COSÌ.
+   Il mirror e la rotazione hanno ragione a girare intorno al CENTROIDE:
+   un'orientazione storta si corregge in un punto che il disegno ha già
+   scelto bene, e la posizione assoluta resta quella giusta. Ma un errore
+   di UNITÀ non è un errore di orientamento: ogni coordinata è sbagliata
+   della stessa proporzione, compresa quella del centroide. Scalare
+   attorno al centroide lascia il centro ESATTAMENTE dov'era — un rilievo
+   a 7500 mm dall'origine resta a ~7500 dopo aver "scalato" per 0,001,
+   solo più piccolo, cioè lontanissimo dai fori che vivono vicino allo
+   zero. Misurato prima di scriverla qui: un DXF con due LINE fino a
+   10.000/5.000 (mm), scalato di 0,001 attorno al centroide, restava a
+   coordinate ~7492–7502 invece di ~0–10 — invisibile sulla stessa pianta
+   dei fori tanto quanto prima. La scala giusta per un errore di unità è
+   dall'ORIGINE, non dal centro: `x·fattore`, senza sottrarre nessun
+   centro prima. Resta fuori dal dominio dei fori per lo stesso motivo
+   fisico di G57 (mx/my non sono coordinate libere). Un fattore ≤0 non ha
+   senso geometrico (0 collasserebbe tutto sull'origine, negativo
+   mescolerebbe una scala con un mirror che nessuno ha chiesto): si
+   rifiuta, non si "corregge" silenziosamente al valore assoluto. */
+export function trattiScalati(tratti, fattore){
+  const T=tratti||[];
+  if(!T.length || !fattore || fattore<=0) return T.slice();
+  return T.map(t=>({...t, pts:(t&&t.pts||[]).map(p=>({
+    x:+(p.x*fattore).toFixed(2), y:+(p.y*fattore).toFixed(2)
+  }))}));
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   G51 · INPUT RELATIVO/POLARE PER LE COORDINATE ESATTE (19/09)
+   ══════════════════════════════════════════════════════════════════════════
+   Sezione 4 del censimento CAD verificato (docs/RICERCA_GENESI_CAD.md):
+   il pezzo a basso costo, isolato nella Decisione #43 come NON bloccato
+   dalla parte grande (i blocchi riusabili, filata al fondatore). G47a
+   aveva già i due campi esatti (x/spalla) ma solo assoluti: chi disegna
+   una fila di fori uguali fra loro deve ancora calcolare a mente ogni x
+   successivo. Qui si aggiunge, SOPRA l'input assoluto già esistente
+   (invariato: un numero senza «@» funziona come prima), una sintassi in
+   stile CAD applicata a entrambe le coordinate insieme, col punto di
+   riferimento che è lo stesso già tracciato da G34quinquies/G47a per
+   l'allineamento e la distanza fra due fori (`D2.selPrev`) — non un
+   concetto nuovo.
+   ⛔ Il prototipo in scratchpad (prima di scrivere qui, come vuole
+   CLAUDE.md) ha bocciato la sintassi annunciata nella decisione
+   (`@dx,dy`): la virgola come separatore fra dx e dy COLLIDE con la
+   virgola decimale italiana che ogni altro campo di quest'app accetta.
+   "@1,5" da solo sarebbe letto come dx=1,dy=5 (due interi), non come un
+   singolo decimale con dy mancante — un'ambiguità silenziosa, non un
+   errore. Il separatore qui è «;» (`@dx;dy`), che lascia la virgola
+   libera di essere decimale in entrambi i numeri come ovunque nell'app;
+   il polare non ha questa collisione (`<` non compare mai in un numero)
+   e resta `@distanza<angolo`, gradi, 0°=lungo la fila positiva.
+   Tre uscite dichiarate, non due — la stessa disciplina di
+   `puntoSnapEstremo`: `null` (il testo non inizia per «@», il chiamante
+   tratta il valore come assoluto: il comportamento di sempre), un
+   oggetto con `errore` (sintassi «@…» tentata ma non valida, o nessun
+   punto di riferimento selezionato — un caso che l'utente DEVE vedere,
+   non un ripiego muto sullo zero), un oggetto con `mx`/`my` (successo).
+   La classe di caratteri `[\d.,]` esclude di proposito il segno «-»
+   dalla distanza polare: non serve un controllo `dist<0` a valle,
+   perché quella forma non può mai combaciare la sintassi — un controllo
+   su un caso che il testo stesso non può produrre sarebbe un ramo morto
+   (CLAUDE.md: non si valida ciò che non può accadere). */
+export function coordinataRelativa(testo, rif){
+  const t = String(testo==null?'':testo).trim();
+  if(!t.startsWith('@')) return null;
+  if(!rif) return { errore:'serve un punto di riferimento: seleziona prima un altro foro' };
+  const corpo = t.slice(1).trim();
+  const cart = corpo.match(/^(-?[\d.,]+)\s*;\s*(-?[\d.,]+)$/);
+  if(cart){
+    const dx=+cart[1].replace(',','.'), dy=+cart[2].replace(',','.');
+    if(!isFinite(dx)||!isFinite(dy)) return { errore:'sintassi non valida: usa @dx;dy con due numeri' };
+    return { mx: rif.mx+dx, my: rif.my+dy };
+  }
+  const polar = corpo.match(/^([\d.,]+)\s*<\s*(-?[\d.,]+)$/);
+  if(polar){
+    const dist=+polar[1].replace(',','.'), ang=+polar[2].replace(',','.');
+    if(!isFinite(dist)||!isFinite(ang)) return { errore:'sintassi non valida: usa @distanza<angolo, due numeri' };
+    const rad=ang*Math.PI/180;
+    return { mx: rif.mx+dist*Math.cos(rad), my: rif.my+dist*Math.sin(rad) };
+  }
+  return { errore:'sintassi non riconosciuta: usa @dx;dy oppure @distanza<angolo' };
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   G35 · IL PROSSIMO PEZZO DI "GENESI CONTINUA A USCIRE DALLA PAGINA" (13/09)
+   ══════════════════════════════════════════════════════════════════════════
+   `measureGeom2D` misura la maglia DISEGNATA (non quella di progetto): il
+   burden minimo fra i fori, l'interasse fra fori affiancati sulla stessa
+   fila (entro mezzo metro di my — la tolleranza che distingue "stessa fila"
+   da "fila diversa"), e la lunghezza totale della pianta. Nessun calcolo
+   nuovo: era già così nella pagina, cambia solo la firma — legge tre valori
+   passati come parametri invece di leggere `D2` direttamente, così può
+   girare sotto `node` e la pagina resta un chiamante come un altro.
+   ⛔ `Number.isFinite` sul valore GREZZO di `Sprog`, non su `+Sprog`: `+null`
+   fa 0, che è finito — è la riga di CLAUDE.md, già pagata una volta in
+   `valoreCampo`. E vale anche per la via SENZA fori: prima restituiva
+   `Sprog` così com'era (poteva essere `undefined`, una stringa, qualunque
+   cosa); il contratto di questa funzione è UNO — S è un numero, oppure
+   `null` — e due uscite con due contratti diversi sono una copia più
+   debole (la stessa famiglia di CLAUDE.md sulle firme strette). */
+export function misuraGeom2D(holes, Sprog, Bprog){
+  const Sp = Number.isFinite(Sprog) ? Sprog : null;
+  const H = Array.isArray(holes) ? holes : [];
+  if(!H.length) return { n:0, B:Bprog, S:Sp, Lm:0 };
+  let Bm=Infinity, minx=Infinity, maxx=-Infinity, Sm=Infinity;
+  for(const h of H){ if(h.my<Bm)Bm=h.my; if(h.mx<minx)minx=h.mx; if(h.mx>maxx)maxx=h.mx; }
+  for(let i=0;i<H.length;i++) for(let j=i+1;j<H.length;j++){
+    if(Math.abs(H[i].my-H[j].my)<0.5){ const d=Math.abs(H[i].mx-H[j].mx); if(d>0.05 && d<Sm) Sm=d; }
+  }
+  if(!isFinite(Sm)) Sm=Sp;
+  return { n:H.length, B:+Bm.toFixed(2), S:(Sm===null?null:+Sm.toFixed(2)), Lm:+(maxx-minx).toFixed(1) };
+}
+/* Trasloco B3 (15/09): il legame di pagina `measureGeom2D()` componeva SOLO
+   questa funzione con tre campi dello stato del progetto — sette punti di
+   chiamata, tenuto per il nome corto invece di ripetere i tre campi ad ogni
+   chiamata. Nessuna ragione per lasciarlo in pagina: stesso nome, lo stato
+   passato esplicito come primo argomento. */
+export function measureGeom2D(design){ return misuraGeom2D(design.holes, design.S, design.B); }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   G36 · UN'ALTRA FETTA DI "GENESI CONTINUA A USCIRE DALLA PAGINA" (13/09)
+   ══════════════════════════════════════════════════════════════════════════
+   `_puntiNuvola` non leggeva affatto `D2`: il censimento statico
+   (`genesi-estraibili.mjs`) la marcava legata a nove variabili del modulo
+   («lo, conta, c, locale, n, riga, a, si, su») per lo stesso falso positivo
+   già preso tre volte su questo file (unità 121, 122, 124) — lettere e
+   parole dentro le STRINGHE della funzione ("nel ritaglio", "caricati",
+   "disegnati su") e nei suoi commenti, spezzate dal tokenizzatore
+   sull'indentazione. Letta a mano: pura, prende un evento/record e chiama
+   solo `_ricPlur` (alias di `conta`, già in questo modulo) e `gnum` (già
+   importato da `genesi-formato.js`). Nessun cambio di firma: prendeva un
+   parametro prima, lo prende identico adesso.
+
+   ⛔ QUALE conto di punti si sta scrivendo? Fino al 03/08 lo storico metteva
+   «250.000 punti» accanto a «volume ≈ 1.234 m³»: il primo era la nuvola
+   INTERA (per giunta sottocampionata a quello che si riesce a disegnare), il
+   secondo il RITAGLIO. Due numeri di due cose diverse, uno accanto all'altro,
+   che chiunque legge come «il ritaglio ha 250.000 punti» — cioè un numero
+   tranquillo dove non era stato misurato niente.
+   Adesso: se il conto del ritaglio c'è, si scrive QUELLO e si dice che è del
+   ritaglio; altrimenti si scrive quello della nuvola dicendo che è caricata,
+   e se era sottocampionata si scrive anche su quanti.
+   I record vecchi hanno solo `punti`: si mostrano com'erano, senza inventare. */
+export function _puntiNuvola(e){
+  if(!e) return '';
+  if(e.puntiRitaglio>0) return ' · '+_ricPlur(e.puntiRitaglio,'punto','punti')+' nel ritaglio';
+  const mostrati = e.puntiMostrati || e.punti || 0;
+  if(!mostrati) return '';
+  const tot = e.puntiTotali || 0;
+  return tot>mostrati
+    ? ' · '+_ricPlur(mostrati,'punto disegnato','punti disegnati')+' su '+gnum(tot,0)+' caricati'
+    : ' · '+_ricPlur(mostrati,'punto caricato','punti caricati');
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   G37 · CHE COSA DISEGNA UNA PIANTA SENZA MAGLIA (B0-septies, 04/09 → 14/09)
+   ══════════════════════════════════════════════════════════════════════════
+   Col burden o l'interasse di progetto non numerici — misurato reale: si
+   arriva qui aprendo una volata salvata prima del 05/09 (senza fori propri)
+   il cui progetto porta un valore assente, la stessa via già usata per la
+   controprova di B0-nonies — la pagina costruiva comunque una maglia: le
+   coordinate dei fori degenerano per coercizione di un valore assente a
+   ZERO (non a un ripiego "plausibile" come i cinque consumatori a valle,
+   che invece ripiegano su un burden e un interasse finti), quindi TUTTI i
+   fori finivano disegnati sovrapposti nello stesso punto — un conteggio
+   foro corretto sopra una geometria completamente falsa. Da lì i cinque
+   ripieghi a valle (`computeEnergia2D`, `computeSeq2D`, `computeRelief2D`,
+   `_spazTipico`, `drawInnesco2D`) calcolavano numeri su una maglia che non
+   esiste.
+   ⛔ **Farla a metà era la trappola scritta nella roadmap**: correggere i
+   cinque consumatori uno per uno rischiava di lasciarne indietro uno (sono
+   risultati 11+ punti che leggono lo stesso ripiego nella pagina, non
+   cinque) e di far divergere fra loro i valori di scorta. La cura sta
+   invece alla RADICE: se la maglia non si può posizionare, non la si
+   genera — e i cinque consumatori NON vengono mai chiamati su una maglia
+   vuota, perché ciascuno ha già una guardia sull'assenza di fori scritta
+   per altre ragioni. Una guardia sola, non cinque riscritture.
+   Questa funzione decide SE la maglia è disegnabile; la pagina la chiama
+   prima di generare le coordinate. */
+/* ⛔ 27/11 — CON LA PIANTA NON DISEGNABILE NESSUN DOCUMENTO ESCE COME SE LO
+   FOSSE. `magliaAssenteMotivo` (qui sotto) dal 14/09 ferma il DISEGNO: senza
+   spalla o interasse non nasce nessun foro e lo schermo lo dice. Ma i comandi
+   che producono un documento non lo sapevano. Misurato premendoli tutti su
+   una volata salvata senza spalla: la scheda CSV usciva con «Maglia;null×3.5
+   m», «Fori;0» e «Carica totale (kg);0» e il messaggio «✓ esportata: 39
+   parametri»; il piano di carico usciva VUOTO e veniva scritto nella raccolta
+   che legge Campo («✓ esportato: 0 fori — Campo lo trova in…»); DXF e piano
+   d'innesco uscivano a zero fori; il report si apriva con «Maglia — × 3,5 m»;
+   «Simula» portava in una scena senza maglia; e lo scatto A/B salvava un
+   progetto a zero fori. Nessun errore, nessuna riga rossa.
+   Una frase sola, decisa qui, e una guardia sola nella pagina (`_senzaPianta`)
+   davanti a ogni comando: il documento non esce, e chi ha premuto legge che
+   cosa manca e dove scriverlo. Salvare la volata resta permesso — è il modo
+   di non perdere il lavoro — e la riga che resta in Home lo dice. */
+export function nonEsceSenzaPianta(motivo, cosa, verbo){
+  if(!motivo) return '';
+  return (cosa || 'Il documento') + ' ' + (verbo || 'non esce') + ': la pianta non è disegnabile — ' + fraseMagliaAssente(motivo)
+    + (_MAGLIA_PAROLE[motivo] && _MAGLIA_PAROLE[motivo][1] ? '. Scrivi i due dati' : '. Scrivi il dato')
+    + ' nei Parametri volata: i fori si ridisegnano da soli.';
+}
+/* ⛔ 27/11 — LA PAROLA È QUELLA DEL CAMPO, NON QUELLA DEL CODICE. Lo stato che
+   ferma il disegno si chiama `'burden'` (è il nome della grandezza nel codice
+   e nelle formule), e fino a oggi quella stessa stringa finiva A SCHERMO:
+   «Pianta non disegnabile: manca burden». Ma il campo da riempire, sei
+   centimetri più su, si chiama «Spalla (m)»: chi legge il messaggio cerca un
+   campo «burden» che nella schermata non c'è. Con due dati mancanti in più il
+   verbo restava al singolare («manca burden e interasse»).
+   Lo STATO non cambia — lo leggono tre banchi e la guardia del disegno — e
+   questa funzione dà la FRASE da mostrare, verbo compreso, in un posto solo:
+   la pianta, la scheda, i nove comandi fermati e la riga che resta in Home
+   passano tutti di qui. Un motivo che non conosce non lo ingoia: lo scrive
+   com'è, perché un messaggio vuoto sarebbe peggio di una parola tecnica. */
+const _MAGLIA_PAROLE = {
+  'burden':             ['manca la spalla', 0],
+  'interasse':          ["manca l'interasse", 0],
+  'burden e interasse': ["mancano la spalla e l'interasse", 1],
+};
+/* ⛔ 27/11 — UN TESTO SCRITTO SULLA TELA SI MISURA IN PUNTI DELLA TELA, NON
+   DELLO SCHERMO. La pianta è una tela larga 960 punti che il foglio mostra a
+   `width:100%` (al massimo 560 px): su un telefono da 320 è larga 292 px, cioè
+   ogni punto vale meno di un terzo di pixel. La frase «Pianta non
+   disegnabile…» era scritta a 13 punti: misurata, usciva alta circa 4 px —
+   una riga gialla, non una frase (visto nello scatto, deciso con la misura).
+   Questa funzione dice per quanto moltiplicare un corpo perché sullo schermo
+   esca della misura scritta: larghezza interna / larghezza mostrata. Mai meno
+   di 1 (su uno schermo largo la tela non si ingrandisce), e 1 quando la tela
+   non è a schermo (larghezza zero): un numero non leggibile non diventa un
+   corpo infinito. */
+export function scalaTestoTela(larghezzaInterna, larghezzaMostrata){
+  const a = +larghezzaInterna, b = +larghezzaMostrata;
+  if(!Number.isFinite(a) || !Number.isFinite(b) || !(a > 0) || !(b > 0)) return 1;
+  return Math.max(1, a / b);
+}
+export function fraseMagliaAssente(motivo){
+  if(!motivo) return '';
+  const p = _MAGLIA_PAROLE[motivo];
+  return p ? p[0] : 'manca ' + motivo;
+}
+export function magliaAssenteMotivo(B, S){
+  const bOk = Number.isFinite(B) && B>0, sOk = Number.isFinite(S) && S>0;
+  if(bOk && sOk) return null;
+  if(!bOk && !sOk) return 'burden e interasse';
+  return !bOk ? 'burden' : 'interasse';
 }

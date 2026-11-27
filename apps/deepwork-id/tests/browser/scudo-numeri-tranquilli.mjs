@@ -57,10 +57,16 @@ const TIPI = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/jav
    Contati: una controprova che non sostituisce niente non prova niente. */
 const DIFETTI = [
   // 1 · la pastiglia verde «tutte regolari» e la riga che non nomina il buco
-  ['const cls = c.scadute ? "danger" : (c.inScadenza || c.senzaData ? "warn" : "ok");\n      const lbl = c.scadute ? c.scadute + (c.scadute === 1 ? " scaduta" : " scadute")\n                : (c.inScadenza ? c.inScadenza + " in scadenza"\n                : (c.senzaData ? c.senzaData + (c.senzaData === 1 ? " senza data" : " senza data") : "tutte regolari"));',
+  /* ⏱️ RI-ANCORATA il 02/09: la pagina non decide più colore e pastiglia con
+     due ternari, li chiede a `statoCopertura` (il pezzo si è mosso perché è
+     MIGLIORATO, come quasi sempre). Il difetto rimesso è lo stesso: la
+     pastiglia che ignora il secchio «senza data». */
+  ['const { cls, badge: lbl } = statoCopertura(c);',
    'const cls = c.scadute ? "danger" : (c.inScadenza ? "warn" : "ok");\n      const lbl = c.scadute ? c.scadute + (c.scadute === 1 ? " scaduta" : " scadute")\n                : (c.inScadenza ? c.inScadenza + " in scadenza" : "tutte regolari");'],
-  ['${c.senzaData ? " · <b>" + c.senzaData + " senza data</b>" : ""} — su ${c.totale}',
-   ' — su ${c.totale}'],
+  /* ⏱️ RI-ANCORATA il 02/09: dopo «senza data» la riga porta i due secchi
+     della verifica periodica; l'iniezione toglie sempre e solo «senza data». */
+  ['${c.senzaData ? " · <b>" + c.senzaData + " senza data</b>" : ""}${c.verificheNegative ?',
+   '${c.verificheNegative ?'],
   // 2 · la frase del muro che manda le righe illeggibili nel «più in là»
   ['const testoMuroSenzaData = (m) => m.senzaData', 'const testoMuroSenzaData = (m) => false'],
   // 3 · la pastiglia della mansione che conta solo chi è rimasto in anagrafica
@@ -68,9 +74,7 @@ const DIFETTI = [
    '${r.totale ? (r.requisitiIgnoti ? "?/" + r.totale : r.puo + "/" + r.totale) : "nessuno"}'],
   ['${r.senzaPersona ? ` · <b>${r.senzaPersona} ${r.senzaPersona === 1 ? "assegnato non più in anagrafica" : "assegnati non più in anagrafica"}</b>` : ""}', ""],
   // 4 · il nome che non esiste e lo stato che non si stampava, sul foglio
-  ['c.verbale.righe.map(r => riga(r.tipo.etichetta || r.consegna.tipo,',
-   'c.verbale.righe.map(r => riga(r.tipo.nome || r.consegna.tipo,'],
-  ['+ (r.stato === "scaduta" ? " · <b>da sostituire</b>"\n             : r.stato === "in-scadenza" ? " · da sostituire a breve"\n             : r.stato === "senza data" ? " · <b>senza data di sostituzione</b>" : "")', ""],
+  //     (⏱️ dal 05/09 le righe le compone `fogliaCartella` nel modulo: vedi DIFETTI_MODULO)
   // 4b · la bandiera `noto` del confronto, che prima non leggeva nessuno
   ['const andMin = avvisoAndamentoMinimo(c);', 'const andMin = null;'],
   ['const b = c.pochi ? ["tag", "Da leggere con prudenza"]\n          : (andMin ? ["warn", "Da confermare"] : (V[c.verso] || ["tag", "—"]));',
@@ -80,6 +84,13 @@ const DIFETTI = [
      (che morde a 320, dove larghezza da guadagnare non ce n'è) */
   ['id="nm-chi" title="Chi segnala" style="flex:1 1 240px;"', 'id="nm-chi" title="Chi segnala" style="flex:1 1 160px;"'],
   ['<option value="">Chi segnala (facoltativo)</option>', '<option value="">— chi segnala (facoltativo) —</option>'],
+  // 6 · il messaggio dell'appalto appena creato si rilegge per CONTENUTO, non per id
+  /* ⏱️ trovato il 15/09 con un banco nuovo (nav-appa non aveva ancora un
+     banco dedicato): due appalti della stessa impresa con lo stesso oggetto
+     — normalissimo in cava («Trasporto inerti», «Manutenzione») — e il
+     `.find` per testo prendeva il primo, spesso il vecchio già a posto. */
+  ['const salvato = ref && ref.id ? APPA.find(x => x.id === ref.id) : null;',
+   'const salvato = APPA.find(x => x.oggetto === oggetto && x.appaltatoreId === impresa);'],
 ];
 
 /* I CASI, aggiunti in coda al modulo dati: `DEMO` è un oggetto e la pagina ne
@@ -95,6 +106,21 @@ DEMO.scadenze.push(
   { id: "zz2", lavoratoreId: DEMO.lavoratori[0].id, tipo: "Visita medica", descrizione: "Visita medica periodica", dataScadenza: "2026-02-30" },
   { id: "zz3", lavoratoreId: DEMO.lavoratori[1].id, tipo: "Visita medica", descrizione: "Visita medica periodica", dataScadenza: "" });
 `;
+/* ⛔ E UN DIFETTO CHE VIVE NEL MODULO, dal 02/09: la copertura per tipo che
+   legge SOLO la data della prossima verifica e non lo stato della verifica
+   (`statoVerificaPeriodica`). Con questo rimesso la riga «Verifica periodica»
+   della dimostrazione torna verde «tutte regolari» mentre il Quadro, sugli
+   stessi dati, ha una attrezzatura in rosso e una in giallo. Terzo elemento:
+   il file, come in `scudo-documenti`. */
+const DIFETTI_MODULO = [
+  ['    const v = scadenzaDiVerifica(s) ? statoVerificaPeriodica(s, documenti, oggi) : null;',
+   '    const v = null;', "apps/scudo/scudo-data.js"],
+  // 4 · il nome che non esiste e lo stato che non si stampava, sul foglio (sul modulo dal 05/09)
+  ['((c.verbale || {}).righe || []).map((r) => [String(r.tipo.etichetta || r.consegna.tipo || ""),',
+   '((c.verbale || {}).righe || []).map((r) => [String(r.tipo.nome || r.consegna.tipo || ""),', "apps/scudo/scudo-data.js"],
+  ['      + (r.stato === "scaduta" ? " · **da sostituire**" : r.stato === "in-scadenza" ? " · da sostituire a breve" : r.stato === "senza data" ? " · **senza data di sostituzione**" : "")',
+   '', "apps/scudo/scudo-data.js"],
+];
 /* Un id assegnato a una mansione a cui in anagrafica non corrisponde nessuno:
    è quello che resta dopo aver tolto un lavoratore dall'anagrafica. */
 const FIXTURE_FANTASMA = `
@@ -134,6 +160,14 @@ const srv = createServer((q, s) => {
   let corpo = readFileSync(p);
   if (p.endsWith("apps/scudo/scudo-data.js") && FIXTURE) {
     corpo = Buffer.from(corpo.toString("utf8") + FIXTURE, "utf8");
+  }
+  if (CONTROPROVA && p.endsWith("apps/scudo/scudo-data.js")) {
+    let t = corpo.toString("utf8");
+    // il terzo posto è il file: qui si LEGGE, così un'iniezione che dichiarasse
+    // un altro file non morderebbe questo (05/09)
+    for (const [a, b, f] of DIFETTI_MODULO) if ((!f || p.endsWith(f)) && t.includes(a)) { colpiti.add(a); t = t.split(a).join(b); }
+    iniezioni = colpiti.size;
+    corpo = Buffer.from(t, "utf8");
   }
   if (CONTROPROVA && p.endsWith("apps/scudo/index.html")) {
     let t = corpo.toString("utf8");
@@ -245,6 +279,38 @@ FIXTURE = FIXTURE_DATE;
 }
 
 // ── 3 · LA MANSIONE CON UN ASSEGNATO CHE NON C'È PIÙ ──────────────────────
+// ── 1b · LA VERIFICA PERIODICA NELLA COPERTURA PER TIPO (02/09) ────────────
+/* Il caso è nella DIMOSTRAZIONE stessa, e non invecchia: la piattaforma ha le
+   prescrizioni scadute dal 15/07/2026 (una data passata resta passata) e il
+   carrello non ha nessun esito. Misurato prima della correzione: la riga
+   diceva «3 in regola · 0 in scadenza · 0 scadute — su 3» con la pastiglia
+   VERDE «tutte regolari», e quindici righe sotto la stessa schermata scriveva
+   «1 con prescrizioni scadute · 1 mai verificata, su 3 verifiche registrate». */
+console.log("\n· la riga «Verifica periodica» della copertura legge la VERIFICA, non solo la data");
+FIXTURE = "";
+{
+  const pg = await apri("nav-scad");
+  const r = await pg.evaluate(() => {
+    const it = [...document.querySelectorAll("#cop-list .item")].find((e) => /^\s*Verifica periodica/.test(e.innerText));
+    const m = it && it.querySelector(".meta");
+    const nota = document.getElementById("scad-list") ? document.getElementById("page-scad").innerText : "";
+    return { riga: it ? it.innerText.replace(/\s+/g, " ") : null,
+      badgeCls: it && it.querySelector(".badge") ? it.querySelector(".badge").className : null,
+      metaTagliata: m ? m.scrollHeight > m.clientHeight + 1 : null,
+      /* la frase di `verificheDaSistemare` sulla stessa schermata: è il numero con cui la riga deve andare d'accordo */
+      quadro: (nota.match(/\d+ con prescrizioni scadute[^.]*/) || [""])[0] };
+  });
+  dice(r.riga != null, "la riga «Verifica periodica» è nella copertura", r);
+  dice(!!r.badgeCls && !/\bok\b/.test(r.badgeCls),
+    "⛔ la pastiglia NON è verde: una verifica con prescrizioni scadute non è «tutte regolari»", r.badgeCls);
+  dice(/1 negativa/.test(r.riga || "") && /1 incerta/.test(r.riga || ""),
+    "⛔ la riga dice QUANTE verifiche sono negative e quante incerte", r.riga);
+  dice(!/3 in regola/.test(r.riga || ""), "e le tre non sono contate «in regola»", r.riga);
+  dice(/1 con prescrizioni scadute/.test(r.quadro), "e la stessa schermata, più sotto, conta la stessa prescrizione scaduta", r.quadro);
+  dice(r.metaTagliata === false, "e il dettaglio non finisce nel testo tagliato a due righe (a 430 px)", r.riga);
+  await pg.close();
+}
+
 console.log("\n· una mansione con un assegnato non più in anagrafica");
 FIXTURE = FIXTURE_FANTASMA;
 {
@@ -385,11 +451,48 @@ for (const W of [390, 320]) {
   await pg.close();
 }
 
+// ── 6 · L'APPALTO GEMELLO: STESSO OGGETTO, STESSA IMPRESA ─────────────────
+/* La dimostrazione ha già `pa1`, "Trasporto inerti al piazzale" dell'impresa
+   "Autotrasporti Valle srl" (ap1), A POSTO (sito e DUVRI presenti). Si crea
+   un SECONDO appalto della stessa impresa con lo STESSO oggetto, senza sito
+   né uomini-giorno: se il messaggio si rilegge per contenuto invece che per
+   id, trova pa1 e dice "Appalto registrato." tranquillo su un appalto senza
+   sito né DUVRI — mentre l'elenco, che si ridisegna dallo stato vero, resta
+   corretto. È il difetto che si vede solo nel MESSAGGIO, non nella lista. */
+console.log("\n· l'appalto gemello (stesso oggetto, stessa impresa): il messaggio non deve leggere quello vecchio");
+FIXTURE = "";
+{
+  const pg = await apri("nav-appa");
+  await pg.selectOption("#appa-impresa", "ap1").catch(() => {});
+  await pg.fill("#appa-oggetto", "Trasporto inerti al piazzale").catch(() => {});
+  await pg.click("#btn-appa").catch(() => {});
+  await pg.waitForTimeout(500);
+  const r = await pg.evaluate(() => {
+    const es = document.getElementById("appa-esito");
+    const righe = [...document.querySelectorAll("#appa-list .item")];
+    const ultima = righe[righe.length - 1];
+    return { esito: es ? es.innerText : null, esitoCls: es ? es.className : null,
+      ultimaRiga: ultima ? ultima.innerText : null,
+      ultimaBadge: ultima && ultima.querySelector(".badge") ? ultima.querySelector(".badge").innerText : null };
+  });
+  dice(!!r && /Trasporto inerti al piazzale/.test(r.ultimaRiga || ""),
+    "il nuovo appalto è nell'elenco", r);
+  dice(!!r && /NON VERIFICATO|non.verificat/i.test(r.ultimaBadge || ""),
+    "⛔ e la sua pastiglia dice onestamente che manca qualcosa (l'elenco è già corretto)", r);
+  dice(!!r && /err/.test(r.esitoCls || ""),
+    "⛔ il MESSAGGIO di conferma parla dell'appalto appena creato, non del gemello già a posto",
+    r && (r.esito + " · " + r.esitoCls));
+  dice(!!r && /Resta da fare/.test(r.esito || ""),
+    "e nomina che cosa manca, come per un oggetto senza gemelli", r && r.esito);
+  await pg.close();
+}
+
 console.log(`\n${ok + ko} prove · ${ok} passate, ${ko} fallite`);
 await b.close(); srv.close();
 if (CONTROPROVA) {
-  console.log(`iniezioni: ${iniezioni} difetti su ${DIFETTI.length} rimessi nella risposta HTTP`);
-  if (iniezioni < DIFETTI.length) {
+  const QUANTI = DIFETTI.length + DIFETTI_MODULO.length;
+  console.log(`iniezioni: ${iniezioni} difetti su ${QUANTI} rimessi nella risposta HTTP (${DIFETTI.length} nella pagina, ${DIFETTI_MODULO.length} nel modulo)`);
+  if (iniezioni < QUANTI) {
     console.log("⚠️ QUALCHE DIFETTO NON È STATO RIMESSO: la controprova non prova quello che dice");
     process.exit(3);
   }

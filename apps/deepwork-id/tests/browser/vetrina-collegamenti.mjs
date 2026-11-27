@@ -4,18 +4,41 @@
    vale più di dieci difetti nascosti. Nessun test esistente lo vedeva: i
    collegamenti sono `href`, e un `href` sbagliato non fa fallire niente.
 
-   Cosa si pretende, per ogni scheda:
-   1. il riquadro è un collegamento e punta a un file che esiste (non 404);
-   2. la pagina che si apre monta DAVVERO qualcosa — non basta lo stato 200,
-      perché una pagina che va in errore nel suo programma risponde 200 e resta
-      vuota (è successo col core, che senza Firebase non partiva e mostrava
-      solo i segnaposto);
-   3. da quella pagina si torna alla vetrina con un comando visibile.
+   ⛔ RISCRITTO IL 04/09, PERCHÉ ERA ROSSO SU HEAD DA DIECI GIORNI E NESSUNO
+   L'AVEVA LANCIATO. La vetrina è stata rifatta il 25-26/08 (la corona, la
+   fascia, le schede con «Apri X›»); questo banco cercava ancora `.scheda`,
+   `.cta.primaria`, `.cifra`, `.sez-sot`, `.ponte`, `.anteprima img` — classi
+   che nella pagina nuova NON ESISTONO. Misurato il 04/09 sul disco: 3 passate,
+   5 fallite, e «0 superfici hanno un segno d'avvio», cioè il ciclo sui
+   riquadri non seguiva NIENTE. Il checkpoint del 25/08 lo diceva («la
+   copertura esiste, ma nessuna passata è girata da quando la pagina è quella
+   nuova»): era vero, e nessuno l'ha raccolto. È la forma del «già coperto» che
+   non copre: un banco registrato in `tutti.mjs` che accusa una pagina di non
+   avere riquadri, e un giro che dichiara «da guardare» una cosa che nessuno
+   guarda. I selettori di oggi sono quelli che usa `apps/vetrina/strumenti/
+   tour-aperto.mjs`, che è l'altro righello sulla stessa pagina: chi cambia
+   l'uno guardi l'altro.
 
-   Il core è l'eccezione dichiarata: si apre sulla sua schermata d'accesso, che
-   è quello che deve fare, e il ritorno lì non c'è per scelta.
+   Cosa si pretende:
+   1. nove riquadri «Apri …», con i nomi ATTUALI delle app (i nomi nuovi sono
+      SOSPESI, docs/NOMI_E_MARCHI.md: un nome proposto che entrasse qui
+      farebbe cadere questa riga);
+   2. il marchio Deepwork nella pagina è IDENTICO a quello canonico del core,
+      elemento per elemento — letto dal server, sulla stessa copia servita;
+   3. «Prova il tour» porta dove porta il riquadro di Deepwork (il core, che
+      dal 25/08 È il tour: la sua schermata d'accesso mostra le credenziali
+      demo), in tutt'e quattro le sue copie;
+   4. ogni collegamento interno della pagina risponde (non 404);
+   5. per ogni riquadro: la pagina risponde, monta DAVVERO qualcosa, il suo
+      programma è partito, nessun errore di pagina, e da lì si torna alla
+      vetrina con un comando visibile (il core e Deepwork ID sono le eccezioni
+      dichiarate: portone e schermata d'accesso, non stanze);
+   6. la pagina d'accesso di Deepwork ID: con «#tour» il tour parte da solo, e
+      senza frammento l'accesso normale resta intatto.
 
    Uso:  node apps/deepwork-id/tests/browser/vetrina-collegamenti.mjs 8823
+         … --senza-ritorno    (controprova: si toglie il comando di ritorno)
+         … --senza-programma  (controprova: si uccide il modulo di ogni pagina)
 */
 import { prendiChromium, CHROMIUM } from './giro.mjs';
 import { montaFintoFirebase } from './finto-firebase.mjs';
@@ -26,142 +49,110 @@ const BASE = `http://127.0.0.1:${PORTA}`;
 
 /* le app che devono avere il ritorno all'ecosistema; il core no, e Deepwork ID
    nemmeno: è la porta d'ingresso, non una stanza */
-const SENZA_RITORNO = ['/index.html', '/apps/deepwork-id/index.html'];
+const SENZA_RITORNO = ['/index.html', '/apps/deepwork-id/'];
+/* i nomi ATTUALI (docs/NOMI_E_MARCHI.md, §3: fino a nuova decisione restano
+   questi; i candidati non entrano in nessuna schermata) */
+const NOMI_ATTESI = ['Deepwork', 'Campo', 'Flotta', 'Scudo', 'Terra', 'Conti', 'Sentinella', 'Genesi', 'Deepwork ID'];
 
-/* CONTROPROVA: con «--senza-ritorno» si serve ogni app con il comando di
-   ritorno tolto. Se il banco passa lo stesso, non sta guardando quello che
-   crede. Una controprova inerte è già capitata: la riga cercata non c'era
-   nella forma prevista e «0 fallite» voleva dire «non ho tolto niente». */
 const CONTROPROVA = process.argv.includes('--senza-ritorno');
 const RITORNI = ['class="dw-home"', 'class="g-home"'];
-
-/* CONTROPROVA della sola prova d'avvio: «--senza-programma» uccide il modulo di
-   ogni pagina. Serve perché «la pagina monta davvero» NON sa accorgersene —
-   misurato il 01/08: col programma morto passa su nove superfici su nove,
-   perché il markup delle app è quasi tutto statico. Qui si pretende che tutte e
-   otto le superfici con un programma (sei app + core + Genesi) diventino rosse;
-   la vetrina non ne ha uno ed è esclusa per dichiarazione, non per svista. */
 const SENZA_PROGRAMMA = process.argv.includes('--senza-programma');
 
 let ok = 0, ko = 0;
 const prova = (n, c, e) => {
   if (c) { ok++; console.log('  ok  ' + n); }
-  else { ko++; console.log('  KO  ' + n + (e !== undefined ? '\n        -> ' + JSON.stringify(e) : '')); }
+  else { ko++; console.log('  KO  ' + n + (e !== undefined ? '\n        -> ' + JSON.stringify(e).slice(0, 400) : '')); }
 };
 
 let conSegnoAvvio = 0, avvioRosso = 0;
 const b = await chromium.launch({ executablePath: CHROMIUM });
-const ctx = await b.newContext({ viewport: { width: 1280, height: 900 }, locale: 'it-IT' });
+const ctx = await b.newContext({ viewport: { width: 1280, height: 900 }, locale: 'it-IT', serviceWorkers: 'block' });
 const p = await ctx.newPage();
 await p.goto(`${BASE}/apps/index.html`);
 await p.waitForTimeout(1500);
 
-const schede = await p.$$eval('.scheda', (as) => as.map((a) => ({
+/* 1 · nove riquadri, coi nomi attuali */
+const schede = await p.$$eval('a.apri', (as) => as.map((a) => ({
   href: a.getAttribute('href'),
-  nome: (a.querySelector('.nome') || {}).textContent || '(senza nome)',
+  nome: (a.textContent || '').replace(/[›»]/g, '').replace(/^\s*Apri\s+/i, '').trim() || '(senza nome)',
 })));
 console.log(`\n── ${schede.length} riquadri nella vetrina ──`);
-prova('la vetrina ha nove riquadri', schede.length === 9, schede.length);
+prova('la vetrina ha nove riquadri «Apri …»', schede.length === 9, schede.length);
+const nomi = schede.map((s) => s.nome);
+prova(`i nomi sono quelli attuali (${nomi.join(', ')})`,
+  NOMI_ATTESI.every((n) => nomi.includes(n)) && nomi.every((n) => NOMI_ATTESI.includes(n)),
+  { mancano: NOMI_ATTESI.filter((n) => !nomi.includes(n)), inattesi: nomi.filter((n) => !NOMI_ATTESI.includes(n)) });
 
-/* ⛔ IL BOTTONE PRINCIPALE DEVE MANTENERE LA PROMESSA CHE FA.
-   Si chiama «Prova il tour» e fino al 30/07 portava al modulo di ACCESSO, con
-   l'ingresso al tour più sotto, dopo un «oppure». Il conto è semplice: la
-   promessa era «prova», la pagina rispondeva «accedi», e chi mostra la vetrina
-   dal vivo davanti a qualcuno deve spiegare perché. Adesso il bottone porta a
-   `#tour` e la pagina d'accesso, vedendo quel frammento, entra da sé.
-   Le due metà si provano tutte e due, perché la seconda è quella che potrebbe
-   rompersi in silenzio: senza frammento l'accesso normale deve restare intatto
-   — un tour che parte da solo a chi voleva accedere sarebbe peggio del difetto
-   che stiamo chiudendo. */
+/* 2 · il marchio è quello del core, elemento per elemento. Si legge dal SERVER
+   (la stessa copia che il giro sta servendo), non dal disco: così un giro su
+   una worktree giudica quello che sta misurando. Il confronto è quello di
+   `apps/vetrina/strumenti/marchio-intatto.mjs`: si tolgono SOLO misura, classe
+   e attributi di servizio, e si normalizzano gli spazi. */
 {
-  const tour = await p.evaluate(() => {
-    const a = [...document.querySelectorAll('.cta.primaria')];
-    return { quanti: a.length, href: a.map((x) => x.getAttribute('href')) };
+  const m = await p.evaluate(async () => {
+    const disegno = (svg) => svg.replace(/\s(width|height|class|aria-hidden|xmlns)="[^"]*"/g, '').replace(/\s+/g, ' ').trim();
+    const core = await (await fetch('/index.html', { cache: 'no-store' })).text();
+    const canone = [...core.matchAll(/<svg[^>]*viewBox="0 0 120 122"[\s\S]*?<\/svg>/g)].map((x) => disegno(x[0]));
+    /* ⚠️ si legge il SORGENTE della vetrina, non l'`outerHTML` del DOM: in un
+       documento HTML il browser serializza `<polygon …/>` come
+       `<polygon …></polygon>`, e il confronto col testo del core dava «6
+       diversi» su sei marchi identici (misurato il 04/09, prima stesura). */
+    const sorgente = await (await fetch(location.pathname, { cache: 'no-store' })).text();
+    const pagina = [...sorgente.matchAll(/<svg class="marchio"[\s\S]*?<\/svg>/g)].map((x) => disegno(x[0]));
+    return { canone: canone.length, pagina: pagina.length, diversi: pagina.filter((d) => d !== canone[0]).length,
+             forme: new Set(pagina).size, esempio: pagina[0] ? pagina[0].slice(0, 120) : null, rif: canone[0] ? canone[0].slice(0, 120) : null };
   });
-  prova(`i bottoni «prova» puntano al tour, non al modulo d'accesso`,
-    tour.quanti > 0 && tour.href.every((h) => (h || '').endsWith('#tour')), tour);
+  prova(`il marchio canonico si legge dal core servito (${m.canone} copia)`, m.canone === 1, m);
+  prova(`i ${m.pagina} marchi della vetrina sono IDENTICI a quello del core (${m.diversi} diversi, ${m.forme} forma)`,
+    m.pagina >= 1 && m.diversi === 0 && m.forme === 1, m);
+}
 
-  for (const [frammento, atteso] of [['', 0], ['#tour', 1]]) {
-    const q = await ctx.newPage();
-    await montaFintoFirebase(q);
-    await q.addInitScript(() => {
-      window.__tourCliccato = 0;
-      document.addEventListener('click', (e) => {
-        if (e.target && e.target.id === 'btn-tour') window.__tourCliccato++;
-      }, true);
-    });
-    await q.goto(`${BASE}/apps/deepwork-id/index.html${frammento}`);
-    await q.waitForTimeout(2600);
-    const n = await q.evaluate(() => window.__tourCliccato);
-    prova(frammento ? 'con «#tour» il tour parte da solo, una volta sola'
-                    : `senza frammento l'accesso normale resta intatto`,
-      n === atteso, { atteso, avuto: n });
-    await q.close();
+/* 3 · «Prova il tour» porta dove porta Deepwork */
+{
+  const tour = await p.$$eval('a.bot.pri', (as) => as.map((a) => ({ testo: a.textContent.trim(), href: a.getAttribute('href') })));
+  const deepwork = (schede.find((s) => s.nome === 'Deepwork') || {}).href;
+  prova(`i ${tour.length} bottoni «Prova il tour» portano dove porta il riquadro di Deepwork (${deepwork})`,
+    tour.length >= 1 && tour.every((t) => /prova il tour/i.test(t.testo) && t.href === deepwork), tour);
+}
+
+/* 4 · ogni collegamento interno risponde */
+{
+  const vie = [...new Set(await p.$$eval('a[href^="/"]', (as) => as.map((a) => a.getAttribute('href'))))];
+  const rotti = [];
+  for (const v of vie) {
+    const r = await p.request.get(BASE + v).catch(() => null);
+    if (!r || r.status() >= 400) rotti.push({ v, stato: r ? r.status() : 'nessuna risposta' });
   }
+  prova(`tutti i ${vie.length} collegamenti interni distinti rispondono`, vie.length > 0 && rotti.length === 0, rotti);
 }
 
-/* ⛔ I NUMERI ANNUNCIATI DEVONO CORRISPONDERE A QUELLO CHE C'È IN PAGINA.
-   Il 30/07 l'apertura diceva «5 ponti fra le app», il sottotitolo della sezione
-   diceva «Quattro cose che nessuno di loro, da solo, saprebbe fare» e i riquadri
-   erano quattro — mentre i ponti scritti davvero nel codice erano SEI. Tre
-   numeri, tre valori diversi, tutti sbagliati, su una pagina fatta per essere
-   guardata da un cliente che conta.
-   È il difetto tipico di una pagina di presentazione: il numero si scrive una
-   volta e poi il prodotto cresce. Qui il numero si CONFRONTA con la pagina, e
-   il confronto si fa da sé ogni volta. */
-{
-  const dette = await p.evaluate(() => {
-    const n = (s) => { const e = [...document.querySelectorAll('.cifra')]
-      .find((x) => (x.querySelector('span') || {}).textContent.includes(s));
-      return e ? parseInt(e.querySelector('b').textContent, 10) : null; };
-    const sot = [...document.querySelectorAll('.sez-sot')].map((x) => x.textContent).join(' ');
-    const parola = { quattro: 4, cinque: 5, sei: 6, sette: 7, otto: 8, nove: 9 };
-    const dichiarataAParole = Object.entries(parola)
-      .filter(([w]) => new RegExp('\\b' + w + ' cose', 'i').test(sot)).map(([, v]) => v)[0] || null;
-    return { ponti: n('ponti'), dichiarataAParole, riquadriPonte: document.querySelectorAll('.ponte').length };
+/* 6 · la pagina d'accesso di Deepwork ID e il frammento «#tour» */
+for (const [frammento, atteso] of [['', 0], ['#tour', 1]]) {
+  const q = await ctx.newPage();
+  await montaFintoFirebase(q);
+  await q.addInitScript(() => {
+    window.__tourCliccato = 0;
+    document.addEventListener('click', (e) => {
+      if (e.target && e.target.id === 'btn-tour') window.__tourCliccato++;
+    }, true);
   });
-  prova(`i ponti annunciati nell'apertura (${dette.ponti}) sono quelli mostrati (${dette.riquadriPonte})`,
-    dette.ponti === dette.riquadriPonte, dette);
-  prova(`e il sottotitolo dice lo stesso numero a parole (${dette.dichiarataAParole})`,
-    dette.dichiarataAParole === dette.riquadriPonte, dette);
+  await q.goto(`${BASE}/apps/deepwork-id/index.html${frammento}`);
+  await q.waitForTimeout(2600);
+  const n = await q.evaluate(() => window.__tourCliccato);
+  prova(frammento ? 'con «#tour» il tour parte da solo, una volta sola'
+                  : `senza frammento l'accesso normale resta intatto`,
+    n === atteso, { atteso, avuto: n });
+  await q.close();
 }
 
-/* ⛔ LE NOVE ANTEPRIME SI VEDONO ALL'ARRIVO, senza scorrere. Misurato il 30/07
-   su un telefono da 390 px: con `loading="lazy"` all'arrivo ne era caricata UNA
-   su nove, e scendendo di corsa fino a metà pagina se ne vedevano sette — le
-   altre restavano la miniatura disegnata, che è la STESSA per tutte le schede.
-   Su una pagina il cui unico mestiere è far vedere nove prodotti diversi, quello
-   che si vede sono nove segnaposto uguali. Nessuna prova poteva accorgersene:
-   l'immagine c'è nel sorgente, il file esiste, la pagina risponde 200 — manca
-   solo il momento in cui arriva, e quello lo dice soltanto il browser.
-   La prova si fa su uno schermo da telefono: su un monitor largo entrano più
-   schede sopra la piega e la pigrizia si vede molto meno. */
-{
-  const tel = await b.newContext({ viewport: { width: 390, height: 844 }, locale: 'it-IT' });
-  const t = await tel.newPage();
-  await t.goto(`${BASE}/apps/index.html`);
-  await t.waitForTimeout(2500);
-  const img = await t.evaluate(() => [...document.querySelectorAll('.anteprima img')].map((i) => ({
-    file: i.src.split('/').pop(), caricata: i.complete && i.naturalWidth > 0, pigra: i.loading === 'lazy',
-  })));
-  const mancanti = img.filter((x) => !x.caricata);
-  prova(`le nove anteprime sono già caricate all'arrivo (telefono, senza scorrere)`,
-    img.length === 9 && mancanti.length === 0, { su: img.length, mancanti: mancanti.map((x) => x.file) });
-  prova('e nessuna è dichiarata pigra', img.every((x) => !x.pigra),
-    img.filter((x) => x.pigra).map((x) => x.file));
-  await tel.close();
-}
-
+/* 5 · ogni riquadro, seguito */
 for (const { href, nome } of schede) {
   const via = new URL(href, `${BASE}/apps/index.html`).pathname;
   console.log(`\n══ ${nome}  ->  ${via}`);
   const q = await ctx.newPage();
   const errori = [];
   q.on('pageerror', (e) => errori.push(e.message));
-  if (via === '/index.html') await montaFintoFirebase(q);
-  /* CONTROPROVA DELLA PROVA D'AVVIO: si uccide il modulo della pagina. Il
-     markup statico resta tutto — ed è il motivo per cui «monta davvero» non se
-     ne accorge — ma la nota del modo nessuno la scrive più. */
+  if (via === '/index.html' || via === '/') await montaFintoFirebase(q);
   if (SENZA_PROGRAMMA) {
     await q.route('**' + via, async (r) => {
       const res = await r.fetch();
@@ -171,7 +162,8 @@ for (const { href, nome } of schede) {
       await r.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: dopo });
     });
   }
-  if (CONTROPROVA && !SENZA_RITORNO.includes(via)) {
+  const senzaRitorno = SENZA_RITORNO.includes(via) || via === '/';
+  if (CONTROPROVA && !senzaRitorno) {
     await q.route('**' + via, async (r) => {
       const res = await r.fetch();
       const prima = await res.text();
@@ -184,17 +176,14 @@ for (const { href, nome } of schede) {
   const risposta = await q.goto(BASE + via, { waitUntil: 'domcontentloaded' }).catch(() => null);
   prova(`${nome}: la pagina risponde`, !!risposta && risposta.status() < 400,
     risposta ? risposta.status() : 'nessuna risposta');
-  await q.waitForTimeout(via === '/index.html' ? 3200 : 2200);
+  await q.waitForTimeout(via === '/' || via === '/index.html' ? 3200 : 2200);
 
   /* «monta davvero»: c'è del testo visibile e più di una manciata di elementi.
-     Una pagina che va in errore nel suo programma risponde 200 e resta vuota. */
+     Un modulo d'accesso è LEGITTIMAMENTE piccolo (Deepwork ID ha trentasette
+     elementi): una pagina è viva se ha del testo E qualcosa con cui si
+     interagisce — un modulo da compilare oppure un'interfaccia montata. */
   const vivo = await q.evaluate(() => {
     const t = (document.body.innerText || '').trim();
-    /* Un modulo d'accesso è LEGITTIMAMENTE piccolo: la prima versione chiedeva
-       più di quaranta elementi e bocciava Deepwork ID, che ne ha trentasette
-       ed è esattamente la pagina che deve essere. Non si abbassa la soglia: si
-       cambia la domanda. Una pagina è viva se ha del testo E qualcosa con cui
-       si interagisce — un modulo da compilare oppure un'interfaccia montata. */
     const campi = document.querySelectorAll('input, select, textarea').length;
     const comandi = document.querySelectorAll('button, a[href], [role=button]').length;
     return { caratteri: t.length, elementi: document.querySelectorAll('body *').length,
@@ -204,47 +193,24 @@ for (const { href, nome } of schede) {
     vivo.caratteri > 120 && (vivo.elementi > 40 || (vivo.campi >= 1 && vivo.comandi >= 2)), vivo);
   prova(`${nome}: nessun errore di pagina`, errori.length === 0, errori.slice(0, 2));
 
-  /* «IL PROGRAMMA È PARTITO» è una domanda DIVERSA da «la pagina monta».
-     ────────────────────────────────────────────────────────────────────
-     ⚠️ Misurato il 01/08, uccidendo il modulo di ogni superficie: «monta
-     davvero» passa su NOVE superfici su nove. Il markup delle app è in gran
-     parte statico, quindi caratteri, elementi, campi e comandi ci sono lo
-     stesso — Conti col programma morto fa 488 elementi e 54 campi. Quella
-     prova, da sola, non sa fallire per la ragione per cui esiste. La salva
-     solo «nessun errore di pagina», e soltanto se il modulo muore RUMOROSO:
-     un modulo che esce in silenzio passerebbe tutte e due.
-
-     La nota del modo la scrive il programma all'avvio, e solo lui. Misurata
-     viva e morta sulle stesse pagine: 57-72 caratteri contro 0, su tutte e
-     sette le superfici che ce l'hanno. Non è un indovinello, è la differenza
-     che si vede.
-
-     Core, vetrina e Genesi non hanno questo segno e restano scoperti: il
-     numero di superfici coperte si stampa, così non sembra che siano tutte. */
-  /* ⚠️ SI ASPETTA LA CONDIZIONE, NON L'OROLOGIO. Scritta con i 2200 ms fissi
-     del resto del banco, questa prova era FLAKY: la prima app visitata paga il
-     riscaldamento del browser e ogni tanto arrivava a 0 caratteri, per averne
-     57 al giro successivo sulla stessa pagina immobile. Una prova che fallisce
-     a caso è peggio di nessuna prova — insegna a ignorare il rosso, e il primo
-     rosso vero passa inosservato. */
-  /* IL SEGNO È DIVERSO PER OGNI FAMIGLIA DI SUPERFICIE, e nessuno è inventato:
-     ognuno è stato scelto misurando la stessa pagina viva e morta e tenendo
-     ciò che cambia.
-     · le sei app → la nota del modo: 57-72 caratteri contro 0;
-     · il core → `window.nav`. Vivo è la funzione vera, morto è il SEGNAPOSTO
-       che il core installa apposta (`[Deepwork] Funzione ... non ancora
-       pronta`). Il testo visibile è IDENTICO nei due casi — 258 caratteri, la
-       schermata d'accesso — ed è esattamente per questo che «monta davvero»
-       non può accorgersene;
-     · Genesi → i comandi con un gestore attaccato dal programma: 64 contro 0.
-     La VETRINA non ha nessun modulo: è una pagina statica, e qui non c'è
-     niente da pretendere. Dichiarata, non dimenticata. */
+  /* «IL PROGRAMMA È PARTITO» è una domanda DIVERSA da «la pagina monta»:
+     misurato il 01/08 uccidendo il modulo, «monta davvero» passava su tutte le
+     superfici perché il markup è quasi tutto statico. Il segno è diverso per
+     ogni famiglia, e ognuno è stato scelto misurando la pagina viva e morta:
+     · le sei app → la nota del modo (`#mode-note`): 57-72 caratteri contro 0;
+     · il core → `window.nav`: vivo è la funzione vera, morto il SEGNAPOSTO;
+     · Genesi → i comandi con un gestore attaccato dal programma: 64 contro 0;
+     · Deepwork ID (dal 04/09) → il gestore di «Accedi»: il modulo lo monta
+       (`$('btn-login').onclick = …`), morto resta `null`. */
   const leggiSegno = () => {
-    if (via === '/index.html') return q.evaluate(() => {
+    if (via === '/index.html' || via === '/') return q.evaluate(() => {
       try { return /\[Deepwork\] Funzione/.test(String(window.nav)) ? 0 : 1; } catch (e) { return 0; }
     });
     if (via === '/apps/genesi/genesi.html') return q.evaluate(() =>
       [...document.querySelectorAll('button')].filter((b) => b.onclick).length);
+    if (via.startsWith('/apps/deepwork-id/')) return q.evaluate(() => {
+      const b = document.getElementById('btn-login'); return b && typeof b.onclick === 'function' ? 1 : 0;
+    });
     return q.evaluate(() => {
       const e = document.getElementById('mode-note');
       return e ? (e.textContent || '').trim().length : -1;
@@ -255,18 +221,16 @@ for (const { href, nome } of schede) {
   if (avvio >= 0) {
     conSegnoAvvio++;
     if (avvio === 0) avvioRosso++;
-    /* l'etichetta dice il valore MISURATO, non l'esito sperato: scritta come
-       «window.nav non è il segnaposto» anche quando lo era, la riga rossa
-       raccontava il contrario di quello che era successo. */
-    const comeSegno = via === '/index.html'
+    const comeSegno = (via === '/index.html' || via === '/')
       ? `window.nav è ${avvio ? 'la funzione vera' : 'ancora IL SEGNAPOSTO'}`
       : via === '/apps/genesi/genesi.html' ? `${avvio} comandi hanno un gestore`
+      : via.startsWith('/apps/deepwork-id/') ? `«Accedi» ${avvio ? 'ha' : 'NON ha'} il suo gestore`
       : `la nota del modo ha ${avvio} caratteri`;
     prova(`${nome}: il programma è partito davvero (${comeSegno})`,
       avvio > 0, { avvio, perche: 'col modulo morto questo segno vale 0' });
   }
 
-  if (!SENZA_RITORNO.includes(via)) {
+  if (!senzaRitorno) {
     const ritorno = await q.evaluate(() => {
       const a = [...document.querySelectorAll('a[href]')].find((x) =>
         /(^|\/)(\.\.\/)?index\.html$/.test(x.getAttribute('href') || '') &&
@@ -283,24 +247,21 @@ for (const { href, nome } of schede) {
 
 await b.close();
 console.log(`\n${ok} passate, ${ko} fallite`);
-/* nella controprova il successo è il contrario: se NON cade niente, il banco
-   non sta misurando il ritorno */
 console.log(`${conSegnoAvvio} superfici hanno un segno d'avvio, e su quelle si è preteso che il programma fosse partito`);
-/* SEI, non sette: l'amministrazione di Deepwork ID la nota del modo ce l'ha,
-   ma non è un riquadro della vetrina e questo banco non ci passa. Il numero è
-   asserito perché se domani una app perdesse la nota, la prova sparirebbe in
-   silenzio e il totale resterebbe verde. */
+/* NOVE: sei app + core + Genesi + Deepwork ID. Il numero è asserito perché se
+   domani una app perdesse il suo segno, la prova sparirebbe in silenzio e il
+   totale resterebbe verde. */
+const ATTESE = 9;
 if (SENZA_PROGRAMMA) {
-  const attese = 8;   // sei app + core + Genesi (la vetrina non ha un programma)
-  if (avvioRosso === attese) {
-    console.log(`La controprova ha spento il programma e tutte e ${attese} le app se ne sono accorte: la prova sa fallire.`);
+  if (avvioRosso === ATTESE) {
+    console.log(`La controprova ha spento il programma e tutte e ${ATTESE} le destinazioni se ne sono accorte: la prova sa fallire.`);
     process.exit(0);
   }
-  console.error(`\n⚠️ CONTROPROVA INCOMPLETA: solo ${avvioRosso} app su ${attese} hanno visto il programma morto.`);
+  console.error(`\n⚠️ CONTROPROVA INCOMPLETA: solo ${avvioRosso} destinazioni su ${ATTESE} hanno visto il programma morto.`);
   process.exit(1);
 }
-if (!CONTROPROVA && conSegnoAvvio !== 8) {
-  console.error(`  ✗ le superfici con un segno d'avvio sono ${conSegnoAvvio}, me ne aspettavo 8 (sei app + core + Genesi; la vetrina non ha un programma)`);
+if (!CONTROPROVA && conSegnoAvvio !== ATTESE) {
+  console.error(`  ✗ le superfici con un segno d'avvio sono ${conSegnoAvvio}, me ne aspettavo ${ATTESE} (sei app + core + Genesi + Deepwork ID)`);
   ko++;
 }
 process.exit(CONTROPROVA ? (ko ? 0 : 1) : (ko ? 1 : 0));

@@ -242,6 +242,11 @@ const CASI = [
      perche'. Prima non compariva — non per un difetto della pagina, che la
      frase ce l'aveva pronta, ma perche' `prioritaIncasso` le dava «ritardo 0»
      e il pannello ne mostra tre. Terzo dei cinque stati veri. */
+  /* ⛔ dal 04/09 la fattura senza scadenza può stare FUORI dalle tre righe più
+     urgenti (la dimostrazione, invecchiando, ha quattro fatture scadute): allora
+     il Quadro la dice in una riga sua, con la stessa frase. Il caso non cambia
+     regex, cambia ragione: prima passava perché era fra le tre, adesso passa
+     perché il taglio non la nasconde. */
   ['conti', 'da fare adesso: la fattura senza scadenza compare', '#nav-dash', null, '#prio-list',
     /non si sa entro quando/i],
   /* ⛔ Seconda voce della classifica «non registrato». Una fattura segnata
@@ -292,10 +297,16 @@ const CASI = [
      di contesto che l'ente legge per capire da dove viene quel numero. Un
      limite senza la sua norma è un numero senza provenienza, e il report lo
      dichiara invece di lasciar credere che la citazione ci sia. */
+  /* ⛔ IL PERIODO DEL REPORT, dal 04/09: la pagina apre sugli ULTIMI 30 GIORNI
+     e le volate della dimostrazione sono di luglio 2026, quindi la tabella
+     delle volate — dove vivono queste tre frasi — non si disegnava e i tre
+     casi cadevano «non compare in #rep-doc» su un prodotto sano (identici su
+     6eb001ee). Si scrive il periodo dell'anno della dimostrazione, che non
+     invecchia con l'orologio. */
   ['sentinella', 'limite di progetto senza la norma: il report lo dichiara', '#nav-rep', null, '#rep-doc',
-    /norma non indicata sul progetto/i],
+    /norma non indicata sul progetto/i, [{ scrivi: '#rep-dal', valore: '2026-01-01' }, { scrivi: '#rep-al', valore: '2026-12-31' }]],
   ['sentinella', 'indice non calcolabile nel report: lo dichiara', '#nav-rep', null, '#rep-doc',
-    /non calcolabile/i, null, { vietato: /non calcolabile[\s\S]{0,40}\b0[.,]?0*\b/i,
+    /non calcolabile/i, [{ scrivi: '#rep-dal', valore: '2026-01-01' }, { scrivi: '#rep-al', valore: '2026-12-31' }], { vietato: /non calcolabile[\s\S]{0,40}\b0[.,]?0*\b/i,
                                 perche: 'accanto a «non calcolabile» non si scrive uno zero' }],
   /* ⛔ Secondo dei tre stati veri del censimento. La distanza del ricettore è
      il denominatore della distanza scalata e il primo numero che un ente
@@ -328,7 +339,7 @@ const CASI = [
      conteneva, e il banco sarebbe caduto sul testo corretto. Un `vietato`
      inventato per riempire la colonna è peggio di nessun `vietato`. */
   ['sentinella', 'report: la tabella incompleta lo dichiara sopra di sé', '#nav-rep', null, '#rep-doc',
-    /non dichiara(?:no)? tutti i dati/i],
+    /non dichiara(?:no)? tutti i dati/i, [{ scrivi: '#rep-dal', valore: '2026-01-01' }, { scrivi: '#rep-al', valore: '2026-12-31' }]],
 ];
 
 /* ⛔ CONTI STA A PARTE, e non per pigrizia: il suo caso non è una riga di un

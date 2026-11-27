@@ -1,0 +1,1475 @@
+{
+ "_ezdxf": "1.4.5",
+ "fori_non_validi": {
+  "entita": [
+   {
+    "c": [
+     0.0,
+     3.0
+    ],
+    "livello": "FORI",
+    "r": 0.051,
+    "t": "CIRCLE"
+   },
+   {
+    "grezzo": "f1-1",
+    "h": 0.15,
+    "livello": "FORI",
+    "mostrato": "f1-1",
+    "p": [
+     0.066,
+     3.0
+    ],
+    "recupero": "f1-1",
+    "t": "TEXT"
+   },
+   {
+    "c": [
+     3.5,
+     3.0
+    ],
+    "livello": "FORI",
+    "r": 0.051,
+    "t": "CIRCLE"
+   },
+   {
+    "grezzo": "f1-2",
+    "h": 0.15,
+    "livello": "FORI",
+    "mostrato": "f1-2",
+    "p": [
+     3.566,
+     3.0
+    ],
+    "recupero": "f1-2",
+    "t": "TEXT"
+   },
+   {
+    "c": [
+     7.0,
+     3.0
+    ],
+    "livello": "FORI",
+    "r": 0.051,
+    "t": "CIRCLE"
+   },
+   {
+    "grezzo": "f1-3",
+    "h": 0.15,
+    "livello": "FORI",
+    "mostrato": "f1-3",
+    "p": [
+     7.066,
+     3.0
+    ],
+    "recupero": "f1-3",
+    "t": "TEXT"
+   },
+   {
+    "chiusa": false,
+    "livello": "PIEDI",
+    "t": "POLYLINE",
+    "v": [
+     [
+      0.0,
+      3.0
+     ],
+     [
+      0.0,
+      1.264
+     ]
+    ]
+   },
+   {
+    "chiusa": false,
+    "livello": "PIEDI",
+    "t": "POLYLINE",
+    "v": [
+     [
+      3.5,
+      3.0
+     ],
+     [
+      3.5,
+      1.264
+     ]
+    ]
+   },
+   {
+    "chiusa": false,
+    "livello": "PIEDI",
+    "t": "POLYLINE",
+    "v": [
+     [
+      7.0,
+      3.0
+     ],
+     [
+      7.0,
+      1.264
+     ]
+    ]
+   },
+   {
+    "chiusa": false,
+    "livello": "FRONTE",
+    "t": "POLYLINE",
+    "v": [
+     [
+      -2.0,
+      0.4
+     ],
+     [
+      3.0,
+      -0.2
+     ],
+     [
+      8.5,
+      0.35
+     ],
+     [
+      14.0,
+      0.0
+     ]
+    ]
+   }
+  ],
+  "lettore": "normale",
+  "verifica_correzioni": [],
+  "verifica_errori": [],
+  "versione": "AC1009"
+ },
+ "inclinata": {
+  "entita": [
+   {
+    "c": [
+     0.0,
+     3.0
+    ],
+    "livello": "FORI",
+    "r": 0.051,
+    "t": "CIRCLE"
+   },
+   {
+    "grezzo": "f1-1",
+    "h": 0.15,
+    "livello": "FORI",
+    "mostrato": "f1-1",
+    "p": [
+     0.066,
+     3.0
+    ],
+    "recupero": "f1-1",
+    "t": "TEXT"
+   },
+   {
+    "c": [
+     3.5,
+     3.0
+    ],
+    "livello": "FORI",
+    "r": 0.051,
+    "t": "CIRCLE"
+   },
+   {
+    "grezzo": "f1-2",
+    "h": 0.15,
+    "livello": "FORI",
+    "mostrato": "f1-2",
+    "p": [
+     3.566,
+     3.0
+    ],
+    "recupero": "f1-2",
+    "t": "TEXT"
+   },
+   {
+    "c": [
+     7.0,
+     3.0
+    ],
+    "livello": "FORI",
+    "r": 0.051,
+    "t": "CIRCLE"
+   },
+   {
+    "grezzo": "f1-3",
+    "h": 0.15,
+    "livello": "FORI",
+    "mostrato": "f1-3",
+    "p": [
+     7.066,
+     3.0
+    ],
+    "recupero": "f1-3",
+    "t": "TEXT"
+   },
+   {
+    "c": [
+     10.5,
+     3.0
+    ],
+    "livello": "FORI",
+    "r": 0.051,
+    "t": "CIRCLE"
+   },
+   {
+    "grezzo": "f1-4",
+    "h": 0.15,
+    "livello": "FORI",
+    "mostrato": "f1-4",
+    "p": [
+     10.566,
+     3.0
+    ],
+    "recupero": "f1-4",
+    "t": "TEXT"
+   },
+   {
+    "c": [
+     1.75,
+     6.0
+    ],
+    "livello": "FORI",
+    "r": 0.051,
+    "t": "CIRCLE"
+   },
+   {
+    "grezzo": "f2-1",
+    "h": 0.15,
+    "livello": "FORI",
+    "mostrato": "f2-1",
+    "p": [
+     1.816,
+     6.0
+    ],
+    "recupero": "f2-1",
+    "t": "TEXT"
+   },
+   {
+    "c": [
+     5.25,
+     6.0
+    ],
+    "livello": "FORI",
+    "r": 0.051,
+    "t": "CIRCLE"
+   },
+   {
+    "grezzo": "f2-2",
+    "h": 0.15,
+    "livello": "FORI",
+    "mostrato": "f2-2",
+    "p": [
+     5.316,
+     6.0
+    ],
+    "recupero": "f2-2",
+    "t": "TEXT"
+   },
+   {
+    "c": [
+     8.75,
+     6.0
+    ],
+    "livello": "FORI",
+    "r": 0.051,
+    "t": "CIRCLE"
+   },
+   {
+    "grezzo": "f2-3",
+    "h": 0.15,
+    "livello": "FORI",
+    "mostrato": "f2-3",
+    "p": [
+     8.816,
+     6.0
+    ],
+    "recupero": "f2-3",
+    "t": "TEXT"
+   },
+   {
+    "c": [
+     12.25,
+     6.0
+    ],
+    "livello": "FORI",
+    "r": 0.051,
+    "t": "CIRCLE"
+   },
+   {
+    "grezzo": "f2-4",
+    "h": 0.15,
+    "livello": "FORI",
+    "mostrato": "f2-4",
+    "p": [
+     12.316,
+     6.0
+    ],
+    "recupero": "f2-4",
+    "t": "TEXT"
+   },
+   {
+    "chiusa": false,
+    "livello": "PIEDI",
+    "t": "POLYLINE",
+    "v": [
+     [
+      0.0,
+      3.0
+     ],
+     [
+      0.0,
+      1.264
+     ]
+    ]
+   },
+   {
+    "chiusa": false,
+    "livello": "PIEDI",
+    "t": "POLYLINE",
+    "v": [
+     [
+      3.5,
+      3.0
+     ],
+     [
+      3.5,
+      1.264
+     ]
+    ]
+   },
+   {
+    "chiusa": false,
+    "livello": "PIEDI",
+    "t": "POLYLINE",
+    "v": [
+     [
+      7.0,
+      3.0
+     ],
+     [
+      7.0,
+      1.264
+     ]
+    ]
+   },
+   {
+    "chiusa": false,
+    "livello": "PIEDI",
+    "t": "POLYLINE",
+    "v": [
+     [
+      10.5,
+      3.0
+     ],
+     [
+      10.5,
+      1.264
+     ]
+    ]
+   },
+   {
+    "chiusa": false,
+    "livello": "PIEDI",
+    "t": "POLYLINE",
+    "v": [
+     [
+      1.75,
+      6.0
+     ],
+     [
+      1.75,
+      4.264
+     ]
+    ]
+   },
+   {
+    "chiusa": false,
+    "livello": "PIEDI",
+    "t": "POLYLINE",
+    "v": [
+     [
+      5.25,
+      6.0
+     ],
+     [
+      5.25,
+      4.264
+     ]
+    ]
+   },
+   {
+    "chiusa": false,
+    "livello": "PIEDI",
+    "t": "POLYLINE",
+    "v": [
+     [
+      8.75,
+      6.0
+     ],
+     [
+      8.75,
+      4.264
+     ]
+    ]
+   },
+   {
+    "chiusa": false,
+    "livello": "PIEDI",
+    "t": "POLYLINE",
+    "v": [
+     [
+      12.25,
+      6.0
+     ],
+     [
+      12.25,
+      4.264
+     ]
+    ]
+   },
+   {
+    "chiusa": false,
+    "livello": "FRONTE",
+    "t": "POLYLINE",
+    "v": [
+     [
+      -2.0,
+      0.4
+     ],
+     [
+      3.0,
+      -0.2
+     ],
+     [
+      8.5,
+      0.35
+     ],
+     [
+      14.0,
+      0.0
+     ]
+    ]
+   }
+  ],
+  "lettore": "normale",
+  "verifica_correzioni": [],
+  "verifica_errori": [],
+  "versione": "AC1009"
+ },
+ "liscia": {
+  "entita": [
+   {
+    "c": [
+     0.0,
+     3.0
+    ],
+    "livello": "FORI",
+    "r": 0.051,
+    "t": "CIRCLE"
+   },
+   {
+    "grezzo": "f1-1",
+    "h": 0.15,
+    "livello": "FORI",
+    "mostrato": "f1-1",
+    "p": [
+     0.066,
+     3.0
+    ],
+    "recupero": "f1-1",
+    "t": "TEXT"
+   },
+   {
+    "c": [
+     3.5,
+     3.0
+    ],
+    "livello": "FORI",
+    "r": 0.051,
+    "t": "CIRCLE"
+   },
+   {
+    "grezzo": "f1-2",
+    "h": 0.15,
+    "livello": "FORI",
+    "mostrato": "f1-2",
+    "p": [
+     3.566,
+     3.0
+    ],
+    "recupero": "f1-2",
+    "t": "TEXT"
+   },
+   {
+    "c": [
+     7.0,
+     3.0
+    ],
+    "livello": "FORI",
+    "r": 0.051,
+    "t": "CIRCLE"
+   },
+   {
+    "grezzo": "f1-3",
+    "h": 0.15,
+    "livello": "FORI",
+    "mostrato": "f1-3",
+    "p": [
+     7.066,
+     3.0
+    ],
+    "recupero": "f1-3",
+    "t": "TEXT"
+   },
+   {
+    "c": [
+     10.5,
+     3.0
+    ],
+    "livello": "FORI",
+    "r": 0.051,
+    "t": "CIRCLE"
+   },
+   {
+    "grezzo": "f1-4",
+    "h": 0.15,
+    "livello": "FORI",
+    "mostrato": "f1-4",
+    "p": [
+     10.566,
+     3.0
+    ],
+    "recupero": "f1-4",
+    "t": "TEXT"
+   },
+   {
+    "c": [
+     1.75,
+     6.0
+    ],
+    "livello": "FORI",
+    "r": 0.051,
+    "t": "CIRCLE"
+   },
+   {
+    "grezzo": "f2-1",
+    "h": 0.15,
+    "livello": "FORI",
+    "mostrato": "f2-1",
+    "p": [
+     1.816,
+     6.0
+    ],
+    "recupero": "f2-1",
+    "t": "TEXT"
+   },
+   {
+    "c": [
+     5.25,
+     6.0
+    ],
+    "livello": "FORI",
+    "r": 0.051,
+    "t": "CIRCLE"
+   },
+   {
+    "grezzo": "f2-2",
+    "h": 0.15,
+    "livello": "FORI",
+    "mostrato": "f2-2",
+    "p": [
+     5.316,
+     6.0
+    ],
+    "recupero": "f2-2",
+    "t": "TEXT"
+   },
+   {
+    "c": [
+     8.75,
+     6.0
+    ],
+    "livello": "FORI",
+    "r": 0.051,
+    "t": "CIRCLE"
+   },
+   {
+    "grezzo": "f2-3",
+    "h": 0.15,
+    "livello": "FORI",
+    "mostrato": "f2-3",
+    "p": [
+     8.816,
+     6.0
+    ],
+    "recupero": "f2-3",
+    "t": "TEXT"
+   },
+   {
+    "c": [
+     12.25,
+     6.0
+    ],
+    "livello": "FORI",
+    "r": 0.051,
+    "t": "CIRCLE"
+   },
+   {
+    "grezzo": "f2-4",
+    "h": 0.15,
+    "livello": "FORI",
+    "mostrato": "f2-4",
+    "p": [
+     12.316,
+     6.0
+    ],
+    "recupero": "f2-4",
+    "t": "TEXT"
+   },
+   {
+    "chiusa": false,
+    "livello": "FRONTE",
+    "t": "POLYLINE",
+    "v": [
+     [
+      -2.0,
+      0.4
+     ],
+     [
+      3.0,
+      -0.2
+     ],
+     [
+      8.5,
+      0.35
+     ],
+     [
+      14.0,
+      0.0
+     ]
+    ]
+   }
+  ],
+  "lettore": "normale",
+  "verifica_correzioni": [],
+  "verifica_errori": [],
+  "versione": "AC1009"
+ },
+ "mista": {
+  "entita": [
+   {
+    "c": [
+     0.0,
+     3.0
+    ],
+    "livello": "FORI",
+    "r": 0.051,
+    "t": "CIRCLE"
+   },
+   {
+    "grezzo": "f1-1",
+    "h": 0.15,
+    "livello": "FORI",
+    "mostrato": "f1-1",
+    "p": [
+     0.066,
+     3.0
+    ],
+    "recupero": "f1-1",
+    "t": "TEXT"
+   },
+   {
+    "c": [
+     3.5,
+     3.0
+    ],
+    "livello": "FORI",
+    "r": 0.044,
+    "t": "CIRCLE"
+   },
+   {
+    "grezzo": "f1-2",
+    "h": 0.15,
+    "livello": "FORI",
+    "mostrato": "f1-2",
+    "p": [
+     3.558,
+     3.0
+    ],
+    "recupero": "f1-2",
+    "t": "TEXT"
+   },
+   {
+    "c": [
+     7.0,
+     3.0
+    ],
+    "livello": "FORI",
+    "r": 0.051,
+    "t": "CIRCLE"
+   },
+   {
+    "grezzo": "f1-3",
+    "h": 0.15,
+    "livello": "FORI",
+    "mostrato": "f1-3",
+    "p": [
+     7.066,
+     3.0
+    ],
+    "recupero": "f1-3",
+    "t": "TEXT"
+   },
+   {
+    "c": [
+     10.5,
+     3.0
+    ],
+    "livello": "FORI",
+    "r": 0.051,
+    "t": "CIRCLE"
+   },
+   {
+    "grezzo": "f1-4",
+    "h": 0.15,
+    "livello": "FORI",
+    "mostrato": "f1-4",
+    "p": [
+     10.566,
+     3.0
+    ],
+    "recupero": "f1-4",
+    "t": "TEXT"
+   },
+   {
+    "c": [
+     1.75,
+     6.0
+    ],
+    "livello": "FORI",
+    "r": 0.051,
+    "t": "CIRCLE"
+   },
+   {
+    "grezzo": "f2-1",
+    "h": 0.15,
+    "livello": "FORI",
+    "mostrato": "f2-1",
+    "p": [
+     1.816,
+     6.0
+    ],
+    "recupero": "f2-1",
+    "t": "TEXT"
+   },
+   {
+    "c": [
+     5.25,
+     6.0
+    ],
+    "livello": "FORI",
+    "r": 0.051,
+    "t": "CIRCLE"
+   },
+   {
+    "grezzo": "f2-2",
+    "h": 0.15,
+    "livello": "FORI",
+    "mostrato": "f2-2",
+    "p": [
+     5.316,
+     6.0
+    ],
+    "recupero": "f2-2",
+    "t": "TEXT"
+   },
+   {
+    "c": [
+     8.75,
+     6.0
+    ],
+    "livello": "FORI",
+    "r": 0.051,
+    "t": "CIRCLE"
+   },
+   {
+    "grezzo": "f2-3",
+    "h": 0.15,
+    "livello": "FORI",
+    "mostrato": "f2-3",
+    "p": [
+     8.816,
+     6.0
+    ],
+    "recupero": "f2-3",
+    "t": "TEXT"
+   },
+   {
+    "c": [
+     12.25,
+     6.0
+    ],
+    "livello": "FORI",
+    "r": 0.051,
+    "t": "CIRCLE"
+   },
+   {
+    "grezzo": "f2-4",
+    "h": 0.15,
+    "livello": "FORI",
+    "mostrato": "f2-4",
+    "p": [
+     12.316,
+     6.0
+    ],
+    "recupero": "f2-4",
+    "t": "TEXT"
+   },
+   {
+    "c": [
+     0.0,
+     9.0
+    ],
+    "livello": "FORI",
+    "r": 0.051,
+    "t": "CIRCLE"
+   },
+   {
+    "grezzo": "f3-1",
+    "h": 0.15,
+    "livello": "FORI",
+    "mostrato": "f3-1",
+    "p": [
+     0.066,
+     9.0
+    ],
+    "recupero": "f3-1",
+    "t": "TEXT"
+   },
+   {
+    "c": [
+     3.5,
+     9.0
+    ],
+    "livello": "FORI",
+    "r": 0.051,
+    "t": "CIRCLE"
+   },
+   {
+    "grezzo": "f3-2",
+    "h": 0.15,
+    "livello": "FORI",
+    "mostrato": "f3-2",
+    "p": [
+     3.566,
+     9.0
+    ],
+    "recupero": "f3-2",
+    "t": "TEXT"
+   },
+   {
+    "c": [
+     7.0,
+     9.0
+    ],
+    "livello": "FORI",
+    "r": 0.051,
+    "t": "CIRCLE"
+   },
+   {
+    "grezzo": "f3-3",
+    "h": 0.15,
+    "livello": "FORI",
+    "mostrato": "f3-3",
+    "p": [
+     7.066,
+     9.0
+    ],
+    "recupero": "f3-3",
+    "t": "TEXT"
+   },
+   {
+    "c": [
+     10.5,
+     9.0
+    ],
+    "livello": "FORI",
+    "r": 0.051,
+    "t": "CIRCLE"
+   },
+   {
+    "grezzo": "f3-4",
+    "h": 0.15,
+    "livello": "FORI",
+    "mostrato": "f3-4",
+    "p": [
+     10.566,
+     9.0
+    ],
+    "recupero": "f3-4",
+    "t": "TEXT"
+   },
+   {
+    "chiusa": false,
+    "livello": "PIEDI",
+    "t": "POLYLINE",
+    "v": [
+     [
+      0.0,
+      3.0
+     ],
+     [
+      0.0,
+      1.264
+     ]
+    ]
+   },
+   {
+    "chiusa": false,
+    "livello": "PIEDI",
+    "t": "POLYLINE",
+    "v": [
+     [
+      3.5,
+      3.0
+     ],
+     [
+      3.5,
+      1.264
+     ]
+    ]
+   },
+   {
+    "chiusa": false,
+    "livello": "PIEDI",
+    "t": "POLYLINE",
+    "v": [
+     [
+      7.0,
+      3.0
+     ],
+     [
+      7.0,
+      1.264
+     ]
+    ]
+   },
+   {
+    "chiusa": false,
+    "livello": "PIEDI",
+    "t": "POLYLINE",
+    "v": [
+     [
+      10.5,
+      3.0
+     ],
+     [
+      10.5,
+      1.264
+     ]
+    ]
+   },
+   {
+    "chiusa": false,
+    "livello": "PIEDI",
+    "t": "POLYLINE",
+    "v": [
+     [
+      1.75,
+      6.0
+     ],
+     [
+      1.75,
+      4.264
+     ]
+    ]
+   },
+   {
+    "chiusa": false,
+    "livello": "PIEDI",
+    "t": "POLYLINE",
+    "v": [
+     [
+      5.25,
+      6.0
+     ],
+     [
+      5.25,
+      2.58
+     ]
+    ]
+   },
+   {
+    "chiusa": false,
+    "livello": "PIEDI",
+    "t": "POLYLINE",
+    "v": [
+     [
+      8.75,
+      6.0
+     ],
+     [
+      8.75,
+      4.264
+     ]
+    ]
+   },
+   {
+    "chiusa": false,
+    "livello": "PIEDI",
+    "t": "POLYLINE",
+    "v": [
+     [
+      12.25,
+      6.0
+     ],
+     [
+      12.25,
+      4.958
+     ]
+    ]
+   },
+   {
+    "chiusa": false,
+    "livello": "PIEDI",
+    "t": "POLYLINE",
+    "v": [
+     [
+      0.0,
+      9.0
+     ],
+     [
+      0.0,
+      7.264
+     ]
+    ]
+   },
+   {
+    "chiusa": false,
+    "livello": "PIEDI",
+    "t": "POLYLINE",
+    "v": [
+     [
+      7.0,
+      9.0
+     ],
+     [
+      7.0,
+      7.264
+     ]
+    ]
+   },
+   {
+    "chiusa": false,
+    "livello": "PIEDI",
+    "t": "POLYLINE",
+    "v": [
+     [
+      10.5,
+      9.0
+     ],
+     [
+      10.5,
+      7.264
+     ]
+    ]
+   },
+   {
+    "chiusa": false,
+    "livello": "FRONTE",
+    "t": "POLYLINE",
+    "v": [
+     [
+      -2.0,
+      0.4
+     ],
+     [
+      3.0,
+      -0.2
+     ],
+     [
+      8.5,
+      0.35
+     ],
+     [
+      14.0,
+      0.0
+     ]
+    ]
+   }
+  ],
+  "lettore": "normale",
+  "verifica_correzioni": [],
+  "verifica_errori": [],
+  "versione": "AC1009"
+ },
+ "nomi_difficili": {
+  "entita": [
+   {
+    "c": [
+     0.0,
+     3.0
+    ],
+    "livello": "FORI",
+    "r": 0.051,
+    "t": "CIRCLE"
+   },
+   {
+    "grezzo": "Foro n\\U+00B01 (\\U+00E0\\U+00E8\\U+00EC) \\U+20AC",
+    "h": 0.15,
+    "livello": "FORI",
+    "mostrato": "Foro n°1 (àèì) €",
+    "p": [
+     0.066,
+     3.0
+    ],
+    "recupero": "Foro n°1 (àèì) €",
+    "t": "TEXT"
+   },
+   {
+    "c": [
+     3.5,
+     3.0
+    ],
+    "livello": "FORI",
+    "r": 0.051,
+    "t": "CIRCLE"
+   },
+   {
+    "c": [
+     7.0,
+     3.0
+    ],
+    "livello": "FORI",
+    "r": 0.051,
+    "t": "CIRCLE"
+   },
+   {
+    "c": [
+     10.5,
+     3.0
+    ],
+    "livello": "FORI",
+    "r": 0.051,
+    "t": "CIRCLE"
+   },
+   {
+    "grezzo": "a^ b ? x y",
+    "h": 0.15,
+    "livello": "FORI",
+    "mostrato": "a^b ? x y",
+    "p": [
+     10.566,
+     3.0
+    ],
+    "recupero": "a^ b ? x y",
+    "t": "TEXT"
+   },
+   {
+    "c": [
+     14.0,
+     3.0
+    ],
+    "livello": "FORI",
+    "r": 0.051,
+    "t": "CIRCLE"
+   },
+   {
+    "c": [
+     17.5,
+     3.0
+    ],
+    "livello": "FORI",
+    "r": 0.051,
+    "t": "CIRCLE"
+   },
+   {
+    "grezzo": "7",
+    "h": 0.15,
+    "livello": "FORI",
+    "mostrato": "7",
+    "p": [
+     17.566,
+     3.0
+    ],
+    "recupero": "7",
+    "t": "TEXT"
+   },
+   {
+    "chiusa": false,
+    "livello": "FRONTE",
+    "t": "POLYLINE",
+    "v": [
+     [
+      -2.0,
+      0.4
+     ],
+     [
+      3.0,
+      -0.2
+     ],
+     [
+      8.5,
+      0.35
+     ],
+     [
+      14.0,
+      0.0
+     ]
+    ]
+   }
+  ],
+  "lettore": "normale",
+  "verifica_correzioni": [],
+  "verifica_errori": [],
+  "versione": "AC1009"
+ },
+ "senza_fronte": {
+  "entita": [
+   {
+    "c": [
+     0.0,
+     3.0
+    ],
+    "livello": "FORI",
+    "r": 0.038,
+    "t": "CIRCLE"
+   },
+   {
+    "grezzo": "f1-1",
+    "h": 0.15,
+    "livello": "FORI",
+    "mostrato": "f1-1",
+    "p": [
+     0.049,
+     3.0
+    ],
+    "recupero": "f1-1",
+    "t": "TEXT"
+   },
+   {
+    "c": [
+     3.5,
+     3.0
+    ],
+    "livello": "FORI",
+    "r": 0.038,
+    "t": "CIRCLE"
+   },
+   {
+    "grezzo": "f1-2",
+    "h": 0.15,
+    "livello": "FORI",
+    "mostrato": "f1-2",
+    "p": [
+     3.549,
+     3.0
+    ],
+    "recupero": "f1-2",
+    "t": "TEXT"
+   },
+   {
+    "c": [
+     7.0,
+     3.0
+    ],
+    "livello": "FORI",
+    "r": 0.038,
+    "t": "CIRCLE"
+   },
+   {
+    "grezzo": "f1-3",
+    "h": 0.15,
+    "livello": "FORI",
+    "mostrato": "f1-3",
+    "p": [
+     7.049,
+     3.0
+    ],
+    "recupero": "f1-3",
+    "t": "TEXT"
+   },
+   {
+    "chiusa": false,
+    "livello": "PIEDI",
+    "t": "POLYLINE",
+    "v": [
+     [
+      0.0,
+      3.0
+     ],
+     [
+      0.0,
+      2.303
+     ]
+    ]
+   },
+   {
+    "chiusa": false,
+    "livello": "PIEDI",
+    "t": "POLYLINE",
+    "v": [
+     [
+      3.5,
+      3.0
+     ],
+     [
+      3.5,
+      2.303
+     ]
+    ]
+   },
+   {
+    "chiusa": false,
+    "livello": "PIEDI",
+    "t": "POLYLINE",
+    "v": [
+     [
+      7.0,
+      3.0
+     ],
+     [
+      7.0,
+      2.303
+     ]
+    ]
+   }
+  ],
+  "lettore": "normale",
+  "verifica_correzioni": [],
+  "verifica_errori": [],
+  "versione": "AC1009"
+ },
+ "senza_progetto": {
+  "entita": [
+   {
+    "c": [
+     0.0,
+     3.0
+    ],
+    "livello": "FORI",
+    "r": 0.051,
+    "t": "CIRCLE"
+   },
+   {
+    "grezzo": "f1-1",
+    "h": 0.15,
+    "livello": "FORI",
+    "mostrato": "f1-1",
+    "p": [
+     0.066,
+     3.0
+    ],
+    "recupero": "f1-1",
+    "t": "TEXT"
+   },
+   {
+    "c": [
+     3.5,
+     3.0
+    ],
+    "livello": "FORI",
+    "r": 0.051,
+    "t": "CIRCLE"
+   },
+   {
+    "grezzo": "f1-2",
+    "h": 0.15,
+    "livello": "FORI",
+    "mostrato": "f1-2",
+    "p": [
+     3.566,
+     3.0
+    ],
+    "recupero": "f1-2",
+    "t": "TEXT"
+   },
+   {
+    "c": [
+     7.0,
+     3.0
+    ],
+    "livello": "FORI",
+    "r": 0.051,
+    "t": "CIRCLE"
+   },
+   {
+    "grezzo": "f1-3",
+    "h": 0.15,
+    "livello": "FORI",
+    "mostrato": "f1-3",
+    "p": [
+     7.066,
+     3.0
+    ],
+    "recupero": "f1-3",
+    "t": "TEXT"
+   },
+   {
+    "chiusa": false,
+    "livello": "FRONTE",
+    "t": "POLYLINE",
+    "v": [
+     [
+      -2.0,
+      0.4
+     ],
+     [
+      3.0,
+      -0.2
+     ],
+     [
+      8.5,
+      0.35
+     ],
+     [
+      14.0,
+      0.0
+     ]
+    ]
+   }
+  ],
+  "lettore": "normale",
+  "verifica_correzioni": [],
+  "verifica_errori": [],
+  "versione": "AC1009"
+ },
+ "un_foro": {
+  "entita": [
+   {
+    "c": [
+     0.0,
+     3.0
+    ],
+    "livello": "FORI",
+    "r": 0.051,
+    "t": "CIRCLE"
+   },
+   {
+    "grezzo": "solo",
+    "h": 0.15,
+    "livello": "FORI",
+    "mostrato": "solo",
+    "p": [
+     0.066,
+     3.0
+    ],
+    "recupero": "solo",
+    "t": "TEXT"
+   }
+  ],
+  "lettore": "normale",
+  "verifica_correzioni": [],
+  "verifica_errori": [],
+  "versione": "AC1009"
+ },
+ "vuoto": {
+  "entita": [],
+  "lettore": "normale",
+  "verifica_correzioni": [],
+  "verifica_errori": [],
+  "versione": "AC1009"
+ }
+}

@@ -147,7 +147,14 @@ const UNO_PER_COLLEZIONE = '\n    for (const k of Object.keys(mem)) if (Array.is
 const IERI = '\n    const _g = (n) => new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);';
 
 const CASI = {
-  uno: UNO_PER_COLLEZIONE + RICUCI,
+  /* ⛔ IL NEAR-MISS DELL'«UNO» HA LA DATA DI OGGI MENO DIECI, NON QUELLA DELLA
+     DIMOSTRAZIONE (02/09). `slice(0, 1)` teneva il primo infortunio della
+     dimostrazione, un near-miss con la data ASSOLUTA del 18/05: passati i 90
+     giorni della finestra la pagina diceva — giustamente — «Nessun near-miss
+     nel periodo scelto … Nello storico ce n'è 1», e il banco accusava il
+     prodotto di una frase che non c'era. Le date dei casi si calcolano al
+     caricamento, come dice l'intestazione di `scudo-documenti`. */
+  uno: UNO_PER_COLLEZIONE + RICUCI + IERI + '\n    if (mem.infortuni[0]) mem.infortuni[0].data = _g(10);',
   /* un infortunio E un near-miss (il quadrante del Quadro), un permesso solo e
      CHIUSO (il ramo tranquillo), il DSS rivisto IERI e la scadenza scaduta
      IERI (il promemoria che si copia negli appunti) */

@@ -118,6 +118,9 @@ async function apri(design) {
     if (arg) localStorage.setItem("genesiVolate", JSON.stringify([{ id: "vX", nome: "Fronte Nord 12/07",
       data: "2026-07-12", sintesi: "16 fori", design: arg }]));
   }, design || null);
+  /* senza rete vera in questo contenitore, l'import da gstatic morirebbe da
+     solo dopo ~13 s: lo si taglia subito, come in `genesi-locale.mjs`. */
+  await pg.route("https://www.gstatic.com/**", (r) => r.abort());
   await pg.goto(`http://127.0.0.1:${PORTA}/apps/genesi/genesi.html`, { waitUntil: "domcontentloaded" });
   await pg.waitForTimeout(2500);
   await pg.evaluate(() => {

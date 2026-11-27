@@ -12,8 +12,13 @@
 //   rapportini/{id}: { data, turno, titolo, squadra, prodQta, prodUnita, ora, stato: bozza|inviato }
 //   obiettivi/{id}:  { data, turno, unita, valore }
 //                     (obiettivo del turno: uno per giorno+turno+unità)
-//   checklist/{id}:  { data, turno, squadra, esiti: {"0":"ok"|"no"|"na"}, note, ora }
+//   checklist/{id}:  { data, turno, squadra, esiti: {"0":"ok"|"no"|"na"}, note, ora, chiusaDa? }
 //                     (controlli di inizio turno, uno per giorno+turno+squadra)
+//   briefing/{id}:   { data, turno, squadra, argomento, tenutoDa (id operatore
+//                      o nome), note, ora }
+//                     (il briefing di inizio turno — toolbox talk —, uno per
+//                      giorno+turno+squadra, 11/09: i PRESENTI non si scrivono
+//                      qui, sono quelli dell'appello dello stesso turno)
 //   presenze/{id}:   { data, turno, operatoreId, nome, stato: presente|assente,
 //                      ora, entrata, uscita }
 //                     (appello del turno: chi c'è in cava adesso. `ora` è
@@ -38,7 +43,7 @@
 //                      rapporto di fine turno è un documento datato — vedi
 //                      la ragione per esteso sopra `disponibilitaTurno`)
 //   pianocarico/{id}: { data, turno, foro, x, fila, prof, prog, borr, rit,
-//                       reale, da, squadra }
+//                       reale, da, squadra, idForo }
 //                     (piano di carico volata importato da CSV, ponte Genesi;
 //                      una riga per foro, salvata come il resto dei dati.
 //                      "da" e "squadra" sono CHI ha registrato la carica reale
@@ -49,10 +54,18 @@
 // restano visibili come "senza data", vedi eDelGiorno).
 // ============================================================
 
-import { parseCsvLine, numIt, isIntestazione, csvCell, numeroScritto, oggiISO as oggiISOShell, isoLocale,
-         dataISOEsiste, dataPiuGiorni as dataPiuGiorniShell, conta, plurale, perLettura } from "../../shared/deepwork-id-client/dw-shell.js";
+import { parseCsvLine, numIt, isIntestazione, righeCsvNumerate, csvCell, numeroScritto, oggiISO as oggiISOShell, isoLocale,
+         dataISOEsiste, dataPiuGiorni as dataPiuGiorniShell, conta, plurale, perLettura, mappaColonne, dataIt } from "../../shared/deepwork-id-client/dw-shell.js";
 /* la regola sui numeri dichiarati vive in `shared/`: si importa, non si riscrive */
-import { numeroDichiarato, applicaPercorsi, traduciCancellazioni } from "../../shared/dw-ponti.js";
+import { numeroDichiarato, applicaPercorsi, traduciCancellazioni, chiaveMateriale, scartoPct, scartoLivello,
+         riassuntoVolateDelGiorno, PPV_STRUMENTO } from "../../shared/dw-ponti.js";
+/* le volate del giorno si leggono dal registro di Sentinella con la regola di
+   `shared/` (05/09): qui il nome per la pagina, non una seconda implementazione */
+export { riassuntoVolateDelGiorno } from "../../shared/dw-ponti.js";
+/* lo scarto della carica vive in `shared/` dal 05/09 (lo legge anche Genesi):
+   qui resta il nome di sempre, e il test pretende che sia lo STESSO oggetto */
+export { scartoPct, scartoLivello } from "../../shared/dw-ponti.js";
+import { normalizzaPiano, pianoConsuntivoCsv } from "../../shared/dw-ponti.js";
 /* le pagine lo chiamano col nome di casa: un alias non è una seconda
    implementazione (regola del `shared/`) */
 export { percorsiDi, DW_CANCELLA } from "../../shared/dw-ponti.js";
@@ -204,6 +217,17 @@ export const DEMO = {
     // fermi e la disponibilità del turno non possono che dire «non misurato»,
     // e nel giro di dimostrazione si vedrebbero solo schermate di rifiuto
     { id: "a4", data: OGGI_DEMO, turno: "Mattina", titolo: "Frantoio primario", dettaglio: "Fermo per intasamento tramoggia", squadra: "Squadra C", operatore: "", stato: "anomalia", causale: "Intasamento impianto", fermoMin: 55 },
+    // ⛔ LE DUE FORME DELLA CAUSALE STANNO TUTT'E DUE NELLA DIMOSTRAZIONE, di
+    // proposito. `a4` porta l'ETICHETTA («Intasamento impianto»): è lo storico,
+    // scritto quando `CAUSALI_FERMO` era un elenco di testi e la casella
+    // salvava la parola. `a6` porta la CHIAVE («intasamento-impianto»): è quello
+    // che la casella salva da oggi. Il Pareto li deve sommare nella STESSA
+    // causa — se un giorno non lo facesse, questa coppia lo fa vedere.
+    { id: "a6", data: OGGI_DEMO, turno: "Mattina", titolo: "Nastro trasportatore", dettaglio: "Rullo di rinvio bloccato", squadra: "Squadra C", operatore: "", stato: "anomalia", causale: "intasamento-impianto", fermoMin: 20 },
+    // e una causale che NON sta nell'elenco: finisce in «Altro» ma si conta e
+    // si nomina («1 fermo con una causale non in elenco: «Nebbia»»), perché un
+    // fermo che sparisce dentro «Altro» in silenzio è un Pareto che mente
+    { id: "a7", data: OGGI_DEMO, turno: "Mattina", titolo: "Trasporto al frantoio", dettaglio: "Visibilità nulla sulla pista", squadra: "Squadra B", operatore: "", stato: "anomalia", causale: "Nebbia", fermoMin: 30 },
     { id: "a5", data: OGGI_DEMO, turno: "Mattina", titolo: "Controllo pre-turno mezzi", dettaglio: "completato", squadra: "Squadra B", operatore: "Giulia Verdi", stato: "conclusa" },
   ],
   squadre: [
@@ -247,12 +271,32 @@ export const DEMO = {
     { id: "f2", nome: "Fronte Est", stato: "attivo" },
     { id: "f3", nome: "Fronte Sud", stato: "sospeso" },
   ],
+  // LE VOLATE, lette da Sentinella (ponte P6, 05/09). Nella dimostrazione sono
+  // le stesse cinque di `sentinella-data.js`, identificativi e date compresi:
+  // la prova nella suite pretende che coincidano, per la stessa ragione dei
+  // fronti di Terra. Nessuna è di oggi: la consegna in dimostrazione dice
+  // «nessuna volata registrata oggi», che è la verità del registro copiato.
+  volateSentinella: [
+    /* il dopo-sparo (11/09, unità 116) viaggia con la copia: le stesse ore e la
+       stessa attesa dichiarata di Sentinella, se no la consegna direbbe «non
+       registrato» su una volata che di là è giudicata */
+    { id: "b1", data: "2026-07-17", fronte: "Fronte Nord", nFori: 42, kgTotali: 480, stato: "eseguita", codiceVolata: "GEN-20260717-4f2a1",
+      oraSparo: "10:30", rientroAlle: "11:40", rientroAutorizzatoDa: "Sorvegliante L. Bianchi", attesaDopoSparoMin: 60, kgResi: 0 },
+    { id: "b2", data: "2026-07-03", fronte: "Fronte Est", nFori: 36, kgTotali: 410,
+      oraSparo: "11:10", rientroAlle: "11:55", rientroAutorizzatoDa: "Sorvegliante L. Bianchi", attesaDopoSparoMin: 60, kgResi: 2.5 },
+    { id: "b3", data: "2026-08-04", fronte: "Fronte Sud", nFori: 38, kgTotali: 430, stato: "prevista", codiceVolata: "GEN-20260804-9c71b" },
+    { id: "b4", data: "2026-07-24", fronte: "Fronte Nord", nFori: 34, kgTotali: 390, stato: "eseguita" },
+    { id: "b5", data: "2026-07-10", fronte: "Fronte Est", nFori: 40, kgTotali: 455, stato: "eseguita" },
+  ],
   lavoratoriScudo: [
     { id: "d1", nome: "Mario Rossi", ruolo: "Fochino", attivo: true },
-    { id: "d2", nome: "Luca Bianchi", ruolo: "Escavatorista", attivo: true },
+    /* il giudizio del medico viaggia con la copia (05/09): o2 è Luca Bianchi,
+       schierato nella Squadra A operativa, e in Scudo è NON idoneo; o4 è Paolo
+       Gallo, coi documenti in regola e le prescrizioni del medico */
+    { id: "d2", nome: "Luca Bianchi", ruolo: "Escavatorista", attivo: true, idoneita: "non-idoneo", giudizioIl: "2026-08-20" },
     { id: "d3", nome: "Giulia Verdi", ruolo: "Preposto", attivo: true },
-    { id: "d4", nome: "Anna Neri", ruolo: "Impiegata", attivo: true },
-    { id: "d5", nome: "Paolo Gallo", ruolo: "Autista", attivo: true },
+    { id: "d4", nome: "Anna Neri", ruolo: "Impiegata", attivo: true, idoneita: "idoneo", giudizioIl: "2026-03-11" },
+    { id: "d5", nome: "Paolo Gallo", ruolo: "Autista", attivo: true, idoneita: "prescrizioni", prescrizioni: "Niente lavori in quota; otoprotettori sempre in cabina", giudizioIl: "2026-06-02" },
     { id: "d6", nome: "Franco Riva", ruolo: "Fochino", attivo: true },
     { id: "d7", nome: "Sara Conti", ruolo: "RSPP esterno", attivo: true },
   ],
@@ -267,6 +311,10 @@ export const DEMO = {
   infortuniScudo: [
     { id: "i4", data: "2026-07-06", tipo: "near-miss", gravita: "lieve", giorniAssenza: 0, luogo: "fronte Nord", luogoTipo: "fronte", categoria: "caduta-massi", rapida: true, descrizione: "Blocco staccato dal ciglio durante il disgaggio" },
     { id: "i5", data: OGGI_DEMO, tipo: "near-miss", gravita: "lieve", giorniAssenza: 0, luogo: "Impianto", luogoTipo: "impianto", categoria: "impianto", rapida: true, descrizione: "Riparo del nastro 3 trovato aperto a macchina ferma" },
+  ],
+  // le nomine di Scudo (11/09): Giulia Verdi è il sorvegliante di turno
+  nomineScudo: [
+    { id: "n1", ruolo: "sorvegliante", lavoratoreId: "d3", dal: "2026-02-01", al: null },
   ],
   scadenzeScudo: [
     { id: "s1", lavoratoreId: "d1", tipo: "Visita medica", descrizione: "Visita medica periodica", dataScadenza: "2026-07-02" },
@@ -308,6 +356,13 @@ export const DEMO = {
     { id: "b1", data: OGGI_DEMO, turno: "Mattina", unita: "t", valore: 260 },
   ],
   checklist: [],
+  /* il briefing di oggi per la squadra A, turno di Mattina (11/09): un
+     argomento del giorno, chi lo ha tenuto; i presenti sono quelli
+     dell'appello qui sotto — che è PARZIALE apposta, così il briefing dice
+     «2 presenti, 1 da spuntare» e non un numero tranquillo */
+  briefing: [
+    { id: "br1", data: GIORNI_FA(0), turno: "Mattina", squadra: "Squadra A", argomento: "Volata delle 12:30: sgombero del piazzale, segnali e punto di raccolta", tenutoDa: "o1", note: "", ora: "06:05" },
+  ],
   /* ⛔ L'APPELLO DEL TURNO, NEI SUOI TRE STATI. Era `presenze: []`, e con
      l'elenco vuoto l'appello mostrava tutti «da spuntare»: si legge come «la
      funzione non e' mai stata usata», non come «di queste persone non si sa
@@ -516,10 +571,19 @@ export function obiettivoDi(obiettivi, data, turno, unita) {
 // sopra o sotto. "fatto" viene dalla produzione dei rapportini dello stesso
 // giorno e turno (bozze comprese: la produzione è produzione), oppure dal
 // numero di attività concluse se l'obiettivo è su quelle.
-// livello: ok = raggiunto, warn = vicino (≥85%), atteso = ancora indietro —
-// NON "danger": a inizio turno essere a zero è normale, non un allarme.
+// livello: ok = raggiunto, warn = vicino (≥85%) O indietro rispetto al
+// ritmo del turno (guarda `frazioneTempo`, non null, per distinguere le
+// due ragioni), atteso = ancora indietro ma presto per saperlo — NON
+// "danger": a inizio turno essere a zero è normale, non un allarme.
+// ⛔ 18/09, dalla ricerca continua (Short Interval Control, pratica di
+// settore): "atteso" copriva senza distinzione sia l'inizio turno (normale
+// essere a zero) sia gli ultimi minuti (un ritardo vero, che un
+// supervisore aprirebbe già come azione correttiva). `durate`/`adesso` sono
+// FACOLTATIVI apposta: senza `fineTurno` calcolabile (durata non
+// dichiarata) o senza un orologio da confrontare, il verdetto resta quello
+// di sempre — non si inventa un ripiego temporale su un dato che manca.
 // Pura e testabile; null se l'obiettivo non è un numero positivo.
-export function statoObiettivo(ob, rapportini, attivita) {
+export function statoObiettivo(ob, rapportini, attivita, durate, adesso) {
   const obiettivo = +((ob && ob.valore) ?? NaN);
   if (!ob || !Number.isFinite(obiettivo) || obiettivo <= 0) return null;
   const unita = String(ob.unita || UNITA_PRODUZIONE[0]);
@@ -538,11 +602,26 @@ export function statoObiettivo(ob, rapportini, attivita) {
   fatto = Math.round(fatto * 100) / 100;
   const scarto = Math.round((fatto - obiettivo) * 100) / 100;
   const pct = Math.round(100 * fatto / obiettivo);
+  let livello = pct >= 100 ? "ok" : pct >= 85 ? "warn" : "atteso";
+  let frazioneTempo = null;
+  if (livello === "atteso" && Number.isFinite(adesso)) {
+    const inizio = inizioTurno(ob.data, ob.turno);
+    const fine = fineTurno(durate, ob.data, ob.turno);
+    if (inizio !== null && fine !== null && fine > inizio) {
+      frazioneTempo = Math.round(100 * Math.min(1, Math.max(0, (adesso - inizio) / (fine - inizio))));
+      // indietro rispetto al ritmo lineare del turno: la frazione di
+      // obiettivo fatta è minore della frazione di turno già trascorsa.
+      // Nessuna soglia inventata — un margine non ha una fonte verificata
+      // (la ricerca l'ha cercato e dichiarato "non trovato"), quindi si
+      // confronta il ritmo direttamente, non un ritmo-meno-tolleranza.
+      if (pct < frazioneTempo) livello = "warn";
+    }
+  }
   return {
     data: ob.data, turno: ob.turno, unita, obiettivo, fatto,
     mancante: Math.max(0, Math.round((obiettivo - fatto) * 100) / 100),
-    scarto, pct,
-    livello: pct >= 100 ? "ok" : pct >= 85 ? "warn" : "atteso",
+    scarto, pct, frazioneTempo,
+    livello,
   };
 }
 
@@ -576,9 +655,14 @@ export function storicoSettimana(attivita, rapportini, giorni = 7, oggi = new Da
       // tre guasti mai misurati e quella senza nemmeno un fermo escono dalla
       // stessa parte, «0 min», che è il numero tranquillo dove non è stato
       // misurato niente (stessa regola di `disponibilitaTurno`)
-      const m = Math.max(0, +a.fermoMin || 0);
-      g.minutiFermo += m; g.fermi++;
-      if (!m) g.fermiSenzaMinuti++;
+      // ⛔ E QUI C'ERA LA COPIA DEBOLE (15/09): `Math.max(0, +a.fermoMin || 0)`
+      // tratta un fermo misurato DAVVERO a zero minuti come «senza minuti» —
+      // esattamente il contrario di quello che il commento appena scritto
+      // sopra dichiara. `minutiFermoDi` (definita più sotto, unica fonte)
+      // distingue già `0` da `null`: si chiama lei, non si ricopia il conto.
+      g.fermi++;
+      const grezzo = minutiFermoDi(a);
+      if (grezzo === null) g.fermiSenzaMinuti++; else g.minutiFermo += grezzo;
     }
   }
   for (const r of rapportini || []) {
@@ -707,10 +791,11 @@ export function registrazioniSenzaGiorno(attivita, rapportini) {
   }
   const anomalie = att.filter(a => a.stato === "anomalia");
   let minutiFermo = 0, fermiSenzaMinuti = 0;
+  // ⛔ stessa copia debole di `storicoSettimana` (15/09): un fermo misurato a
+  // zero minuti non è «senza minuti». `minutiFermoDi` distingue le due cose.
   for (const a of anomalie) {
-    const m = Math.max(0, +a.fermoMin || 0);
-    minutiFermo += m;
-    if (!m) fermiSenzaMinuti++;
+    const grezzo = minutiFermoDi(a);
+    if (grezzo === null) fermiSenzaMinuti++; else minutiFermo += grezzo;
   }
   return {
     data: "",
@@ -823,7 +908,7 @@ export function csvStorico(righe, fuori) {
    non c'è nessun fermo — e le due si separano leggendo `stato`, che è la
    colonna accanto. Pura e testabile. */
 export const ATTIVITA_COLONNE = ["data", "turno", "titolo", "dettaglio", "stato",
-  "causale", "minuti_fermo"];
+  "causale", "minuti_fermo", "squadra", "operatore"];
 
 export function csvAttivita(righe) {
   // le anomalie prima: chi apre il file cerca quelle
@@ -833,7 +918,19 @@ export function csvAttivita(righe) {
     const m = minutiFermoDi(a);
     csv += `${a.data || ""};${csvCell(a.turno || "")};${csvCell(a.titolo || "")};`
          + `${csvCell(a.dettaglio || "")};${a.stato || ""};`
-         + `${csvCell(a.stato === "anomalia" ? (a.causale || "") : "")};${m === null ? "" : m}\n`;
+         // ⛔ nel file esce l'ETICHETTA, mai la chiave: chi apre il CSV in un
+         // foglio di calcolo legge «Guasto meccanico», non «guasto-meccanico»;
+         // e chi lo rilegge (`chiaveCausale`) riconosce l'etichetta. Una
+         // causale fuori elenco esce com'è scritta: è un dato, non un errore.
+         + `${csvCell(a.stato === "anomalia" ? descriviCausale(a.causale) : "")};${m === null ? "" : m};`
+         // ⛔ 19/09, dal deep-pass QA su Campo: il file — che il codice stesso
+         // chiama "registro/archivio della giornata, handover" — non portava
+         // MAI chi era assegnato all'attività (squadra/operatore), pur
+         // essendo già mostrato a schermo (`etichettaAssegnazione`) e nel
+         // rapporto stampato. Due colonne separate, non l'etichetta unita:
+         // chi rilegge il file in un foglio di calcolo vuole poter filtrare
+         // per squadra senza spezzare una stringa.
+         + `${csvCell(squadraBase(a.squadra) || "")};${csvCell(String(a.operatore || "").trim())}\n`;
   }
   return csv;
 }
@@ -901,6 +998,70 @@ export function descriviChecklist(st) {
   return st.ok + " a posto · " + st.na + " n.a. · " + st.mancanti + " senza risposta";
 }
 
+/* IL RICONTROLLO DEI FRONTI DOPO IL MALTEMPO (11/09, dalla ricerca del
+   secondo giro). Il D.P.R. 128 vuole i fronti visitati prima del turno E
+   dopo le piogge forti e il disgelo: la lista fissa risponde alla prima
+   metà, e un fronte che regge alle sette può non reggere dopo due ore di
+   pioggia. La voce in più compare SOLO quando il meteo del turno lo chiede,
+   così nei giorni sereni la lista resta corta (una lista lunga diventa una
+   firma finta). La sua chiave negli esiti è l'indice dopo l'ultimo fisso
+   ("9"): stabile, perché la lista fissa non cambia lunghezza. */
+export const VOCE_RICONTROLLO = { area: "Area", testo: "Fronti e cigli ricontrollati dopo la pioggia forte o il disgelo", condizionale: true };
+export const INDICE_RICONTROLLO = CHECKLIST_INIZIO.length;
+// «piogge forti e disgelo» — il cielo del turno; le piste fangose o ghiacciate
+// dicono la stessa cosa dopo, ma il ricontrollo lo chiede la legge sul cielo
+const METEO_RICONTROLLO = ["Pioggia", "Neve o gelo"];
+export function meteoChiedeRicontrollo(m) {
+  return !!m && METEO_RICONTROLLO.includes(String(m.cielo || ""));
+}
+// Le voci della lista di questo turno: le nove fisse, più il ricontrollo se il
+// meteo lo chiede. Senza meteo (o con meteo buono) è LA STESSA lista, non una
+// copia — così chi confronta per identità non si sbaglia.
+export function vociChecklist(meteo) {
+  return meteoChiedeRicontrollo(meteo) ? CHECKLIST_INIZIO.concat([VOCE_RICONTROLLO]) : CHECKLIST_INIZIO;
+}
+// La voce di un indice, ricontrollo compreso: chi legge gli esiti salvati
+// trova "9" anche il giorno dopo, quando il meteo non si passa più.
+const voceDiIndice = (i) => CHECKLIST_INIZIO[+i] || (+i === INDICE_RICONTROLLO ? VOCE_RICONTROLLO : undefined);
+
+/* LE VOCI DI UNA CHECKLIST GIÀ SCRITTA — l'unione, mai la sola fotografia di
+   ADESSO. ⛔ 18/09, dal terzo giro di deep-pass QA, confermato dal vivo:
+   `vociChecklist(meteo)` da sola decide la forma della lista guardando SOLO
+   il meteo attuale. `salvaMeteo` fa un `db.aggiorna` quando il record del
+   turno esiste già — niente impedisce di correggere il meteo a turno aperto.
+   Se il ricontrollo dei fronti era stato risposto "no" mentre pioveva, e il
+   meteo viene corretto dopo (o semplicemente aggiornato con un cielo
+   diverso), `vociChecklist` torna a dare le nove voci fisse: quella risposta
+   smette di essere anche solo ITERATA da `statoChecklist` — sparisce dal
+   conteggio, dallo schermo dal vivo, dal rapporto di fine giornata e dalla
+   consegna di turno. Un "no" di sicurezza (il ricontrollo lo chiede il
+   D.P.R. 128) che si cancella da solo senza che nessuno lo tocchi.
+   La voce resta se il meteo di oggi la chiede GIÀ, oppure se gli esiti
+   salvati hanno già una risposta a quell'indice: una risposta scritta non
+   deve poter sparire per un cambio di meteo successivo. */
+export function vociChecklistSalvata(meteo, esiti) {
+  const base = vociChecklist(meteo);
+  if (base.length > CHECKLIST_INIZIO.length) return base;
+  const e = esiti || {};
+  const rispostoRicontrollo = (e[String(INDICE_RICONTROLLO)] || e[INDICE_RICONTROLLO]) != null;
+  return rispostoRicontrollo ? CHECKLIST_INIZIO.concat([VOCE_RICONTROLLO]) : base;
+}
+
+/* CHI È IL SORVEGLIANTE DI TURNO (11/09). Il registro del mondo comincia dal
+   nome di chi ha guardato, e la denuncia di esercizio nomina il sorvegliante
+   per turno: la nomina vive in Scudo (`nomine`, ruolo `sorvegliante`), e qui
+   si LEGGE, non si tiene una seconda anagrafe. Risponde `{ noto: false }` se
+   Scudo non si è letto (null): «non lo so» non è «nessuno». Con la lettura
+   fatta, `nomi` sono i sorveglianti con nomina attiva oggi — anche zero. */
+export function sorveglianteDiTurno(nomine, lavoratori, oggi = new Date()) {
+  if (!Array.isArray(nomine)) return { noto: false, nomi: [] };
+  const LAV = Array.isArray(lavoratori) ? lavoratori : [];
+  const nomi = nomine
+    .filter((n) => n && String(n.ruolo || "") === "sorvegliante" && nominaAttiva(n, oggi))
+    .map((n) => { const l = LAV.find((x) => x && x.id === n.lavoratoreId); return l && l.nome ? String(l.nome) : "lavoratore " + String(n.lavoratoreId || "?") + " (non in anagrafica)"; });
+  return { noto: true, nomi };
+}
+
 // ══════════════════════════════════════════════════════════════════════
 // PRESENZE DEL TURNO (C3)
 // ══════════════════════════════════════════════════════════════════════
@@ -928,8 +1089,22 @@ export function presenzaDi(presenze, data, turno, operatoreId) {
 // Ritorna { righe:[{operatore, stato, ora}], presenti, assenti, daFare, totale }.
 // Pura e testabile.
 export function appelloTurno(operatori, presenze, data, turno, squadra) {
-  const righe = operatoriDi(operatori, squadra)
-    .filter(o => o.stato !== "non-disponibile")
+  const daRuolo = operatoriDi(operatori, squadra).filter(o => o.stato !== "non-disponibile");
+  /* ⛔ CHI HA GIÀ UNO SPUNTO PER QUESTO TURNO NON SPARISCE SE NEL FRATTEMPO
+     VIENE MESSO "non disponibile": misurato il 15/09 — segnare non
+     disponibile un operatore già presente nell'appello del turno in corso
+     lo toglieva dalla lista SENZA nessun avviso, né come presente né come
+     assente: proprio l'inverso del principio scritto sopra ("non lo so" e
+     "non c'è" non sono la stessa risposta), applicato al TEMPO invece che
+     al dato mancante. Chi ha uno spunto vero resta, con quello spunto. */
+  const idGiaInRuolo = new Set(daRuolo.map(o => o.id));
+  const s = squadraBase(squadra);
+  const conSpuntoOrfano = (operatori || []).filter(o => o
+    && !idGiaInRuolo.has(o.id)
+    && (!s || squadraBase(o.squadra) === s)
+    && presenzaDi(presenze, data, turno, o.id));
+  const righe = [...daRuolo, ...conSpuntoOrfano]
+    .sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "it"))
     .map(o => {
       const p = presenzaDi(presenze, data, turno, o.id);
       return { operatore: o, stato: p ? String(p.stato || "") : "", ora: (p && p.ora) || "" };
@@ -942,6 +1117,35 @@ export function appelloTurno(operatori, presenze, data, turno, squadra) {
     totale: righe.length,
     completo: righe.length > 0 && presenti + assenti === righe.length,
   };
+}
+
+/* GLI AVVISI DELLA CHIUSURA (15/09, quinto giro di ricerca su Campo):
+   `btn-fir` chiudeva il turno validando SOLO che ci fosse scritto un nome —
+   niente diceva se l'appello era ancora incompleto, un'attività era rimasta
+   "in corso", o un fermo non aveva i suoi minuti. Non è un blocco: un
+   turno si chiude anche con cose in sospeso, è la vita vera della cava
+   passarle al turno dopo. Sono un AVVISO — la stessa distinzione fra
+   "manca il nome di chi consegna" (blocca: senza non è un documento) e
+   "ci sono cose in sospeso" (si dichiara, non si impedisce).
+   Riusa `appelloTurno` (non ricalcola `completo`/`daFare` qui) e
+   `minutiFermoDi` per i fermi. Pura e testabile. */
+export function avvisiChiusuraTurno(attivita, appello) {
+  const app = appello || { completo: true, daFare: 0 };
+  const att = attivita || [];
+  const attivitaAperte = att.filter(a => a && a.stato === "in-corso").length;
+  const anomalie = att.filter(a => a && a.stato === "anomalia");
+  const fermiSenzaMinuti = anomalie.filter(a => minutiFermoDi(a) === null).length;
+  /* ⛔ UN FERMO CON CAUSALE E MINUTI SCRITTI NON È UN FERMO RISOLTO (15/09,
+     dal delta della ricerca sulla consegna di turno): `stato` resta
+     "anomalia" finché nessuno lo conclude, quindi prima di questa riga un
+     impianto ancora fermo, ma con la scheda compilata alla perfezione,
+     spariva dall'avviso appena qualcuno finiva di scriverne i minuti — la
+     stessa faccia dell'assenza di un dato scambiata per un dato favorevole,
+     qui al contrario: un dato PRESENTE scambiato per «risolto». */
+  const fermiDocumentati = anomalie.length - fermiSenzaMinuti;
+  const appelloDaFare = app.completo ? 0 : app.daFare;
+  return { appelloDaFare, attivitaAperte, fermiSenzaMinuti, fermiDocumentati,
+    niente: appelloDaFare === 0 && attivitaAperte === 0 && fermiSenzaMinuti === 0 && fermiDocumentati === 0 };
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -1190,29 +1394,132 @@ export function checklistDi(lista, data, turno, squadra) {
   return trovate.length ? trovate[trovate.length - 1] : null;
 }
 
+/* ⛔ 19/09, dal deep-pass QA su Campo: `rapportoGiornata` e
+   `testoConsegnaTurno` — i due documenti che escono, uno stampato e
+   firmato — componevano la sezione checklist filtrando `CHK` per sola
+   data, SENZA applicare la stessa regola "l'ultima vince" di
+   `checklistDi`, che invece è quella che decide cosa mostra lo schermo.
+   Se per lo stesso (turno, squadra) esistono due record — possibile con
+   una corsa TOCTOU in salvaEsiti, la stessa famiglia di race già chiusa
+   altrove in questo file — i documenti elencano ENTRAMBI mentre lo
+   schermo ne mostra uno solo: una checklist completa e firmata può
+   restare invisibile a schermo ma comparire lo stesso nel documento di
+   consegna, o viceversa. Stessa regola dello schermo, un posto solo:
+   se domani checklistDi cambia criterio, i documenti lo seguono da soli. */
+export function checklistUltimePerTurno(lista, data) {
+  const perSlot = new Map();
+  for (const c of (lista || [])) {
+    if (!c || String(c.data || "") !== String(data || "")) continue;
+    const chiave = String(c.turno || "") + "\u0000" + squadraBase(c.squadra);
+    perSlot.set(chiave, c); // fra due con la stessa chiave, l'ultima nell'ordine dell'array vince
+  }
+  return [...perSlot.values()];
+}
+
 // Causali di fermo STANDARDIZZATE: senza una lista fissa non si può misurare
 // dove si perde tempo (servono categorie confrontabili nel tempo, non testo
 // libero). Sono le voci tipiche di un fermo in cava.
+/* ⛔ CHIAVE E ETICHETTA, NON PIÙ UN ELENCO DI TESTI (03/09). Fino a oggi
+   `CAUSALI_FERMO` era un array di stringhe e l'etichetta italiana faceva da
+   chiave nei record (`attivita.causale`): chi leggeva faceva
+   `CAUSALI_FERMO.includes(a.causale) ? a.causale : "Altro"`. Quindi bastava
+   RINOMINARE una voce — «Attesa mezzo» → «Attesa del mezzo» — perché tutto lo
+   storico di quella causa finisse in «Altro», in silenzio, e il Pareto scendesse
+   senza che niente lo dicesse. È la forma di Flotta (`{chiave, etichetta}`),
+   copiata nella FORMA e non nel contenuto: le due liste parlano di soggetti
+   diversi (qui un'ATTIVITÀ di turno, là una MACCHINA).
+   · la chiave è corta, minuscola, stabile: è quella che il record NUOVO salva;
+   · l'etichetta è la parola che l'utente vede, e si può cambiare;
+   · i record VECCHI portano l'etichetta: `chiaveCausale` la riconosce lo
+     stesso (per testo normalizzato, come `chiaveMateriale` fa per i cumuli),
+     così lo storico non si orfana;
+   · un valore che non è né chiave né etichetta conosciuta va in «Altro» — che
+     resta la categoria del Pareto — ma si CONTA a parte e si nomina
+     (`nonRiconosciute`), perché l'assenza di un dato non è un dato favorevole. */
 export const CAUSALI_FERMO = [
-  "Guasto meccanico",
-  "Mancanza materiale",
-  "Attesa mezzo",
-  "Intasamento impianto",
-  "Meteo",
-  "Manutenzione programmata",
-  "Cambio turno",
-  "Sicurezza",
-  "Altro",
+  { chiave: "guasto-meccanico", etichetta: "Guasto meccanico" },
+  { chiave: "mancanza-materiale", etichetta: "Mancanza materiale" },
+  { chiave: "attesa-mezzo", etichetta: "Attesa mezzo" },
+  { chiave: "intasamento-impianto", etichetta: "Intasamento impianto" },
+  { chiave: "meteo", etichetta: "Meteo" },
+  { chiave: "manutenzione-programmata", etichetta: "Manutenzione programmata" },
+  { chiave: "cambio-turno", etichetta: "Cambio turno" },
+  { chiave: "sicurezza", etichetta: "Sicurezza" },
+  { chiave: "altro", etichetta: "Altro" },
 ];
+// la chiave della categoria residua del Pareto: dove finisce ciò che non ha
+// una causa in elenco (e ciò che non ha causa)
+export const CAUSALE_ALTRO = "altro";
+
+/* La chiave di una causale scritta in QUALUNQUE delle sue forme: la chiave
+   stessa («guasto-meccanico»), l'etichetta con cui lo storico l'ha salvata
+   («Guasto meccanico»), o quella stessa etichetta con maiuscole, accenti e
+   spazi diversi («GUASTO  meccanico»). Il confronto passa da
+   `chiaveMateriale` di `shared/dw-ponti.js`, che è già la regola di casa per
+   «due testi sono lo stesso nome» — riscriverla qui sarebbe una copia.
+   Risponde `null` per un valore vuoto o mai visto: chi chiama decide se quel
+   null è «non indicata» (vuoto) o «non in elenco» (testo sconosciuto), e le
+   due cose non vanno confuse. Pura e testabile. */
+export function chiaveCausale(valore) {
+  const t = chiaveMateriale(valore);
+  if (!t) return null;
+  const v = CAUSALI_FERMO.find(c => c.chiave === t || chiaveMateriale(c.etichetta) === t);
+  return v ? v.chiave : null;
+}
+
+/* L'etichetta di una chiave: «guasto-meccanico» → «Guasto meccanico». Per una
+   chiave che non esiste risponde "" e non inventa una parola — chi ha in mano
+   un testo qualunque e vuole la parola da mostrare usa `descriviCausale`.
+   ⚠️ Flotta esporta una funzione con lo stesso nome sulla SUA tassonomia
+   (macchine, non attività di turno): nome uguale, elenco diverso, come per
+   `CAUSALI_FERMO`. Pura e testabile. */
+export function etichettaCausale(chiave) {
+  const v = CAUSALI_FERMO.find(c => c.chiave === chiave);
+  return v ? v.etichetta : "";
+}
+
+/* La parola da MOSTRARE per una causale salvata in qualunque forma: l'etichetta
+   dell'elenco se la si riconosce, altrimenti il testo com'è stato scritto
+   («Nebbia»), altrimenti "". È l'unico posto che decide come una causale si
+   scrive in un CSV, in un foglio o in una nota per Scudo: le tre uscite
+   passano da qui invece di leggersi `a.causale` da sole. Pura e testabile. */
+export function descriviCausale(valore) {
+  const k = chiaveCausale(valore);
+  return k ? etichettaCausale(k) : String(valore ?? "").trim();
+}
+
+/* I fermi la cui causale NON è in elenco: quanti, e con quali parole (distinte,
+   nell'ordine in cui compaiono). Una causale VUOTA non è «non riconosciuta»: è
+   «non indicata», e la conta `coperturaFermi.senzaCausale`. Qui si contano
+   solo i testi che qualcuno ha scritto e che l'elenco non conosce — cioè i
+   fermi che il Pareto mette in «Altro» senza che l'utente l'abbia scelto.
+   Pura e testabile. */
+export function causaliNonRiconosciute(attivita) {
+  const valori = [];
+  let conto = 0;
+  for (const a of attivita || []) {
+    if (!a || a.stato !== "anomalia") continue;
+    const testo = String(a.causale ?? "").trim();
+    if (!testo || chiaveCausale(testo)) continue;
+    conto++;
+    if (!valori.some(v => chiaveMateriale(v) === chiaveMateriale(testo))) valori.push(testo);
+  }
+  return { conto, valori };
+}
+
+// la categoria del Pareto per un record: l'etichetta della causa riconosciuta,
+// oppure «Altro» (per il testo sconosciuto E per la casella vuota)
+const categoriaCausale = (valore) => etichettaCausale(chiaveCausale(valore) || CAUSALE_ALTRO);
 
 // Riepilogo dei fermi (attività in stato "anomalia") per causale, ordinato
 // per frequenza decrescente. Una causale non riconosciuta o assente
-// confluisce in "Altro". Funzione pura e testabile.
+// confluisce in "Altro" — e quante siano lo dice `causaliNonRiconosciute`,
+// che `paretoFermi` porta con sé. Funzione pura e testabile.
 export function riepilogoFermi(attivita) {
   const conteggi = {};
   for (const a of attivita || []) {
     if (a.stato !== "anomalia") continue;
-    const c = CAUSALI_FERMO.includes(a.causale) ? a.causale : "Altro";
+    const c = categoriaCausale(a.causale);
     conteggi[c] = (conteggi[c] || 0) + 1;
   }
   return Object.entries(conteggi)
@@ -1250,7 +1557,7 @@ export function paretoFermi(attivita) {
   const acc = {};
   for (const a of attivita || []) {
     if (a.stato !== "anomalia") continue;
-    const c = CAUSALI_FERMO.includes(a.causale) ? a.causale : "Altro";
+    const c = categoriaCausale(a.causale);
     const grezzo = minutiFermoDi(a);
     const noto = grezzo !== null;
     if (!acc[c]) acc[c] = { causale: c, conto: 0, minuti: 0, senzaMinuti: 0 };
@@ -1262,7 +1569,12 @@ export function paretoFermi(attivita) {
   const totaleMin = voci.reduce((t, v) => t + v.minuti, 0);
   const senzaMinutiTot = voci.reduce((t, v) => t + v.senzaMinuti, 0);
   const fermiTot = voci.reduce((t, v) => t + v.conto, 0);
-  return { voci, totaleMin, senzaMinutiTot, fermiTot, parziale: senzaMinutiTot > 0 };
+  // ⛔ quanti fermi stanno in «Altro» SENZA che qualcuno l'abbia scelto: chi
+  // disegna il Pareto lo scrive accanto, se no una voce rinominata o un testo
+  // libero sparirebbero nella categoria residua con la faccia di una scelta
+  const nr = causaliNonRiconosciute(attivita);
+  return { voci, totaleMin, senzaMinutiTot, fermiTot, parziale: senzaMinutiTot > 0,
+           nonRiconosciute: nr.conto, valoriNonRiconosciuti: nr.valori };
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -1402,7 +1714,13 @@ export function disponibilitaTurno(attivita, durate, data, turno, chiusure) {
   const par = paretoFermi(delTurno);
   const fermiMin = par.totaleMin;
   const anomalie = delTurno.filter(a => a.stato === "anomalia");
-  const conMinuti = anomalie.filter(a => Math.max(0, +a.fermoMin || 0) > 0).length;
+  // ⛔ QUI LA FUNZIONE SI CONTRADDICEVA DA SOLA (15/09): `par`, due righe sopra,
+  // usa già `minutiFermoDi` (zero è una misura) — ma `conMinuti` rifaceva il
+  // conto con `Math.max(0, +a.fermoMin || 0) > 0`, che tratta un fermo a zero
+  // come mai misurato. Un turno con l'unico fermo cronometrato DAVVERO a zero
+  // minuti risultava «non-calcolabile» pur avendo tutti i dati. Si deriva da
+  // `par`, non si ricalcola: `par.fermiTot` è lo stesso insieme di `anomalie`.
+  const conMinuti = par.fermiTot - par.senzaMinutiTot;
   const out = {
     data: d, turno: t,
     durataMin, fermiMin,
@@ -1752,11 +2070,20 @@ export function orariProposti(durate, data, turno) {
 // bugia della disponibilità calcolata senza denominatore.
 // Pura e testabile.
 export function orariDiTurno(operatori, presenze, data, turno, squadra) {
-  const righe = operatoriDi(operatori, squadra)
-    .filter(o => o.stato !== "non-disponibile")
-    .map(o => ({ operatore: o, presenza: presenzaDi(presenze, data, turno, o.id) }))
-    .filter(x => x.presenza && String(x.presenza.stato || "") === "presente")
-    .map(x => ({ operatore: x.operatore, orari: orariPresenza(x.presenza) }));
+  /* ⛔ FINO AL 15/09 QUESTA RIGA ERA UNA COPIA PIÙ DEBOLE DI `appelloTurno`
+     (chiuso lo stesso giorno, commit `2d6870b9`): filtrava `stato !==
+     "non-disponibile"` PRIMA di guardare lo spunto di presenza, quindi un
+     operatore già spuntato "presente" spariva da qui — insieme alle sue
+     ore lavorate — se il suo stato anagrafico cambiava dopo in
+     "non-disponibile". Trovato da una ricerca mirata sulla stessa famiglia,
+     perché il commit di oggi correggeva `appelloTurno` ma non le sue due
+     sorelle. Si prende l'elenco già corretto invece di reimplementare la
+     stessa unione una terza volta — è la "copia debole" che CLAUDE.md
+     descrive: una regola scritta due volte diverge alla prima modifica di
+     una sola delle due. */
+  const righe = appelloTurno(operatori, presenze, data, turno, squadra).righe
+    .filter(r => r.stato === "presente")
+    .map(r => ({ operatore: r.operatore, orari: orariPresenza(presenzaDi(presenze, data, turno, r.operatore.id)) }));
   const completi = righe.filter(r => r.orari.minuti !== null);
   const parziali = righe.filter(r => r.orari.minuti === null
     && (r.orari.entrata !== null || r.orari.uscita !== null));
@@ -1780,6 +2107,39 @@ export function orariDiTurno(operatori, presenze, data, turno, squadra) {
     minuti: buoni.length ? buoni.reduce((t, r) => t + r.orari.minuti, 0) : null,
     limite: buoni.length && buoni.length < righe.length ? "almeno" : "",
   };
+}
+
+/* CHI C'ERA IN UN TURNO — appello, riposo dal turno precedente (D.Lgs
+   66/2003, art. 7) e orari veri, in un solo oggetto. Fattorizzata il 19/09,
+   dal deep-pass QA su Campo: `rapportoGiornata` e `testoConsegnaTurno` (i
+   due documenti GEMELLI, già sincronizzati più volte oggi su idoneità,
+   checklist, near-miss, volate) rifacevano la stessa costruzione ognuno
+   per conto suo — la copia debole che CLAUDE.md descrive: una regola
+   scritta due volte diverge alla prima modifica di una sola delle due, e
+   qui la seconda copia mancava del tutto (`testoConsegnaTurno` non
+   chiamava mai `appelloTurno`/`riposoDiTurno`). Pura. */
+export function personaleTurno(operatori, presenze, durate, data, turno) {
+  const rip = riposoDiTurno(operatori, presenze, durate, data, turno, "");
+  const per = {}; rip.righe.forEach((r) => { per[r.operatore.id] = r; });
+  const ori = {}; (presenze || []).filter((p) => String(p.data || "") === data && String(p.turno || "") === turno)
+    .forEach((p) => { ori[p.operatoreId] = { rec: p, or: orariPresenza(p) }; });
+  return { turno, app: appelloTurno(operatori, presenze, data, turno, ""), rip, per, ori, qOra: orariDiTurno(operatori, presenze, data, turno, "") };
+}
+
+// LA FRASE DA METTERE IN UN DOCUMENTO per il personale di un turno — presa
+// da `personaleTurno` qui sopra, stessa ragione di `testoRiposo`: una frase
+// che compare in due documenti si scrive una volta sola. Pura.
+export function introPersonaleTurno(x) {
+  const q = x.qOra, mancano = q.parziali + q.senza;
+  return "**Turno " + x.turno + "**: " + x.app.presenti + " " + (x.app.presenti === 1 ? "presente" : "presenti") + " su " + x.app.totale
+    + (x.app.daFare ? ", " + x.app.daFare + " " + (x.app.daFare === 1 ? "non spuntato" : "non spuntati") : "") + "."
+    + (x.rip.sotto ? " **" + x.rip.sotto + " " + (x.rip.sotto === 1 ? "persona ha" : "persone hanno") + " meno di " + RIPOSO_MINIMO_ORE + " ore di riposo dal turno precedente** (D.Lgs 66/2003, art. 7)." : "")
+    + (x.rip.nonMisurabili ? " Per " + x.rip.nonMisurabili + " il riposo non è misurabile." : "")
+    + (q.totale ? (mancano
+        ? " Per **" + mancano + "** " + (mancano === 1 ? "presente" : "presenti") + " su " + q.totale + " manca l'ora di entrata o quella di uscita"
+          + (q.minuti !== null ? "; le ore lavorate note sono **almeno " + oreMinuti(q.minuti) + "**" : "") + "."
+        : " Orari dichiarati per tutti i presenti: **" + oreMinuti(q.minuti) + "** lavorate in totale.") : "")
+    + (q.daControllare ? " **" + q.daControllare + " " + (q.daControllare === 1 ? "riga ha" : "righe hanno") + " orari da controllare.**" : "");
 }
 
 // I turni che vengono PRIMA di uno dato, dal più recente indietro, coprendo
@@ -1952,8 +2312,15 @@ export function testoRiposo(r, fmtData) {
 // più semplice di rendere inutile un controllo di sicurezza.
 // Pura e testabile.
 export function riposoDiTurno(operatori, presenze, durate, data, turno, squadra, giorni = 7) {
-  const righe = operatoriDi(operatori, squadra)
-    .filter(o => o.stato !== "non-disponibile")
+  /* ⛔ FINO AL 15/09 QUESTA RIGA ERA UNA COPIA PIÙ DEBOLE DI `appelloTurno`
+     (chiuso lo stesso giorno, commit `2d6870b9`), nella stessa forma di
+     `orariDiTurno` qui sopra: filtrava `stato !== "non-disponibile"` PRIMA
+     di guardare lo spunto, quindi un operatore già spuntato "presente"
+     spariva dal conto del riposo — e dal rapporto di fine turno che cita
+     l'obbligo di legge (D.Lgs 66/2003, art. 7) — se il suo stato
+     anagrafico cambiava dopo in "non-disponibile". Si prende l'elenco già
+     corretto invece di reimplementare la stessa unione una terza volta. */
+  const righe = appelloTurno(operatori, presenze, data, turno, squadra).righe
     /* ⛔ CHI È STATO SPUNTATO ASSENTE OGGI NON ENTRA, e non è per far pulizia:
        dire «Rossi ha meno di undici ore di riposo» di qualcuno che oggi non è
        venuto è un'accusa falsa su un documento firmato — il riposo prima di un
@@ -1962,11 +2329,8 @@ export function riposoDiTurno(operatori, presenze, durate, data, turno, squadra,
        dentro, perché «non lo so» non è «non c'è» — è la stessa distinzione su
        cui è costruito l'appello, e toglierlo qui vorrebbe dire non guardare il
        riposo proprio di chi nessuno ha ancora visto. */
-    .filter(o => {
-      const p = presenzaDi(presenze, data, turno, o.id);
-      return !(p && String(p.stato || "") === "assente");
-    })
-    .map(o => ({ operatore: o, ...riposoPrimaDelTurno(o.id, presenze, durate, data, turno, giorni) }));
+    .filter(r => r.stato !== "assente")
+    .map(r => ({ operatore: r.operatore, ...riposoPrimaDelTurno(r.operatore.id, presenze, durate, data, turno, giorni) }));
   const conta = (s) => righe.filter(r => r.stato === s).length;
   return {
     righe,
@@ -2103,9 +2467,15 @@ export function csvAppello(operatori, presenze, durate, data, turno, squadra, fm
    `csvStorico` (cella VUOTA quando `senza >= fermi`). Scriverne una terza qui
    sarebbe la stessa regola scritta due volte, la seconda più debole — che in
    questa casa è già costata ventiquattro difetti veri in una notte.
-   ⚠️ «Con i minuti» vuol dire `fermoMin > 0`, esattamente come lo intendono le
-   due sorelle: un fermo dichiarato di zero minuti non è un fermo misurato a
-   zero, è un fermo che nessuno ha cronometrato. */
+   ⛔ E QUESTA RIGA STESSA ERA LA REGOLA SCRITTA PIÙ DEBOLE, misurato il 15/09:
+   diceva «"con i minuti" vuol dire `fermoMin > 0`, un fermo a zero non è
+   misurato a zero» — cioè rifaceva, con un'altra faccia, esattamente il
+   numero tranquillo descritto due paragrafi sopra: un fermo cronometrato
+   DAVVERO a zero minuti (il guasto è durato un istante, o si è risolto da
+   sé) veniva contato come «mai misurato», nella stessa funzione che si
+   vantava di distinguere le due cose. La distinzione vera è quella di
+   `minutiFermoDi`: `null` è «non misurato», qualunque numero — zero compreso
+   — è una misura. Non si ricopia il confronto, si chiama lei. */
 export function fermiPerGiorno(attivita, giorni = 14, oggi = new Date()) {
   const fine = oggiISO(oggi);
   const acc = {};
@@ -2118,10 +2488,10 @@ export function fermiPerGiorno(attivita, giorni = 14, oggi = new Date()) {
     if (!acc[d]) acc[d] = vuota(d);
     acc[d].registrate++;
     if (a.stato === "anomalia") {
-      const m = Math.max(0, +a.fermoMin || 0);
-      acc[d].minuti += m;
+      const grezzo = minutiFermoDi(a);
       acc[d].fermi++;
-      if (m) acc[d].fermiConMinuti++; else acc[d].fermiSenzaMinuti++;
+      if (grezzo === null) acc[d].fermiSenzaMinuti++;
+      else { acc[d].minuti += grezzo; acc[d].fermiConMinuti++; }
     }
   }
   if (!primo) return [];
@@ -2252,6 +2622,33 @@ export function fermiSenzaGiorno(attivita) {
     a && a.stato === "anomalia" && !dataISOEsiste(String(a.data || "").trim())).length;
 }
 
+/* I LAVORI NON CONCLUSI, per la consegna di turno (05/09). Il mondo li chiama
+   «lavori non completati» ed è la voce che il turno entrante legge per prima;
+   lo schermo li aveva fra le urgenze del Quadro, il foglio che passa di mano
+   no. Prima i fermi, poi i lavori in corso, poi i pianificati; chi ce l'ha in
+   carico, e «nessuno in carico» dove l'attività non ha un nome sopra (che è
+   un dato, non un buco: nella dimostrazione due su cinque non ce l'hanno).
+   Ritorna [{ id, titolo, dettaglio, chi, stato, etichetta, causale, minuti }].
+   Pura. */
+export const ETICHETTA_STATO_ATTIVITA = { pianificata: "pianificata", "in-corso": "in corso", anomalia: "fermo / anomalia", conclusa: "conclusa" };
+export function lavoriNonConclusi(attivita) {
+  const ordine = { anomalia: 0, "in-corso": 1, pianificata: 2 };
+  return (attivita || []).filter((a) => a && a.stato !== "conclusa")
+    .map((a) => ({ id: a.id, titolo: String(a.titolo || "").trim() || "(senza titolo)", dettaglio: String(a.dettaglio || "").trim(),
+      chi: String(a.operatore || "").trim() || "nessuno in carico", stato: String(a.stato || ""),
+      etichetta: ETICHETTA_STATO_ATTIVITA[a.stato] || String(a.stato || "stato non indicato"),
+      /* ⛔ PERCHÉ (15/09, dal delta della ricerca sulla consegna di turno):
+         `causale`/`minuti` erano già calcolati altrove nello stesso modulo
+         (`descriviCausale`, `minutiFermoDi`) e non arrivavano mai qui, quindi
+         il turno entrante leggeva «Frantoio primario (fermo per intasamento
+         tramoggia) — [nessuno in carico] [fermo / anomalia]» senza sapere
+         PERCHÉ né DA QUANTI MINUTI — due dati a un `grep` di distanza, mai
+         portati nel testo che il turno successivo legge per primo. */
+      causale: a.stato === "anomalia" ? (descriviCausale(a.causale) || "") : "",
+      minuti: a.stato === "anomalia" ? minutiFermoDi(a) : null }))
+    .sort((x, y) => (ordine[x.stato] ?? 9) - (ordine[y.stato] ?? 9) || x.titolo.localeCompare(y.titolo, "it"));
+}
+
 // Riassunto testuale di un rapportino di turno STRUTTURATO (turno, squadra,
 // produzione, consegne per il turno successivo = handover). Serve alla lista
 // e all'eventuale export/consegna. Stringa vuota se non c'è nulla. Pura e
@@ -2364,18 +2761,35 @@ export function coperturaRapportini(squadre, rapportini) {
   const inviati = new Set(conGiorno
     .map(r => String(r.squadra || "").trim())
     .filter(Boolean));
+  /* ⛔ 18/09, dal secondo giro di deep-pass QA: una squadra il cui rapportino
+     esiste ma senza una data leggibile NON è "senza rapportino" — ha
+     consegnato, solo che quella riga non prova una consegna DI OGGI. Prima
+     `senzaGiorno` era solo un numero che nessun consumatore leggeva: la
+     squadra finiva comunque in `mancanti`, e il documento firmato mostrava
+     la sua riga nella tabella "Rapportini" con "**· senza data**" e, due
+     righe più sotto nella STESSA sezione, "Squadre senza rapportino" con lo
+     stesso nome — due affermazioni opposte sullo stesso fatto. */
+  const inviatiSenzaGiorno = new Set(tutte
+    .filter(r => !dataISOEsiste(String((r || {}).data || "").trim()))
+    .map(r => String(r.squadra || "").trim())
+    .filter(Boolean));
   const righe = (squadre || []).map(q => {
-    const nome = String(q.nome || "");
-    return { squadra: nome, consegnato: inviati.has(nome.split(" — ")[0].trim()) };
+    const nome = String(q.nome || ""), base = nome.split(" — ")[0].trim();
+    return { squadra: nome, consegnato: inviati.has(base), senzaGiorno: !inviati.has(base) && inviatiSenzaGiorno.has(base) };
   });
   const coperte = righe.filter(r => r.consegnato).length;
   const totale = righe.length;
   return {
     coperte, totale,
     pct: totale ? Math.round(100 * coperte / totale) : null,
-    mancanti: righe.filter(r => !r.consegnato).map(r => r.squadra),
-    // quanti sono stati tolti dal conto perché non hanno un giorno: non sono
-    // spariti, semplicemente non provano una consegna di OGGI
+    // davvero senza nessun rapportino oggi: né con data leggibile né senza
+    mancanti: righe.filter(r => !r.consegnato && !r.senzaGiorno).map(r => r.squadra),
+    // ha consegnato, ma la data non si legge: per nome, non solo un conto —
+    // è la squadra che "mancanti" escludeva senza dire perché
+    consegnatoSenzaGiorno: righe.filter(r => r.senzaGiorno).map(r => r.squadra),
+    // quanti rapportini sono stati tolti dal conto perché non hanno un
+    // giorno: non sono spariti, semplicemente non provano una consegna di
+    // OGGI (un conto grezzo: può contare più righe della stessa squadra)
     senzaGiorno: tutte.length - conGiorno.length,
   };
 }
@@ -2457,13 +2871,10 @@ export function parseSquadreCsv(text) {
    `persone: null` («niente zero di comodo», la regola qui sopra). Quello che
    fa perdere la riga è il NOME, che è l'identità. */
 export function scartiSquadreCsv(text) {
-  const righe = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
-    .filter(r => !isIntestazione(r, "nome"));
+  const righe = righeCsvNumerate(text, "nome");
   const persi = [];
-  let nRiga = 0;
   let vuote = 0;
-  for (const riga of righe) {
-    nRiga++;
+  for (const { nRiga, riga } of righe) {
     if (parseSquadreCsv(riga).length) continue;
     const c = parseCsvLine(riga);
     if (c.every(x => String(x == null ? "" : x).trim() === "")) { vuote++; continue; }
@@ -2524,12 +2935,26 @@ export function csvSquadre(squadre) {
 const PIANO_COLONNE = {
   foro: ["foro", "n", "n_foro", "nforo", "numero", "num", "hole", "hole_id"],
   x:    ["x", "x_m", "xm", "posizione", "pos", "distanza"],
-  fila: ["fila", "riga", "row", "serie"],
+  /* ⛔ «fila_m», «borraggio_prog_m» e «ritardo_ms» sono i nomi che GENESI
+     scrive nel piano di carico — cioè nel file per cui questo lettore esiste —
+     e fino al 05/09 non erano in questi elenchi: il piano di Genesi entrava
+     con fila, borraggio e ritardo VUOTI e la finestra diceva «Non ho trovato la
+     colonna di: fila, borraggio, ritardo» a ogni import. Nessuna prova usava
+     l'intestazione vera: tutte quelle di casa scrivevano «fila;prof;prog».
+     Adesso una prova legge l'intestazione DAL SORGENTE di Genesi. */
+  fila: ["fila", "fila_m", "riga", "row", "serie"],
   prof: ["prof", "prof_m", "profm", "profondita", "profondità", "h", "depth", "lunghezza"],
   prog: ["prog", "prog_kg", "carica", "carica_kg", "carica_prog_kg", "kg", "kg_foro", "charge"],
-  borr: ["borr", "borr_m", "borrm", "borraggio", "stemming"],
-  rit:  ["rit", "rit_ms", "ritms", "ritardo", "delay", "ms"],
+  borr: ["borr", "borr_m", "borrm", "borraggio", "borraggio_m", "borraggio_prog_m", "stemming"],
+  rit:  ["rit", "rit_ms", "ritms", "ritardo", "ritardo_ms", "delay", "ms"],
+  /* l'id stabile del foro (05/09): Genesi lo scrive in coda al piano
+     («id_foro»: f2-5 nella maglia, m1 aggiunto a mano) e Campo lo rimanda nel
+     consuntivo, così Genesi accoppia ogni foro alla sua carica reale anche se
+     un foro è stato tolto e i numeri sono scivolati. FACOLTATIVO: un piano
+     senza questa colonna è un piano di ieri, non un piano rotto. */
+  idForo: ["id_foro", "idforo", "id"],
 };
+const PIANO_FACOLTATIVE = ["idForo"];
 const _pulisciNome = (s) => String(s == null ? "" : s).trim().toLowerCase()
   .replace(/\(.*?\)/g, "")                 // «carica (kg)» → «carica»
   .replace(/[^a-z0-9àèéìòù_]+/g, "_")
@@ -2544,15 +2969,17 @@ export function mappaPianoCsv(text) {
   const righe = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean);
   const testa = righe.find(r => isIntestazione(r, "foro"));
   if (!testa) return { conIntestazione: false, indici: null, riconosciute: [], ignorate: [], mancanti: [] };
+  /* la mappa la fa `mappaColonne` di `shared/` (05/09), con nomi ESATTI dopo
+     `_pulisciNome` — «carica (kg)» resta «carica», e «ms» non prende «relief
+     ms per m». Le facoltative non finiscono fra le mancanti: se no ogni file
+     di ieri aprirebbe la finestra «Non ho trovato la colonna di: …» per una
+     colonna che non gli è mai stata chiesta. `conIntestazione` è vero appena
+     la riga dei titoli c'è, come è sempre stato. */
   const celle = parseCsvLine(testa).map(_pulisciNome);
-  const indici = {}, riconosciute = [], ignorate = [];
-  celle.forEach((nome, i) => {
-    const campo = Object.keys(PIANO_COLONNE).find(k => PIANO_COLONNE[k].includes(nome));
-    if (campo && indici[campo] === undefined) { indici[campo] = i; riconosciute.push({ campo, nome, i }); }
-    else if (nome) ignorate.push(nome);
-  });
-  const mancanti = Object.keys(PIANO_COLONNE).filter(k => indici[k] === undefined);
-  return { conIntestazione: true, indici, riconosciute, ignorate, mancanti };
+  const m = mappaColonne(celle, PIANO_COLONNE, { esatto: true, facoltative: PIANO_FACOLTATIVE, conIntestazione: () => true });
+  const indici = {};
+  for (const k of Object.keys(PIANO_COLONNE)) if (m.indici[k] >= 0) indici[k] = m.indici[k];
+  return { conIntestazione: true, indici, riconosciute: m.riconosciute, ignorate: m.ignorate, mancanti: m.mancanti };
 }
 
 export function parsePianoCsv(text) {
@@ -2567,7 +2994,11 @@ export function parsePianoCsv(text) {
         return i === undefined ? "" : c[i];
       };
       return { foro: numIt(g("foro", 0)), x: g("x", 1), fila: g("fila", 2), prof: g("prof", 3),
-               prog: numIt(g("prog", 4)), borr: g("borr", 5), rit: g("rit", 6), reale: null };
+               prog: numIt(g("prog", 4)), borr: g("borr", 5), rit: g("rit", 6), reale: null,
+               /* senza intestazione la posizione 7 non esiste in un file a sette
+                  colonne: resta "" — «non c'è» è una stringa vuota, non un null,
+                  perché è testo e non un numero */
+               idForo: String(g("idForo", 7) || "").trim() };
     })
     .filter(p => p.foro > 0 && p.prog > 0);
 }
@@ -2595,19 +3026,16 @@ export function parsePianoCsv(text) {
    righe di coda come `;;;`, che dopo il `trim` non è vuota e arriva fino al
    filtro. Si contano a parte (`vuote`) e non si dicono. */
 export function scartiPianoCsv(text) {
-  const tutte = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean);
-  const testa = tutte.find(r => isIntestazione(r, "foro"));
-  const righe = tutte.filter(r => !isIntestazione(r, "foro"));
+  const testa = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean).find(r => isIntestazione(r, "foro"));
+  const righe = righeCsvNumerate(text, "foro");
   const m = mappaPianoCsv(text);
   const cella = (c, campo, pos) => {
     const i = m.conIntestazione ? m.indici[campo] : pos;
     return i === undefined ? "" : String(c[i] == null ? "" : c[i]).trim();
   };
   const persi = [];
-  let nRiga = 0;
   let vuote = 0;
-  for (const riga of righe) {
-    nRiga++;
+  for (const { nRiga, riga } of righe) {
     if (parsePianoCsv(testa ? testa + "\n" + riga : riga).length) continue;
     const c = parseCsvLine(riga);
     if (c.every(x => String(x == null ? "" : x).trim() === "")) { vuote++; continue; }
@@ -2666,30 +3094,12 @@ export function foriRipetuti(righe) {
 // con foro e progetto validi (nella collezione possono esserci vecchi documenti
 // di riepilogo import, senza foro) e si riordinano per numero di foro. La
 // carica reale torna a null se non è un numero. Pura e testabile.
-export function normalizzaPiano(righe) {
-  return (righe || [])
-    .map(p => ({ ...p, foro: numIt(p.foro), prog: numIt(p.prog),
-                 reale: Number.isFinite(+p.reale) && p.reale !== null && p.reale !== "" ? +p.reale : null }))
-    .filter(p => p.foro > 0 && p.prog > 0)
-    .sort((a, b) => a.foro - b.foro);
-}
-
 // Ponte progettato-vs-reale (Genesi→Campo): scostamento della carica REALE
 // dal progetto, per foro. Funzioni pure e testabili — sono il cuore del
 // registro che il fochino usa per capire se ha caricato come previsto.
 // scartoPct: frazione |reale-prog|/prog (null se non ancora registrato).
-export function scartoPct(reale, prog) {
-  if (reale == null) return null;
-  return Math.abs(reale - prog) / (prog || 1);
-}
 // scartoLivello: classifica lo scostamento — ok ≤10%, warn ≤25%, oltre danger.
-export function scartoLivello(reale, prog) {
-  const s = scartoPct(reale, prog);
-  if (s == null) return "da-registrare";
-  if (s <= 0.10) return "ok";
-  if (s <= 0.25) return "warn";
-  return "danger";
-}
+// Dal 05/09 tutt'e due stanno in `shared/dw-ponti.js` (vedi l'import in testa).
 // Riepilogo del consuntivo di volata: progettato totale, stimato reale
 // (carica reale dei fori registrati + progetto per quelli ancora da
 // registrare), scostamento % e livello. È il numero che il fochino legge
@@ -2801,42 +3211,34 @@ export function frasiCaricoParziale(par, marca) {
   };
 }
 
-// ── Il consuntivo che torna a Genesi ──────────────────────────────────────
-// Genesi manda a Campo il piano di carico in CSV; Campo gli rimanda indietro,
-// nella STESSA forma (punto e virgola, una riga di intestazione, una riga per
-// foro), quello che è successo davvero. Non è un formato nuovo: sono le sei
-// colonne che Campo esportava già, più tre che mancavano perché il giro si
-// chiudesse davvero:
-//   · scarto_kg   — lo scarto in CHILI e COL SEGNO. scarto_pct è arrotondato
-//                   all'unità e senza verso (è nato per il badge in lista):
-//                   da solo non basta a Genesi, che deve sapere se si è
-//                   caricato in più o in meno e di quanto esattamente.
-//   · squadra     — quale squadra ha caricato.
-//   · operatore   — CHI ha registrato la carica, foro per foro.
-// Le prime sei colonne restano identiche e nello stesso ordine: un file
-// esportato prima di oggi resta leggibile, e chi leggeva solo le prime sei
-// continua a funzionare.
-// carica_reale_kg è scritta GREZZA, senza arrotondamenti: è il dato misurato
-// e nessuno deve toccarlo per strada.
-export const CONSUNTIVO_COLONNE = ["data", "turno", "foro", "carica_prog_kg",
-  "carica_reale_kg", "scarto_pct", "scarto_kg", "squadra", "operatore"];
+// ── Il consuntivo che torna a Genesi ─────────────────────────────────────
+// Dal 05/09 (notte) `CONSUNTIVO_COLONNE`, `normalizzaPiano` e `pianoConsuntivoCsv`
+// vivono in `shared/dw-ponti.js`: li usa anche Genesi, che dal ponte legge il
+// piano di carico dall'organizzazione e lo compone con la STESSA funzione con
+// cui Campo scrive il file — così le due strade non possono divergere. Qui
+// restano gli alias di sempre (identità, non copie).
+export { CONSUNTIVO_COLONNE, normalizzaPiano, pianoConsuntivoCsv, pianoCsvGenesi } from "../../shared/dw-ponti.js";
 
-export function pianoConsuntivoCsv(piano) {
-  const righe = (piano || []).map(p => {
-    const s = scartoPct(p.reale, p.prog);
-    // toFixed(3) toglie SOLO il rumore binario (12,3 − 10 = 2,3000000000000007),
-    // non la precisione della misura: al grammo si è già ben oltre il vero.
-    const dkg = p.reale != null ? +(p.reale - p.prog).toFixed(3) : "";
-    // csvCell SOLO sui campi di testo (turno, squadra, nome): è lì che possono
-    // esserci punti e virgola o virgolette da proteggere. Sui NUMERI non va
-    // usato, perché mette un apostrofo davanti a tutto ciò che comincia per
-    // meno — e uno scarto negativo diventerebbe «'-13,3», cioè testo.
-    return [p.data || "", csvCell(p.turno || ""), p.foro, p.prog,
-            p.reale != null ? p.reale : "",
-            s != null ? Math.round(s * 100) : "",
-            dkg, csvCell(p.squadra || ""), csvCell(p.da || "")].join(";");
-  });
-  return CONSUNTIVO_COLONNE.join(";") + "\n" + righe.join("\n") + (righe.length ? "\n" : "");
+/* IL PIANO DI CARICO DA GENESI COME DATO (05/09, notte): Genesi scrive ogni
+   export nella sua collezione `piani` (chiave `genesiPiani` da soli); qui si
+   legge, si ordina e si carica con la STESSA strada del file — il testo lo
+   ricompone `pianoCsvGenesi` e lo legge `parsePianoCsv`. `null` = Genesi non
+   leggibile, che non è «nessun piano»; la pagina lo dice. */
+export function pianiDaChiave(storage) {
+  try {
+    const st = storage || (typeof globalThis !== "undefined" ? globalThis.localStorage : null);
+    if (!st) return [];
+    const v = JSON.parse(st.getItem("genesiPiani") || "[]");
+    return Array.isArray(v) ? v : [];
+  } catch (e) { return []; }
+}
+export function pianiGenesiOrdinati(piani) {
+  if (!Array.isArray(piani)) return { leggibile: false, piani: [] };
+  const buoni = piani.filter(p => p && Array.isArray(p.righe) && p.righe.length)
+    .map(p => ({ id: p.id != null ? String(p.id) : "", nome: String(p.nome || "").trim() || "Piano di carico",
+                 quando: String(p.quando || ""), nFori: p.righe.length, impronta: String(p.impronta || ""), righe: p.righe }))
+    .sort((a, b) => b.quando.localeCompare(a.quando));
+  return { leggibile: true, piani: buoni };
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -2872,6 +3274,31 @@ export function pianoConsuntivoCsv(piano) {
 // `apps/sentinella/sentinella-data.js`. Il posto giusto è `shared/dw-ponti.js`,
 // con le due app che le ri-esportano — e ci vanno appena `shared/` si libera:
 // finché sono due copie, il giorno in cui una cambia l'altra resta indietro.
+
+/* LE VOLATE DI OGGI NELLA CONSEGNA DI TURNO (ponte P6, 05/09): una riga per
+   volata eseguita, con quello che il turno entrante deve sapere — dove, quanto
+   grande, e se la vibrazione è già stata misurata. Il registro NON leggibile
+   si dice con le sue parole: «non si sanno» non è «non ce ne sono state».
+   Prende il riassunto di `riassuntoVolateDelGiorno` (shared). Pura. */
+export function righeVolateDelGiorno(r) {
+  if (!r || !r.leggibile) return ["Sentinella non raggiungibile: le volate di oggi non si sanno (non vuol dire che non ce ne siano state)"];
+  if (!r.n) return ["nessuna volata registrata oggi in Sentinella"];
+  return r.righe.map(x => {
+    const dove = x.fronte || "fronte non indicato";
+    const quanto = [x.nFori != null ? conta(x.nFori, "foro", "fori") : "", x.kgTotali != null ? numeroIt(x.kgTotali, 0) + " kg" : ""].filter(Boolean).join(", ");
+    const ppv = x.ppv
+      ? "PPV misurata " + numeroIt(x.ppv.valore, 2) + " mm/s"
+        + (x.ppv.fonte === PPV_STRUMENTO
+          ? " dal sismografo" + (x.ppv.punto ? " (" + x.ppv.punto + ")" : "") + (x.ppv.ora ? " alle " + x.ppv.ora : "")
+          : " trascritta a mano")
+      : "PPV non ancora collegata in Sentinella";
+    // il dopo-sparo (11/09): nella consegna si scrive quanto si è aspettato prima
+    // di rientrare — o che l'ora dello sparo non è registrata, che è un'assenza
+    // e non un via libera
+    const dopo = x.dopo ? (x.dopo.stato === "non-registrato" ? " · dopo-sparo: " + x.dopo.perche : " · " + x.dopo.testo) : "";
+    return dove + (quanto ? " — " + quanto : "") + " · " + ppv + dopo;
+  });
+}
 
 export const ORIGINE_FERMO = "fermo";
 // Chi ha generato l'azione. Resta LOCALE al modulo di proposito: `PONTE_APP`
@@ -2909,22 +3336,27 @@ export function anomalieAperte(attivita) {
     .map(a => {
       // una causale fuori dall'elenco standard non si traduce in "Altro" qui:
       // "Altro" è una SCELTA che qualcuno ha fatto, il vuoto è una casella non
-      // compilata, e la bozza le scrive in modo diverso
-      const causale = CAUSALI_FERMO.includes(a.causale) ? a.causale : "";
-      /* ⛔ la guardia PRIMA della conversione: `+null` fa 0 e `Number.isFinite(0)`
-         risponde true, quindi «nessuno ha misurato» diventerebbe «zero minuti
-         persi». Lo zero esplicito conta come non misurato per la stessa ragione
-         per cui il campo della pagina lo mostra vuoto: in cava un fermo che dura
-         zero minuti non è un fermo. */
-      const grezzo = a.fermoMin;
-      const n = (grezzo === null || grezzo === undefined || String(grezzo).trim() === "") ? NaN : +grezzo;
-      const minuti = Number.isFinite(n) && n > 0 ? Math.round(n) : null;
+      // compilata, e la bozza le scrive in modo diverso. Un testo che l'elenco
+      // non conosce («Nebbia») resta com'è scritto — è quello che l'RSPP deve
+      // leggere — e `causaleInElenco` dice che non è una voce dell'elenco
+      const causale = descriviCausale(a.causale);
+      const causaleInElenco = chiaveCausale(a.causale) !== null;
+      /* ⛔ ERA LA STESSA COPIA DEBOLE di `storicoSettimana`/`registrazioniSenzaGiorno`/
+         `fermiPerGiorno`/`disponibilitaTurno`, chiusa il 15/09 — e con la sua
+         stessa giustificazione difensiva capovolta: «lo zero esplicito conta
+         come non misurato... in cava un fermo che dura zero minuti non è un
+         fermo» è la frase che descrive l'errore, non la regola. Un fermo
+         cronometrato DAVVERO a zero minuti è una misura (si è fermato e non
+         è costato niente); l'assenza è `null`, non `0`. `minutiFermoDi` è
+         l'unica fonte, non se ne ricopia il confronto. */
+      const grezzo = minutiFermoDi(a);
+      const minuti = grezzo === null ? null : Math.round(grezzo);
       const data = String(a.data || "").slice(0, 10);
       return {
         a, id: a.id,
         titolo: String(a.titolo || "").trim() || "Attività senza titolo",
         dettaglio: String(a.dettaglio || "").trim(),
-        causale, minuti,
+        causale, causaleInElenco, minuti,
         minutiTesto: minutiFermoTesto(minuti, 1, minuti === null ? 1 : 0),
         data, turno: String(a.turno || ""),
         squadra: squadraBase(a.squadra) || "",
@@ -2977,7 +3409,7 @@ export function bozzaAzioneFermo(f, opts = {}) {
   const nota = "Fermo di produzione (Campo) — " + f.titolo + quando
     + (f.turno ? ", turno " + f.turno : "")
     + (f.squadra ? " · " + f.squadra : "")
-    + " · causale: " + (f.causale || "non indicata")
+    + " · causale: " + (f.causale ? f.causale + (f.causaleInElenco === false ? " (non in elenco)" : "") : "non indicata")
     + " · tempo perso: " + f.minutiTesto
     + (f.dettaglio ? " · «" + f.dettaglio + "»" : "");
   return {
@@ -3078,7 +3510,7 @@ export function coperturaFermi(attivita, azioni) {
    sono cadute con «statoRisposta is not defined» nel giro dopo. È il modo in
    cui una ri-esportazione fatta a metà si vede subito invece che in
    produzione. */
-import { azioniDiOrigine, statoPonte } from "../../shared/dw-ponti.js";
+import { azioniDiOrigine, statoPonte, nominaAttiva, idoneitaDiTurno, inTurnoOggi } from "../../shared/dw-ponti.js";
 export {
   ESITI_TURNO, statoScadenzaHSE, idoneitaOperatore, idoneitaDiTurno, inTurnoOggi,
 } from "../../shared/dw-ponti.js";
@@ -3159,19 +3591,469 @@ export function segnalazioniDelTurno(infortuni, data, turno) {
 // perché è il posto dove Campo decide come si racconta un conteggio che
 // potrebbe non essere stato fatto — la stessa ragione per cui `minutiFermoTesto`
 // non vive nell'HTML. `null` quando non c'è niente da dire.
-export function testoSegnalazioniTurno(s) {
+// ⛔ `senzaCoda` (17/09, censimento a doppio punto di chiamata): chi chiama
+// una volta sola per il turno in corso (lo schermo) vuole anche la coda sul
+// turno ignoto. Chi chiama TRE volte, una per turno, per comporre un unico
+// documento (`testoConsegnaTurno`) NO: `s.turnoIgnoto` è lo STESSO insieme
+// indipendentemente dal turno chiesto (`segnalazioniDelTurno` non lo
+// filtra), quindi senza questo parametro lo stesso near-miss senza turno
+// veniva scritto tre volte — una per ciascuna riga "- turno Mattina/
+// Pomeriggio/Notte: ..." — e un lettore ne contava tre invece di uno.
+export function testoSegnalazioniTurno(s, senzaCoda) {
   if (!s) return null;
   if (!s.leggibile) return s.motivo;
   const n = s.delTurno.length;
   const capi = n === 0 ? "" : n === 1 ? "1 near-miss segnalato in questo turno"
     : n + " near-miss segnalati in questo turno";
-  const ign = s.turnoIgnoto.length;
+  const ign = senzaCoda ? 0 : s.turnoIgnoto.length;
   const coda = !ign ? ""
     : (ign === 1 ? "1 altro segnalato oggi senza turno indicato"
                  : ign + " altri segnalati oggi senza turno indicato")
       + " (non si sa se di questo turno)";
   if (!capi && !coda) return null;
   return [capi, coda].filter(Boolean).join(" · ") + ".";
+}
+
+/* IL RAPPORTO DI FINE TURNO STAMPATO, LE SEZIONI (05/09). Stava nella pagina:
+   cento righe di modello HTML che chiamavano le funzioni giuste — `appelloTurno`,
+   `riposoDiTurno`, `paretoFermi`, `disponibilitaTurno`, `totaliProduzione`,
+   `produzioneDi` — ma la COMPOSIZIONE la provava solo il browser, ed è lì che
+   sono vissuti «0/0 attività concluse · 0 anomalie aperte» su una giornata
+   mai registrata e la tabella dei fermi che diceva meno dello schermo. Qui
+   ogni sezione è testo: `{titolo, testo, blocchi: [{intro, tabella: {colonne,
+   righe, totale, vuota}, note}], note}`; la pagina tiene solo HTML e CSS.
+   Nei testi il grassetto si scrive «**così**», il corsivo «*così*», l'a capo
+   «\n»: li rende la pagina. `d`: { oggi (ISO), rapportini e attivita GIÀ del
+   giorno, obiettivi, checklist, meteo, chiusure, squadre, operatori,
+   presenze, durate (archivi interi: si filtrano qui), volateSentinella
+   (ponte P6, `undefined` = non letto) }; `opts.dmy` la data in italiano.
+   Pura. */
+export function rapportoGiornata(d, opts) {
+  const D = d || {}, O = opts || {};
+  const OGGI = String(D.oggi || "");
+  const dmy = O.dmy || ((iso) => dataIt(iso, "senza data"));
+  const RAP_OGGI = D.rapportini || [], ATT_OGGI = D.attivita || [];
+  const OBIE = D.obiettivi || [], CHK = D.checklist || [], MET = D.meteo || [], CHI = D.chiusure || [];
+  const SQU = D.squadre || [], OPER = D.operatori || [], PRE = D.presenze || [], DUR = D.durate || [];
+  const VOL = D.volateSentinella === undefined ? null : D.volateSentinella;
+  /* ⛔ 18/09, dal terzo giro di deep-pass: il giudizio di idoneità (ponte P3
+     con Scudo) non arrivava in NESSUNO dei due documenti che escono da Campo
+     — lo diceva già il Quadro («una persona in turno oggi NON è idonea»), ma
+     il rapporto stampato e FIRMATO taceva del tutto. Stessi input dello
+     stesso widget, stessa regola: il giudizio medico vince su tutto.
+     ⛔ 18/09, dal quinto giro di deep-pass: la frase copriva SOLO `nonIdonei`
+     — uno degli 8 stati che `idoneitaDiTurno` sa dire — mentre il widget
+     gemello di Squadre (index.html) mostra anche `scadute`/`inScadenza`/
+     `conPrescrizioni`. Su una dimostrazione con 1 non idoneo e 3 documenti
+     già scaduti, il rapporto stampato e firmato nominava solo il primo:
+     tre persone con un documento HSE scaduto sparivano dal documento che si
+     consegna a un ispettore. Composta come un elenco di clausole (stessa
+     forma già usata per la settima colonna di `csvRegistroInfortuni`), non
+     un `?:` che può dire una cosa sola. */
+  const LAV_HSE = D.lavoratoriHSE === undefined ? null : D.lavoratoriHSE;
+  const SCAD_HSE = D.scadenzeHSE === undefined ? null : D.scadenzeHSE;
+  const schieratiHSE = LAV_HSE && SCAD_HSE ? inTurnoOggi(OPER, SQU) : null;
+  /* ⛔ 18/09, dal quinto giro di deep-pass: senza il quarto argomento
+     `idoneitaDiTurno` giudica scadute/in-scadenza contro l'orologio VERO del
+     server, non contro il giorno di questo rapporto — nessun caso lo vedeva
+     finché il giudizio guardava solo `nonIdonei`, che non dipende da una
+     data. Stesso `new Date(iso+"T12:00:00")` già usato altrove nel file. */
+  const idonHSE = schieratiHSE ? idoneitaDiTurno(schieratiHSE, LAV_HSE, SCAD_HSE, new Date(OGGI + "T12:00:00")) : null;
+  const clausoleIdoneita = [];
+  if (idonHSE && idonHSE.nonIdonei)
+    clausoleIdoneita.push("**" + (idonHSE.nonIdonei === 1 ? "Una persona in turno oggi NON è idonea" : idonHSE.nonIdonei + " persone in turno oggi NON sono idonee") + "**"
+      + " secondo il medico competente (Scudo) — " + idonHSE.righe.filter((r) => r.stato === "non-idoneo").map((r) => String(r.operatore.nome || "")).join(", ")
+      + ": non va mandata in cava finché il giudizio non cambia.");
+  if (idonHSE && idonHSE.conPrescrizioni)
+    clausoleIdoneita.push((idonHSE.conPrescrizioni === 1 ? "1 persona ha" : idonHSE.conPrescrizioni + " persone hanno") + " prescrizioni del medico da rispettare.");
+  if (idonHSE && idonHSE.scadute)
+    clausoleIdoneita.push("**" + (idonHSE.scadute === 1 ? "1 persona ha un documento scaduto" : idonHSE.scadute + " persone hanno un documento scaduto") + "** fra chi è in turno oggi.");
+  if (idonHSE && idonHSE.inScadenza)
+    clausoleIdoneita.push((idonHSE.inScadenza === 1 ? "1 persona ha" : idonHSE.inScadenza + " persone hanno") + " un documento in scadenza entro trenta giorni.");
+  /* ⛔ 18/09, dal deep-pass sui ponti: mancava l'ottavo stato, «senza data»
+     — un documento con la scadenza illeggibile, né scaduto né in scadenza,
+     ma nemmeno regolare. `idoneitaDiTurno` lo conta da oggi (`senzaData`);
+     prima non c'era nessun contatore da leggere. */
+  if (idonHSE && idonHSE.senzaData)
+    clausoleIdoneita.push((idonHSE.senzaData === 1 ? "1 persona ha" : idonHSE.senzaData + " persone hanno") + " un documento con una data che non si legge.");
+  const avvisoIdoneita = clausoleIdoneita.join(" ");
+  const av = avanzamentoGiornata(ATT_OGGI), fermi = riepilogoFermi(ATT_OGGI), cop = coperturaRapportini(SQU, RAP_OGGI);
+  const pf = paretoFermi(ATT_OGGI);
+  const tp = totaliProduzione(RAP_OGGI), unitaProd = Object.entries(tp.perUnita);
+  const somma = (u) => Object.entries(u).map(([un, q]) => formattaProduzione(q, un)).join(" + ");
+  const ST = { "in-corso": "In corso", pianificata: "Pianificata", conclusa: "Conclusa", anomalia: "ANOMALIA" };
+  const sez = (titolo, testo, blocchi, note) => ({ titolo, testo: testo || "", blocchi: blocchi || [], note: note || [] });
+  const tab = (colonne, righe, extra) => ({ colonne, righe, totale: null, vuota: "", ...(extra || {}) });
+  /* IL QUADRO: dove nessuno ha registrato niente il numero è «—» e la frase
+     dice perché — «0/0 concluse · 0 anomalie» è la riga più tranquilla che il
+     documento sappia dire proprio dove non è stato misurato niente */
+  const quadro = [
+    av.totale ? { n: av.concluse + "/" + av.totale, t: "attività concluse" } : { n: "—", t: "attività: nessuna registrata oggi" },
+    av.totale ? { n: String(av.anomalie), t: av.anomalie === 1 ? "anomalia aperta" : "anomalie aperte" } : { n: "—", t: "anomalie: nessuna attività da cui contarle" },
+    cop.totale ? { n: cop.coperte + "/" + cop.totale, t: "squadre con rapportino" } : { n: "—", t: "squadre: nessuna in anagrafica" },
+    { n: unitaProd.length ? somma(tp.perUnita) : "—", t: "prodotti" },
+  ];
+  const attenzione = [avvisoIdoneita, avvisoSenzaGiorno(ATT_OGGI, RAP_OGGI) || ""].filter(Boolean).join(" ");
+  // checklist di inizio turno chiuse o in corso oggi
+  // le voci sono quelle del turno: col maltempo c'è anche il ricontrollo dei fronti
+  const chkOggi = checklistUltimePerTurno(CHK, OGGI).map((c) => ({ c, st: statoChecklist(c.esiti || {}, vociChecklistSalvata(meteoDi(MET, OGGI, c.turno), c.esiti)) }));
+  const checklist = sez("Checklist di inizio turno", chkOggi.length ? "" : "Nessuna checklist di inizio turno compilata oggi.",
+    chkOggi.length ? [{ tabella: tab(["Squadra", "Turno", "Risposte", "Voci non a posto", "Chiusa alle"],
+      chkOggi.map((x) => [String(x.c.squadra || "—"), String(x.c.turno || "—"), descriviChecklist(x.st),
+        /* accanto a ogni voce non a posto, se le azioni di Scudo sono state lette
+           (`D.azioni` è una lista), il semaforo della risposta: «senza azione»
+           è una parola che l'ispettore legge — e se Scudo non si legge non si
+           scrive niente, invece di «senza azione» su un dato che non c'è (11/09) */
+        x.st.problemi.length
+          ? (Array.isArray(D.azioni)
+              ? vociNonAPosto(x.c, D.azioni).map((v) => v.testo + " (" + (v.risposta.n ? v.risposta.label.toLowerCase() : "senza azione") + ")").join("; ")
+              : x.st.problemi.join("; "))
+          : "nessuna",
+        // chi l'ha chiusa: senza nome si scrive «senza nome», non si tace
+        x.c.ora ? String(x.c.ora) + (x.c.chiusaDa ? " da " + String(x.c.chiusaDa) : " (senza nome)") : "non chiusa"])) }] : []);
+  // il briefing di inizio turno (11/09): argomento, chi lo ha tenuto e i
+  // presenti dell'appello — con quelli non spuntati detti, non contati presenti
+  const BRI = D.briefing || [];
+  const briOggi = BRI.filter((b) => b && String(b.data || "") === OGGI);
+  const briefing = sez("Briefing di inizio turno", briOggi.length ? "" : "Nessun briefing di inizio turno registrato oggi.",
+    briOggi.length ? [{ tabella: tab(["Squadra", "Turno", "Argomento", "Tenuto da", "Presenti", "Alle"],
+      briOggi.map((b) => { const r = riassuntoBriefing(b, OPER, PRE);
+        return [String(b.squadra || "—"), String(b.turno || "—"), r.argomento, r.tenutoDa, r.presentiTesto, String(b.ora || "—")]; })) }] : []);
+  const metOggi = TURNI.map((t) => meteoDi(MET, OGGI, t)).filter((m) => m && riassuntoMeteo(m));
+  const meteo = sez("Meteo e condizioni del sito", metOggi.length ? "" : "Meteo e condizioni del sito non registrati oggi.",
+    metOggi.length ? [{ tabella: tab(["Turno", "Condizioni", "Note sul sito"],
+      metOggi.map((m) => [String(m.turno), riassuntoMeteo(m), String(m.note || "—")])) }] : []);
+  /* LE VOLATE DI OGGI (ponte P6, 15/09 — dal delta della ricerca sul
+     "mestiere della cava"): `testoConsegnaTurno`, il documento SORELLA di
+     questo, le legge già; questo rapporto — quello stampato e FIRMATO — non
+     le aveva mai lette. Sentinella non raggiungibile si dice con le sue
+     parole (non vuol dire che non ce ne siano state), come già fa la
+     consegna: si riusa `righeVolateDelGiorno`, non se ne riscrive una
+     versione più debole. */
+  const rv = riassuntoVolateDelGiorno(VOL, OGGI);
+  const volate = sez("Volate del giorno (registro di Sentinella)",
+    !rv || !rv.leggibile ? "Sentinella non raggiungibile: le volate di oggi non si sanno (non vuol dire che non ce ne siano state)."
+      : !rv.n ? "Nessuna volata registrata oggi in Sentinella." : "",
+    rv && rv.leggibile && rv.n ? [{ tabella: tab(["Volata"], righeVolateDelGiorno(rv).map((r) => [r])) }] : []);
+  /* PERSONALE PRESENTE, turno per turno: l'appello, il riposo fra i turni
+     (D.Lgs 66/2003, art. 7) e gli orari veri. Dove non si può misurare il
+     rapporto lo DICHIARA invece di lasciare la cella vuota: una casella bianca
+     su un documento firmato si legge come «niente da segnalare». */
+  const preOggi = TURNI.map((t) => personaleTurno(OPER, PRE, DUR, OGGI, t))
+    .filter((x) => x.app.presenti || x.app.assenti);
+  const personale = sez("Personale presente", preOggi.length ? "" : "Nessun appello registrato oggi.",
+    preOggi.map((x) => {
+      const q = x.qOra;
+      const intro = introPersonaleTurno(x);
+      const righe = x.app.righe.map((r) => {
+        const v = x.ori[r.operatore.id] || {}; const rec = v.rec || {}, o = v.or || {};
+        const presente = r.stato === "presente";
+        // per chi non è presente gli orari «—» (non lo riguardano); per chi è
+        // presente e non li ha, la cella DICHIARA che non sono stati dichiarati
+        const cel = (t) => (!presente ? "—" : (t || "*non dichiarata*"));
+        return [String(r.operatore.nome || ""), String(r.operatore.ruolo || "—"), squadraBase(r.operatore.squadra) || "—",
+          presente ? "presente" : r.stato === "assente" ? "ASSENTE" : "non spuntato",
+          cel(rec.entrata ? String(rec.entrata) : ""),
+          cel(rec.uscita ? String(rec.uscita) + (o.oltre ? " *(giorno dopo)*" : "") : ""),
+          !presente ? "—" : (o.minuti !== null && o.minuti !== undefined ? oreMinuti(o.minuti) + (o.attendibile === false ? " **(da controllare)**" : "") : "*non calcolabili*"),
+          String(r.ora || ""),
+          x.per[r.operatore.id] ? testoRiposo(x.per[r.operatore.id], dmy) : "non in turno"];
+      });
+      return { intro, tabella: tab(["Nome", "Ruolo", "Squadra", "Stato", "Entrata", "Uscita", "Ore", "Spuntato alle", "Riposo dal turno precedente"], righe) };
+    }));
+  const obOggi = OBIE.filter((o) => String(o.data || "") === OGGI).map((o) => statoObiettivo(o, RAP_OGGI, ATT_OGGI)).filter(Boolean);
+  const qta = (v, u) => (u === UNITA_ATTIVITA ? numeroIt(v, 0) + " attività" : formattaProduzione(v, u));
+  const obiettivo = sez("Obiettivo del turno", obOggi.length ? "" : "Nessun obiettivo impostato per i turni di oggi.",
+    obOggi.length ? [{ tabella: tab(["Turno", "Obiettivo", "Fatto", "Scostamento"],
+      obOggi.map((o) => [String(o.turno), qta(o.obiettivo, o.unita), qta(o.fatto, o.unita) + " (" + o.pct + "%)",
+        segnoIt(o.scarto, 2) + (o.unita === UNITA_ATTIVITA ? " attività" : " " + o.unita)])) }] : []);
+  // le attività, le anomalie prima; la riga di una registrazione senza giorno lo dice
+  const ordR = { anomalia: 0, "in-corso": 1, pianificata: 2, conclusa: 3 };
+  const attivita = sez("Attività", "", [{ tabella: tab(["Turno", "Attività", "Dettaglio", "Assegnata a", "Stato"],
+    ATT_OGGI.slice().sort((a, b) => (ordR[a.stato] ?? 4) - (ordR[b.stato] ?? 4)).map((a) => [
+      String(a.turno || "—") + (senzaGiornoDiLavoro(a) ? " **· senza data**" : ""), String(a.titolo || ""), String(a.dettaglio || ""),
+      etichettaAssegnazione(a) || "da assegnare",
+      (ST[a.stato] || String(a.stato || "")) + (a.stato === "anomalia" && a.causale ? " — " + descriviCausale(a.causale) : "")]),
+    { vuota: "Nessuna attività registrata." }) }]);
+  /* I FERMI PER CAUSALE coi minuti di `paretoFermi`, come lo schermo — non il
+     solo conto di `riepilogoFermi`, che diceva quante volte e non quanto */
+  const noteFermi = [];
+  if (fermi.length && pf.senzaMinutiTot) noteFermi.push(conta(pf.senzaMinutiTot, "fermo", "fermi") + " su " + pf.fermiTot + " senza i minuti registrati: il tempo perso qui sopra è un minimo.");
+  if (fermi.length && pf.nonRiconosciute) noteFermi.push(fraseNonRiconosciute(pf).replace(/^ /, "") + ".");
+  const fermiSez = sez("Fermi per causale",
+    fermi.length ? "" : (ATT_OGGI.length ? "Nessuna anomalia aperta." : "Nessuna attività registrata oggi: non c'è niente da cui contare i fermi. Questa riga non dice che il turno è andato liscio."),
+    fermi.length ? [{ tabella: tab(["Causale", "Anomalie", "Tempo perso"], fermi.map((f) => {
+      const v = pf.voci.find((x) => x.causale === f.causale);
+      return [String(f.causale), String(f.conto), v ? minutiFermoTesto(v.minuti, v.conto, v.senzaMinuti) : "senza minuti"];
+    })) }] : [], noteFermi);
+  // la disponibilità, turno per turno: SOLO i turni che hanno qualcosa
+  const dispOggi = TURNI.map((t) => disponibilitaTurno(ATT_OGGI, DUR, OGGI, t, CHI)).filter((x) => x.durataMin !== null || x.attivita > 0);
+  const disponibilita = sez("Disponibilità del turno",
+    dispOggi.length ? "" : "Nessuna durata di turno dichiarata oggi e nessuna attività da cui misurarla: la disponibilità non è stata calcolata.",
+    dispOggi.length ? [{ tabella: tab(["Turno", "Durata dichiarata", "Fermi", "Tempo perso", "Causale peggiore", "Disponibilità"],
+      dispOggi.map((x) => [String(x.turno), x.durataMin === null ? "non dichiarata" : oreMinuti(x.durataMin),
+        x.fermi + " " + (x.fermi === 1 ? "fermo" : "fermi") + (x.fermiSenzaMinuti ? " (di cui " + x.fermiSenzaMinuti + " senza minuti)" : ""),
+        x.fermi ? minutiFermoTesto(x.fermiMin, x.fermi, x.fermiSenzaMinuti) : "—",
+        x.peggiore ? x.peggiore.causale + " — " + numeroIt(x.peggiore.minuti, 0) + " min su " + x.peggiore.conto + (x.peggiore.conto === 1 ? " fermo" : " fermi") : "—",
+        x.pct === null ? "**non calcolata** — " + x.motivo
+          : (x.parziale ? "al più **" + x.pct + "%**" : "**" + x.pct + "%**") + " (" + oreMinuti(x.lavoratiMin) + " lavorati su " + oreMinuti(x.durataMin) + ")" + (x.parziale ? "\n" + x.motivo : "")])) }] : [],
+    dispOggi.length ? ["Disponibilità = durata dichiarata del turno meno i minuti di fermo registrati sulle attività in anomalia. **Non è l'OEE**: l'OEE moltiplica disponibilità, prestazione e qualità, e prestazione e qualità qui non sono misurate."] : []);
+  /* ⛔ 18/09, dal terzo giro di deep-pass: i near-miss del turno li legge già
+     `testoConsegnaTurno` (il documento GEMELLO di questo, ponte con Scudo) —
+     questo rapporto, quello stampato e FIRMATO, non li aveva mai letti.
+     Stessa composizione, stesso `senzaCoda` per non triplicare il near-miss
+     senza turno (vedi il commento su `testoSegnalazioniTurno`). */
+  const segTurniRap = TURNI.map((t) => ({ turno: t, s: segnalazioniDelTurno(D.infortuniScudo === undefined ? null : D.infortuniScudo, OGGI, t) }));
+  const nonLeggibileRap = segTurniRap.find((x) => !x.s.leggibile);
+  const segnalazioniTxt = nonLeggibileRap ? nonLeggibileRap.s.motivo : (() => {
+    const righeSeg = segTurniRap.map((x) => {
+      const t = testoSegnalazioniTurno(x.s, true);
+      return t ? "Turno " + x.turno + ": " + t : null;
+    }).filter(Boolean);
+    const codaIgnotoRap = testoSegnalazioniTurno({ leggibile: true, delTurno: [], turnoIgnoto: segTurniRap[0].s.turnoIgnoto });
+    if (codaIgnotoRap) righeSeg.push(codaIgnotoRap);
+    return righeSeg.join("\n");
+  })();
+  const segnalazioni = sez("Segnalazioni del turno", segnalazioniTxt || "Nessuna segnalazione oggi.", []);
+  const foto = ATT_OGGI.filter((a) => eFotoValida(a.foto)).map((a) => ({
+    didascalia: "**" + String(a.titolo || "") + "** — turno " + String(a.turno || "—") + (a.causale ? " · " + descriviCausale(a.causale) : "") + (a.fotoOra ? " · scattata alle " + String(a.fotoOra) : ""),
+    src: a.foto }));
+  const produzione = sez("Produzione", unitaProd.length ? "" : "Nessuna produzione registrata.",
+    unitaProd.length ? [{ tabella: tab(["Turno", "Produzione"], tp.perTurno.map((t) => [String(t.turno), somma(t.perUnita)]), { totale: ["Totale", somma(tp.perUnita)] }) }] : []);
+  /* i rapportini: la produzione la legge `produzioneDi`, non il numero grezzo
+     con l'unità grezza accanto (un'unità fuori dall'elenco veniva stampata
+     com'era e sommata come tonnellate due tabelle più giù) */
+  const rapportini = sez("Rapportini", RAP_OGGI.length ? "" : "Nessun rapportino oggi.",
+    RAP_OGGI.length ? [{ tabella: tab(["Titolo", "Squadra · turno", "Produzione", "Consegne al turno dopo", "Stato"], RAP_OGGI.map((r) => {
+      const pr = produzioneDi(r);
+      return [String(r.titolo || ""), String(r.squadra || "—") + (r.turno ? " · " + String(r.turno) : "") + (senzaGiornoDiLavoro(r) ? " **· senza data**" : ""),
+        pr ? formattaProduzione(pr.qta, pr.unita) : String(r.produzione || "—"), String(r.note || "—"), String(r.stato || "") + (r.ora ? " " + String(r.ora) : "")];
+    })) }] : [], [
+      cop.mancanti.length ? "Squadre senza rapportino: " + cop.mancanti.join(", ") + "." : "",
+      // ⛔ 18/09: chi ha consegnato ma con una data illeggibile NON va qui
+      // sopra insieme a chi non ha consegnato niente — è la riga che il
+      // documento contraddiceva da solo (vedi il commento su coperturaRapportini)
+      cop.consegnatoSenzaGiorno.length ? "Consegnato, ma con una data che non si legge (la riga compare comunque sopra, marcata «senza data»; non conta per la copertura di oggi): " + cop.consegnatoSenzaGiorno.join(", ") + "." : "",
+    ].filter(Boolean));
+  // le firme: senza chiusure il rapporto porta le righe vuote da compilare a penna
+  const chiuOggi = CHI.filter((c) => String(c.data || "") === OGGI && c.ora);
+  const chiusura = sez("Chiusura e firme", chiuOggi.length ? "" : "Nessun turno chiuso oggi: questo rapporto **non è stato consegnato** da nessuno.",
+    chiuOggi.length ? [{ tabella: tab(["Turno", "Consegnato da", "Ricevuto da", "Ora", "Note"],
+      chiuOggi.map((c) => [String(c.turno || ""), String(c.consegna || "—"), String(c.ricevuta || "—"), String(c.ora || ""), String(c.note || "")])) }] : []);
+  chiusura.firmeInBianco = !chiuOggi.length;
+  // un turno firmato e poi riaperto va detto, se no la firma non vuol dire niente
+  const riapOggi = CHI.filter((c) => String(c.data || "") === OGGI && riaperture(c).length);
+  const riapertureSez = riapOggi.length ? sez("Riaperture del turno", "", [{ tabella: tab(["Turno", "Riaperto da", "Quando", "Motivo"],
+    riapOggi.flatMap((c) => riaperture(c).map((r) => [String(c.turno || ""), String(r.da || "—"), dmy(r.il || "") + (r.ora ? " " + String(r.ora) : ""), String(r.motivo || "—")]))) }],
+    ["Un turno firmato è stato riaperto per correggerlo: qui è scritto da chi, quando e perché."]) : null;
+  return { titolo: "Rapporto di fine turno", data: dmy(OGGI), quadro, attenzione,
+    sezioni: [checklist, briefing, meteo, volate, personale, obiettivo, attivita, fermiSez, disponibilita, segnalazioni].concat(foto.length ? [{ titolo: "Foto delle anomalie", foto, testo: "", blocchi: [], note: [] }] : [])
+      .concat([produzione, rapportini, chiusura]).concat(riapertureSez ? [riapertureSez] : []),
+    piede: "Generato da Deepwork Campo — registro operativo di giornata; non sostituisce i registri obbligatori." };
+}
+
+/* I FERMI CON UNA CAUSALE CHE L'ELENCO NON CONOSCE, detti a parole (05/09,
+   salita dalla pagina). `html` decide se le parole vanno avvolte (schermo,
+   con `avvolgi`) o nude (testo). Pura. */
+export function fraseNonRiconosciute(pf, html = false, avvolgi = (t) => t) {
+  if (!pf || !pf.nonRiconosciute) return "";
+  const b = (t) => html ? avvolgi(t) : t;
+  const parole = (pf.valoriNonRiconosciuti || []).map(v => "«" + b(v) + "»").join(", ");
+  return (html ? " · " : " ") + (pf.nonRiconosciute === 1
+    ? "1 fermo ha una causale non in elenco (" + parole + ") ed è contato in «Altro»"
+    : pf.nonRiconosciute + " fermi hanno una causale non in elenco (" + parole + ") e sono contati in «Altro»");
+}
+
+/* LA CONSEGNA DI TURNO, IL TESTO INTERO (05/09). Stava nella pagina, cento
+   righe che chiamavano le funzioni giuste — `riassuntoRapportino`,
+   `descriviChecklist`, `lavoriNonConclusi`, `testoSegnalazioniTurno`,
+   `righeVolateDelGiorno`, `minutiFermoTesto` — ma la COMPOSIZIONE la provava
+   solo il browser. Qui la prova anche `run-kpi`: l'ordine delle sezioni, e che
+   nessuna sezione resti vuota (ogni assenza ha la sua riga a parole).
+   `d`: { oggi (ISO), rapportini e attivita GIÀ del giorno, obiettivi,
+   checklist, meteo, chiusure (tutti gli archivi: si filtrano qui),
+   volateSentinella (null = Sentinella non letta), infortuniScudo (null =
+   Scudo non letto) }. `opts.avviso`: la riga dei dati di esempio, decisa
+   dalla pagina (dipende dal modo); `opts.dmy`: la data in italiano. Pura. */
+export function testoConsegnaTurno(d = {}, opts = {}) {
+  const OGGI = String(d.oggi || "");
+  const dmy = opts.dmy || ((iso) => dataIt(iso, "senza data"));
+  const RAP_OGGI = d.rapportini || [], ATT_OGGI = d.attivita || [];
+  const OBIE = d.obiettivi || [], CHK = d.checklist || [], MET = d.meteo || [], CHI = d.chiusure || [];
+  const OPER_C = d.operatori || [], PRE_C = d.presenze || [], DUR_C = d.durate || [];
+  // ⛔ 18/09, dal deep-pass QA su Campo: il documento GEMELLO
+  // (rapportoGiornata, qui sopra) già dice se una voce non a posto ha
+  // un'azione correttiva aperta in Scudo — questo la nominava e basta.
+  const AZI_C = d.azioni === undefined ? null : d.azioni;
+  let txt = "CONSEGNA DI TURNO — " + dmy(OGGI) + "\n\n";
+  txt += String(opts.avviso || "");
+  /* chi non ha il giorno si dichiara anche qui: la consegna è datata in cima
+     e si archivia, e i chili di un rapportino che nessuno ha collocato
+     passerebbero per prodotti oggi */
+  const fuoriOggi = avvisoSenzaGiorno(ATT_OGGI, RAP_OGGI);
+  txt += "RAPPORTINI\n";
+  txt += (RAP_OGGI.length ? RAP_OGGI.map(r => "- " + r.titolo + (riassuntoRapportino(r) ? " — " + riassuntoRapportino(r) : "")
+    + (senzaGiornoDiLavoro(r) ? " [SENZA DATA]" : "") + " [" + r.stato + "]").join("\n") : "- nessun rapportino") + "\n\n";
+  const tp = totaliProduzione(RAP_OGGI), unita = Object.entries(tp.perUnita);
+  txt += "PRODUZIONE\n";
+  txt += (unita.length ? "- totale: " + unita.map(([u, q]) => formattaProduzione(q, u)).join(" + ") + "\n"
+    + tp.perTurno.map(t => "- turno " + t.turno + ": " + Object.entries(t.perUnita).map(([u, q]) => formattaProduzione(q, u)).join(" + ")).join("\n")
+    : "- nessuna produzione registrata") + "\n";
+  txt += (fuoriOggi ? "- ATTENZIONE: " + fuoriOggi + "\n" : "") + "\n";
+  const obT = OBIE.filter(o => String(o.data || "") === OGGI)
+    .map(o => statoObiettivo(o, RAP_OGGI, ATT_OGGI)).filter(Boolean);
+  txt += "OBIETTIVO DEL TURNO\n";
+  txt += (obT.length ? obT.map(o => "- turno " + o.turno + ": "
+    + (o.unita === UNITA_ATTIVITA ? numeroIt(o.fatto, 0) + " su " + numeroIt(o.obiettivo, 0) + " attività concluse"
+                                  : formattaProduzione(o.fatto, o.unita) + " su " + formattaProduzione(o.obiettivo, o.unita))
+    + " (" + o.pct + "%, " + segnoIt(o.scarto, 2) + ")").join("\n")
+    : "- nessun obiettivo impostato") + "\n\n";
+  const chkT = checklistUltimePerTurno(CHK, OGGI);
+  txt += "CHECKLIST DI INIZIO TURNO\n";
+  // «4/9 a posto» nascondeva le voci che nessuno ha guardato: la frase è una sola, `descriviChecklist`
+  txt += (chkT.length ? chkT.map(c => { const s = statoChecklist(c.esiti || {}, vociChecklistSalvata(meteoDi(MET, OGGI, c.turno), c.esiti));
+    // accanto a ogni voce non a posto, se le azioni di Scudo sono state lette
+    // (`AZI_C` è una lista), il semaforo della risposta — stessa forma di
+    // `rapportoGiornata` qui sopra, non una copia debole che nomina il
+    // problema e basta.
+    return "- " + (c.squadra || "—") + " (turno " + (c.turno || "—") + "): " + descriviChecklist(s)
+      + (s.no ? ", NON A POSTO: " + (Array.isArray(AZI_C)
+          ? vociNonAPosto(c, AZI_C).map(v => v.testo + " (" + (v.risposta.n ? v.risposta.label.toLowerCase() : "senza azione") + ")").join("; ")
+          : s.problemi.join("; ")) : "")
+      + (c.ora ? " — chiusa alle " + c.ora + (c.chiusaDa ? " da " + c.chiusaDa : " (senza nome)") : " — non chiusa"); }).join("\n")
+    : "- nessuna checklist compilata") + "\n\n";
+  const briT = (d.briefing || []).filter(b => b && String(b.data || "") === OGGI);
+  txt += "BRIEFING DI INIZIO TURNO\n";
+  txt += (briT.length ? briT.map(b => { const r = riassuntoBriefing(b, d.operatori || [], d.presenze || []);
+    return "- " + (b.squadra || "—") + " (turno " + (b.turno || "—") + "): " + r.argomento + " — tenuto da " + r.tenutoDa
+      + " — presenti: " + r.presentiTesto + (b.ora ? " — alle " + b.ora : ""); }).join("\n")
+    : "- nessun briefing registrato") + "\n\n";
+  /* ⛔ 19/09, dal deep-pass QA su Campo: il documento GEMELLO
+     (rapportoGiornata, qui sopra) ha una sezione "Personale presente" —
+     l'appello e il riposo dal turno precedente (D.Lgs 66/2003, art. 7) —
+     che questa consegna, nata apposta per "le due cose che il turno
+     entrante legge per prime" (vedi più sotto), non aveva MAI avuto:
+     `appelloTurno`/`riposoDiTurno` non comparivano da nessuna parte in
+     questa funzione. Chi entrava in turno non sapeva chi non era ancora
+     stato spuntato né chi aveva meno delle ore di riposo dovute — proprio
+     le due domande che un turno entrante fa per prime sulle persone.
+     Riusa `personaleTurno`/`introPersonaleTurno`, non li ricalcola. */
+  const preOggi_C = TURNI.map(t => personaleTurno(OPER_C, PRE_C, DUR_C, OGGI, t))
+    .filter(x => x.app.presenti || x.app.assenti);
+  txt += "PERSONALE PRESENTE\n";
+  txt += (preOggi_C.length ? preOggi_C.map(x => {
+    const nonSpuntati = x.app.righe.filter(r => r.stato !== "presente" && r.stato !== "assente")
+      .map(r => String(r.operatore.nome || "")).filter(Boolean);
+    const sottoRiposo = x.rip.righe.filter(r => r.stato === "sotto")
+      .map(r => String(r.operatore.nome || "")).filter(Boolean);
+    return "- " + introPersonaleTurno(x).replace(/\*\*/g, "")
+      + (nonSpuntati.length ? " Non spuntati: " + nonSpuntati.join(", ") + "." : "")
+      + (sottoRiposo.length ? " Sotto le ore di riposo: " + sottoRiposo.join(", ") + "." : "");
+  }).join("\n") : "- nessun appello registrato oggi") + "\n\n";
+  const metT = TURNI.map(t => meteoDi(MET, OGGI, t)).filter(m => m && riassuntoMeteo(m));
+  txt += "METEO E CONDIZIONI DEL SITO\n";
+  txt += (metT.length ? metT.map(m => "- turno " + m.turno + ": " + riassuntoMeteo(m)
+    + (m.note ? " — " + m.note : "")).join("\n")
+    : "- non registrato") + "\n\n";
+  // le volate di oggi dal registro di Sentinella (ponte P6): se non si legge, lo si scrive
+  txt += "VOLATE DEL GIORNO (registro di Sentinella)\n";
+  txt += righeVolateDelGiorno(riassuntoVolateDelGiorno(d.volateSentinella === undefined ? null : d.volateSentinella, OGGI)).map(l => "- " + l).join("\n") + "\n\n";
+  // le due cose che il turno entrante legge per prime: i lavori non conclusi e i pericoli segnalati
+  const aperti = lavoriNonConclusi(ATT_OGGI);
+  txt += "LAVORI NON CONCLUSI\n";
+  txt += (aperti.length
+    ? aperti.map(a => "- " + a.titolo + (a.dettaglio ? " (" + a.dettaglio + ")" : "") + " — " + a.chi + " [" + a.etichetta + "]"
+        // il perché e il da quanti minuti, SOLO per i fermi: sono i due dati
+        // che il turno entrante chiede per primi su un impianto ancora fermo
+        + (a.stato === "anomalia" ? " · " + (a.causale || "causale non indicata")
+          + " · " + (a.minuti != null ? numeroIt(a.minuti, 0) + " min" : "minuti non registrati") : "")).join("\n")
+    : "- nessuna attività aperta: tutto quello di oggi è concluso") + "\n\n";
+  /* ⛔ 18/09, dal terzo giro di deep-pass: il giudizio di idoneità (ponte P3
+     con Scudo) non arrivava in NESSUNO dei due documenti, mentre il Quadro
+     schermo già lo mostra. Qui, come là: il giudizio medico vince su tutto.
+     ⛔ 18/09, dal quinto giro di deep-pass: stessa omissione di
+     `rapportoGiornata` qui sopra — solo `nonIdonei`, mai `scadute`/
+     `inScadenza`/`conPrescrizioni`. Elenco di righe, non un `?:` che può
+     dirne una sola. */
+  const LAV_HSE_C = d.lavoratoriHSE === undefined ? null : d.lavoratoriHSE;
+  const SCAD_HSE_C = d.scadenzeHSE === undefined ? null : d.scadenzeHSE;
+  const schieratiHSE_C = LAV_HSE_C && SCAD_HSE_C ? inTurnoOggi(d.operatori || [], d.squadre || []) : null;
+  // ⛔ 18/09, dal quinto giro di deep-pass: stessa correzione di rapportoGiornata qui sopra — il quarto argomento, non l'orologio vero.
+  const idonHSE_C = schieratiHSE_C ? idoneitaDiTurno(schieratiHSE_C, LAV_HSE_C, SCAD_HSE_C, new Date(OGGI + "T12:00:00")) : null;
+  const righeIdoneita = [];
+  if (idonHSE_C && idonHSE_C.nonIdonei)
+    righeIdoneita.push("- " + (idonHSE_C.nonIdonei === 1 ? "1 persona in turno oggi NON è idonea" : idonHSE_C.nonIdonei + " persone in turno oggi NON sono idonee")
+      + " secondo il medico competente (Scudo): " + idonHSE_C.righe.filter((r) => r.stato === "non-idoneo").map((r) => String(r.operatore.nome || "")).join(", ")
+      + ". Non va mandata in cava finché il giudizio non cambia.");
+  if (idonHSE_C && idonHSE_C.conPrescrizioni)
+    righeIdoneita.push("- " + (idonHSE_C.conPrescrizioni === 1 ? "1 persona ha" : idonHSE_C.conPrescrizioni + " persone hanno") + " prescrizioni del medico da rispettare.");
+  if (idonHSE_C && idonHSE_C.scadute)
+    righeIdoneita.push("- " + (idonHSE_C.scadute === 1 ? "1 persona ha un documento scaduto" : idonHSE_C.scadute + " persone hanno un documento scaduto") + " fra chi è in turno oggi.");
+  if (idonHSE_C && idonHSE_C.inScadenza)
+    righeIdoneita.push("- " + (idonHSE_C.inScadenza === 1 ? "1 persona ha" : idonHSE_C.inScadenza + " persone hanno") + " un documento in scadenza entro trenta giorni.");
+  // ⛔ 18/09, dal deep-pass sui ponti: stessa correzione dell'ottavo stato
+  // fatta sopra in rapportoGiornata — «senza data» non aveva un contatore.
+  if (idonHSE_C && idonHSE_C.senzaData)
+    righeIdoneita.push("- " + (idonHSE_C.senzaData === 1 ? "1 persona ha" : idonHSE_C.senzaData + " persone hanno") + " un documento con una data che non si legge.");
+  txt += "IDONEITÀ DEL TURNO\n";
+  txt += (!idonHSE_C
+    ? "- non leggibile: il giudizio del medico competente vive in Scudo e da qui non si riesce a leggere."
+    : righeIdoneita.length ? righeIdoneita.join("\n")
+      : "- nessuna persona in turno oggi risulta non idonea, con documenti scaduti, in scadenza o con una data illeggibile secondo il medico competente (Scudo)") + "\n\n";
+  txt += "SEGNALAZIONI DEL TURNO\n";
+  /* ⛔ 17/09: il turno IGNOTO di `segnalazioniDelTurno` è lo STESSO insieme
+     qualunque turno si chieda (la funzione non lo filtra, di proposito: un
+     near-miss senza turno riguarda potenzialmente tutti). Comporre il
+     documento chiamandola una volta per turno e concatenando col vecchio
+     `testoSegnalazioniTurno` (che include sempre la coda sul turno ignoto)
+     scriveva lo stesso near-miss senza turno tre volte, una per riga — un
+     lettore ne contava tre invece di uno. `senzaCoda=true` toglie la coda
+     dalle righe per-turno; la si aggiunge UNA sola volta in fondo, riusando
+     la stessa funzione (non una sua copia) su un oggetto che porta solo il
+     `turnoIgnoto` vero. */
+  const segTurni = TURNI.map(t => ({ turno: t, s: segnalazioniDelTurno(d.infortuniScudo === undefined ? null : d.infortuniScudo, OGGI, t) }));
+  const nonLeggibile = segTurni.find(x => !x.s.leggibile);
+  if (nonLeggibile) {
+    txt += "- " + nonLeggibile.s.motivo + "\n\n";
+  } else {
+    const righe = segTurni.map(x => {
+      const t = testoSegnalazioniTurno(x.s, true);
+      return t ? (segTurni.length > 1 ? "- turno " + x.turno + ": " : "- ") + t : null;
+    }).filter(Boolean);
+    const codaIgnoto = testoSegnalazioniTurno({ leggibile: true, delTurno: [], turnoIgnoto: segTurni[0].s.turnoIgnoto });
+    if (codaIgnoto) righe.push("- " + codaIgnoto);
+    txt += (righe.length ? righe.join("\n") : "- nessuna segnalazione oggi") + "\n\n";
+  }
+  const chiuT = CHI.filter(c => String(c.data || "") === OGGI && c.ora);
+  txt += "CHIUSURA DEL TURNO\n";
+  txt += (chiuT.length ? chiuT.map(c => "- turno " + c.turno + ": " + riassuntoChiusura(c)
+    + (c.note ? " — " + c.note : "")).join("\n")
+    : "- nessun turno chiuso: consegna non firmata") + "\n";
+  // le riaperture non si nascondono nemmeno qui
+  const riapT = CHI.filter(c => String(c.data || "") === OGGI && riaperture(c).length);
+  if (riapT.length) {
+    txt += "RIAPERTURE DEL TURNO\n";
+    txt += riapT.map(c => riaperture(c).map(r => "- turno " + c.turno + ": "
+      + riassuntoRiapertura(r, dmy)).join("\n")).join("\n") + "\n";
+  }
+  txt += "\n";
+  // i fermi coi minuti, e «senza minuti» dove nessuno li ha misurati
+  const fermi = riepilogoFermi(ATT_OGGI);
+  const pf = paretoFermi(ATT_OGGI);
+  const minutiDi = (causale) => {
+    const v = pf.voci.find(x => x.causale === causale);
+    return v ? minutiFermoTesto(v.minuti, v.conto, v.senzaMinuti) : "senza minuti";
+  };
+  txt += "ANOMALIE / FERMI\n";
+  txt += (fermi.length
+    ? fermi.map(f => "- " + f.causale + ": " + f.conto + " (" + minutiDi(f.causale) + ")").join("\n")
+    : "- nessuna anomalia aperta") + "\n";
+  if (pf.senzaMinutiTot) {
+    txt += "  (" + conta(pf.senzaMinutiTot, "fermo", "fermi") + " su " + pf.fermiTot
+      + " senza i minuti registrati: il tempo perso qui sopra e' un minimo)\n";
+  }
+  if (pf.nonRiconosciute) txt += "  (" + fraseNonRiconosciute(pf, false).trim() + ")\n";
+  return txt;
 }
 
 // Le categorie già segnalate oggi, in parole: serve alla modale per non far
@@ -3231,12 +4113,15 @@ export async function campoData() {
       const read = async (name) =>
         (await getDocs(id.orgCollection(name))).docs.map(d => ({ id: d.id, ...d.data() }));
       api = {
+        // l'organizzazione attiva (11/09): la legge «Scarica tutto» per scriverla nel file
+        orgId: id.orgId,
         attivita: () => read("attivita"),
         squadre: () => read("squadre"),
         operatori: () => read("operatori"),
         rapportini: () => read("rapportini"),
         obiettivi: () => read("obiettivi"),
         checklist: () => read("checklist"),
+        briefing: () => read("briefing"),
         presenze: () => read("presenze"),
         chiusure: () => read("chiusure"),
         meteo: () => read("meteo"),
@@ -3256,48 +4141,39 @@ export async function campoData() {
       // Si apre solo quando serve, così l'avvio di Campo non rallenta. Se Terra
       // non c'è, o se la lettura non è permessa, torna null: la pagina dirà che
       // il confronto non è disponibile, senza inventare uno zero.
-      let idTerra;                     // undefined = mai provato, null = non c'è
-      api.rilieviTerra = async () => {
-        if (idTerra === undefined) {
-          try { idTerra = await DeepworkID.init({ appId: "terra" }); }
-          catch (e) { idTerra = null; }
+      /* ⛔ ERANO CINQUE COPIE DELLA STESSA APERTURA (Terra tre volte, Scudo
+         due) e il ponte con Sentinella sarebbe stata la sesta: una copia nasce
+         da una firma troppo stretta, e la firma qui è l'`appId`. Un'istanza
+         per app, aperta solo quando serve; `null` = non c'è, e chi legge dice
+         «non lo so», non «non ce n'è». */
+      const istanze = {};                // appId → istanza, null = non c'è; chiave assente = mai provato
+      const apriApp = async (appId) => {
+        if (!(appId in istanze)) {
+          try { istanze[appId] = await DeepworkID.init({ appId }); }
+          catch (e) { istanze[appId] = null; }
         }
-        if (!idTerra) return null;
+        return istanze[appId];
+      };
+      const leggiApp = async (appId, nome) => {
+        const s = await apriApp(appId);
+        if (!s) return null;
         try {
-          return (await getDocs(idTerra.orgCollection("rilievi")))
-            .docs.map(d => ({ id: d.id, ...d.data() }));
+          return (await getDocs(s.orgCollection(nome))).docs.map(d => ({ id: d.id, ...d.data() }));
         } catch (e) { return null; }
       };
+      api.rilieviTerra = () => leggiApp("terra", "rilievi");
+      // il piano di carico scritto da Genesi (05/09, notte): sola lettura
+      api.pianiGenesi = () => leggiApp("genesi", "piani");
       // i FRONTI di Terra: servono alla tendina del rapportino, perché il
       // fronte si sceglie da un elenco e si registra col suo identificativo.
       // ⛔ Mai per nome: basta che qualcuno rinomini un fronte e la produzione
       // finisce su quello sbagliato, su un numero che va nella denuncia.
       // Se Terra non c'è torna null, e la tendina lo dice invece di mostrarsi
       // vuota come se non ci fossero fronti.
-      api.frontiTerra = async () => {
-        if (idTerra === undefined) {
-          try { idTerra = await DeepworkID.init({ appId: "terra" }); }
-          catch (e) { idTerra = null; }
-        }
-        if (!idTerra) return null;
-        try {
-          return (await getDocs(idTerra.orgCollection("fronti")))
-            .docs.map(d => ({ id: d.id, ...d.data() }));
-        } catch (e) { return null; }
-      };
+      api.frontiTerra = () => leggiApp("terra", "fronti");
       // e l'autorizzazione, da cui si ricava la densità del materiale: a chi
       // compila un rapportino non si chiede un numero che è già registrato
-      api.autorizzazioniTerra = async () => {
-        if (idTerra === undefined) {
-          try { idTerra = await DeepworkID.init({ appId: "terra" }); }
-          catch (e) { idTerra = null; }
-        }
-        if (!idTerra) return null;
-        try {
-          return (await getDocs(idTerra.orgCollection("autorizzazioni")))
-            .docs.map(d => ({ id: d.id, ...d.data() }));
-        } catch (e) { return null; }
-      };
+      api.autorizzazioniTerra = () => leggiApp("terra", "autorizzazioni");
       // ── PONTE P3 CON SCUDO — SOLA LETTURA ─────────────────────────────
       // Stesso schema del ponte con Terra: seconda istanza dell'SDK sull'app
       // "scudo", stessa organizzazione, percorso costruito da `orgCollection`.
@@ -3306,22 +4182,17 @@ export async function campoData() {
       // Se Scudo non c'è, o la lettura non è permessa, torna null e la schermata
       // dice che non lo sa — non inventa un «tutto a posto», che su un controllo
       // di sicurezza è la bugia peggiore.
-      let idScudo;                     // undefined = mai provato, null = non c'è
-      const apriScudo = async () => {
-        if (idScudo === undefined) {
-          try { idScudo = await DeepworkID.init({ appId: "scudo" }); }
-          catch (e) { idScudo = null; }
-        }
-        return idScudo;
-      };
-      const leggiScudo = async (nome) => {
-        const s = await apriScudo();
-        if (!s) return null;
-        try {
-          return (await getDocs(s.orgCollection(nome))).docs.map(d => ({ id: d.id, ...d.data() }));
-        } catch (e) { return null; }
-      };
+      const apriScudo = () => apriApp("scudo");
+      const leggiScudo = (nome) => leggiApp("scudo", nome);
       api.lavoratoriScudo = () => leggiScudo("lavoratori");
+      // le nomine (11/09): chi è il sorvegliante di turno, da proporre sulla
+      // lista di controllo. Sola lettura, `null` = non lo so.
+      api.nomineScudo = () => leggiScudo("nomine");
+      // ── PONTE P6 CON SENTINELLA — SOLA LETTURA (05/09) ─────────────────
+      // Le volate del registro: la consegna di turno scrive «le volate di oggi»
+      // (fronte, fori, chili, PPV se collegata). Sentinella era l'app che
+      // nessuno leggeva. `null` = non lo so, e la consegna lo scrive così.
+      api.volateSentinella = () => leggiApp("sentinella", "volate");
       api.scadenzeScudo = () => leggiScudo("scadenze");
       // ── PONTE P4 CON SCUDO — L'UNICA SCRITTURA CHE CAMPO FA FUORI CASA ──
       // Le azioni correttive nate dai fermi. Si LEGGONO per sapere a quali
@@ -3358,6 +4229,8 @@ export async function campoData() {
   if (mode !== "live") {
     const mem = JSON.parse(JSON.stringify(DEMO));
     api = {
+      // in dimostrazione non c'è un'organizzazione: `null`, non una stringa finta
+      orgId: null,
       attivita: async () => mem.attivita,
       squadre: async () => mem.squadre,
       operatori: async () => mem.operatori || (mem.operatori = []),
@@ -3365,10 +4238,15 @@ export async function campoData() {
       // in dimostrazione i rilievi non arrivano da Terra: sono finti, ma
       // coerenti coi rapportini d'esempio (vedi DEMO.rilieviTerra)
       rilieviTerra: async () => mem.rilieviTerra || [],
+      // da soli Genesi si legge dalla chiave del browser, come Terra fa con le nuvole
+      pianiGenesi: async () => pianiDaChiave(),
       // in dimostrazione i documenti del personale non arrivano da Scudo: sono
       // finti, ma copiati dalla dimostrazione di Scudo id per id
       lavoratoriScudo: async () => mem.lavoratoriScudo || [],
+      nomineScudo: async () => mem.nomineScudo || [],
       scadenzeScudo: async () => mem.scadenzeScudo || [],
+      // ponte P6: le volate di Sentinella, copiate dalla sua dimostrazione
+      volateSentinella: async () => mem.volateSentinella || [],
       // ponte P4: le azioni correttive che in esercizio stanno in Scudo. In
       // dimostrazione ci sono solo quelle aperte da qui, e si vedono anche
       // aprendo Scudo nello stesso browser (stessa chiave)
@@ -3394,6 +4272,7 @@ export async function campoData() {
       frontiTerra: async () => mem.frontiTerra || [],
       obiettivi: async () => mem.obiettivi || (mem.obiettivi = []),
       checklist: async () => mem.checklist || (mem.checklist = []),
+      briefing: async () => mem.briefing || (mem.briefing = []),
       presenze: async () => mem.presenze || (mem.presenze = []),
       chiusure: async () => mem.chiusure || (mem.chiusure = []),
       meteo: async () => mem.meteo || (mem.meteo = []),
@@ -3407,3 +4286,125 @@ export async function campoData() {
   }
   return { mode, ...api };
 }
+
+// ══════════════════════════════════════════════════════════════════
+// LA VOCE «NON A POSTO» DELLA CHECKLIST APRE UN'AZIONE IN SCUDO (11/09,
+// dalla ricerca a rotazione). Il controllo di inizio turno trovava il
+// difetto e lo scriveva — nel foglio, nella consegna — e lì finiva: nessuno
+// lo portava a qualcuno che lo rimettesse a posto entro una data. È la
+// catena trovato → avvisato → corretto che le ispezioni chiedono di provare,
+// e il ponte esiste già per il fermo macchina: stesso schema, seconda
+// origine. L'identità dell'azione è la checklist (un turno, una squadra) più
+// l'INDICE della voce in `origineVoce`: due voci non a posto della stessa
+// checklist sono due azioni diverse.
+// ══════════════════════════════════════════════════════════════════
+export const ORIGINE_CHECKLIST = "checklist";
+
+// Le azioni nate da UNA voce di UNA checklist (regola di shared/, tipo e voce fissati).
+export function azioniDellaVoce(azioni, checklistId, indice) {
+  return azioniDiOrigine(azioni, ORIGINE_CHECKLIST, checklistId, String(indice));
+}
+
+// La bozza: prepara il record che va nella collezione `azioni` di Scudo; chi
+// la apre cambia testo, responsabile e data prima di confermare. Pura.
+export function bozzaAzioneChecklist(doc, indice, opts = {}) {
+  if (!doc || !doc.id) return null;
+  const v = voceDiIndice(indice);   // ricontrollo compreso ("9")
+  if (!v) return null;
+  const fmt = typeof opts.fmtData === "function" ? opts.fmtData : (d) => d;
+  const nota = "Controllo di inizio turno (Campo) — «" + v.testo + "» non a posto"
+    + (doc.data ? " il " + fmt(doc.data) : "")
+    + (doc.turno ? ", turno " + doc.turno : "")
+    + (doc.squadra ? " · " + doc.squadra : "")
+    + " · area: " + v.area
+    + (doc.ora ? " · checklist chiusa alle " + doc.ora : " · checklist non ancora chiusa")
+    + (doc.note ? " · «" + doc.note + "»" : "");
+  return {
+    descrizione: String(opts.descrizione || ("Rimettere a posto: " + v.testo)).trim(),
+    responsabileId: opts.responsabileId || null,
+    scadenza: String(opts.scadenza || "").slice(0, 10),
+    stato: "aperta", esito: "", dataChiusura: null,
+    origineTipo: ORIGINE_CHECKLIST, origineApp: PONTE_APP,
+    origineId: doc.id, origineVoce: String(+indice),
+    origineData: doc.data || "",
+    origineEtichetta: v.testo + " · " + v.area,
+    origineNota: nota,
+  };
+}
+
+// Le voci non a posto di una checklist, ognuna con le sue azioni e il semaforo
+// della risposta. `azioni === null` = «Scudo non si legge»: `azioni` e
+// `risposta` restano null («non lo so»), non una lista vuota che si leggerebbe
+// «nessuna azione». Pura e testabile.
+export function vociNonAPosto(doc, azioni) {
+  const e = (doc && doc.esiti) || {};
+  const out = [];
+  // il ricontrollo dei fronti entra se ha una risposta: è l'ultimo, quindi gli
+  // indici restano quelli — stessa unione di `vociChecklistSalvata`, qui col
+  // meteo assente perché conta solo se la risposta è già stata scritta.
+  const lista = vociChecklistSalvata(null, e);
+  lista.forEach((v, i) => {
+    if ((e[String(i)] || e[i]) !== "no") return;
+    const az = azioni && doc && doc.id ? azioniDellaVoce(azioni, doc.id, i) : null;
+    out.push({ indice: i, testo: v.testo, area: v.area, azioni: az, risposta: az ? statoPonte(az) : null });
+  });
+  return out;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// IL BRIEFING DI INIZIO TURNO (11/09, dalla ricerca a rotazione). Il toolbox
+// talk del mestiere: cinque-quindici minuti su UN argomento del giorno, con
+// chi lo tiene e chi c'era — ed è il registro che le guide chiamano «la prova
+// di diligenza». Prima era una spunta della checklist («Briefing … fatto»)
+// senza argomento né presenti. I presenti NON sono una seconda lista: sono
+// quelli dell'appello dello stesso turno e squadra, e chi nessuno ha
+// spuntato si dice «da spuntare», non si conta presente (il principio
+// dell'appello, che qui vale uguale).
+// ══════════════════════════════════════════════════════════════════
+export const INDICE_BRIEFING = CHECKLIST_INIZIO.findIndex(v => /briefing/i.test(v.testo));
+
+// Il briefing di quel giorno, turno e squadra (l'ultimo salvato vince). Pura.
+export function briefingDi(lista, data, turno, squadra) {
+  const s = squadraBase(squadra);
+  const trovati = (lista || []).filter(b => b
+    && String(b.data || "") === String(data || "")
+    && String(b.turno || "") === String(turno || "")
+    && squadraBase(b.squadra) === s);
+  return trovati.length ? trovati[trovati.length - 1] : null;
+}
+
+// Chi c'era al briefing: l'appello del turno, con i tre stati. Pura.
+export function presentiAlBriefing(b, operatori, presenze) {
+  if (!b) return { presenti: [], assenti: [], daSpuntare: [], totale: 0, testo: "" };
+  const app = appelloTurno(operatori, presenze, b.data, b.turno, b.squadra);
+  const nomi = (st) => app.righe.filter(r => r.stato === st).map(r => r.operatore.nome);
+  const daSpuntare = app.righe.filter(r => !r.stato).map(r => r.operatore.nome);
+  const presenti = nomi("presente"), assenti = nomi("assente");
+  const testo = !app.totale ? "nessuno in squadra"
+    : presenti.length + " su " + app.totale + (presenti.length ? " (" + presenti.join(", ") + ")" : "")
+      + (daSpuntare.length ? " · " + daSpuntare.length + " da spuntare" : "")
+      + (assenti.length ? " · " + assenti.length + (assenti.length === 1 ? " assente" : " assenti") : "");
+  return { presenti, assenti, daSpuntare, totale: app.totale, testo };
+}
+
+// La riga del briefing per il foglio e la consegna: argomento, chi lo ha
+// tenuto (nome dall'anagrafica se `tenutoDa` è un id, se no com'è scritto) e i
+// presenti. Un argomento vuoto si DICE vuoto. Pura.
+export function riassuntoBriefing(b, operatori, presenze) {
+  const B = b || {};
+  const op = (operatori || []).find(o => o && o.id === B.tenutoDa);
+  const tenutoDa = op ? String(op.nome || "") : (String(B.tenutoDa || "").trim() || "non indicato");
+  const pres = presentiAlBriefing(B.data ? B : null, operatori, presenze);
+  return {
+    argomento: String(B.argomento || "").trim() || "argomento non indicato",
+    tenutoDa, presenti: pres.presenti, daSpuntare: pres.daSpuntare,
+    presentiTesto: pres.testo || "—",
+  };
+}
+
+/* LE COLLEZIONI DI QUESTA APP, dichiarate una volta (11/09): le legge il bottone
+   «Scarica tutto» per comporre il file con tutti i dati, e una prova pretende
+   che l"elenco combaci con le collezioni che il modulo legge davvero
+   (`read("…")`), tolti i ponti verso le altre app. Un elenco a mano che non si
+   confronta col codice invecchia da solo. */
+export const CAMPO_COLLEZIONI = Object.freeze(["attivita", "squadre", "operatori", "rapportini", "obiettivi", "checklist", "briefing", "presenze", "chiusure", "meteo", "durate", "pianocarico"]);
